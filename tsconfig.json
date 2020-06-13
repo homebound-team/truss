@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["ESNext"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "module": "commonjs",
+    "downlevelIteration": true,
+    "noEmit": false,
+    "baseUrl": "src/"
+  }
+}

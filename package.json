@@ -1,0 +1,19 @@
+{
+  "name": "truss",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "generate": "ts-node ./integration-test/generate.ts",
+    "test": "jest"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^26.0.1",
+    "ts-jest": "^26.1.0",
+    "ts-node": "^8.10.2",
+    "ts-poet": "^3.2.2"
+  },
+  "jest": {
+    "preset": "ts-jest"
+  }
+}
