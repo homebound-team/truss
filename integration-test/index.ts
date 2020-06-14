@@ -37,7 +37,7 @@ export type Margin = "marginTop" | "marginBottom" | "marginLeft" | "marginRight"
 
 generate({
   outputPath: "./integration-test/Css.ts",
-  methods: Object.values(methods).flat(),
+  methods,
   increment,
   aliases,
   extras,

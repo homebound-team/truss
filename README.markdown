@@ -1,6 +1,6 @@
 ## truss
 
-truss is a mini-framework for generating a single-file, Tachyons-ish TypeScript DSL for writing CSS-in-JS.
+truss is a mini-framework for generating a single-file, Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, etc).
 
 ### Quick Intro
 
@@ -10,7 +10,7 @@ const css = Css.m2.black.$;
 
 The `css` variable now has object-style CSS-in-JS properties, as if you'd written by hand:
 
-```graphql
+```typescript
 const css = {
   marginTop: "16px",
   marginBottom: "16px",
@@ -28,6 +28,16 @@ function MyReactComponent(props: ...) {
   return <div css={Css.m2.black.$}>content</div>
 }
 ```
+
+### Tweak or Fork
+
+Truss allows either small tweaks to its default output (by pulling in truss via npm and defining your application-specific fonts, colors, and custom rules), or, if you need more drastic changes, the project is meant to be small & simple enough that forking and maintaining your own version indefinitely is doable for most teams.
+
+#### Tweaking
+
+...
+
+#### Forking
 
 ### Files
 
@@ -63,3 +73,8 @@ The benefits of this approach are:
 
 - typed.tw
 - xstyles
+
+### Todo
+
+* Support `number[]` increments
+* Upstream optional font size+letter+spacing support

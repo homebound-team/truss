@@ -8,10 +8,15 @@ import { makeAliases } from "./utils";
 // Class templates = name --> Code
 
 export type GenerateOpts = {
-  /** The flat list of getters/methods, i.e. `get ml1() { ... }`. */
-  methods: string[];
+  /** The output path of the `Css.ts` file. */
   outputPath: string;
+
+  /** The map of "section" to list of getters/methods, i.e. "border-colors" -> `get ml1() { ... }`. */
+  methods: Record<string, string[]>;
+
+  /** Your theme's increment, i.e. 6 or 8. */
   increment: number;
+
   extras: string[];
   aliases: Record<string, string[]>;
 };
@@ -34,7 +39,16 @@ export function generateRules(
 
 export function generateCssBuilder(opts: GenerateOpts): Code {
   const { aliases, methods, increment, extras } = opts;
+
   const Properties = imp("Properties@csstype");
+
+  const lines = Object.entries({
+    ...methods,
+    aliases: makeAliases(aliases),
+  })
+    .map(([name, value]) => [`// ${name}`, ...value, ""])
+    .flat();
+
   return code`
 /** Given a type X, and the user's proposed type X, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
@@ -45,8 +59,7 @@ export type ${def("Properties")} = ${Properties};
 class CssBuilder<T extends ${Properties}> {
   constructor(public rules: T, private enabled: boolean, private _important: boolean) {}
 
-  ${[...methods, ...makeAliases(aliases)].join("\n  ")}
-
+  ${lines.join("\n  ").replace(/ +\n/g, "\n")}
   get $(): T { return maybeImportant(sortObject(this.rules), this._important); }
   
   if(t: boolean) { return new CssBuilder<T>(this.rules, t, this._important); }

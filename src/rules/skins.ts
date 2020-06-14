@@ -17,9 +17,7 @@ export const skinRules: RuleFn = (config) => {
   return [
     ...colors,
     `color(value: string) { return this.add("color", value); }`,
-    "",
     ...backgroundColors,
     `bgColor(value: string) { return this.add("backgroundColor", value); }`,
-    "",
   ];
 };
