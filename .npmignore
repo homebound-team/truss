@@ -2,4 +2,4 @@
 /.circleci
 /bump.sh
 /.idea
-/integration-tests
+/integration-test
