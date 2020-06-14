@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import { Properties } from "csstype";
 import { code, Code, def, imp } from "ts-poet";
-import { RuleConfig, RuleFn } from "./rules";
+import { defaultRuleFns, RuleConfig, RuleFn } from "./rules";
 import { makeAliases } from "./utils";
 
 // Rules = record heights -> string[]
@@ -19,10 +19,10 @@ export type GenerateOpts = {
   increment: number;
 
   /** Any extra chunks of code you want appended to the end of the file. */
-  extras: Array<string | Code>;
+  extras?: Array<string | Code>;
 
   /** Short-hand aliases like `bodyText` --> `["f12", "black"]`. */
-  aliases: Record<string, string[]>;
+  aliases?: Record<string, string[]>;
 
   /** Type aliases for Only clauses, i.e. `Margin` --> `["marginTop", ...]`. `Margin` and `Padding` are provided. */
   typeAliases?: Record<string, Array<keyof Properties>>;
@@ -45,13 +45,20 @@ export async function generate(opts: GenerateOpts): Promise<void> {
   await fs.writeFile(outputPath, output);
 }
 
-/** Give the user's config like colors/fonts/increments, generates the getters/methods from the ruleFns. */
+/** Give the user's config like colors/fonts/increments, generates the getters/methods from the ruleFns.
+ *
+ * Callers can optionally pass in their own `section -> RuleFn` `ruleFns` but we'll also default
+ * to the out-of-the-box Tachyons-ish rules defined in `defaultRuleFns`.
+ */
 export function generateRules(
   ruleConfig: RuleConfig,
-  ruleFns: Record<string, RuleFn>
+  ruleFns?: Record<string, RuleFn>
 ): Record<string, string[]> {
   return Object.fromEntries(
-    Object.entries(ruleFns).map(([name, fn]) => [name, fn(ruleConfig)])
+    Object.entries(ruleFns || defaultRuleFns).map(([name, fn]) => [
+      name,
+      fn(ruleConfig),
+    ])
   );
 }
 
@@ -62,7 +69,7 @@ export function generateCssBuilder(opts: GenerateOpts): Code {
 
   const lines = Object.entries({
     ...methods,
-    aliases: makeAliases(aliases),
+    ...(aliases && { aliases: makeAliases(aliases) }),
   })
     .map(([name, value]) => [`// ${name}`, ...value, ""])
     .flat();
@@ -151,6 +158,6 @@ export const Css = new CssBuilder({}, true, false);
 
 ${typeAliasCode}
 
-${extras}
+${extras || ""}
   `;
 }
