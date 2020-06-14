@@ -5,8 +5,6 @@ truss is a TypeScript utility Css mini-project that generates a single-file Type
 
 I.e. see the `Css.ts` class in our parent `../src/` directory.
 
-This isn't meant to be a "CSS framework" per se, but instead just a set of files that can be liberally copy/pasted/forked and then tweaked to each project's need. I.e. there isn't any intent 
-
 ### Files
 
 * `config.ts` contains most project-specific data like colors and font sizes

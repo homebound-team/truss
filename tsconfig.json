@@ -9,6 +9,8 @@
     "module": "commonjs",
     "downlevelIteration": true,
     "noEmit": false,
-    "baseUrl": "src/"
-  }
+    "baseUrl": "src/",
+    "outDir": "build/"
+  },
+  "include": ["src/"]
 }
