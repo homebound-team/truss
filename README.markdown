@@ -1,7 +1,7 @@
 
 ## truss
 
-truss is a mini-project that generates a TypeScript utility DSL for generating object-style CSS-in-JS rules.
+truss is a TypeScript utility Css mini-project that generates a single-file TypeScript DSL for generating object-style CSS-in-JS rules.
 
 I.e. see the `Css.ts` class in our parent `../src/` directory.
 

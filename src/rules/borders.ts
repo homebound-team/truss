@@ -1,3 +1,5 @@
+import { RuleFn } from "./RuleConfig";
+
 const borderDefs: [string, [string, string]][] = [
   ["ba", ["borderStyle", "borderWidth"]],
   ["bt", ["borderTopStyle", "borderTopWidth"]],
@@ -6,7 +8,7 @@ const borderDefs: [string, [string, string]][] = [
   ["bl", ["borderLeftStyle", "borderLeftWidth"]],
 ];
 
-export const borderRules = [
+export const borderRules: RuleFn = () => [
   ...borderDefs.map(([abbr, [style, width]]) => {
     return `get ${abbr}() { return this.add2("${style}", "solid", "${width}", "1px"); }`;
   }),

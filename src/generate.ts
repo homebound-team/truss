@@ -1,63 +1,39 @@
 import { promises as fs } from "fs";
-import { code, Code, imp, def } from "ts-poet";
-import { borderColorRules } from "./border-colors";
-import { borderRadiusRules } from "./border-radius";
-import { borderRules } from "./borders";
-import { boxShadowRules } from "./box-shadow";
-import { coordinateRules } from "./coordinates";
-import { aliases, increment, extras, outputPath } from "./config";
-import { cursorRules } from "./cursor";
-import { displayRules } from "./display";
-import { flexboxRules } from "./flexbox";
-import { heightRules } from "./heights";
-import { outlineRules } from "./outlines";
-import { positionRules } from "./position";
-import { skinRules } from "./skins";
-import { spacingRules } from "./spacing";
-import { textAlignRules } from "./text-align";
-import { textDecorationRules } from "./text-decoration";
-import { typeScaleRules } from "./type-scale";
-import { whitespaceRules } from "./white-space";
-import { widthRules } from "./widths";
-import { visibilityRules } from "./visibility";
+import { code, Code, def, imp } from "ts-poet";
+import { RuleConfig, RuleFn } from "./rules";
 import { makeAliases } from "./utils";
 
 // Rules = record heights -> string[]
 // Module Templates = record name --> Code
 // Class templates = name --> Code
 
-async function generate(): Promise<string> {
-  const methods = [
-    borderColorRules,
-    borderRadiusRules,
-    borderRules,
-    boxShadowRules,
-    coordinateRules,
-    cursorRules,
-    displayRules,
-    flexboxRules,
-    heightRules,
-    outlineRules,
-    positionRules,
-    skinRules,
-    spacingRules,
-    textAlignRules,
-    textDecorationRules,
-    typeScaleRules,
-    visibilityRules,
-    whitespaceRules,
-    widthRules,
-    makeAliases(aliases),
-  ].flat();
-  return await wrap(methods).toStringWithImports();
-}
+export type GenerateOpts = {
+  /** The flat list of getters/methods, i.e. `get ml1() { ... }`. */
+  methods: string[];
+  outputPath: string;
+  increment: number;
+  extras: string[];
+  aliases: Record<string, string[]>;
+};
 
-async function write(): Promise<void> {
-  const output = await generate();
+export async function generate(opts: GenerateOpts): Promise<void> {
+  const { outputPath } = opts;
+  const output = await generateCssBuilder(opts).toStringWithImports();
   await fs.writeFile(outputPath, output);
 }
 
-export function wrap(methods: string[]): Code {
+/** Give the user's config like colors/fonts/increments, generates the getters/methods from the ruleFns. */
+export function generateRules(
+  ruleConfig: RuleConfig,
+  ruleFns: Record<string, RuleFn>
+): Record<string, string[]> {
+  return Object.fromEntries(
+    Object.entries(ruleFns).map(([name, fn]) => [name, fn(ruleConfig)])
+  );
+}
+
+export function generateCssBuilder(opts: GenerateOpts): Code {
+  const { aliases, methods, increment, extras } = opts;
   const Properties = imp("Properties@csstype");
   return code`
 /** Given a type X, and the user's proposed type X, only allow keys in X and nothing else. */
@@ -69,7 +45,7 @@ export type ${def("Properties")} = ${Properties};
 class CssBuilder<T extends ${Properties}> {
   constructor(public rules: T, private enabled: boolean, private _important: boolean) {}
 
-  ${methods.join("\n  ")}
+  ${[...methods, ...makeAliases(aliases)].join("\n  ")}
 
   get $(): T { return maybeImportant(sortObject(this.rules), this._important); }
   
@@ -133,11 +109,6 @@ export function spacing(inc: number): number {
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({}, true, false);
 
-${extras}
+${extras.join("\n")}
   `;
 }
-
-write().then(
-  () => console.log("done"),
-  err => console.error(err),
-);

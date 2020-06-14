@@ -1,6 +1,7 @@
-import { makeRules } from "./utils";
+import { RuleFn } from "./RuleConfig";
+import { makeRules } from "../utils";
 
-export const flexboxRules = [
+export const flexboxRules: RuleFn = () => [
   ...makeRules(
     "justifyContent",
     [
@@ -10,7 +11,7 @@ export const flexboxRules = [
       ["justifyBetween", "space-between"],
       ["justifyAround", "space-around"],
     ],
-    "justify",
+    "justify"
   ),
 
   ...makeRules(
@@ -20,7 +21,7 @@ export const flexboxRules = [
       ["inlineFlex", "inline-flex"],
       ["flexNone", "none"],
     ],
-    "display",
+    "display"
   ),
 
   ...makeRules(
@@ -32,7 +33,7 @@ export const flexboxRules = [
       ["selfBaseline", "baseline"],
       ["selfStretch", "stretch"],
     ],
-    "self",
+    "self"
   ),
 
   ...makeRules(
@@ -44,6 +45,6 @@ export const flexboxRules = [
       ["itemsBaseline", "baseline"],
       ["itemsStretch", "stretch"],
     ],
-    "items",
+    "items"
   ),
 ];
