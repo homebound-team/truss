@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
+    "module": "commonjs",
     "target": "es5",
     "lib": ["ESNext"],
     "esModuleInterop": true,
+    "declaration": true,
+    "declarationMap": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
+    "sourceMap": true,
     "strict": true,
-    "module": "commonjs",
     "downlevelIteration": true,
     "noEmit": false,
     "baseUrl": "src/",
