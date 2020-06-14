@@ -29,8 +29,8 @@ export function makeRules(
 }
 
 /** Given a single abbreviation and multiple `prop` -> `value` pairs, returns a method that sets each pair. */
-export function makeRule(abbr: string, defs: [string, string][]): string {
-  return `get ${abbr}() { return this${defs
+export function makeRule(abbr: string, defs: Properties): string {
+  return `get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}", "${value}")`)
     .join("")}; }`;
 }
