@@ -10,13 +10,13 @@ export function lowerCaseFirst(s: string) {
 }
 
 /** Given a prop, and multiple abbreviations that map to the prop value, return methods for each abbreviation. */
-export function makeRules(
-  prop: Prop,
-  defs: [string, string][],
+export function makeRules<P extends Prop>(
+  prop: P,
+  defs: Record<string, Properties[P]>,
   methodName?: string
 ): string[] {
   return [
-    ...defs.map(([abbr, value]) => {
+    ...Object.entries(defs).map(([abbr, value]) => {
       return `get ${abbr}() { return this.add("${prop}", "${value}"); }`;
     }),
     // Conditionally add a method that directly accepts a value for prop

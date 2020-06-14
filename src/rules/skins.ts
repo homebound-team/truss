@@ -6,12 +6,19 @@ export const skinRules: RuleFn = (config) => {
 
   const colors = makeRules(
     "color",
-    Object.entries(palette).map(([key, value]) => [lowerCaseFirst(key), value])
+    Object.fromEntries(
+      Object.entries(palette).map(([key, value]) => [
+        lowerCaseFirst(key),
+        value,
+      ])
+    )
   );
 
   const backgroundColors = makeRules(
     "backgroundColor",
-    Object.entries(palette).map(([key, value]) => [`bg${key}`, value])
+    Object.fromEntries(
+      Object.entries(palette).map(([key, value]) => [`bg${key}`, value])
+    )
   );
 
   return [

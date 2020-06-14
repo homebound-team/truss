@@ -1,7 +1,9 @@
 import { RuleFn } from "./RuleConfig";
 import { makeRules } from "../utils";
 
-export const borderColorRules: RuleFn = ({palette}) => {
-  const defs = Object.entries(palette).map(([key, value]) => [`b${key}`, value] as [string, string]);
+export const borderColorRules: RuleFn = ({ palette }) => {
+  const defs = Object.fromEntries(
+    Object.entries(palette).map(([key, value]) => [`b${key}`, value])
+  );
   return makeRules("borderColor", defs);
-}
+};
