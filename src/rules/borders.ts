@@ -1,3 +1,4 @@
+import { makeRule } from "../utils";
 import { RuleFn } from "./RuleConfig";
 
 const borderDefs: [string, [string, string]][] = [
@@ -10,7 +11,7 @@ const borderDefs: [string, [string, string]][] = [
 
 export const borderRules: RuleFn = () => [
   ...borderDefs.map(([abbr, [style, width]]) => {
-    return `get ${abbr}() { return this.add2("${style}", "solid", "${width}", "1px"); }`;
+    return makeRule(abbr, { [style]: "solid", [width]: "1px" });
   }),
-  `get bn() { return this.add2("borderStyle", "none", "borderWidth", "0"); }`,
+  makeRule("bn", { borderStyle: "none", borderWidth: "0" }),
 ];

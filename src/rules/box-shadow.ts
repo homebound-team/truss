@@ -1,5 +1,6 @@
+import { makeRule } from "../utils";
 import { RuleFn } from "./RuleConfig";
 
 export const boxShadowRules: RuleFn = () => [
-  `get shadowNone() { return this.add("boxShadow", "none") }`,
+  makeRule("shadowNone", { boxShadow: "none" }),
 ];

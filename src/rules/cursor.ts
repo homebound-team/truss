@@ -1,5 +1,6 @@
+import { makeRule } from "../utils";
 import { RuleFn } from "./RuleConfig";
 
 export const cursorRules: RuleFn = () => [
-  `get cursorPointer() { return this.add("cursor", "pointer") }`,
+  makeRule("cursorRules", { cursor: "pointer" }),
 ];
