@@ -9,7 +9,7 @@ export function lowerCaseFirst(s: string) {
   return s.charAt(0).toLowerCase() + s.substr(1);
 }
 
-/** Given a prop, and a mapping of `abbr` -> `value`, return a getter. */
+/** Given a prop, and multiple abbreviations that map to the prop value, return methods for each abbreviation. */
 export function makeRules(
   prop: Prop,
   defs: [string, string][],
@@ -19,13 +19,20 @@ export function makeRules(
     ...defs.map(([abbr, value]) => {
       return `get ${abbr}() { return this.add("${prop}", "${value}"); }`;
     }),
-    // Conditionally add a method that accepts a value
+    // Conditionally add a method that directly accepts a value for prop
     ...(methodName
       ? [
           `${methodName}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`,
         ]
       : []),
   ];
+}
+
+/** Given a single abbreviation and multiple `prop` -> `value` pairs, returns a method that sets each pair. */
+export function makeRule(abbr: string, defs: [string, string][]): string {
+  return `get ${abbr}() { return this${defs
+    .map(([prop, value]) => `.add("${prop}", "${value}")`)
+    .join("")}; }`;
 }
 
 export function makeAliases(aliases: Record<string, string[]>): string[] {
