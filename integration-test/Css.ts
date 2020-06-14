@@ -331,7 +331,17 @@ export function spacing(inc: number): number {
 export const Css = new CssBuilder({}, true, false);
 
 export type Margin =
+  | "margin"
   | "marginTop"
+  | "marginRight"
   | "marginBottom"
-  | "marginLeft"
-  | "marginRight";
+  | "marginLeft";
+
+export type Padding =
+  | "padding"
+  | "paddingTop"
+  | "paddingRight"
+  | "paddingBottom"
+  | "paddingLeft";
+
+export type CustomType = number;

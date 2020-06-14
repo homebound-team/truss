@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { Properties } from "csstype";
 import { code, Code, def, imp } from "ts-poet";
 import { RuleConfig, RuleFn } from "./rules";
 import { makeAliases } from "./utils";
@@ -17,8 +18,25 @@ export type GenerateOpts = {
   /** Your theme's increment, i.e. 6 or 8. */
   increment: number;
 
-  extras: string[];
+  /** Any extra chunks of code you want appended to the end of the file. */
+  extras: Array<string | Code>;
+
+  /** Short-hand aliases like `bodyText` --> `["f12", "black"]`. */
   aliases: Record<string, string[]>;
+
+  /** Type aliases for Only clauses, i.e. `Margin` --> `["marginTop", ...]`. `Margin` and `Padding` are provided. */
+  typeAliases?: Record<string, Array<keyof Properties>>;
+};
+
+export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
+  Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
+  Padding: [
+    "padding",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+  ],
 };
 
 export async function generate(opts: GenerateOpts): Promise<void> {
@@ -38,7 +56,7 @@ export function generateRules(
 }
 
 export function generateCssBuilder(opts: GenerateOpts): Code {
-  const { aliases, methods, increment, extras } = opts;
+  const { aliases, methods, increment, extras, typeAliases } = opts;
 
   const Properties = imp("Properties@csstype");
 
@@ -48,6 +66,15 @@ export function generateCssBuilder(opts: GenerateOpts): Code {
   })
     .map(([name, value]) => [`// ${name}`, ...value, ""])
     .flat();
+
+  const typeAliasCode = Object.entries({
+    ...defaultTypeAliases,
+    ...typeAliases,
+  }).map(([name, props]) => {
+    return `export type ${name} = ${props
+      .map((p) => `"${p}"`)
+      .join(" | ")};\n\n`;
+  });
 
   return code`
 /** Given a type X, and the user's proposed type X, only allow keys in X and nothing else. */
@@ -122,6 +149,8 @@ export function spacing(inc: number): number {
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({}, true, false);
 
-${extras.join("\n")}
+${typeAliasCode}
+
+${extras}
   `;
 }

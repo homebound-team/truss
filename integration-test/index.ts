@@ -29,11 +29,7 @@ const aliases: Record<string, string[]> = {
   bodyText: ["f14", "black"],
 };
 
-const extras = [
-  `
-export type Margin = "marginTop" | "marginBottom" | "marginLeft" | "marginRight";
-`,
-];
+const extras = [`export type CustomType = number;`];
 
 generate({
   outputPath: "./integration-test/Css.ts",
