@@ -60,6 +60,7 @@ export const flexboxRules: RuleFn = (config) => [
       fb6: "16.666666%",
       fb7: "14.285714%",
       fb0: "12.5%",
-    }
+    },
+    "fb",
   )
 ];
