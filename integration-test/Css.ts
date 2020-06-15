@@ -279,6 +279,9 @@ class CssBuilder<T extends Properties1> {
   get zUnset() { return this.add("zIndex", "unset"); }
   z(value: Properties["zIndex"]) { return this.add("zIndex", value); }
 
+  // custom-stuff
+  get foo() { return this.add("color", "#000000"); }
+
   // aliases
   get bodyText() { return this.f14.black; }
   

@@ -1,4 +1,4 @@
-import { defaultRuleFns, generate, generateRules } from "../src";
+import { generate, generateRules, makeRule } from "../src";
 
 const increment = 8;
 const numberOfIncrements = 4;
@@ -20,15 +20,17 @@ const fonts = {
   f10: "10px",
 };
 
-const methods = generateRules(
-  { palette, fonts, numberOfIncrements },
-  defaultRuleFns
-);
+const methods = generateRules({ palette, fonts, numberOfIncrements });
 
+// Add/remove application-specific/one-off rules as needed.
+methods["custom-stuff"] = [makeRule("foo", { color: "#000000" })];
+
+// You can also define common application-specific aliases.
 const aliases: Record<string, string[]> = {
   bodyText: ["f14", "black"],
 };
 
+// Or just suffix random stuff at the bottom of the file.
 const extras = [`export type CustomType = number;`];
 
 generate({
