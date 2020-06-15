@@ -26,15 +26,15 @@ class CssBuilder<T extends Properties1> {
   get brPill() { return this.add("borderRadius", "9999px"); }
 
   // borderRules
-  get ba() { return this.add2("borderStyle", "solid", "borderWidth", "1px"); }
-  get bt() { return this.add2("borderTopStyle", "solid", "borderTopWidth", "1px"); }
-  get br() { return this.add2("borderRightStyle", "solid", "borderRightWidth", "1px"); }
-  get bb() { return this.add2("borderBottomStyle", "solid", "borderBottomWidth", "1px"); }
-  get bl() { return this.add2("borderLeftStyle", "solid", "borderLeftWidth", "1px"); }
-  get bn() { return this.add2("borderStyle", "none", "borderWidth", "0"); }
+  get ba() { return this.add("borderStyle", "solid").add("borderWidth", "1px"); }
+  get bt() { return this.add("borderTopStyle", "solid").add("borderTopWidth", "1px"); }
+  get br() { return this.add("borderRightStyle", "solid").add("borderRightWidth", "1px"); }
+  get bb() { return this.add("borderBottomStyle", "solid").add("borderBottomWidth", "1px"); }
+  get bl() { return this.add("borderLeftStyle", "solid").add("borderLeftWidth", "1px"); }
+  get bn() { return this.add("borderStyle", "none").add("borderWidth", "0"); }
 
   // boxShadowRules
-  get shadowNone() { return this.add("boxShadow", "none") }
+  get shadowNone() { return this.add("boxShadow", "none"); }
 
   // coordinateRules
   get top0() { return this.top(0); }
@@ -63,7 +63,7 @@ class CssBuilder<T extends Properties1> {
   left(inc: number | string) { return this.add("left", px(inc)); }
 
   // cursorRules
-  get cursorPointer() { return this.add("cursor", "pointer") }
+  get cursorPointer() { return this.add("cursor", "pointer"); }
 
   // displayRules
   get dn() { return this.add("display", "none"); }
@@ -264,6 +264,20 @@ class CssBuilder<T extends Properties1> {
   // visibilityRules
   get visible() { return this.add("visibility", "visible"); }
   get invisible() { return this.add("visibility", "hidden"); }
+
+  // zIndexRules
+  get z0() { return this.add("zIndex", 0); }
+  get z1() { return this.add("zIndex", 1); }
+  get z2() { return this.add("zIndex", 2); }
+  get z3() { return this.add("zIndex", 3); }
+  get z4() { return this.add("zIndex", 4); }
+  get z5() { return this.add("zIndex", 5); }
+  get z999() { return this.add("zIndex", 999); }
+  get z9999() { return this.add("zIndex", 9999); }
+  get zInherit() { return this.add("zIndex", "inherit"); }
+  get zInitial() { return this.add("zIndex", "initial"); }
+  get zUnset() { return this.add("zIndex", "unset"); }
+  z(value: Properties["zIndex"]) { return this.add("zIndex", value); }
 
   // aliases
   get bodyText() { return this.f14.black; }

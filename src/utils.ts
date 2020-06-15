@@ -16,23 +16,24 @@ export function makeRules<P extends Prop>(
   methodName?: string
 ): string[] {
   return [
-    ...Object.entries(defs).map(([abbr, value]) => {
-      return `get ${abbr}() { return this.add("${prop}", "${value}"); }`;
-    }),
+    ...Object.entries(defs).map(([abbr, value]) =>
+      makeRule(abbr, { [prop]: value })
+    ),
     // Conditionally add a method that directly accepts a value for prop
-    ...(methodName
-      ? [
-          `${methodName}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`,
-        ]
-      : []),
+    ...(methodName ? [makeValueRule(methodName, prop)] : []),
   ];
 }
 
 /** Given a single abbreviation and multiple `prop` -> `value` pairs, returns a method that sets each pair. */
 export function makeRule(abbr: string, defs: Properties): string {
   return `get ${abbr}() { return this${Object.entries(defs)
-    .map(([prop, value]) => `.add("${prop}", "${value}")`)
+    .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
     .join("")}; }`;
+}
+
+/** Given a property name `prop`, returns a method named `abbr` that accepts a value of what to set the prop. */
+export function makeValueRule(abbr: string, prop: keyof Properties) {
+  return `${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`;
 }
 
 export function makeAliases(aliases: Record<string, string[]>): string[] {
@@ -69,4 +70,9 @@ export function makeIncRules(
       `${abbr}(inc: number | string) { return this.add("${conf}", px(inc)); }`,
     ];
   }
+}
+
+/** Keeps numbers as literals, and wraps anything else with double quotes. */
+function maybeWrap(value: unknown): string {
+  return typeof value === "number" ? String(value) : `"${value}"`;
 }
