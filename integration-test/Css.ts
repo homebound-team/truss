@@ -100,6 +100,12 @@ class CssBuilder<T extends Properties1> {
   get itemsBaseline() { return this.add("alignItems", "baseline"); }
   get itemsStretch() { return this.add("alignItems", "stretch"); }
   items(value: Properties["alignItems"]) { return this.add("alignItems", value); }
+  get fb0() { return this.fb(0); }
+  get fb1() { return this.fb(1); }
+  get fb2() { return this.fb(2); }
+  get fb3() { return this.fb(3); }
+  get fb4() { return this.fb(4); }
+  fb(inc: number | string) { return this.add("flexBasis", px(inc)); }
 
   // heightRules
   get h25() { return this.add("height", "25%"); }
@@ -260,6 +266,12 @@ class CssBuilder<T extends Properties1> {
   get w3() { return this.w(3); }
   get w4() { return this.w(4); }
   w(inc: number | string) { return this.add("width", px(inc)); }
+  get mw0() { return this.mw(0); }
+  get mw1() { return this.mw(1); }
+  get mw2() { return this.mw(2); }
+  get mw3() { return this.mw(3); }
+  get mw4() { return this.mw(4); }
+  mw(inc: number | string) { return this.add("minWidth", px(inc)); }
 
   // visibilityRules
   get visible() { return this.add("visibility", "visible"); }
