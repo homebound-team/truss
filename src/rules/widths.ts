@@ -9,4 +9,5 @@ export const widthRules: RuleFn = (config) => [
     w100: "100%",
   }),
   ...makeIncRules(config, "w", "width"),
+  ...makeIncRules(config, "mw", "minWidth"),
 ];

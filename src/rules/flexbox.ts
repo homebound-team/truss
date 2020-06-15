@@ -1,7 +1,7 @@
 import { RuleFn } from "./RuleConfig";
-import { makeRules } from "../utils";
+import { makeRules, makeIncRules } from "../utils";
 
-export const flexboxRules: RuleFn = () => [
+export const flexboxRules: RuleFn = (config) => [
   ...makeRules(
     "justifyContent",
     {
@@ -47,4 +47,6 @@ export const flexboxRules: RuleFn = () => [
     },
     "items"
   ),
+
+  ...makeIncRules(config, "fb", "flexBasis")
 ];
