@@ -312,17 +312,6 @@ class CssBuilder<T extends Properties1> {
     const rules = this.enabled ? { ...this.rules, ...newRules } : this.rules;
     return new CssBuilder(rules as any, this.enabled, this._important);
   }
-
-  /** Adds two properties at a time. */
-  add2<
-    K1 extends keyof Properties,
-    V1 extends Properties[K1],
-    K2 extends keyof Properties,
-    V2 extends Properties[K2],
-  >(prop1: K1, value1: V1, prop2: K2, value2: V2): CssBuilder<T & { [U in K1]: V1 } & { [U in K2]: V2 }> {
-    const rules = this.enabled ? { ...this.rules, [prop1]: value1, [prop2]: value2 } : this.rules;
-    return new CssBuilder(rules as any, this.enabled, this._important);
-  }
 }
 
 /** Emotion treats the same rules, ordered differently as different classes, but naively they can be the same. */
