@@ -19,6 +19,7 @@ import { typeScaleRules } from "./type-scale";
 import { whitespaceRules } from "./white-space";
 import { widthRules } from "./widths";
 import { visibilityRules } from "./visibility";
+import { zIndexRules } from "./zIndex";
 
 export const defaultRuleFns: Record<string, RuleFn> = {
   borderColorRules,
@@ -40,4 +41,5 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   whitespaceRules,
   widthRules,
   visibilityRules,
+  zIndexRules,
 };
