@@ -108,6 +108,7 @@ class CssBuilder<T extends Properties1> {
   get fb6() { return this.add("flexBasis", "16.666666%"); }
   get fb7() { return this.add("flexBasis", "14.285714%"); }
   get fb0() { return this.add("flexBasis", "12.5%"); }
+  fb(value: Properties["flexBasis"]) { return this.add("flexBasis", value); }
 
   // heightRules
   get h25() { return this.add("height", "25%"); }
