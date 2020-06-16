@@ -15,16 +15,6 @@ export const flexboxRules: RuleFn = (config) => [
   ),
 
   ...makeRules(
-    "display",
-    {
-      flex: "flex",
-      inlineFlex: "inline-flex",
-      flexNone: "none",
-    },
-    "display"
-  ),
-
-  ...makeRules(
     "alignSelf",
     {
       selfStart: "flex-start",
@@ -62,5 +52,12 @@ export const flexboxRules: RuleFn = (config) => [
       fb0: "12.5%",
     },
     "fb",
-  )
+  ),
+
+  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
+  ...makeRules("flex", { flexAuto: "auto", flexNone: "none" }, "flex"),
+
+  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L69
+  ...makeRules("flexGrow", { fg0: 0, fg1: 1 }, "flexGrow"),
+  ...makeRules("flexShrink", { fs0: 0, fs1: 1 }, "flexShrink"),
 ];
