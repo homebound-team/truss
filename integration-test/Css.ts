@@ -76,6 +76,9 @@ class CssBuilder<T extends Properties1> {
   get dtColumn() { return this.add("display", "tableColumn"); }
   get dtColumnGroup() { return this.add("display", "tableColumnGroup"); }
   get dg() { return this.add("display", "grid"); }
+  get df() { return this.add("display", "flex"); }
+  get dif() { return this.add("display", "inline-flex"); }
+  display(value: Properties["display"]) { return this.add("display", value); }
 
   // flexboxRules
   get justifyStart() { return this.add("justifyContent", "flex-start"); }
@@ -84,10 +87,6 @@ class CssBuilder<T extends Properties1> {
   get justifyBetween() { return this.add("justifyContent", "space-between"); }
   get justifyAround() { return this.add("justifyContent", "space-around"); }
   justify(value: Properties["justifyContent"]) { return this.add("justifyContent", value); }
-  get flex() { return this.add("display", "flex"); }
-  get inlineFlex() { return this.add("display", "inline-flex"); }
-  get flexNone() { return this.add("display", "none"); }
-  display(value: Properties["display"]) { return this.add("display", value); }
   get selfStart() { return this.add("alignSelf", "flex-start"); }
   get selfEnd() { return this.add("alignSelf", "flex-end"); }
   get selfCenter() { return this.add("alignSelf", "center"); }
@@ -109,6 +108,15 @@ class CssBuilder<T extends Properties1> {
   get fb7() { return this.add("flexBasis", "14.285714%"); }
   get fb0() { return this.add("flexBasis", "12.5%"); }
   fb(value: Properties["flexBasis"]) { return this.add("flexBasis", value); }
+  get flexAuto() { return this.add("flex", "auto"); }
+  get flexNone() { return this.add("flex", "none"); }
+  flex(value: Properties["flex"]) { return this.add("flex", value); }
+  get fg0() { return this.add("flexGrow", 0); }
+  get fg1() { return this.add("flexGrow", 1); }
+  flexGrow(value: Properties["flexGrow"]) { return this.add("flexGrow", value); }
+  get fs0() { return this.add("flexShrink", 0); }
+  get fs1() { return this.add("flexShrink", 1); }
+  flexShrink(value: Properties["flexShrink"]) { return this.add("flexShrink", value); }
 
   // heightRules
   get h25() { return this.add("height", "25%"); }
