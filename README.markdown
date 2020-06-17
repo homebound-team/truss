@@ -1,80 +1,263 @@
-## truss
+# Truss
 
-truss is a mini-framework for generating a single-file, Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, etc).
+Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, fela, etc.) that achieves utility-class brevity while critical-css/incremental delivery.
+ 
+See the "Why This Approach?" section for more rationale.
+ 
+(Disclaimer, Truss was written for/and currently used day-to-day with Emotion, but in theory it should work well with other CSS-in-JS frameworks.)
 
-### Quick Intro
+## Quick Intro
+
+Truss generates a `Css.ts` file that exports a `Css` const that you use like:
 
 ```typescript
-const css = Css.m2.black.$;
+import { Css } from "src/Css";
+
+const css = Css.mx2.black.$;
 ```
 
-The `css` variable now has object-style CSS-in-JS properties, as if you'd written by hand:
+The last `.$` is like a `.build()` or `.finish()` method that converts the DSL object, with its fluent abbreviation getters/methods, into just a regular POJO (plain old JavaScript object), as if you'd written by hand:
 
 ```typescript
 const css = {
-  marginTop: "16px",
-  marginBottom: "16px",
+  // added by .mx2
   marginLeft: "16px",
   marginRight: "16px",
+  // added by .black
   color: "#000000",
 };
 ```
 
-truss is CSS-in-JS agnostic, but was built to work well with emotion, i.e.:
+You can then pass this POJO to whatever CSS-in-JS framework you're using, i.e. with emotion you would do something like:
 
 ```tsx
+/** @jsx jsx */
+import { jsx } from "@emotion/core";
+
 function MyReactComponent(props: ...) {
   // Use emotion's css prop
-  return <div css={Css.m2.black.$}>content</div>
+  return <div css={Css.mx2.black.$}>content</div>
 }
 ```
 
-### Tweak or Fork
+And in your HTML output, you'd get an Emotion-generated `.emotion-0` CSS class with the three `marginLeft`, `marginRight`, `color` properties set.
 
-Truss allows either small tweaks to its default output (by pulling in truss via npm and defining your application-specific fonts, colors, and custom rules), or, if you need more drastic changes, the project is meant to be small & simple enough that forking and maintaining your own version indefinitely is doable for most teams.
+## Installation
 
-#### Tweaking
+(Todo, update this to use a dedicated starter project that you somehow git clone w/o history.)
 
-...
+- Copy the `integration-test/index.ts` into a `truss/` subdirectory in your project (Truss uses `ts-node` which works best with a dedicated `package.json`)
+- `npm i @homebound/truss` in your `truss/` subdirectory
+- ...copy/paste a package.json/tsconfig.json from Truss/it's starter project to run `ts-node ./index.ts`...
 
-#### Forking
+## Psuedo-Selectors and Media Queries
 
-### Files
+Unlike Tachyons and Tailwinds, Truss's DSL does not have abbreviations/method names for psuedo-selectors and media queries.
 
-- `config.ts` contains most project-specific data like colors and font sizes
-- `generate.ts` drives the codegen process
-- `skins.ts`, `spacing.ts`, each define rules that are inspired by the Tachyons section of the same name (see Tachyon's [table of rules](http://tachyons.io/docs/table-of-styles/))
+Instead of building these complications into the DSL, with Truss you use your CSS-in-JS framework-of-choice's existing psuedo-selector and media query support.
 
-Note that this project is "Tachyons-ish", i.e. where it makes sense we use/prefer the Tachyons abbreviations, but don't follow them stringently. I.e. we personally prefer a `f32` == `32px` style for font abbreviations instead of `f1`.
+For example, using Emotion you would do hover-specific styling like:
 
-### Building
+```tsx
+/** @jsx jsx */
+import { jsx } from "@emotion/core";
 
-To update `Css.ts`:
+function MyReactComponent(props: ...) {
+  return (
+    <div css={{...Css.mx2.black.$, "&:hover": Css.blue.$ }}>
+      content
+    </div>
+  );
+}
+```
 
-- Run `npm install` in this `css-gen` directory
-- Run `npm run generate`
+And breakpoints like:
 
-(This is a separate project both for separate of concerns but also because `ts-node` needs different `tsconfig.json` settings than create-react-app wants.)
+```tsx
+/** @jsx jsx */
+import { jsx } from "@emotion/core";
 
-### Why This Approach?
+// Could be defined as an 'extras' in your truss/index.ts file
+const sm = `@media (max-width: 420px)`;
 
-This approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having cute/short utility class definitions. However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then output by emotion, as if the user had written emotion rules straight-up.
+function MyReactComponent(props: ...) {
+  // Use emotion's css prop
+  return (
+    <div css={{...Css.mx2.black.$, [sm]: Css.mx1.$}}>
+      content
+    </div>
+  );
+}
+```
+
+This leveraging of the existing framework's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
+
+(Note that Truss could probably learn a syntax like `Css.mx2.black.if(sm).mx1.$` but that is not implemented yet.)
+
+## XStyles / Xss Extension Contracts
+
+Truss liberally borrows the idea of type-checked "extension" CSS from the currently-unreleased Facebook XStyles library (at least in theory; I've only seen one or two slides for this feature of XStyles, but I'm pretty sure Truss is faithful re-implementation of it).
+
+As context, when developing components, you often end up with "properties that are okay for the caller to set" (i.e. that you as the component developer support the caller setting) and "properties that are _not_ okay for the caller to set" (i.e. because the component controls them).
+ 
+Basically, you want to allow the caller to customize _some_ styles of the component, typically things like color or margin or font size, but not give them blanket control of "here is a `className` prop, do whatever you want to my root element", which risks "radical"/open-ended customization that then you, as the component developer, don't know if you will/will not unintentionally break going forward.
+
+(I.e. see [Layout isolated components](https://visly.app/blog/layout-isolated-components) for a great write up of "parents control margin, components control padding".)
+
+With Truss, you can explicitly declare a contract of styles allowed to be set on your component, i.e.:
+
+```tsx
+import { Css, Only } from "src/Css";
+
+// Declare the allowed/supported styles
+export type DatePickerXss = "marginLeft" | "marginRight";
+
+// Update the props to accept an `xss` prop to accept the customizations
+export interface DatePickerProps<X> {
+  date: Date;
+  xss?: X;
+}
+
+// Use the `Only` type to ensure `xss` prop is a subset of DatePickerXss
+export function DatePicker<X extends Only<DatePickerXss, X>>(props: DatePickerProps<X>) {
+  const { date, xss } = props;
+  // The component controls marginTop/marginBottom, and defers to the caller for marginLeft/marginRight
+  return (
+    <div css={{...Css.my2.$, ...xss }}>{date}</div>
+  );
+}
+```
+
+Here we're allowing callers to set `marginLeft` or `marginRight`, i.e. this line will compile because `mx2` is statically typed as `{ marginLeft: number; marginRight: number }`, and so is a valid `xss` value:
+
+```tsx
+<DatePicker xss={Css.mx2.$} date={...} />
+```
+
+However, this line will not compile because `mt2` is statically typed as `{ marginTop: number }`, and `marginTop` is not allowed by `DatePickerXss`:
+
+```tsx
+<DatePicker date={...} xss={Css.mt2.$} />
+```
+
+The `Css` DSL also iteratively types itself, i.e. `Css.ml1.mr2.$` is still statically typed as `{ marginLeft: number; marginRight: number }`, instead of being based just on the last-used abbreviation.
+
+Note that Truss conventionally uses the `xss` prop name for "the component's allowed extension styles" as a play on Emotion's `css` prop, with the `x` representing the "extension" concept. But there is otherwise nothing special about the name of the `xss` prop; i.e. you could use `xstyles={...}` which I believe is what the Facebook XStyles library does, or your own convention.
+
+Also note that the XStyles/Xss feature is completely opt-in; you can use it if you want, or you can use Truss solely for the `Css.m2.black.$` abbreviations.
+
+## Customization
+
+Truss supports several levels of customization:
+
+1. Per-project fonts/colors/etc.
+2. Per-project rule additions or changes
+3. Forking
+
+### Per-Project Fonts/Colors/Etc
+
+Each project that uses Truss gets a local `index.ts`, checked into its repo essentially as a config file, that defines in TypeScript the core settings, i.e.:
+
+```typescript
+const increment = 8;
+const numberOfIncrements = 4;
+
+const palette = {
+  Black: "#353535",
+  MidGray: "#888888",
+  LightGray: "#cecece",
+  White: "#fcfcfa",
+  Blue: "#526675",
+};
+
+const fonts = {
+  f24: "24px",
+  f18: "18px",
+  f16: "16px",
+  f14: "14px",
+  f12: "12px",
+  f10: "10px",
+};
+
+// ...rest of the config file...
+```
+
+Projects should heavily customize these settings, then run `npm run generate` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have rules added like:
+
+```typescript
+  get green() { return this.add("color", "green"); }
+  get bgGreen() { return this.add("backgroundColor", "green"); }
+  get bGreen() { return this.add("borderColor", "green"); }
+
+```
+
+### Per-Project Rules
+
+In the same `index.ts`, projects can easily add their own new rules/abbreviations:
+
+```typescript
+methods["our-section"] = [makeRule("someAbbreviation", { color: "#000000" })];
+```
+
+Will result in `Css.ts` having a line that looks like:
+
+```typescript
+  get someAbbreviation() { return this.add("color", "#000000"); }
+```
+
+Which can then be used as `Css.m2.someAbbreviation.$`.
+
+Besides adding one-off additional rules/abbreviations, if your project wants to replace a whole section of Truss's out-of-the-box rules, you can replace an entire section via:
+
+```typescript
+methods["spacing"] = [...ourCustomSpacingRules...];
+```
+
+Where `"spacing"` matches the name of the file that declared these rules in Truss's `src/rules` directory (which generally matches Tachyon's sections of organization).
+
+### Forking
+
+At the end of the day, Truss is small and hackable such that forking it to make the abbreviations "strict Tachyons" or "strict Tailwinds" or "whatever best fits your project/conventions/styles" should be easy and is kosher/encouraged.
+ 
+The core Truss feature of "make a TypeScript DSL with a bunch of abbreviations" is also basically done, so it's unlikely you will miss out on some future/forthcoming amazing features by forking.
+
+And, even if so, the coupling between Truss and your application code is limited to the `Css.abbreviations.$` lines that should be extremely stable even if/as the core of Truss evolves.
+
+## Why This Approach?
+
+Truss's  approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having cute/short utility class definitions.
+ 
+However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then output by Emotion (or your CSS-in-JS framework of choice), as if the rules had originally been written long-form.
 
 The benefits of this approach are:
 
 - We get the brevity of Tachyons/Tailwinds
 - It delivers critical CSS, i.e. we don't need the large static TW/Tachyons CSS files.
-- Using emotion for psuedo-selectors/breakpoints is simpler and reduces the method bloat
+- Psuedo-selectors/breakpoints go through Emotion/the CSS-in-JS framework, which is simpler, more powerful, and reduces method/abbreviation bloat
   - I.e. we don't need to suffix `-nl` for "not large" onto every single abbreviation
-- "Regular emotion" is always available as an escape hatch for places where utility classes don't make sense
-- We can tweak our preferred styles, i.e. `f32` is `32px` instead of `f3` or what not.
+- "Regular Emotion"/CSS-in-JS is easily/inherently available as an escape hatch for places where utility classes don't make sense
+  - I.e. you won't end up with mixed `className="mx2 black"` for out-of-the-box Tachyons classes but then need to throw in `css={...}` right next to it to do something one-off, and hence have mixed idioms/CSS tools in your stack 
+- Projects can easily tweak their preferred styles/abbreviations, i.e. `f32` is `32px` instead of `f3` or what not.
+  - This is similar in spirit to Tailwinds customization, but for Truss, the config process is "just change some TS code and run `generate`", and doesn't involve any changes to your build/webpack/PostCSS/etc. setup. 
 
-### Inspiration
+## Inspiration
 
-- typed.tw
-- xstyles
+Several libraries influenced Truss, specifically:
 
-### Todo
+- [Typed Tailwinds](https://typed.tw)
+- [babel-plugin-tailwind-components](https://github.com/bradlc/babel-plugin-tailwind-components)
+- Facebook's xstyles (from some presentations)
 
-* Support `number[]` increments
-* Upstream optional font size+letter+spacing support
+In particular, the babel-plugin-tailwind-components insight of "if you just make `csstype`-compliant object literals, you can bring them to whatever CSS-in-JS framework you want" was a very useful/inspirational insight.
+
+The difference from both Typed.tw and babel-plugin-tailwind-components is that Truss purposefully rejects the goal of "perfectly matching Tachyons/Tailwinds", i.e. you don't need to bring a static `tachyons.css` or `tailwinds.css` file to the table and somehow integrate it/PostCSS/etc. into your build. You can just import the `Css.ts` class and use your CSS-in-JS as usual.
+
+The rationale for being "not _exactly_ Tachyons/Tailwinds" is partly a) to achieve the critical CSS aspect of only shipping what is needed, partly b) to leverage the power of CSS-in-JS frameworks like Emotion for pseudo-selectors/media queries, and c) partly just to have easier project-specific customization.
+
+## Todo
+
+* Support `number[]` increments as config
+* Upstream optional per-font size letter spacing/line height support
+* Babel plugin that evaluates `Css...$` expressions at build-time (i.e. babel-plugin-tailwind-components)
+* Fela support, ideally via an Emotion-esque `css` prop?
+* Server-side generation; in theory this should just work?
