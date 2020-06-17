@@ -261,3 +261,4 @@ The rationale for being "not _exactly_ Tachyons/Tailwinds" is partly a) to achie
 * Babel plugin that evaluates `Css...$` expressions at build-time (i.e. babel-plugin-tailwind-components)
 * Fela support, ideally via an Emotion-esque `css` prop?
 * Server-side generation; in theory this should just work?
+* Upstream the `Css.test.ts` test file
