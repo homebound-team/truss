@@ -254,7 +254,7 @@ The benefits of this approach are:
   
 - "Regular Emotion/CSS-in-JS" is easily/inherently available as an escape hatch for places where utility classes don't make sense.
 
-  It's very likely you'll need "not utility-css" styles at somepoint in your project, and because Truss's DSL is already going through Emotion/CSS-in-JS anyway, it means your one-off "not utility" rules will use the same/consistent CSS-in-JS output/generation pipeline.
+  It's very likely you'll need "not utility" styles at some point in your project, and because Truss's DSL is already going through Emotion/CSS-in-JS anyway, it means your one-off "not utility" rules will use the same/consistent CSS-in-JS output/generation pipeline.
   
   This means you don't end up with mixed idioms of `className="mx2 black"` for 90% of your styles, but then "something different" like `css={...}` for the last 10%.
 
@@ -270,7 +270,7 @@ Several libraries influenced Truss, specifically:
 
   In particular, the babel-plugin-tailwind-components insight of "if you just make `csstype`-compliant object literals, you can bring them to whatever CSS-in-JS framework you want" was a very useful/inspirational insight.
 
-  The main difference between Truss and both Typed.tw and babel-plugin-tailwind-components is that Truss doesn't try to "perfectly match Tachyons or Tailwinds" (see "Why This Approach?). Specifically, both projects assume that a `tachyons.css` or `tailwinds.css` file is the source-of-truth for your project's rules (and so parse/generate the TypeScript code from that CSS file); however, with Truss your source-of-truth is Truss's out-of-the-box TypeScript rules + whatever customizations you make in your project's `truss/index.ts` file (so rules are defined directly in TypeScript).
+  The main difference between Truss and both Typed.tw and babel-plugin-tailwind-components is that Truss doesn't try to "perfectly match Tachyons or Tailwinds" (see "Why This Approach?"). Specifically, both projects assume that a `tachyons.css` or `tailwinds.css` file is the source-of-truth for your project's rules (and so parse/generate the TypeScript code from that CSS file); however, with Truss your source-of-truth is Truss's out-of-the-box TypeScript rules + whatever customizations you make in your project's `truss/index.ts` file (so rules are defined directly in TypeScript).
 
 - Facebook's XStyles for the "typed extension" idea
 
@@ -278,7 +278,8 @@ Several libraries influenced Truss, specifically:
 
 * Support `number[]` increments as config
 * Upstream optional per-font size letter spacing/line height support
-* Babel plugin that evaluates `Css...$` expressions at build-time (i.e. babel-plugin-tailwind-components)
+* Babel plugin that evaluates `Css...$` expressions at build-time
+  - I.e. see babel-plugin-tailwind-components and [typed.tw's implementation](https://github.com/dvkndn/typed.tw/tree/master/webpack-loader)
 * Fela support, ideally via an Emotion-esque `css` prop?
 * Server-side generation; in theory this should just work?
 * Upstream the `Css.test.ts` test file
