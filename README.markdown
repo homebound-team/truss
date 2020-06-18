@@ -44,11 +44,21 @@ And in your HTML output, you'd get an Emotion-generated `.emotion-0` CSS class w
 
 ## Installation
 
-(Todo, update this to use a dedicated starter project that you somehow git clone w/o history.)
+The recommended Truss installation involves checking a few `index.ts`/`package.json` files into a `truss/` subdirectory of your project, to provide a place for Truss configuration/customization, as well as an easy way to kick off the code generator (i.e. it keeps the Truss `ts-node` and `tsconfig.json` settings from interfering with your project's existing setup).
 
-- Copy the `integration-test/index.ts` into a `truss/` subdirectory in your project (Truss uses `ts-node` which works best with a dedicated `package.json`)
-- `npm i @homebound/truss` in your `truss/` subdirectory
-- ...copy/paste a package.json/tsconfig.json from Truss/it's starter project to run `ts-node ./index.ts`...
+In your current project, run:
+
+- `mkdir truss`
+- `cd truss`
+- `wget https://github.com/homebound-team/truss-project-files/archive/main.zip`
+- `unzip main.zip`
+- `rm main.zip`
+- `npm install --save @homebound/truss`
+- `npm run generate`
+
+This should create a `src/Css.ts` in your project's main `src/` directory (you can change the output path in `index.ts` if needed).
+
+You can then check in the `truss/` directory, and the generated `src/Css.ts` file.
 
 ## Psuedo-Selectors and Media Queries
 
