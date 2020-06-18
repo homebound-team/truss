@@ -236,34 +236,45 @@ And, even if so, the coupling between Truss and your application code is limited
 
 ## Why This Approach?
 
-Truss's  approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having cute/short utility class definitions.
+Truss's  approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having short/cute utility class definitions.
  
 However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then output by Emotion (or your CSS-in-JS framework of choice), as if the rules had originally been written long-form.
 
 The benefits of this approach are:
 
-- We get the brevity of Tachyons/Tailwinds
+- We get the brevity + "inline-ness" of Tachyons/Tailwinds.
+
 - It delivers critical CSS, i.e. we don't need the large static TW/Tachyons CSS files.
-- Psuedo-selectors/breakpoints go through Emotion/the CSS-in-JS framework, which is simpler, more powerful, and reduces method/abbreviation bloat
-  - I.e. we don't need to suffix `-nl` for "not large" onto every single abbreviation
-- "Regular Emotion"/CSS-in-JS is easily/inherently available as an escape hatch for places where utility classes don't make sense
-  - I.e. you won't end up with mixed `className="mx2 black"` for out-of-the-box Tachyons classes but then need to throw in `css={...}` right next to it to do something one-off, and hence have mixed idioms/CSS tools in your stack 
-- Projects can easily tweak their preferred styles/abbreviations, i.e. `f32` is `32px` instead of `f3` or what not.
-  - This is similar in spirit to Tailwinds customization, but for Truss, the config process is "just change some TS code and run `generate`", and doesn't involve any changes to your build/webpack/PostCSS/etc. setup. 
+
+  (My reading of projects like [tachyons-styled-react](https://github.com/tachyons-css/tachyons-styled-react), from the creator of Tachyons, is that critical-ness is still important goal/improvement even for static-utility-class approaches like Tachyons.)
+
+- Psuedo-selectors/breakpoints go through Emotion/the CSS-in-JS framework, which is simpler, more powerful, and reduces method/abbreviation bloat.
+
+  I.e. we don't need to suffix `-nl` for "not large" onto every single abbreviation.
+  
+- "Regular Emotion/CSS-in-JS" is easily/inherently available as an escape hatch for places where utility classes don't make sense.
+
+  It's very likely you'll need "not utility-css" styles at somepoint in your project, and because Truss's DSL is already going through Emotion/CSS-in-JS anyway, it means your one-off "not utility" rules will use the same/consistent CSS-in-JS output/generation pipeline.
+  
+  This means you don't end up with mixed idioms of `className="mx2 black"` for 90% of your styles, but then "something different" like `css={...}` for the last 10%.
+
+- Projects can easily tweak their preferred styles/abbreviations.
+
+  Granted, this is very similar in spirit to Tailwinds customization, but for Truss, the config process is "just change some TypeScript code and run `generate`", and doesn't involve any changes to your build/webpack/PostCSS/etc. setup.
 
 ## Inspiration
 
 Several libraries influenced Truss, specifically:
 
-- [Typed Tailwinds](https://typed.tw)
-- [babel-plugin-tailwind-components](https://github.com/bradlc/babel-plugin-tailwind-components)
-- Facebook's xstyles (from some presentations)
+- [Typed Tailwinds](https://typed.tw) and [babel-plugin-tailwind-components](https://github.com/bradlc/babel-plugin-tailwind-components) are both "type-safe TypeScript utility-css DSLs".
 
-In particular, the babel-plugin-tailwind-components insight of "if you just make `csstype`-compliant object literals, you can bring them to whatever CSS-in-JS framework you want" was a very useful/inspirational insight.
+  In particular, the babel-plugin-tailwind-components insight of "if you just make `csstype`-compliant object literals, you can bring them to whatever CSS-in-JS framework you want" was a very useful/inspirational insight.
 
-The difference from both Typed.tw and babel-plugin-tailwind-components is that Truss purposefully rejects the goal of "perfectly matching Tachyons/Tailwinds", i.e. you don't need to bring a static `tachyons.css` or `tailwinds.css` file to the table and somehow integrate it/PostCSS/etc. into your build. You can just import the `Css.ts` class and use your CSS-in-JS as usual.
-
-The rationale for being "not _exactly_ Tachyons/Tailwinds" is partly a) to achieve the critical CSS aspect of only shipping what is needed, partly b) to leverage the power of CSS-in-JS frameworks like Emotion for pseudo-selectors/media queries, and c) partly just to have easier project-specific customization.
+  The difference between Truss and both Typed.tw and babel-plugin-tailwind-components is that Truss purposefully rejects the goal of "perfectly matching Tachyons/Tailwinds" (see "Why This Approach?), i.e. you don't need to bring a static `tachyons.css` or `tailwinds.css` file to the table and somehow integrate it/PostCSS/etc. into your build. You can just import the generated `Css.ts` class and use your CSS-in-JS as usual.
+  
+  Relatedly, both of those projects also assume you have a `tachyons.css` or `tailwinds.css` file that already exists for your project, and you want to use that as the source-of-truth for your rules. However, with Truss your source-of-truth is Truss's out-of-the-box TypeScript rules + whatever customizations you make in your project's `truss/index.ts` file.
+  
+- Facebook's XStyles for the "typed extension" idea
 
 ## Todo
 
