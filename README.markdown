@@ -270,10 +270,8 @@ Several libraries influenced Truss, specifically:
 
   In particular, the babel-plugin-tailwind-components insight of "if you just make `csstype`-compliant object literals, you can bring them to whatever CSS-in-JS framework you want" was a very useful/inspirational insight.
 
-  The difference between Truss and both Typed.tw and babel-plugin-tailwind-components is that Truss purposefully rejects the goal of "perfectly matching Tachyons/Tailwinds" (see "Why This Approach?), i.e. you don't need to bring a static `tachyons.css` or `tailwinds.css` file to the table and somehow integrate it/PostCSS/etc. into your build. You can just import the generated `Css.ts` class and use your CSS-in-JS as usual.
-  
-  Relatedly, both of those projects also assume you have a `tachyons.css` or `tailwinds.css` file that already exists for your project, and you want to use that as the source-of-truth for your rules. However, with Truss your source-of-truth is Truss's out-of-the-box TypeScript rules + whatever customizations you make in your project's `truss/index.ts` file.
-  
+  The main difference between Truss and both Typed.tw and babel-plugin-tailwind-components is that Truss doesn't try to "perfectly match Tachyons or Tailwinds" (see "Why This Approach?). Specifically, both projects assume that a `tachyons.css` or `tailwinds.css` file is the source-of-truth for your project's rules (and so parse/generate the TypeScript code from that CSS file); however, with Truss your source-of-truth is Truss's out-of-the-box TypeScript rules + whatever customizations you make in your project's `truss/index.ts` file (so rules are defined directly in TypeScript).
+
 - Facebook's XStyles for the "typed extension" idea
 
 ## Todo
