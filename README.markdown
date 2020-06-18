@@ -54,6 +54,7 @@ In your current project, run:
 - `unzip main.zip`
 - `rm main.zip`
 - `npm install --save @homebound/truss`
+  - Note this is purposefully `install`-ing into the `truss/package.json` and not your root `package.json` file
 - `npm run generate`
 
 This should create a `src/Css.ts` in your project's main `src/` directory (you can change the output path in `index.ts` if needed).
