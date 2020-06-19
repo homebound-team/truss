@@ -13,7 +13,9 @@
     "downlevelIteration": true,
     "noEmit": false,
     "baseUrl": "src/",
-    "outDir": "build/"
+    "outDir": "build/",
+    "types": ["jest", "node"],
+    "jsx": "react"
   },
   "include": ["src/"]
 }

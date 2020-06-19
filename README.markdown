@@ -282,4 +282,3 @@ Several libraries influenced Truss, specifically:
   - I.e. see babel-plugin-tailwind-components and [typed.tw's implementation](https://github.com/dvkndn/typed.tw/tree/master/webpack-loader)
 * Fela support, ideally via an Emotion-esque `css` prop?
 * Server-side generation; in theory this should just work?
-* Upstream the `Css.test.ts` test file
