@@ -2,7 +2,7 @@
 import { Button } from "@material-ui/core";
 import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
-import { Css, Only, Properties } from "./Css";
+import { Css, Only, Properties, sm } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -220,6 +220,52 @@ describe("Css", () => {
         "marginBottom": "8px !important",
       }
     `);
+  });
+
+  it("can use generated breakpoints with emotion", () => {
+    const r = render(<div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$ }} />);
+    expect(r.container).toMatchInlineSnapshot(`
+      .emotion-0 {
+        margin-bottom: 8px;
+        padding-bottom: 16px;
+      }
+
+      @media screen and (max-width:599px) {
+        .emotion-0 {
+          padding-bottom: 24px;
+        }
+      }
+
+      <div>
+        <div
+          class="emotion-0"
+        />
+      </div>
+    `);
+  });
+
+  it("can use generated breakpoints with if dsl", () => {
+    expect(Css.pb2.white.if(sm).pb3.black.$).toMatchInlineSnapshot(`
+      Object {
+        "@media screen and (max-width:599px)": Object {
+          "color": "#353535",
+          "paddingBottom": "24px",
+        },
+        "color": "#fcfcfa",
+        "paddingBottom": "16px",
+      }
+    `);
+  });
+
+  it("will not accept just random strings to if", () => {
+    // @ts-expect-error
+    Css.black.if("rawstring").$;
+  });
+
+  it("cannot 'else' when using `if(bp)`", () => {
+    expect(() => Css.if(sm).black.else.white.$).toThrow(
+      "else is not supported"
+    );
   });
 });
 
