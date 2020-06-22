@@ -47,25 +47,25 @@ class CssBuilder<T extends Properties1> {
   get top2() { return this.top(2); }
   get top3() { return this.top(3); }
   get top4() { return this.top(4); }
-  top(inc: number | string) { return this.add("top", px(inc)); }
+  top(inc: number | string) { return this.add("top", maybeInc(inc)); }
   get right0() { return this.right(0); }
   get right1() { return this.right(1); }
   get right2() { return this.right(2); }
   get right3() { return this.right(3); }
   get right4() { return this.right(4); }
-  right(inc: number | string) { return this.add("right", px(inc)); }
+  right(inc: number | string) { return this.add("right", maybeInc(inc)); }
   get bottom0() { return this.bottom(0); }
   get bottom1() { return this.bottom(1); }
   get bottom2() { return this.bottom(2); }
   get bottom3() { return this.bottom(3); }
   get bottom4() { return this.bottom(4); }
-  bottom(inc: number | string) { return this.add("bottom", px(inc)); }
+  bottom(inc: number | string) { return this.add("bottom", maybeInc(inc)); }
   get left0() { return this.left(0); }
   get left1() { return this.left(1); }
   get left2() { return this.left(2); }
   get left3() { return this.left(3); }
   get left4() { return this.left(4); }
-  left(inc: number | string) { return this.add("left", px(inc)); }
+  left(inc: number | string) { return this.add("left", maybeInc(inc)); }
 
   // cursorRules
   get cursorPointer() { return this.add("cursor", "pointer"); }
@@ -133,7 +133,7 @@ class CssBuilder<T extends Properties1> {
   get h2() { return this.h(2); }
   get h3() { return this.h(3); }
   get h4() { return this.h(4); }
-  h(inc: number | string) { return this.add("height", px(inc)); }
+  h(inc: number | string) { return this.add("height", maybeInc(inc)); }
 
   // outlineRules
   get outline() { return this.add("outline", "1px solid"); }
@@ -167,25 +167,25 @@ class CssBuilder<T extends Properties1> {
   get mt2() { return this.mt(2); }
   get mt3() { return this.mt(3); }
   get mt4() { return this.mt(4); }
-  mt(inc: number | string) { return this.add("marginTop", px(inc)); }
+  mt(inc: number | string) { return this.add("marginTop", maybeInc(inc)); }
   get mr0() { return this.mr(0); }
   get mr1() { return this.mr(1); }
   get mr2() { return this.mr(2); }
   get mr3() { return this.mr(3); }
   get mr4() { return this.mr(4); }
-  mr(inc: number | string) { return this.add("marginRight", px(inc)); }
+  mr(inc: number | string) { return this.add("marginRight", maybeInc(inc)); }
   get mb0() { return this.mb(0); }
   get mb1() { return this.mb(1); }
   get mb2() { return this.mb(2); }
   get mb3() { return this.mb(3); }
   get mb4() { return this.mb(4); }
-  mb(inc: number | string) { return this.add("marginBottom", px(inc)); }
+  mb(inc: number | string) { return this.add("marginBottom", maybeInc(inc)); }
   get ml0() { return this.ml(0); }
   get ml1() { return this.ml(1); }
   get ml2() { return this.ml(2); }
   get ml3() { return this.ml(3); }
   get ml4() { return this.ml(4); }
-  ml(inc: number | string) { return this.add("marginLeft", px(inc)); }
+  ml(inc: number | string) { return this.add("marginLeft", maybeInc(inc)); }
   get mx0() { return this.mx(0); }
   get mx1() { return this.mx(1); }
   get mx2() { return this.mx(2); }
@@ -209,25 +209,25 @@ class CssBuilder<T extends Properties1> {
   get pt2() { return this.pt(2); }
   get pt3() { return this.pt(3); }
   get pt4() { return this.pt(4); }
-  pt(inc: number | string) { return this.add("paddingTop", px(inc)); }
+  pt(inc: number | string) { return this.add("paddingTop", maybeInc(inc)); }
   get pr0() { return this.pr(0); }
   get pr1() { return this.pr(1); }
   get pr2() { return this.pr(2); }
   get pr3() { return this.pr(3); }
   get pr4() { return this.pr(4); }
-  pr(inc: number | string) { return this.add("paddingRight", px(inc)); }
+  pr(inc: number | string) { return this.add("paddingRight", maybeInc(inc)); }
   get pb0() { return this.pb(0); }
   get pb1() { return this.pb(1); }
   get pb2() { return this.pb(2); }
   get pb3() { return this.pb(3); }
   get pb4() { return this.pb(4); }
-  pb(inc: number | string) { return this.add("paddingBottom", px(inc)); }
+  pb(inc: number | string) { return this.add("paddingBottom", maybeInc(inc)); }
   get pl0() { return this.pl(0); }
   get pl1() { return this.pl(1); }
   get pl2() { return this.pl(2); }
   get pl3() { return this.pl(3); }
   get pl4() { return this.pl(4); }
-  pl(inc: number | string) { return this.add("paddingLeft", px(inc)); }
+  pl(inc: number | string) { return this.add("paddingLeft", maybeInc(inc)); }
   get px0() { return this.px(0); }
   get px1() { return this.px(1); }
   get px2() { return this.px(2); }
@@ -284,7 +284,7 @@ class CssBuilder<T extends Properties1> {
   get w2() { return this.w(2); }
   get w3() { return this.w(3); }
   get w4() { return this.w(4); }
-  w(inc: number | string) { return this.add("width", px(inc)); }
+  w(inc: number | string) { return this.add("width", maybeInc(inc)); }
 
   // visibilityRules
   get visible() { return this.add("visibility", "visible"); }
@@ -362,13 +362,18 @@ function maybeImportant<T extends object>(obj: T, important: boolean): T {
 }
 
 /** Converts `inc` into pixels value with a `px` suffix. */
-function px(inc: number | string): string {
-  return typeof inc === "string" ? inc : `${spacing(inc)}px`;
+export function maybeInc(inc: number | string): string {
+  return typeof inc === "string" ? inc : `${increment(inc)}px`;
 }
 
 /** Converts `inc` into pixels. */
-export function spacing(inc: number): number {
+export function increment(inc: number): number {
   return inc * 8;
+}
+
+/** Convert `pixels` to a `px` units string so it's not ambiguous. */
+export function px(pixels: number): string {
+  return `${px}px`;
 }
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
@@ -393,8 +398,8 @@ type Breakpoint = Brand<string, "Breakpoint">;
 export const sm = "@media screen and (max-width:599px)" as Breakpoint;
 export const md = "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
 export const smOrMd = "@media screen and (max-width:959px)" as Breakpoint;
-export const mdUp = "@media screen and (min-width:600px)" as Breakpoint;
-export const mdDown = "@media screen and (max-width:959px)" as Breakpoint;
+export const mdAndUp = "@media screen and (min-width:600px)" as Breakpoint;
+export const mdAndDown = "@media screen and (max-width:959px)" as Breakpoint;
 export const lg = "@media screen and (min-width:960px)" as Breakpoint;
 export const mdOrLg = "@media screen and (min-width:600px)" as Breakpoint;
 

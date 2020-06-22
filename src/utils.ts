@@ -67,7 +67,7 @@ export function makeIncRules(
   } else {
     return [
       ...incRules,
-      `${abbr}(inc: number | string) { return this.add("${conf}", px(inc)); }`,
+      `${abbr}(inc: number | string) { return this.add("${conf}", maybeInc(inc)); }`,
     ];
   }
 }

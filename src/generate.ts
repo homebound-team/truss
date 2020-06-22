@@ -173,13 +173,18 @@ function maybeImportant<T extends object>(obj: T, important: boolean): T {
 }
 
 /** Converts \`inc\` into pixels value with a \`px\` suffix. */
-function px(inc: number | string): string {
-  return typeof inc === "string" ? inc : \`\${spacing(inc)}px\`;
+export function maybeInc(inc: number | string): string {
+  return typeof inc === "string" ? inc : \`\${increment(inc)}px\`;
 }
 
 /** Converts \`inc\` into pixels. */
-export function spacing(inc: number): number {
+export function increment(inc: number): number {
   return inc * ${increment};
+}
+
+/** Convert \`pixels\` to a \`px\` units string so it's not ambiguous. */
+export function px(pixels: number): string {
+  return \`\${px}px\`;
 }
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
