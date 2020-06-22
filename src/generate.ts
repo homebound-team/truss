@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import { Properties } from "csstype";
 import { code, Code, def, imp } from "ts-poet";
 import { defaultRuleFns, RuleConfig, RuleFn } from "./rules";
-import { makeAliases } from "./utils";
+import { makeAliases, makeBreakpoints } from "./utils";
 
 // Rules = record heights -> string[]
 // Module Templates = record name --> Code
@@ -26,6 +26,9 @@ export type GenerateOpts = {
 
   /** Type aliases for Only clauses, i.e. `Margin` --> `["marginTop", ...]`. `Margin` and `Padding` are provided. */
   typeAliases?: Record<string, Array<keyof Properties>>;
+
+  /** Breakpoints, i.e. `{ sm: 0, md: 500 }`. */
+  breakpoints?: Record<string, number>;
 };
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
@@ -63,7 +66,14 @@ export function generateRules(
 }
 
 export function generateCssBuilder(opts: GenerateOpts): Code {
-  const { aliases, methods, increment, extras, typeAliases } = opts;
+  const {
+    aliases,
+    methods,
+    increment,
+    extras,
+    typeAliases,
+    breakpoints,
+  } = opts;
 
   const Properties = imp("Properties@csstype");
 
@@ -83,6 +93,18 @@ export function generateCssBuilder(opts: GenerateOpts): Code {
       .join(" | ")};\n\n`;
   });
 
+  let breakpointCode =
+    breakpoints === undefined
+      ? []
+      : [
+          "type Brand<K, T> = K & { __brand: T };",
+          "type Breakpoint = Brand<string, 'Breakpoint'>;",
+          ...Object.entries(makeBreakpoints(breakpoints || {})).map(
+            ([name, query]) =>
+              `export const ${name} = "${query}" as Breakpoint;`
+          ),
+        ];
+
   return code`
 /** Given a type X, and the user's proposed type X, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
@@ -91,24 +113,42 @@ export type ${def("Properties")} = ${Properties};
 
 // prettier-ignore
 class CssBuilder<T extends ${Properties}> {
-  constructor(public rules: T, private enabled: boolean, private _important: boolean) {}
+  constructor(
+    public rules: T,
+    private enabled: boolean,
+    private _important: boolean,
+    private selector: string | undefined
+  ) {}
 
   ${lines.join("\n  ").replace(/ +\n/g, "\n")}
   get $(): T { return maybeImportant(sortObject(this.rules), this._important); }
   
-  if(t: boolean) { return new CssBuilder<T>(this.rules, t, this._important); }
+  if(t: boolean | Breakpoint) {
+    if (typeof t === "boolean") {
+      return new CssBuilder<T>(this.rules, t, this._important, this.selector);
+    } else {
+      return new CssBuilder<T>(this.rules, this.enabled, this._important, t as string);
+    }
+  }
   
-  get else() { return new CssBuilder<T>(this.rules, !this.enabled, this._important); }
+  get else() {
+    if (this.selector !== undefined) {
+      throw new Error("else is not supported with if(selector)");
+    }
+    return new CssBuilder<T>(this.rules, !this.enabled, this._important, this.selector);
+  }
 
-  get important() { return new CssBuilder<T>(this.rules, this.enabled, true); }
+  get important() { return new CssBuilder<T>(this.rules, this.enabled, true, this.selector); }
 
   /** Adds new properties, either a specific key/value, or a Properties object, the current css. */
   add<P extends Properties>(prop: P): CssBuilder<T & P>;
   add<K extends keyof Properties, V extends Properties[K]>(prop: K, value: V): CssBuilder<T & { [U in K]: V }>;
   add<K extends keyof Properties, V extends Properties[K]>(propOrProperties: K | Properties, value?: V): CssBuilder<any> {
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
-    const rules = this.enabled ? { ...this.rules, ...newRules } : this.rules;
-    return new CssBuilder(rules as any, this.enabled, this._important);
+    const rules = this.selector
+      ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
+      : this.enabled ? { ...this.rules, ...newRules } : this.rules;
+    return new CssBuilder(rules as any, this.enabled, this._important, this.selector);
   }
 }
 
@@ -143,9 +183,11 @@ export function spacing(inc: number): number {
 }
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({}, true, false);
+export const Css = new CssBuilder({}, true, false, undefined);
 
 ${typeAliasCode}
+
+${breakpointCode}
 
 ${extras || ""}
   `;

@@ -37,6 +37,7 @@ jobs:
           steps:
             - run: npm install
       - run: npm run build
+      - run: npm run test
       - when:
           condition: <<parameters.publish>>
           steps:

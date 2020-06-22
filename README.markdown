@@ -103,8 +103,6 @@ function MyReactComponent(props: ...) {
 
 This leveraging of the existing framework's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
 
-(Note that Truss could probably learn a syntax like `Css.mx2.black.if(sm).mx1.$` but that is not implemented yet.)
-
 ## XStyles / Xss Extension Contracts
 
 Truss liberally borrows the idea of type-checked "extension" CSS from the currently-unreleased Facebook XStyles library (at least in theory; I've only seen one or two slides for this feature of XStyles, but I'm pretty sure Truss is faithful re-implementation of it).
@@ -189,6 +187,8 @@ const fonts = {
   f12: "12px",
   f10: "10px",
 };
+
+const breakpoints = { sm: 0, md: 600, lg: 960 };
 
 // ...rest of the config file...
 ```

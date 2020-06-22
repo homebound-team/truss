@@ -7,7 +7,12 @@ export type Properties = Properties1;
 
 // prettier-ignore
 class CssBuilder<T extends Properties1> {
-  constructor(public rules: T, private enabled: boolean, private _important: boolean) {}
+  constructor(
+    public rules: T,
+    private enabled: boolean,
+    private _important: boolean,
+    private selector: string | undefined
+  ) {}
 
   // borderColorRules
   get bBlack() { return this.add("borderColor", "#353535"); }
@@ -307,19 +312,32 @@ class CssBuilder<T extends Properties1> {
   
   get $(): T { return maybeImportant(sortObject(this.rules), this._important); }
   
-  if(t: boolean) { return new CssBuilder<T>(this.rules, t, this._important); }
+  if(t: boolean | Breakpoint) {
+    if (typeof t === "boolean") {
+      return new CssBuilder<T>(this.rules, t, this._important, this.selector);
+    } else {
+      return new CssBuilder<T>(this.rules, this.enabled, this._important, t as string);
+    }
+  }
   
-  get else() { return new CssBuilder<T>(this.rules, !this.enabled, this._important); }
+  get else() {
+    if (this.selector !== undefined) {
+      throw new Error("else is not supported with if(selector)");
+    }
+    return new CssBuilder<T>(this.rules, !this.enabled, this._important, this.selector);
+  }
 
-  get important() { return new CssBuilder<T>(this.rules, this.enabled, true); }
+  get important() { return new CssBuilder<T>(this.rules, this.enabled, true, this.selector); }
 
   /** Adds new properties, either a specific key/value, or a Properties object, the current css. */
   add<P extends Properties>(prop: P): CssBuilder<T & P>;
   add<K extends keyof Properties, V extends Properties[K]>(prop: K, value: V): CssBuilder<T & { [U in K]: V }>;
   add<K extends keyof Properties, V extends Properties[K]>(propOrProperties: K | Properties, value?: V): CssBuilder<any> {
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
-    const rules = this.enabled ? { ...this.rules, ...newRules } : this.rules;
-    return new CssBuilder(rules as any, this.enabled, this._important);
+    const rules = this.selector
+      ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
+      : this.enabled ? { ...this.rules, ...newRules } : this.rules;
+    return new CssBuilder(rules as any, this.enabled, this._important, this.selector);
   }
 }
 
@@ -354,7 +372,7 @@ export function spacing(inc: number): number {
 }
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({}, true, false);
+export const Css = new CssBuilder({}, true, false, undefined);
 
 export type Margin =
   | "margin"
@@ -369,5 +387,15 @@ export type Padding =
   | "paddingRight"
   | "paddingBottom"
   | "paddingLeft";
+
+type Brand<K, T> = K & { __brand: T };
+type Breakpoint = Brand<string, "Breakpoint">;
+export const sm = "@media screen and (max-width:599px)" as Breakpoint;
+export const md = "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
+export const smOrMd = "@media screen and (max-width:959px)" as Breakpoint;
+export const mdUp = "@media screen and (min-width:600px)" as Breakpoint;
+export const mdDown = "@media screen and (max-width:959px)" as Breakpoint;
+export const lg = "@media screen and (min-width:960px)" as Breakpoint;
+export const mdOrLg = "@media screen and (min-width:600px)" as Breakpoint;
 
 export type CustomType = number;

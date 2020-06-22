@@ -20,6 +20,8 @@ const fonts = {
   f10: "10px",
 };
 
+const breakpoints = { sm: 0, md: 600, lg: 960 };
+
 const methods = generateRules({ palette, fonts, numberOfIncrements });
 
 // Add/remove application-specific/one-off rules as needed.
@@ -39,6 +41,7 @@ generate({
   increment,
   aliases,
   extras,
+  breakpoints,
 }).then(
   () => console.log("done"),
   (err) => console.error(err)
