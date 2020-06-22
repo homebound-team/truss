@@ -1,5 +1,7 @@
 
-![Truss](https://github.com/homebound-team/truss/blob/main/logo.svg?raw=true)
+<p style="padding: 100px">
+  <img src="https://github.com/homebound-team/truss/blob/main/logo.svg?raw=true" width="400" />
+</p>
 
 Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, fela, etc.) that achieves utility-class brevity while critical-css/incremental delivery.
  
