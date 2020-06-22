@@ -122,6 +122,11 @@ class CssBuilder<T extends Properties1> {
   get fs0() { return this.add("flexShrink", 0); }
   get fs1() { return this.add("flexShrink", 1); }
   flexShrink(value: Properties["flexShrink"]) { return this.add("flexShrink", value); }
+  get flexRow() { return this.add("flexDirection", "row"); }
+  get flexRowReverse() { return this.add("flexDirection", "row-reverse"); }
+  get flexColumn() { return this.add("flexDirection", "column"); }
+  get flexColumnReverse() { return this.add("flexDirection", "column-reverse"); }
+  flexDirection(value: Properties["flexDirection"]) { return this.add("flexDirection", value); }
 
   // heightRules
   get h25() { return this.add("height", "25%"); }
