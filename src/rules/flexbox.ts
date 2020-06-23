@@ -60,4 +60,12 @@ export const flexboxRules: RuleFn = (config) => [
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L69
   ...makeRules("flexGrow", { fg0: 0, fg1: 1 }, "flexGrow"),
   ...makeRules("flexShrink", { fs0: 0, fs1: 1 }, "flexShrink"),
+
+  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L25
+  ...makeRules("flexDirection", {
+    flexRow: "row",
+    flexRowReverse: "row-reverse",
+    flexColumn: "column",
+    flexColumnReverse: "column-reverse",
+  }, "flexDirection"),
 ];
