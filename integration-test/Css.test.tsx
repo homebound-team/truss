@@ -2,7 +2,7 @@
 import { Button } from "@material-ui/core";
 import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
-import { Css, Only, Properties, sm } from "./Css";
+import { Css, Only, Properties, sm, px } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -267,6 +267,15 @@ describe("Css", () => {
       "else is not supported"
     );
   });
+
+  it("can render with px conversion", () => {
+    expect(Css.mb(px(8)).$).toMatchInlineSnapshot(`
+      Object {
+        "marginBottom": "8px",
+      }
+    `);
+  });
+
 });
 
 type Margins =
