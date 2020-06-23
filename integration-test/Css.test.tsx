@@ -56,7 +56,7 @@ describe("Css", () => {
   });
 
   it("works on components as xstyle", () => {
-    const r = render(<FooComponent name="foo" xstyle={Css.mb1.$} />);
+    const r = render(<FooComponent name="foo" xss={Css.mb1.$} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
         padding-bottom: 8px;
@@ -141,7 +141,7 @@ describe("Css", () => {
     style(c);
 
     // @ts-expect-error
-    const d = <FooComponent xstyle={Css.mb1.pb1.$} name="foo" />;
+    const d = <FooComponent xss={Css.mb1.pb1.$} name="foo" />;
     expect(d).toBeDefined();
   });
 
@@ -275,7 +275,6 @@ describe("Css", () => {
       }
     `);
   });
-
 });
 
 type Margins =
@@ -285,11 +284,11 @@ type Margins =
   | "marginBottom"
   | "marginRight";
 
-type FooXStyle = Pick<Properties, Margins>;
+type FooXss = Pick<Properties, Margins>;
 
-type FooProps<X extends FooXStyle> = { name: string; xstyle: X };
+type FooProps<X extends FooXss> = { name: string; xss?: X };
 
 /** This component styles it's own padding but lets the caller define margin. */
-function FooComponent<X extends Only<FooXStyle, X>>(props: FooProps<X>) {
-  return <span css={{ ...Css.pb1.$, ...props.xstyle }}>{props.name}</span>;
+function FooComponent<X extends Only<FooXss, X>>(props: FooProps<X>) {
+  return <span css={{ ...Css.pb1.$, ...props.xss }}>{props.name}</span>;
 }

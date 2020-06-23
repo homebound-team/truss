@@ -11,10 +11,11 @@
     "sourceMap": true,
     "strict": true,
     "downlevelIteration": true,
-    "noEmit": false,
-    "baseUrl": "src/",
-    "outDir": "build/",
-    "types": ["jest", "node"]
+    "noEmit": true,
+    "baseUrl": "./",
+    "types": ["jest", "node"],
+    "typeRoots": ["./typings", "../node_modules/@types"],
+    "jsx": "react"
   },
-  "include": ["src/"]
+  "include": ["./"]
 }

@@ -1,13 +1,12 @@
-
 <p style="padding: 100px">
   <img src="https://github.com/homebound-team/truss/blob/main/logo.svg?raw=true" width="400" />
 </p>
 
 Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, fela, etc.) that achieves utility-class brevity while critical-css/incremental delivery.
- 
+
 See the "Why This Approach?" section for more rationale.
- 
-(Disclaimer, Truss was written for/and currently used day-to-day with Emotion, but in theory it should work well with other CSS-in-JS frameworks.)
+
+Truss should generally support any CSS-in-JS framework without any customizations; currently the same `Css.ts`-generated DSL is verified to work all three of Material UI, Emotion, and Fela with no changes (see the integration-test directory for examples).
 
 ## Quick Intro
 
@@ -111,7 +110,7 @@ This leveraging of the existing framework's selector support makes Truss's DSL s
 Truss liberally borrows the idea of type-checked "extension" CSS from the currently-unreleased Facebook XStyles library (at least in theory; I've only seen one or two slides for this feature of XStyles, but I'm pretty sure Truss is faithful re-implementation of it).
 
 As context, when developing components, you often end up with "properties that are okay for the caller to set" (i.e. that you as the component developer support the caller setting) and "properties that are _not_ okay for the caller to set" (i.e. because the component controls them).
- 
+
 Basically, you want to allow the caller to customize _some_ styles of the component, typically things like color or margin or font size, but not give them blanket control of "here is a `className` prop, do whatever you want to my root element", which risks "radical"/open-ended customization that then you, as the component developer, don't know if you will/will not unintentionally break going forward.
 
 (I.e. see [Layout isolated components](https://visly.app/blog/layout-isolated-components) for a great write up of "parents control margin, components control padding".)
@@ -131,12 +130,12 @@ export interface DatePickerProps<X> {
 }
 
 // Use the `Only` type to ensure `xss` prop is a subset of DatePickerXss
-export function DatePicker<X extends Only<DatePickerXss, X>>(props: DatePickerProps<X>) {
+export function DatePicker<X extends Only<DatePickerXss, X>>(
+  props: DatePickerProps<X>
+) {
   const { date, xss } = props;
   // The component controls marginTop/marginBottom, and defers to the caller for marginLeft/marginRight
-  return (
-    <div css={{...Css.my2.$, ...xss }}>{date}</div>
-  );
+  return <div css={{ ...Css.my2.$, ...xss }}>{date}</div>;
 }
 ```
 
@@ -232,15 +231,15 @@ Where `"spacing"` matches the name of the file that declared these rules in Trus
 ### Forking
 
 At the end of the day, Truss is small and hackable such that forking it to make the abbreviations "strict Tachyons" or "strict Tailwinds" or "whatever best fits your project/conventions/styles" should be easy and is kosher/encouraged.
- 
+
 The core Truss feature of "make a TypeScript DSL with a bunch of abbreviations" is also basically done, so it's unlikely you will miss out on some future/forthcoming amazing features by forking.
 
 And, even if so, the coupling between Truss and your application code is limited to the `Css.abbreviations.$` lines that should be extremely stable even if/as the core of Truss evolves.
 
 ## Why This Approach?
 
-Truss's  approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having short/cute utility class definitions.
- 
+Truss's approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having short/cute utility class definitions.
+
 However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then output by Emotion (or your CSS-in-JS framework of choice), as if the rules had originally been written long-form.
 
 The benefits of this approach are:
@@ -254,11 +253,11 @@ The benefits of this approach are:
 - Psuedo-selectors/breakpoints go through Emotion/the CSS-in-JS framework, which is simpler, more powerful, and reduces method/abbreviation bloat.
 
   I.e. we don't need to suffix `-nl` for "not large" onto every single abbreviation.
-  
+
 - "Regular Emotion/CSS-in-JS" is easily/inherently available as an escape hatch for places where utility classes don't make sense.
 
   It's very likely you'll need "not utility" styles at some point in your project, and because Truss's DSL is already going through Emotion/CSS-in-JS anyway, it means your one-off "not utility" rules will use the same/consistent CSS-in-JS output/generation pipeline.
-  
+
   This means you don't end up with mixed idioms of `className="mx2 black"` for 90% of your styles, but then "something different" like `css={...}` for the last 10%.
 
 - Projects can easily tweak their preferred styles/abbreviations.
@@ -279,9 +278,8 @@ Several libraries influenced Truss, specifically:
 
 ## Todo
 
-* Support `number[]` increments as config
-* Upstream optional per-font size letter spacing/line height support
-* Babel plugin that evaluates `Css...$` expressions at build-time
+- Support `number[]` increments as config
+- Upstream optional per-font size letter spacing/line height support
+- Babel plugin that evaluates `Css...$` expressions at build-time
   - I.e. see babel-plugin-tailwind-components and [typed.tw's implementation](https://github.com/dvkndn/typed.tw/tree/master/webpack-loader)
-* Fela support, ideally via an Emotion-esque `css` prop?
-* Server-side generation; in theory this should just work?
+- Server-side generation; in theory this should just work?
