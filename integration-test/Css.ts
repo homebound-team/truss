@@ -311,7 +311,7 @@ class CssBuilder<T extends Properties1> {
   get bodyText() { return this.f14.black; }
   
   get $(): T { return maybeImportant(sortObject(this.rules), this._important); }
-  
+
   if(t: boolean | Breakpoint) {
     if (typeof t === "boolean") {
       return new CssBuilder<T>(this.rules, t, this._important, this.selector);
@@ -319,7 +319,7 @@ class CssBuilder<T extends Properties1> {
       return new CssBuilder<T>(this.rules, this.enabled, this._important, t as string);
     }
   }
-  
+
   get else() {
     if (this.selector !== undefined) {
       throw new Error("else is not supported with if(selector)");
@@ -373,7 +373,7 @@ export function increment(inc: number): number {
 
 /** Convert `pixels` to a `px` units string so it's not ambiguous. */
 export function px(pixels: number): string {
-  return `${px}px`;
+  return `${pixels}px`;
 }
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
