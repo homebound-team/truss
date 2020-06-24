@@ -105,6 +105,47 @@ function MyReactComponent(props: ...) {
 
 This leveraging of the existing framework's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
 
+## Common CSS-in-JS Frameworks
+
+Truss generates a TypeScript/`Css.ts` DSL that, without any changes, can be used in MUI, Emotion, and Fela.
+
+See the `./integration-test` directory in Truss's repo for running unit tests for each of the these frameworks.
+
+### Emotion
+
+```tsx
+function FooComponent() {
+  return <div css={Css.black.$}>root</div>;
+}
+```
+
+### Fela
+
+
+```tsx
+function FooComponent() {
+  return <div css={Css.black.$}>root</div>;
+}
+```
+
+```tsx
+function FooComponent() {
+  const { css } = useFela();
+  return <div className={css(Css.black.$)}>root</div>;
+}
+```
+
+### MUI
+
+```tsx
+const useStyles = makeStyles({ root: Css.black.$, });
+
+function FooComponent() {
+  const styles = useStyles();
+  return <div className={styles.root}>root</div>;
+}
+```
+
 ## XStyles / Xss Extension Contracts
 
 Truss liberally borrows the idea of type-checked "extension" CSS from the currently-unreleased Facebook XStyles library (at least in theory; I've only seen one or two slides for this feature of XStyles, but I'm pretty sure Truss is faithful re-implementation of it).
