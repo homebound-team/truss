@@ -2,7 +2,7 @@
   <img src="https://github.com/homebound-team/truss/blob/main/logo.svg?raw=true" width="400" />
 </p>
 
-Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, fela, etc.) that achieves utility-class brevity while critical-css/incremental delivery.
+Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, fela, etc.) that achieves both utility-class brevity and critical-css delivery.
 
 See the "Why This Approach?" section for more rationale.
 
@@ -44,6 +44,8 @@ function MyReactComponent(props: ...) {
 
 And in your HTML output, you'd get an Emotion-generated `.emotion-0` CSS class with the three `marginLeft`, `marginRight`, `color` properties set.
 
+See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
+
 ## Installation
 
 The recommended Truss installation involves checking a few `index.ts`/`package.json` files into a `truss/` subdirectory of your project, to provide a place for Truss configuration/customization, as well as an easy way to kick off the code generator (i.e. it keeps the Truss `ts-node` and `tsconfig.json` settings from interfering with your project's existing setup).
@@ -61,7 +63,13 @@ In your current project, run:
 
 This should create a `src/Css.ts` in your project's main `src/` directory (you can change the output path in `index.ts` if needed).
 
-You can then check in the `truss/` directory, and the generated `src/Css.ts` file.
+You can then check in the `truss/` directory, and the generated `src/Css.ts` file (which will be in your root project's `src/` directory and not the `truss/` subdirectory).
+
+## Configuration
+
+Truss's configuration is all done in the `truss/index.ts` and `truss/palette.ts` files that are installed in your local project.
+
+See the comments in [that file](https://github.com/homebound-team/truss-project-files/blob/main/index.ts) for the available config options.
 
 ## Psuedo-Selectors and Media Queries
 
@@ -89,9 +97,7 @@ And breakpoints like:
 ```tsx
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-
-// Could be defined as an 'extras' in your truss/index.ts file
-const sm = `@media (max-width: 420px)`;
+import { Css, sm } from "src/Css";
 
 function MyReactComponent(props: ...) {
   // Use emotion's css prop
@@ -102,6 +108,8 @@ function MyReactComponent(props: ...) {
   );
 }
 ```
+
+Where `sm` is just a regular media query string, i.e. `@media (max-width: 420px)`, that you can either generate with Truss's `breakpoints` config setting or just write your own by hand.
 
 This leveraging of the existing framework's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
 
