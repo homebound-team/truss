@@ -319,7 +319,7 @@ The word "theme" can mean either "static themes" (i.e. using the same consistent
 
 For static themes, Truss's `index.ts`/`palette.ts` are specifically setup to allow defining your application's fonts, colors, etc. (see the "Configuration" section).
 
-For dynamic themes, Truss doesn't have any explicitly setup to support them, but you could use CSS variables, i.e.:
+For dynamic themes, Truss doesn't have any features dedicated explicitly to supporting them, but you can easily use CSS variables in your rules, i.e.:
 
 ```typescript
 const palette = {
@@ -328,7 +328,7 @@ const palette = {
 };
 ```
 
-And then have your application handle setting the `--primary` / `--secondary` values as appropriate (i.e. by importing a `dark-mode.css` or `light-mode.css` where you define the CSS variable values).
+And then have your application handle setting the `--primary` / `--secondary` values as appropriate (i.e. by importing a `dark-mode.css` or `light-mode.css` which define the respective CSS variable values).
 
 ## Inspiration
 
