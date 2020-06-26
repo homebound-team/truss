@@ -9,6 +9,7 @@ const palette = {
   LightGray: "#cecece",
   White: "#fcfcfa",
   Blue: "#526675",
+  Primary: "var(--primary)",
 };
 
 const fonts = {

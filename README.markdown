@@ -313,6 +313,23 @@ The benefits of this approach are:
 
   Granted, this is very similar in spirit to Tailwinds customization, but for Truss, the config process is "just change some TypeScript code and run `generate`", and doesn't involve any changes to your build/webpack/PostCSS/etc. setup.
 
+## Themes
+
+The word "theme" can mean either "static themes" (i.e. using the same consistent colors/fonts throughout your app, but the values themselves never really change) or "dynamic themes" (i.e. the user changing from light mode to dark mode).
+
+For static themes, Truss's `index.ts`/`palette.ts` are specifically setup to allow defining your application's fonts, colors, etc. (see the "Configuration" section).
+
+For dynamic themes, Truss doesn't have any explicitly setup to support them, but you could use CSS variables, i.e.:
+
+```typescript
+const palette = {
+  Primary: "var(--primary)",
+  Secondary: "var(--secondary)",
+};
+```
+
+And then have your application handle setting the `--primary` / `--secondary` values as appropriate (i.e. by importing a `dark-mode.css` or `light-mode.css` where you define the CSS variable values).
+
 ## Inspiration
 
 Several libraries influenced Truss, specifically:

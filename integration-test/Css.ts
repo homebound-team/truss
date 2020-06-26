@@ -22,6 +22,7 @@ class CssBuilder<T extends Properties1> {
   get bLightGray() { return this.add("borderColor", "#cecece"); }
   get bWhite() { return this.add("borderColor", "#fcfcfa"); }
   get bBlue() { return this.add("borderColor", "#526675"); }
+  get bPrimary() { return this.add("borderColor", "var(--primary)"); }
 
   // borderRadiusRules
   get br0() { return this.add("borderRadius", "0"); }
@@ -160,12 +161,14 @@ class CssBuilder<T extends Properties1> {
   get lightGray() { return this.add("color", "#cecece"); }
   get white() { return this.add("color", "#fcfcfa"); }
   get blue() { return this.add("color", "#526675"); }
+  get primary() { return this.add("color", "var(--primary)"); }
   color(value: string) { return this.add("color", value); }
   get bgBlack() { return this.add("backgroundColor", "#353535"); }
   get bgMidGray() { return this.add("backgroundColor", "#888888"); }
   get bgLightGray() { return this.add("backgroundColor", "#cecece"); }
   get bgWhite() { return this.add("backgroundColor", "#fcfcfa"); }
   get bgBlue() { return this.add("backgroundColor", "#526675"); }
+  get bgPrimary() { return this.add("backgroundColor", "var(--primary)"); }
   bgColor(value: string) { return this.add("backgroundColor", value); }
 
   // spacingRules
