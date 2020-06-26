@@ -146,7 +146,7 @@ function FooComponent() {
 ### MUI
 
 ```tsx
-const useStyles = makeStyles({ root: Css.black.$, });
+const useStyles = makeStyles({ root: Css.black.$ });
 
 function FooComponent() {
   const styles = useStyles();
