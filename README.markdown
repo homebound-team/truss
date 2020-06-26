@@ -317,9 +317,9 @@ The benefits of this approach are:
 
 The word "theme" can mean either "static themes" (i.e. using the same consistent colors/fonts throughout your app, but the values themselves never really change) or "dynamic themes" (i.e. the user changing from light mode to dark mode).
 
-For static themes, Truss's `index.ts`/`palette.ts` are specifically setup to allow defining your application's fonts, colors, etc. (see the "Configuration" section).
+For static themes, Truss's `index.ts`/`palette.ts` are specifically setup to centrally define your application's fonts, colors, etc. (see the "Configuration" section), so that they are consistently applied through your application.
 
-For dynamic themes, Truss doesn't have any features dedicated explicitly to supporting them, but you can easily use CSS variables in your rules, i.e.:
+For dynamic themes, Truss doesn't have any features dedicated explicitly to support them, but you can easily use CSS variables in your rules, i.e.:
 
 ```typescript
 const palette = {
