@@ -67,6 +67,8 @@ This should create a `src/Css.ts` in your project's main `src/` directory (you c
 
 You can then check in the `truss/` directory, and the generated `src/Css.ts` file (which will be in your root project's `src/` directory and not the `truss/` subdirectory).
 
+Note that you do not need to run `npm run generate` on a regular basis/as part of your day-to-day workflow; you only need to run it when you're specifically making updates to the `truss/index.ts`/`truss/palette.ts` files.
+
 ## Configuration
 
 Truss's configuration is all done in the `truss/index.ts` and `truss/palette.ts` files that are installed in your local project.
