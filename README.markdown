@@ -2,9 +2,9 @@
   <img src="logo.svg" width="400" />
 </p>
 
-Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, fela, etc.) that achieves both utility-class brevity and critical-css delivery.
+Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in Emotion, MUI, Fela, etc.) that achieves both utility-class brevity and critical-css delivery.
 
-(I.e. Truss simply turns `Css.mt1.black.$` into `{ margin-top: 8px, color: black }` and then defers to Emotion/Fela/MUI to actually inject the CSS into the DOM.)
+(tldr: truss turns `Css.mt1.black.$` into `{ margin-top: 8px, color: black }`, which then you use in Emotion/Fela/MUI as if you'd written the CSS in long-form. See below for more details.)
 
 See the "Why This Approach?" section for more rationale.
 
