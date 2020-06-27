@@ -4,13 +4,15 @@
 
 Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in emotion, MUI, fela, etc.) that achieves both utility-class brevity and critical-css delivery.
 
+(I.e. Truss simply turns `Css.mt1.black.$` into `{ margin-top: 8px, color: black }` and then defers to Emotion/Fela/MUI to actually inject the CSS into the DOM.)
+
 See the "Why This Approach?" section for more rationale.
 
-Truss should generally support any CSS-in-JS framework without any customizations; currently the same `Css.ts`-generated DSL is verified to work all three of Material UI, Emotion, and Fela with no changes (see the integration-test directory for examples).
+Truss should generally support any CSS-in-JS framework without any customizations; currently the same generated `Css.ts` file can work with all three of Material UI, Emotion, and Fela with no changes (see the integration-test directory for examples).
 
 ## Quick Intro
 
-Truss generates a `Css.ts` file that exports a `Css` const that you use like:
+Truss generates a `src/Css.ts` file in your local project; this file exports a `Css` const that you use like:
 
 ```typescript
 import { Css } from "src/Css";
@@ -30,7 +32,7 @@ const css = {
 };
 ```
 
-You can then pass this POJO to whatever CSS-in-JS framework you're using, i.e. with emotion you would do something like:
+You can then pass this POJO to whatever CSS-in-JS framework you're using, i.e. with Emotion you would do something like:
 
 ```tsx
 /** @jsx jsx */
@@ -42,7 +44,7 @@ function MyReactComponent(props: ...) {
 }
 ```
 
-And in your HTML output, you'd get an Emotion-generated `.emotion-0` CSS class with the three `marginLeft`, `marginRight`, `color` properties set.
+And in your HTML output, you'd get an Emotion-generated `.emotion-0` CSS class with the three `marginLeft`, `marginRight`, `color` properties set. (If you were to use Truss with Fela's `fe` JSX factory/`css` prop, you'd get three CSS classes, `a`, `b`, and `c`.)
 
 See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
@@ -100,7 +102,6 @@ import { jsx } from "@emotion/core";
 import { Css, sm } from "src/Css";
 
 function MyReactComponent(props: ...) {
-  // Use emotion's css prop
   return (
     <div css={{...Css.mx2.black.$, [sm]: Css.mx1.$}}>
       content
