@@ -1,4 +1,9 @@
-import { generate, generateRules, makeRule } from "../src";
+import {
+  generate,
+  generateRules,
+  makeCssVariablesRule,
+  makeRule,
+} from "../src";
 
 const increment = 8;
 const numberOfIncrements = 4;
@@ -27,6 +32,9 @@ const methods = generateRules({ palette, fonts, numberOfIncrements });
 
 // Add/remove application-specific/one-off rules as needed.
 methods["custom-stuff"] = [makeRule("foo", { color: "#000000" })];
+
+// Create a rule that sets a CSS variable.
+methods["vars"] = [makeCssVariablesRule("setVars", { "--primary": "#000000" })];
 
 // You can also define common application-specific aliases.
 const aliases: Record<string, string[]> = {

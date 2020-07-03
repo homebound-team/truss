@@ -5,5 +5,6 @@ export {
   makeRule,
   makeRules,
   makeIncRules,
+  makeCssVariablesRule,
   IncConfig,
 } from "./utils";

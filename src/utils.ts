@@ -31,7 +31,14 @@ export function makeRule(abbr: string, defs: Properties): string {
     .join("")}; }`;
 }
 
-/** Given a property name `prop`, returns a method named `abbr` that accepts a value of what to set the prop. */
+/**
+ * Given a property name `prop` (i.e. `marginTop`), returns a method named `abbr` (i.e. `mt`)
+ * that accepts a user-defined value of what to set the prop.
+ *
+ * I.e. `Css.mt(someValue).$`
+ *
+ * The `value` parameter's type will be the csstype value for the given `prop`.
+ */
 export function makeValueRule(abbr: string, prop: keyof Properties) {
   return `${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`;
 }
@@ -42,6 +49,21 @@ export function makeAliases(aliases: Record<string, string[]>): string[] {
       .map((v) => `.${v}`)
       .join("")}; }`;
   });
+}
+
+/**
+ * Makes a method that can set CSS custom values.
+ *
+ * I.e. `makeCssVariablesRule("foo", { "--Foo": "bar" })` will create a method
+ * `Css.foo.$ that will set `--Foo` to `bar`.
+ *
+ * Currently this only supports compile-time/hard-coded values. I.e. we don't support
+ * something like `Css.foo({ "--Foo", "bar" }).$` yet.
+ */
+export function makeCssVariablesRule(abbr: string, defs: Record<string, string>): string {
+  return `get ${abbr}() { return this${Object.entries(defs)
+    .map(([prop, value]) => `.add("${prop}" as any, "${value}")`)
+    .join("")}; }`;
 }
 
 // For any "increment" abbreviation, maps the abbreviation, i.e. "mt",

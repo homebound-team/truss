@@ -275,6 +275,14 @@ describe("Css", () => {
       }
     `);
   });
+
+  it("can set css variables", () => {
+    expect(Css.setVars.$).toMatchInlineSnapshot(`
+      Object {
+        "--primary": "#000000",
+      }
+    `);
+  });
 });
 
 type Margins =
