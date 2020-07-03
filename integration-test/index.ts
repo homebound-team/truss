@@ -34,7 +34,10 @@ const methods = generateRules({ palette, fonts, numberOfIncrements });
 methods["custom-stuff"] = [makeRule("foo", { color: "#000000" })];
 
 // Create a rule that sets a CSS variable.
-methods["vars"] = [makeCssVariablesRule("setVars", { "--primary": "#000000" })];
+methods["vars"] = [
+  makeCssVariablesRule("setVars", { "--primary": "#000000" }),
+  makeRule("var", { color: "var(--primary)" }),
+];
 
 // You can also define common application-specific aliases.
 const aliases: Record<string, string[]> = {

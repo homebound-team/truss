@@ -319,6 +319,7 @@ class CssBuilder<T extends Properties1> {
 
   // vars
   get setVars() { return this.add("--primary" as any, "#000000"); }
+  get var() { return this.add("color", "var(--primary)"); }
 
   // aliases
   get bodyText() { return this.f14.black; }

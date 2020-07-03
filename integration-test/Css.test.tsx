@@ -282,6 +282,11 @@ describe("Css", () => {
         "--primary": "#000000",
       }
     `);
+    expect(Css.var.$).toMatchInlineSnapshot(`
+      Object {
+        "color": "var(--primary)",
+      }
+    `);
   });
 });
 
