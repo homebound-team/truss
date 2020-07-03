@@ -52,12 +52,15 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
 The recommended Truss installation involves checking a few `index.ts`/`package.json` files into a `truss/` subdirectory of your project, to provide a place for Truss configuration/customization, as well as an easy way to kick off the code generator (i.e. it keeps the Truss `ts-node` and `tsconfig.json` settings from interfering with your project's existing setup).
 
-In your current project, run:
+In your current project, run (todo script/make this shorter):
 
 - `mkdir truss`
 - `cd truss`
 - `wget https://github.com/homebound-team/truss-project-files/archive/main.zip`
 - `unzip main.zip`
+- `mv truss-project-files-main/* .`
+- `mv truss-project-files-main/.gitignore .`
+- `rmdir truss-project-files-main`
 - `rm main.zip`
 - `npm install --save @homebound/truss`
   - Note this is purposefully `install`-ing into the `truss/package.json` and not your root `package.json` file
