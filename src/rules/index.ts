@@ -15,6 +15,7 @@ import { skinRules } from "./skins";
 import { spacingRules } from "./spacing";
 import { textAlignRules } from "./text-align";
 import { textDecorationRules } from "./text-decoration";
+import { textTransformRules } from "./text-transform";
 import { typeScaleRules } from "./type-scale";
 import { whitespaceRules } from "./white-space";
 import { widthRules } from "./widths";
@@ -37,6 +38,7 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   spacingRules,
   textAlignRules,
   textDecorationRules,
+  textTransformRules,
   typeScaleRules,
   whitespaceRules,
   widthRules,

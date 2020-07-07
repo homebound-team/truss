@@ -135,7 +135,6 @@ function FooComponent() {
 
 ### Fela
 
-
 ```tsx
 function FooComponent() {
   return <div css={Css.black.$}>root</div>;
@@ -295,7 +294,7 @@ And, even if so, the coupling between Truss and your application code is limited
 
 Truss's approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having short/cute utility class definitions.
 
-However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then output by Emotion (or your CSS-in-JS framework of choice), as if the rules had originally been written long-form.
+However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then outputted by Emotion (or your CSS-in-JS framework of choice), as if the rules had originally been written long-form.
 
 The benefits of this approach are:
 
@@ -350,6 +349,7 @@ Several libraries influenced Truss, specifically:
 
 ## Todo
 
+- `npx -p @homebound/truss init` type experience for setup - inspired by [Storybook](https://storybook.js.org/docs/guides/quick-start-guide/)
 - Support `number[]` increments as config
 - Upstream optional per-font size letter spacing/line height support
 - Babel plugin that evaluates `Css...$` expressions at build-time
