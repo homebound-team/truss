@@ -268,6 +268,12 @@ class CssBuilder<T extends Properties1> {
   get strike() { return this.add("textDecoration", "line-through"); }
   get underline() { return this.add("textDecoration", "underline"); }
 
+  // textTransformRules
+  get ttc() { return this.add("textTransform", "capitalize"); }
+  get ttl() { return this.add("textTransform", "lowercase"); }
+  get ttu() { return this.add("textTransform", "uppercase"); }
+  get ttn() { return this.add("textTransform", "none"); }
+
   // typeScaleRules
   get f24() { return this.add("fontSize", "24px"); }
   get f18() { return this.add("fontSize", "18px"); }
