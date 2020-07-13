@@ -170,6 +170,7 @@ class CssBuilder<T extends Properties1> {
   get bgBlue() { return this.add("backgroundColor", "#526675"); }
   get bgPrimary() { return this.add("backgroundColor", "var(--primary)"); }
   bgColor(value: string) { return this.add("backgroundColor", value); }
+  fill(value: string) { return this.add("fill", value); }
 
   // spacingRules
   get mt0() { return this.mt(0); }
@@ -395,6 +396,15 @@ export function increment(inc: number): number {
 export function px(pixels: number): string {
   return `${pixels}px`;
 }
+
+export const Palette = {
+  Black: "#353535",
+  MidGray: "#888888",
+  LightGray: "#cecece",
+  White: "#fcfcfa",
+  Blue: "#526675",
+  Primary: "var(--primary)",
+};
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({}, true, false, undefined);

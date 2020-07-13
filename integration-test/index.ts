@@ -50,6 +50,7 @@ const extras = [`export type CustomType = number;`];
 generate({
   outputPath: "./integration-test/Css.ts",
   methods,
+  palette,
   increment,
   aliases,
   extras,
