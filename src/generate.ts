@@ -15,6 +15,9 @@ export type GenerateOpts = {
   /** The map of "section" to list of getters/methods, i.e. "border-colors" -> `get ml1() { ... }`. */
   methods: Record<string, string[]>;
 
+  /** The app's palette, i.e. logical color name to hex. */
+  palette: Record<string, string>;
+
   /** Your theme's increment, i.e. 6 or 8. */
   increment: number;
 
@@ -73,6 +76,7 @@ export function generateCssBuilder(opts: GenerateOpts): Code {
     extras,
     typeAliases,
     breakpoints,
+    palette,
   } = opts;
 
   const Properties = imp("Properties@csstype");
@@ -187,6 +191,12 @@ export function increment(inc: number): number {
 /** Convert \`pixels\` to a \`px\` units string so it's not ambiguous. */
 export function px(pixels: number): string {
   return \`\${pixels}px\`;
+}
+
+export const Palette = {
+  ${Object.entries(palette).map(([name, value]) => {
+    return `${name}: "${value}",`;
+  })}
 }
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */

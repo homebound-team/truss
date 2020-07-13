@@ -2,7 +2,7 @@
 import { Button } from "@material-ui/core";
 import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
-import { Css, Only, Properties, sm, px } from "./Css";
+import { Css, Only, Properties, sm, px, Palette } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -285,6 +285,14 @@ describe("Css", () => {
     expect(Css.var.$).toMatchInlineSnapshot(`
       Object {
         "color": "var(--primary)",
+      }
+    `);
+  });
+
+  it("has the palette", () => {
+    expect(Css.fill(Palette.Black).$).toMatchInlineSnapshot(`
+      Object {
+        "fill": "#353535",
       }
     `);
   });

@@ -26,5 +26,6 @@ export const skinRules: RuleFn = (config) => {
     `color(value: string) { return this.add("color", value); }`,
     ...backgroundColors,
     `bgColor(value: string) { return this.add("backgroundColor", value); }`,
+    `fill(value: string) { return this.add("fill", value); }`,
   ];
 };
