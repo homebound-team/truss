@@ -19,6 +19,7 @@ import { textTransformRules } from "./text-transform";
 import { typeScaleRules } from "./type-scale";
 import { whitespaceRules } from "./white-space";
 import { widthRules } from "./widths";
+import { verticalAlignRules } from "./vertical-align";
 import { visibilityRules } from "./visibility";
 import { zIndexRules } from "./zIndex";
 
@@ -42,6 +43,7 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   typeScaleRules,
   whitespaceRules,
   widthRules,
+  verticalAlignRules,
   visibilityRules,
   zIndexRules,
 };

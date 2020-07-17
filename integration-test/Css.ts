@@ -303,6 +303,12 @@ class CssBuilder<T extends Properties1> {
   get w4() { return this.w(4); }
   w(inc: number | string) { return this.add("width", maybeInc(inc)); }
 
+  // verticalAlignRules
+  get vBase() { return this.add("verticalAlign", "baseline"); }
+  get vMid() { return this.add("verticalAlign", "middle"); }
+  get vTop() { return this.add("verticalAlign", "top"); }
+  get vBottom() { return this.add("verticalAlign", "bottom"); }
+
   // visibilityRules
   get visible() { return this.add("visibility", "visible"); }
   get invisible() { return this.add("visibility", "hidden"); }
