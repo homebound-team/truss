@@ -41,6 +41,10 @@ class CssBuilder<T extends Properties1> {
   get bl() { return this.add("borderLeftStyle", "solid").add("borderLeftWidth", "1px"); }
   get bn() { return this.add("borderStyle", "none").add("borderWidth", "0"); }
 
+  // borderStyleRules
+  get b__dashed() { return this.add("borderStyle", "dashed"); }
+  get b__dotted() { return this.add("borderStyle", "dotted"); }
+
   // boxShadowRules
   get shadowNone() { return this.add("boxShadow", "none"); }
 
