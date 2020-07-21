@@ -8,5 +8,13 @@ export const heightRules: RuleFn = (config) => [
     h75: "75%",
     h100: "100%",
   }),
+  ...makeRules(
+    "minHeight",
+    {
+      mh0: 0,
+      mh100: "100%",
+    },
+    "mh"
+  ),
   ...makeIncRules(config, "h", "height"),
 ];
