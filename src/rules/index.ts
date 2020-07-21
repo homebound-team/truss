@@ -3,6 +3,7 @@ import { borderColorRules } from "./border-colors";
 import { borderRadiusRules } from "./border-radius";
 import { borderRules } from "./borders";
 import { borderStyleRules } from "./border-styles";
+import { borderWidthRules } from "./border-widths";
 import { boxShadowRules } from "./box-shadow";
 import { coordinateRules } from "./coordinates";
 import { cursorRules } from "./cursor";
@@ -29,6 +30,7 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   borderRadiusRules,
   borderRules,
   borderStyleRules,
+  borderWidthRules,
   boxShadowRules,
   coordinateRules,
   cursorRules,
@@ -43,9 +45,9 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   textDecorationRules,
   textTransformRules,
   typeScaleRules,
-  whitespaceRules,
-  widthRules,
   verticalAlignRules,
   visibilityRules,
+  whitespaceRules,
+  widthRules,
   zIndexRules,
 };

@@ -42,8 +42,15 @@ class CssBuilder<T extends Properties1> {
   get bn() { return this.add("borderStyle", "none").add("borderWidth", "0"); }
 
   // borderStyleRules
-  get b__dashed() { return this.add("borderStyle", "dashed"); }
-  get b__dotted() { return this.add("borderStyle", "dotted"); }
+  get bsDashed() { return this.add("borderStyle", "dashed"); }
+  get bsDotted() { return this.add("borderStyle", "dotted"); }
+  get bsNone() { return this.add("borderStyle", "none"); }
+  get bsSolid() { return this.add("borderStyle", "solid"); }
+
+  // borderWidthRules
+  get bw1() { return this.add("borderWidth", "1px"); }
+  get bw2() { return this.add("borderWidth", "2px"); }
+  bw(value: Properties["borderWidth"]) { return this.add("borderWidth", value); }
 
   // boxShadowRules
   get shadowNone() { return this.add("boxShadow", "none"); }
@@ -140,6 +147,9 @@ class CssBuilder<T extends Properties1> {
   get h50() { return this.add("height", "50%"); }
   get h75() { return this.add("height", "75%"); }
   get h100() { return this.add("height", "100%"); }
+  get mh0() { return this.add("minHeight", 0); }
+  get mh100() { return this.add("minHeight", "100%"); }
+  mh(value: Properties["minHeight"]) { return this.add("minHeight", value); }
   get h0() { return this.h(0); }
   get h1() { return this.h(1); }
   get h2() { return this.h(2); }
@@ -287,6 +297,16 @@ class CssBuilder<T extends Properties1> {
   get f12() { return this.add("fontSize", "12px"); }
   get f10() { return this.add("fontSize", "10px"); }
 
+  // verticalAlignRules
+  get vBase() { return this.add("verticalAlign", "baseline"); }
+  get vMid() { return this.add("verticalAlign", "middle"); }
+  get vTop() { return this.add("verticalAlign", "top"); }
+  get vBottom() { return this.add("verticalAlign", "bottom"); }
+
+  // visibilityRules
+  get visible() { return this.add("visibility", "visible"); }
+  get invisible() { return this.add("visibility", "hidden"); }
+
   // whitespaceRules
   get nowrap() { return this.add("whiteSpace", "nowrap"); }
   get pre() { return this.add("whiteSpace", "pre"); }
@@ -306,16 +326,6 @@ class CssBuilder<T extends Properties1> {
   get w3() { return this.w(3); }
   get w4() { return this.w(4); }
   w(inc: number | string) { return this.add("width", maybeInc(inc)); }
-
-  // verticalAlignRules
-  get vBase() { return this.add("verticalAlign", "baseline"); }
-  get vMid() { return this.add("verticalAlign", "middle"); }
-  get vTop() { return this.add("verticalAlign", "top"); }
-  get vBottom() { return this.add("verticalAlign", "bottom"); }
-
-  // visibilityRules
-  get visible() { return this.add("visibility", "visible"); }
-  get invisible() { return this.add("visibility", "hidden"); }
 
   // zIndexRules
   get z0() { return this.add("zIndex", 0); }
