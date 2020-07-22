@@ -296,6 +296,17 @@ describe("Css", () => {
       }
     `);
   });
+
+  it("can addIn with selectors", () => {
+    expect(Css.addIn("& > * + *", "marginBottom", "1px").$)
+      .toMatchInlineSnapshot(`
+      Object {
+        "& > * + *": Object {
+          "marginBottom": "1px",
+        },
+      }
+    `);
+  });
 });
 
 type Margins =
