@@ -7,14 +7,23 @@ export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
 export type Properties = Properties1;
 
+type Opts<T> = {
+  rules: T;
+  enabled: boolean;
+  important: boolean;
+  selector: string | undefined;
+};
+
 // prettier-ignore
 class CssBuilder<T extends Properties1> {
-  constructor(
-    public rules: T,
-    private enabled: boolean,
-    private _important: boolean,
-    private selector: string | undefined
-  ) {}
+  constructor(private opts: Opts<T>) {}
+  
+  private get rules(): T { return this.opts.rules };
+  private get enabled(): boolean { return this.opts.enabled };
+  private get selector(): string | undefined { return this.opts.selector };
+  private newCss(opts: Partial<Opts<T>>): CssBuilder<T> {
+    return new CssBuilder({ ...this.opts, ...opts });
+  }
 
   // borderColorRules
   get bBlack() { return this.add("borderColor", "#353535"); }
@@ -351,13 +360,13 @@ class CssBuilder<T extends Properties1> {
   // aliases
   get bodyText() { return this.f14.black; }
   
-  get $(): T { return maybeImportant(sortObject(this.rules), this._important); }
+  get $(): T { return maybeImportant(sortObject(this.rules), this.opts.important); }
 
   if(t: boolean | Breakpoint) {
     if (typeof t === "boolean") {
-      return new CssBuilder<T>(this.rules, t, this._important, this.selector);
+      return this.newCss({ enabled: t });
     } else {
-      return new CssBuilder<T>(this.rules, this.enabled, this._important, t as string);
+      return this.newCss({ selector: t as string });
     }
   }
 
@@ -365,10 +374,10 @@ class CssBuilder<T extends Properties1> {
     if (this.selector !== undefined) {
       throw new Error("else is not supported with if(selector)");
     }
-    return new CssBuilder<T>(this.rules, !this.enabled, this._important, this.selector);
+    return this.newCss({ enabled: !this.enabled });
   }
 
-  get important() { return new CssBuilder<T>(this.rules, this.enabled, true, this.selector); }
+  get important() { return this.newCss({ important: true }); }
 
   /** Adds new properties, either a specific key/value or a Properties object, to the current css. */
   add<P extends Properties>(props: P): CssBuilder<T & P>;
@@ -378,7 +387,7 @@ class CssBuilder<T extends Properties1> {
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
       : this.enabled ? { ...this.rules, ...newRules } : this.rules;
-    return new CssBuilder(rules as any, this.enabled, this._important, this.selector);
+    return this.newCss({ rules: rules as any });
   }
 
   /** Adds new properties, either a specific key/value or a Properties object, to a nested selector. */
@@ -387,7 +396,7 @@ class CssBuilder<T extends Properties1> {
   addIn<K extends keyof Properties, V extends Properties[K]>(selector: string, propOrProperties: K | Properties, value?: V): CssBuilder<any> {
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
     const rules = { ...this.rules, [selector]: { ...(this.rules as any)[selector], ...newRules } };
-    return new CssBuilder(rules as any, this.enabled, this._important, this.selector);
+    return this.newCss({ rules: rules as any });
   }
 }
 
@@ -436,7 +445,12 @@ export const Palette = {
 };
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({}, true, false, undefined);
+export const Css = new CssBuilder({
+  rules: {},
+  enabled: true,
+  important: false,
+  selector: undefined,
+});
 
 export type Margin =
   | "margin"
