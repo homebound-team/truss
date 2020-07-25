@@ -17,7 +17,7 @@ type Opts<T> = {
 // prettier-ignore
 class CssBuilder<T extends Properties1> {
   constructor(private opts: Opts<T>) {}
-  
+
   private get rules(): T { return this.opts.rules };
   private get enabled(): boolean { return this.opts.enabled };
   private get selector(): string | undefined { return this.opts.selector };
@@ -152,19 +152,24 @@ class CssBuilder<T extends Properties1> {
   flexDirection(value: Properties["flexDirection"]) { return this.add("flexDirection", value); }
 
   // heightRules
-  get h25() { return this.add("height", "25%"); }
-  get h50() { return this.add("height", "50%"); }
-  get h75() { return this.add("height", "75%"); }
-  get h100() { return this.add("height", "100%"); }
-  get mh0() { return this.add("minHeight", 0); }
-  get mh100() { return this.add("minHeight", "100%"); }
-  mh(value: Properties["minHeight"]) { return this.add("minHeight", value); }
   get h0() { return this.h(0); }
   get h1() { return this.h(1); }
   get h2() { return this.h(2); }
   get h3() { return this.h(3); }
   get h4() { return this.h(4); }
   h(inc: number | string) { return this.add("height", maybeInc(inc)); }
+  get h25() { return this.add("height", "25%"); }
+  get h50() { return this.add("height", "50%"); }
+  get h75() { return this.add("height", "75%"); }
+  get h100() { return this.add("height", "100%"); }
+  get vh25() { return this.add("height", "25vh"); }
+  get vh50() { return this.add("height", "50vh"); }
+  get vh75() { return this.add("height", "75vh"); }
+  get vh100() { return this.add("height", "100vh"); }
+  get mh0() { return this.add("minHeight", 0); }
+  get mh100() { return this.add("minHeight", "100%"); }
+  get mvh100() { return this.add("minHeight", "100vh"); }
+  mh(value: Properties["minHeight"]) { return this.add("minHeight", value); }
 
   // outlineRules
   get outline() { return this.add("outline", "1px solid"); }
