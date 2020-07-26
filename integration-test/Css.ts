@@ -311,6 +311,12 @@ class CssBuilder<T extends Properties1> {
   get f12() { return this.add("fontSize", "12px"); }
   get f10() { return this.add("fontSize", "10px"); }
 
+  // userSelectRules
+  get selectNote() { return this.add("userSelect", "none"); }
+  get selectText() { return this.add("userSelect", "text"); }
+  get selectAll() { return this.add("userSelect", "all"); }
+  get selectAuto() { return this.add("userSelect", "auto"); }
+
   // verticalAlignRules
   get vBase() { return this.add("verticalAlign", "baseline"); }
   get vMid() { return this.add("verticalAlign", "middle"); }

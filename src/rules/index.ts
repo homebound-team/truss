@@ -19,6 +19,7 @@ import { textAlignRules } from "./text-align";
 import { textDecorationRules } from "./text-decoration";
 import { textTransformRules } from "./text-transform";
 import { typeScaleRules } from "./type-scale";
+import { userSelectRules } from "./user-select";
 import { verticalAlignRules } from "./vertical-align";
 import { visibilityRules } from "./visibility";
 import { whitespaceRules } from "./white-space";
@@ -45,6 +46,7 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   textDecorationRules,
   textTransformRules,
   typeScaleRules,
+  userSelectRules,
   verticalAlignRules,
   visibilityRules,
   whitespaceRules,
