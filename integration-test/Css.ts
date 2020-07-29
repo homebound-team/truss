@@ -405,8 +405,8 @@ class CssBuilder<T extends Properties1> {
 
   /** Adds new properties, either a specific key/value or a Properties object, to the current css. */
   add<P extends Properties>(props: P): CssBuilder<T & P>;
-  add<K extends keyof Properties, V extends Properties[K]>(prop: K, value: V): CssBuilder<T & { [U in K]: V }>;
-  add<K extends keyof Properties, V extends Properties[K]>(propOrProperties: K | Properties, value?: V): CssBuilder<any> {
+  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
+  add<K extends keyof Properties>(propOrProperties: K | Properties, value?: Properties[K]): CssBuilder<any> {
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
@@ -416,8 +416,8 @@ class CssBuilder<T extends Properties1> {
 
   /** Adds new properties, either a specific key/value or a Properties object, to a nested selector. */
   addIn<P extends Properties>(selector: string, props: P): CssBuilder<T & P>;
-  addIn<K extends keyof Properties, V extends Properties[K]>(selector: string, prop: K, value: V): CssBuilder<T & { [U in K]: V }>;
-  addIn<K extends keyof Properties, V extends Properties[K]>(selector: string, propOrProperties: K | Properties, value?: V): CssBuilder<any> {
+  addIn<K extends keyof Properties>(selector: string, prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
+  addIn<K extends keyof Properties>(selector: string, propOrProperties: K | Properties, value?: Properties[K]): CssBuilder<any> {
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
     const rules = { ...this.rules, [selector]: { ...(this.rules as any)[selector], ...newRules } };
     return this.newCss({ rules: rules as any });

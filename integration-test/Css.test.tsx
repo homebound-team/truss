@@ -115,7 +115,7 @@ describe("Css", () => {
   });
 
   it("can has strongly-typed out", () => {
-    const a: { marginBottom: string } = Css.mb1.$;
+    const a: { marginBottom: 0 | string | undefined } = Css.mb1.$;
     expect(a.marginBottom).toEqual("8px");
   });
 
@@ -175,7 +175,10 @@ describe("Css", () => {
   });
 
   it("can set two properties at a time", () => {
-    const a: { borderStyle: string; borderWidth: string } = Css.ba.$;
+    const a: {
+      borderStyle: string | undefined;
+      borderWidth: string | 0 | undefined;
+    } = Css.ba.$;
     expect(a).toMatchInlineSnapshot(`
       Object {
         "borderStyle": "solid",
@@ -304,6 +307,16 @@ describe("Css", () => {
         "& > * + *": Object {
           "marginBottom": "1px",
         },
+      }
+    `);
+  });
+
+  it("doesn't incorrectly infer never", () => {
+    // If the string literals of white and black snuck into the the type, then this becomes never, which won't spread
+    const s = { ...Css.white.else.black.$ };
+    expect(s).toMatchInlineSnapshot(`
+      Object {
+        "color": "#fcfcfa",
       }
     `);
   });
