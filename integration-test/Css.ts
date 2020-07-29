@@ -151,6 +151,19 @@ class CssBuilder<T extends Properties1> {
   get flexColumnReverse() { return this.add("flexDirection", "column-reverse"); }
   flexDirection(value: Properties["flexDirection"]) { return this.add("flexDirection", value); }
 
+  // fontWeightRules
+  get normal() { return this.add("fontWeight", "normal"); }
+  get b() { return this.add("fontWeight", "bold"); }
+  get fw1() { return this.add("fontWeight", 100); }
+  get fw2() { return this.add("fontWeight", 200); }
+  get fw3() { return this.add("fontWeight", 300); }
+  get fw4() { return this.add("fontWeight", 400); }
+  get fw5() { return this.add("fontWeight", 500); }
+  get fw6() { return this.add("fontWeight", 600); }
+  get fw7() { return this.add("fontWeight", 700); }
+  get fw8() { return this.add("fontWeight", 800); }
+  get fw9() { return this.add("fontWeight", 900); }
+
   // heightRules
   get h0() { return this.h(0); }
   get h1() { return this.h(1); }
