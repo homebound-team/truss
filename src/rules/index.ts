@@ -9,6 +9,7 @@ import { coordinateRules } from "./coordinates";
 import { cursorRules } from "./cursor";
 import { displayRules } from "./display";
 import { flexboxRules } from "./flexbox";
+import { floatRules } from "./floats";
 import { fontWeightRules } from "./font-weight";
 import { heightRules } from "./heights";
 import { outlineRules } from "./outlines";
@@ -38,6 +39,7 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   cursorRules,
   displayRules,
   flexboxRules,
+  floatRules,
   fontWeightRules,
   heightRules,
   outlineRules,
