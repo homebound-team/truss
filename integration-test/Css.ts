@@ -151,6 +151,11 @@ class CssBuilder<T extends Properties1> {
   get flexColumnReverse() { return this.add("flexDirection", "column-reverse"); }
   flexDirection(value: Properties["flexDirection"]) { return this.add("flexDirection", value); }
 
+  // floatRules
+  get fl() { return this.add("float", "left"); }
+  get fn() { return this.add("float", "none"); }
+  get fr() { return this.add("float", "right"); }
+
   // fontWeightRules
   get normal() { return this.add("fontWeight", "normal"); }
   get b() { return this.add("fontWeight", "bold"); }
