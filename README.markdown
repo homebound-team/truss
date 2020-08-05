@@ -172,10 +172,10 @@ Basically, you want to allow the caller to customize _some_ styles of the compon
 With Truss, you can explicitly declare a contract of styles allowed to be set on your component, i.e.:
 
 ```tsx
-import { Css, Only } from "src/Css";
+import { Css, Only, Xss } from "src/Css";
 
 // Declare the allowed/supported styles
-export type DatePickerXss = "marginLeft" | "marginRight";
+export type DatePickerXss = Xss<"marginLeft" | "marginRight">;
 
 // Update the props to accept an `xss` prop to accept the customizations
 export interface DatePickerProps<X> {
