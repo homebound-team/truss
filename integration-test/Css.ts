@@ -473,6 +473,9 @@ export const Palette = {
   Primary: "var(--primary)",
 };
 
+/** A shortcut for defining Xss types. */
+export type Xss<P extends keyof Properties> = Pick<Properties, P>;
+
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({
   rules: {},

@@ -2,7 +2,7 @@
 import { Button } from "@material-ui/core";
 import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
-import { Css, Only, Properties, sm, px, Palette } from "./Css";
+import { Css, Only, Properties, sm, px, Palette, Xss } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -121,7 +121,7 @@ describe("Css", () => {
 
   it("can be limited by an xstyle", () => {
     // only these keys are allowed to style a given component
-    type XStyle = Pick<Properties, "marginBottom" | "marginTop">;
+    type XStyle = Xss<"marginBottom" | "marginTop">;
 
     // style is like a custom component with an xstyle prop
     function style<T extends Only<XStyle, T>>(xstyle: T): void {}
