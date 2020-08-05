@@ -2,9 +2,9 @@
   <img src="logo.svg" width="400" />
 </p>
 
-Truss is a mini-framework for generating a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. the truss DSL can be used in Emotion, MUI, Fela, etc.) that achieves both utility-class brevity and critical-css delivery.
+Truss is a mini-framework that provides a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. Emotion, MUI, and Fela are all supported) that achieves both utility-class brevity and critical-CSS delivery.
 
-(tldr: truss turns `Css.mt1.black.$` into `{ margin-top: 8px, color: black }`, which then you use in Emotion/Fela/MUI as if you'd written the CSS in long-form. See below for more details.)
+(tldr: you write your CSS in TypeScript/tsx like `<div css={Css.mt1.black.$}>`; truss turns `Css.mt2.black.$` into the long-form `{ margin-top: 8px, color: "black" }`, which is then output to the DOM/encoded in a unique CSS class name "as usual" by CSS-in-JS frameworks like Emotion/Fela/MUI. See below for more details.)
 
 See the "Why This Approach?" section for more rationale.
 
@@ -20,7 +20,7 @@ import { Css } from "src/Css";
 const css = Css.mx2.black.$;
 ```
 
-The last `.$` is like a `.build()` or `.finish()` method that converts the DSL object, with its fluent abbreviation getters/methods, into just a regular POJO (plain old JavaScript object), as if you'd written by hand:
+The last `.$` is like a `.build()` or `.finish()` method that converts the DSL object, with its fluent abbreviation getters/methods (like `mx2` and `black`), into just a regular POJO (plain old JavaScript object), as if you'd written by hand:
 
 ```typescript
 const css = {
@@ -50,7 +50,7 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
 ## Installation
 
-The recommended Truss installation involves checking a few `index.ts`/`package.json` files into a `truss/` subdirectory of your project, to provide a place for Truss configuration/customization, as well as an easy way to kick off the code generator (i.e. it keeps the Truss `ts-node` and `tsconfig.json` settings from interfering with your project's existing setup).
+The recommended Truss installation involves checking a few `index.ts`/`package.json` files into a `truss/` subdirectory of your project, to provide a place for Truss configuration/customization, as well as an easy way to kick off the code generator (i.e. it keeps Truss's `package.json`/`tsconfig.json` from interfering with your project's existing setup).
 
 In your current project, run (todo script/make this shorter):
 
