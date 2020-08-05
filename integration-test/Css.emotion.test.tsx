@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
-import { Css, Only, Properties, sm } from "./Css";
+import { Css, Margin, Only, Properties, sm, Xss } from "./Css";
 
 describe("Css.emotion", () => {
   it("works with emotion", () => {
@@ -97,14 +97,7 @@ describe("Css.emotion", () => {
   });
 });
 
-type Margins =
-  | "margin"
-  | "marginTop"
-  | "marginLeft"
-  | "marginBottom"
-  | "marginRight";
-
-type FooXss = Pick<Properties, Margins>;
+type FooXss = Xss<Margin>;
 
 type FooProps<X extends FooXss> = { name: string; xss?: X };
 

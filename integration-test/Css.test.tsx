@@ -2,7 +2,7 @@
 import { Button } from "@material-ui/core";
 import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
-import { Css, Only, Properties, sm, px, Palette, Xss } from "./Css";
+import { Css, Only, Properties, sm, px, Palette, Xss, Margin } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -322,14 +322,7 @@ describe("Css", () => {
   });
 });
 
-type Margins =
-  | "margin"
-  | "marginTop"
-  | "marginLeft"
-  | "marginBottom"
-  | "marginRight";
-
-type FooXss = Pick<Properties, Margins>;
+type FooXss = Xss<Margin>;
 
 type FooProps<X extends FooXss> = { name: string; xss?: X };
 
