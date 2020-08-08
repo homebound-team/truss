@@ -2,6 +2,9 @@
 import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
 import { Css, Margin, Only, Properties, sm, Xss } from "./Css";
+import { matchers } from "jest-emotion";
+
+expect.extend(matchers);
 
 describe("Css.emotion", () => {
   it("works with emotion", () => {
@@ -37,14 +40,28 @@ describe("Css.emotion", () => {
     const phoneOnly = `@media (max-width:500px)`;
     const r = render(
       <div
+        data-testid="div"
         css={{
           ...Css.mb1.pb2.$,
           "&:hover": { marginBottom: "16px", ...Css.pb3.$ },
-          "&:focus": Css.pb4.$,
+          "& > div:focus": Css.pb4.$,
+          "& > div + div": Css.pt4.$,
           [phoneOnly]: Css.pb3.$,
         }}
       />
     );
+
+    // Temp to exercise toHaveStyleRule
+    const div = r.getByTestId("div");
+    expect(div).toHaveStyleRule("margin-bottom", "8px");
+    expect(div).toHaveStyleRule("margin-bottom", "16px", { target: ":hover" });
+    expect(div).toHaveStyleRule("padding-bottom", "32px", {
+      target: "div:focus",
+    });
+    expect(div).toHaveStyleRule("padding-top", "32px", {
+      target: "div",
+    });
+
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
         margin-bottom: 8px;
@@ -56,8 +73,12 @@ describe("Css.emotion", () => {
         padding-bottom: 24px;
       }
 
-      .emotion-0:focus {
+      .emotion-0 > div:focus {
         padding-bottom: 32px;
+      }
+
+      .emotion-0 > div + div {
+        padding-top: 32px;
       }
 
       @media (max-width:500px) {
@@ -69,6 +90,7 @@ describe("Css.emotion", () => {
       <div>
         <div
           class="emotion-0"
+          data-testid="div"
         />
       </div>
     `);
