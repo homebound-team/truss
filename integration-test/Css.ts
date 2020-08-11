@@ -187,7 +187,7 @@ class CssBuilder<T extends Properties1> {
   get mh0() { return this.add("minHeight", 0); }
   get mh25() { return this.add("minHeight", "25%"); }
   get mh50() { return this.add("minHeight", "50%"); }
-  get mh575() { return this.add("minHeight", "75%"); }
+  get mh75() { return this.add("minHeight", "75%"); }
   get mh100() { return this.add("minHeight", "100%"); }
   get mvh100() { return this.add("minHeight", "100vh"); }
   mh(value: Properties["minHeight"]) { return this.add("minHeight", value); }
