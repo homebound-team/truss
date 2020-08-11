@@ -22,9 +22,24 @@ export const heightRules: RuleFn = (config) => [
     "minHeight",
     {
       mh0: 0,
+      mh25: "25%",
+      mh50: "50%",
+      mh75: "75%",
       mh100: "100%",
       mvh100: "100vh",
     },
     "mh"
+  ),
+
+  ...makeRules(
+    "maxHeight",
+    {
+      maxh0: "0",
+      maxh25: "25%",
+      maxh50: "50%",
+      maxh75: "75%",
+      maxh100: "100%",
+    },
+    "maxh"
   ),
 ];
