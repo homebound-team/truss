@@ -185,9 +185,18 @@ class CssBuilder<T extends Properties1> {
   get vh75() { return this.add("height", "75vh"); }
   get vh100() { return this.add("height", "100vh"); }
   get mh0() { return this.add("minHeight", 0); }
+  get mh25() { return this.add("minHeight", "25%"); }
+  get mh50() { return this.add("minHeight", "50%"); }
+  get mh575() { return this.add("minHeight", "75%"); }
   get mh100() { return this.add("minHeight", "100%"); }
   get mvh100() { return this.add("minHeight", "100vh"); }
   mh(value: Properties["minHeight"]) { return this.add("minHeight", value); }
+  get maxh0() { return this.add("maxHeight", "0"); }
+  get maxh25() { return this.add("maxHeight", "25%"); }
+  get maxh50() { return this.add("maxHeight", "50%"); }
+  get maxh75() { return this.add("maxHeight", "75%"); }
+  get maxh100() { return this.add("maxHeight", "100%"); }
+  maxh(value: Properties["maxHeight"]) { return this.add("maxHeight", value); }
 
   // outlineRules
   get outline() { return this.add("outline", "1px solid"); }
@@ -356,8 +365,17 @@ class CssBuilder<T extends Properties1> {
   get w75() { return this.add("width", "75%"); }
   get w100() { return this.add("width", "100%"); }
   get mw0() { return this.add("minWidth", 0); }
+  get mw25() { return this.add("minWidth", "25%"); }
+  get mw50() { return this.add("minWidth", "50%"); }
+  get mw75() { return this.add("minWidth", "75%"); }
   get mw100() { return this.add("minWidth", "100%"); }
   mw(value: Properties["minWidth"]) { return this.add("minWidth", value); }
+  get maxw0() { return this.add("maxWidth", "0"); }
+  get maxw25() { return this.add("maxWidth", "25%"); }
+  get maxw50() { return this.add("maxWidth", "50%"); }
+  get maxw75() { return this.add("maxWidth", "75%"); }
+  get maxw100() { return this.add("maxWidth", "100%"); }
+  maxw(value: Properties["maxWidth"]) { return this.add("maxWidth", value); }
   get w0() { return this.w(0); }
   get w1() { return this.w(1); }
   get w2() { return this.w(2); }
