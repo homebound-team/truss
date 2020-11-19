@@ -338,6 +338,14 @@ class CssBuilder<T extends Properties1> {
   get f12() { return this.add("fontSize", "12px"); }
   get f10() { return this.add("fontSize", "10px"); }
 
+  // typographyRules
+  get measure() { return this.add("maxWidth", "30em"); }
+  get measureWide() { return this.add("maxWidth", "34em"); }
+  get measureNarrow() { return this.add("maxWidth", "20em"); }
+  get indent() { return this.add("textIndent", "1em").add("marginTop", 0).add("marginBottom", 0); }
+  get smallCaps() { return this.add("fontVariant", "small-caps"); }
+  get truncate() { return this.add("whiteSpace", "nowrap").add("overflow", "hidden").add("textOverflow", "ellipsis"); }
+
   // userSelectRules
   get selectNone() { return this.add("userSelect", "none"); }
   get selectText() { return this.add("userSelect", "text"); }
