@@ -96,13 +96,13 @@ class CssBuilder<T extends Properties1> {
   // displayRules
   get dn() { return this.add("display", "none"); }
   get db() { return this.add("display", "block"); }
-  get dib() { return this.add("display", "inlineBlock"); }
-  get dit() { return this.add("display", "inlineTable"); }
+  get dib() { return this.add("display", "inline-block"); }
+  get dit() { return this.add("display", "inline-table"); }
   get dt() { return this.add("display", "table"); }
-  get dtc() { return this.add("display", "tableCell"); }
-  get dtRow() { return this.add("display", "tableRow"); }
-  get dtColumn() { return this.add("display", "tableColumn"); }
-  get dtColumnGroup() { return this.add("display", "tableColumnGroup"); }
+  get dtc() { return this.add("display", "table-cell"); }
+  get dtRow() { return this.add("display", "table-row"); }
+  get dtColumn() { return this.add("display", "table-column"); }
+  get dtColumnGroup() { return this.add("display", "table-column-group"); }
   get dg() { return this.add("display", "grid"); }
   get df() { return this.add("display", "flex"); }
   get dif() { return this.add("display", "inline-flex"); }
