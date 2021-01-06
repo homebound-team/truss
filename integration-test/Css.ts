@@ -114,6 +114,7 @@ class CssBuilder<T extends Properties1> {
   get justifyCenter() { return this.add("justifyContent", "center"); }
   get justifyBetween() { return this.add("justifyContent", "space-between"); }
   get justifyAround() { return this.add("justifyContent", "space-around"); }
+  get justifyEvenly() { return this.add("justifyContent", "space-evenly"); }
   justify(value: Properties["justifyContent"]) { return this.add("justifyContent", value); }
   get selfStart() { return this.add("alignSelf", "flex-start"); }
   get selfEnd() { return this.add("alignSelf", "flex-end"); }
