@@ -204,6 +204,14 @@ class CssBuilder<T extends Properties1> {
   get outlineTransparent() { return this.add("outline", "1px solid transparent"); }
   get outline0() { return this.add("outline", "0"); }
 
+  // objectFitRules
+  get objectContain() { return this.add("objectFit", "contain"); }
+  get objectCover() { return this.add("objectFit", "cover"); }
+  get objectFill() { return this.add("objectFit", "fill"); }
+  get objectNone() { return this.add("objectFit", "none"); }
+  get objectScaleDown() { return this.add("objectFit", "scale-down"); }
+  objectFit(value: Properties["objectFit"]) { return this.add("objectFit", value); }
+
   // positionRules
   get absolute() { return this.add("position", "absolute"); }
   get fixed() { return this.add("position", "fixed"); }
