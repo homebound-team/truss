@@ -12,6 +12,7 @@ import { flexboxRules } from "./flexbox";
 import { floatRules } from "./floats";
 import { fontWeightRules } from "./font-weight";
 import { heightRules } from "./heights";
+import { objectFitRules } from "./objectFit";
 import { outlineRules } from "./outlines";
 import { positionRules } from "./position";
 import { RuleFn } from "./RuleConfig";
@@ -44,6 +45,7 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   fontWeightRules,
   heightRules,
   outlineRules,
+  objectFitRules,
   positionRules,
   skinRules,
   spacingRules,
