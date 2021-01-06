@@ -14,6 +14,7 @@ import { fontWeightRules } from "./font-weight";
 import { heightRules } from "./heights";
 import { objectFitRules } from "./objectFit";
 import { outlineRules } from "./outlines";
+import { overflowRules } from "./overflow";
 import { positionRules } from "./position";
 import { RuleFn } from "./RuleConfig";
 import { skinRules } from "./skins";
@@ -46,6 +47,7 @@ export const defaultRuleFns: Record<string, RuleFn> = {
   heightRules,
   outlineRules,
   objectFitRules,
+  overflowRules,
   positionRules,
   skinRules,
   spacingRules,

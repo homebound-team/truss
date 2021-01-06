@@ -212,6 +212,23 @@ class CssBuilder<T extends Properties1> {
   get objectScaleDown() { return this.add("objectFit", "scale-down"); }
   objectFit(value: Properties["objectFit"]) { return this.add("objectFit", value); }
 
+  // overflowRules
+  get overflowVisible() { return this.add("overflow", "visible"); }
+  get overflowHidden() { return this.add("overflow", "hidden"); }
+  get overflowScroll() { return this.add("overflow", "scroll"); }
+  get overflowAuto() { return this.add("overflow", "auto"); }
+  overflow(value: Properties["overflow"]) { return this.add("overflow", value); }
+  get overflowYVisible() { return this.add("overflowY", "visible"); }
+  get overflowYHidden() { return this.add("overflowY", "hidden"); }
+  get overflowYScroll() { return this.add("overflowY", "scroll"); }
+  get overflowYAuto() { return this.add("overflowY", "auto"); }
+  overflowY(value: Properties["overflowY"]) { return this.add("overflowY", value); }
+  get overflowXVisible() { return this.add("overflowX", "visible"); }
+  get overflowXHidden() { return this.add("overflowX", "hidden"); }
+  get overflowXScroll() { return this.add("overflowX", "scroll"); }
+  get overflowXAuto() { return this.add("overflowX", "auto"); }
+  overflowX(value: Properties["overflowX"]) { return this.add("overflowX", value); }
+
   // positionRules
   get absolute() { return this.add("position", "absolute"); }
   get fixed() { return this.add("position", "fixed"); }
