@@ -1,7 +1,6 @@
-/** @jsx jsx */
-import { jsx } from "@emotion/core";
+/** @jsxImportSource @emotion/react */
 import { render } from "@testing-library/react";
-import { Css, Margin, Only, Properties, sm, Xss } from "./Css";
+import { Css, Margin, Only, sm, Xss } from "./Css";
 
 describe("Css.emotion", () => {
   it("works with emotion", () => {

@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { jsx } from "@emotion/core";
+/** @jsxImportSource @emotion/react */
 import { Button } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { render } from "@testing-library/react";
