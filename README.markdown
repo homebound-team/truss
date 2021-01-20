@@ -35,8 +35,7 @@ const css = {
 You can then pass this POJO to whatever CSS-in-JS framework you're using, i.e. with Emotion you would do something like:
 
 ```tsx
-/** @jsx jsx */
-import { jsx } from "@emotion/core";
+/** @jsxImportSource @emotion/react */
 
 function MyReactComponent(props: ...) {
   // Use emotion's css prop
@@ -87,8 +86,7 @@ Instead of building these complications into the DSL, with Truss you use your CS
 For example, using Emotion you would do hover-specific styling like:
 
 ```tsx
-/** @jsx jsx */
-import { jsx } from "@emotion/core";
+/** @jsxImportSource @emotion/react */
 
 function MyReactComponent(props: ...) {
   return (
@@ -102,8 +100,7 @@ function MyReactComponent(props: ...) {
 And breakpoints like:
 
 ```tsx
-/** @jsx jsx */
-import { jsx } from "@emotion/core";
+/** @jsxImportSource @emotion/react */
 import { Css, sm } from "src/Css";
 
 function MyReactComponent(props: ...) {

@@ -1,8 +1,7 @@
-/** @jsx jsx */
+/** @jsxImportSource @emotion/react */
 import { Button } from "@material-ui/core";
-import { jsx } from "@emotion/core";
 import { render } from "@testing-library/react";
-import { Css, Only, Properties, sm, px, Palette, Xss, Margin } from "./Css";
+import { Css, Only, sm, px, Palette, Xss, Margin } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
