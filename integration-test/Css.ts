@@ -362,7 +362,7 @@ class CssBuilder<T extends Properties1> {
   get f16() { return this.add("fontSize", "16px"); }
   get f14() { return this.add("fontSize", "14px"); }
   get f12() { return this.add("fontSize", "12px"); }
-  get f10() { return this.add("fontSize", "10px"); }
+  get f10() { return this.add("fontSize", "10px").add("fontWeight", 500); }
 
   // typographyRules
   get measure() { return this.add("maxWidth", "30em"); }
@@ -516,14 +516,14 @@ export function px(pixels: number): string {
   return `${pixels}px`;
 }
 
-export const Palette = {
-  Black: "#353535",
-  MidGray: "#888888",
-  LightGray: "#cecece",
-  White: "#fcfcfa",
-  Blue: "#526675",
-  Primary: "var(--primary)",
-};
+export enum Palette {
+  Black = "#353535",
+  MidGray = "#888888",
+  LightGray = "#cecece",
+  White = "#fcfcfa",
+  Blue = "#526675",
+  Primary = "var(--primary)",
+}
 
 /** A shortcut for defining Xss types. */
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;

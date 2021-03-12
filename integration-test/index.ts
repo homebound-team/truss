@@ -23,7 +23,7 @@ const fonts = {
   f16: "16px",
   f14: "14px",
   f12: "12px",
-  f10: "10px",
+  f10: { "fontSize": "10px", "fontWeight": 500 },
 };
 
 const breakpoints = { sm: 0, md: 600, lg: 960 };
