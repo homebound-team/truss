@@ -278,6 +278,14 @@ describe("Css", () => {
     `);
   });
 
+  it("has px-specific utility methods", () => {
+    expect(Css.mbPx(12).$).toMatchInlineSnapshot(`
+      Object {
+        "marginBottom": "12px",
+      }
+    `);
+  });
+
   it("can set css variables", () => {
     expect(Css.setVars.$).toMatchInlineSnapshot(`
       Object {

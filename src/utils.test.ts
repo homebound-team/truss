@@ -13,6 +13,7 @@ describe("utils", () => {
           "get mt2() { return this.mt(2); }",
           "get mt3() { return this.mt(3); }",
           "mt(inc: number | string) { return this.add(\\"marginTop\\", maybeInc(inc)); }",
+          "mtPx(px: number) { return this.add(\\"marginTop\\", \`\${px}px\`); }",
         ]
       `);
     });
@@ -25,6 +26,7 @@ describe("utils", () => {
           "get mx2() { return this.mx(2); }",
           "get mx3() { return this.mx(3); }",
           "mx(inc: number | string) { return this.ml(inc).mr(inc); }",
+          "mxPx(px: number) { return this.mlPx(px).mrPx(px); }",
         ]
       `);
     });
@@ -38,6 +40,7 @@ describe("utils", () => {
           "get m2() { return this.m(2); }",
           "get m3() { return this.m(3); }",
           "m(inc: number | string) { return this.mt(inc).mr(inc).mb(inc).ml(inc); }",
+          "mPx(px: number) { return this.mtPx(px).mrPx(px).mbPx(px).mlPx(px); }",
         ]
       `);
     });
