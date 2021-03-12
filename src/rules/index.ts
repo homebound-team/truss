@@ -1,4 +1,4 @@
-export { TrussConfig, RuleFn } from "./TrussConfig";
+export { TrussConfig, FontConfig, RuleFn } from "./TrussConfig";
 import { borderColorRules } from "./border-colors";
 import { borderRadiusRules } from "./border-radius";
 import { borderRules } from "./borders";

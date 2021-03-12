@@ -8,6 +8,7 @@ import { makeAliases, makeBreakpoints } from "./utils";
 // Module Templates = record name --> Code
 // Class templates = name --> Code
 
+// TODO Combine this with TrussConfig
 export type GenerateOpts = {
   /** The output path of the `Css.ts` file. */
   outputPath: string;
@@ -51,19 +52,21 @@ export async function generate(opts: GenerateOpts): Promise<void> {
   await fs.writeFile(outputPath, output);
 }
 
-/** Give the user's config like colors/fonts/increments, generates the getters/methods from the ruleFns.
+/**
+ * Given the user's config like colors/fonts/increments, generates the project's utility methods
+ * from the (provided or default) ruleFns.
  *
- * Callers can optionally pass in their own `section -> RuleFn` `ruleFns` but we'll also default
+ * Callers can optionally pass in their own `sectionName -> RuleFn` `ruleFns` but we'll also default
  * to the out-of-the-box Tachyons-ish rules defined in `defaultRuleFns`.
  */
 export function generateRules(
-  ruleConfig: TrussConfig,
+  config: TrussConfig,
   ruleFns?: Record<string, RuleFn>
 ): Record<string, string[]> {
   return Object.fromEntries(
     Object.entries(ruleFns || defaultRuleFns).map(([name, fn]) => [
       name,
-      fn(ruleConfig),
+      fn(config),
     ])
   );
 }
