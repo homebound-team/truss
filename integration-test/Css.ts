@@ -572,6 +572,7 @@ export type Padding =
 
 type Brand<K, T> = K & { __brand: T };
 type Breakpoint = Brand<string, "Breakpoint">;
+export const print = "@media print" as Breakpoint;
 export const sm = "@media screen and (max-width:599px)" as Breakpoint;
 export const md = "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
 export const smOrMd = "@media screen and (max-width:959px)" as Breakpoint;
