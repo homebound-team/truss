@@ -85,11 +85,15 @@ export function makeIncRules(
       `${abbr}(inc: number | string) { return this.${conf
         .map((l) => `${l}(inc)`)
         .join(".")}; }`,
+      `${abbr}Px(px: number) { return this.${conf
+        .map((l) => `${l}Px(px)`)
+        .join(".")}; }`,
     ];
   } else {
     return [
       ...incRules,
       `${abbr}(inc: number | string) { return this.add("${conf}", maybeInc(inc)); }`,
+      `${abbr}Px(px: number) { return this.add("${conf}", \`\${px}px\`); }`,
     ];
   }
 }
