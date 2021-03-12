@@ -261,7 +261,9 @@ Projects should heavily customize these settings to match their project-specific
 In the same `index.ts`, projects can add their own new rules/abbreviations:
 
 ```typescript
-methods["ourSection"] = [makeRule("someAbbreviation", { color: "#000000" })];
+const sections = {
+  ourSection: () => [makeRule("someAbbreviation", { color: "#000000" })],
+};
 ```
 
 Will result in `Css.ts` having a line that looks like:
@@ -276,7 +278,9 @@ Which can then be used as `Css.m2.someAbbreviation.$`.
 Besides adding one-off additional rules/abbreviations, if your project wants to replace a whole section of Truss's out-of-the-box rules, you can replace an entire section via:
 
 ```typescript
-methods["spacing"] = [...ourCustomSpacingRules...];
+const sections = {
+  spacing: () => ourCustomSpacingRules,
+};
 ```
 
 Where `"spacing"` matches the name of the file that declared these rules in Truss's `src/rules` directory (which generally matches Tachyon's sections of organization).
