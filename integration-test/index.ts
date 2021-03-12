@@ -1,4 +1,4 @@
-import { FontConfig, generate, makeCssVariablesRule, makeRule } from "../src";
+import { Aliases, FontConfig, generate, makeCssVariablesRule, makeRule } from "../src";
 
 const increment = 8;
 const numberOfIncrements = 4;
@@ -35,7 +35,7 @@ const sections = {
 };
 
 // You can also define common application-specific aliases.
-const aliases: Record<string, string[]> = {
+const aliases: Aliases = {
   bodyText: ["f14", "black"],
 };
 
