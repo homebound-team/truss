@@ -1,5 +1,5 @@
 import { makeRules } from "../utils";
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_text-transform.css
 export const textTransformRules: RuleFn = () =>

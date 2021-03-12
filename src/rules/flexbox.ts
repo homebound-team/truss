@@ -1,4 +1,4 @@
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 import { makeRules } from "../utils";
 
 export const flexboxRules: RuleFn = () => [

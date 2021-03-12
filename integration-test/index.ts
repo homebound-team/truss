@@ -1,9 +1,4 @@
-import {
-  generate,
-  generateRules,
-  makeCssVariablesRule,
-  makeRule,
-} from "../src";
+import { FontConfig, generate, makeCssVariablesRule, makeRule } from "../src";
 
 const increment = 8;
 const numberOfIncrements = 4;
@@ -17,27 +12,27 @@ const palette = {
   Primary: "var(--primary)",
 };
 
-const fonts = {
+const fonts: FontConfig = {
   f24: "24px",
   f18: "18px",
   f16: "16px",
   f14: "14px",
   f12: "12px",
-  f10: { "fontSize": "10px", "fontWeight": 500 },
+  f10: { fontSize: "10px", fontWeight: 500 },
 };
 
 const breakpoints = { sm: 0, md: 600, lg: 960 };
 
-const methods = generateRules({ palette, fonts, numberOfIncrements });
-
 // Add/remove application-specific/one-off rules as needed.
-methods["custom-stuff"] = [makeRule("foo", { color: "#000000" })];
+const sections = {
+  customStuff: () => [makeRule("foo", { color: "#000000" })],
 
-// Create a rule that sets a CSS variable.
-methods["vars"] = [
-  makeCssVariablesRule("setVars", { "--primary": "#000000" }),
-  makeRule("var", { color: "var(--primary)" }),
-];
+  // Create a rule that sets a CSS variable.
+  vars: () => [
+    makeCssVariablesRule("setVars", { "--primary": "#000000" }),
+    makeRule("var", { color: "var(--primary)" }),
+  ],
+};
 
 // You can also define common application-specific aliases.
 const aliases: Record<string, string[]> = {
@@ -49,12 +44,14 @@ const extras = [`export type CustomType = number;`];
 
 generate({
   outputPath: "./integration-test/Css.ts",
-  methods,
   palette,
+  fonts,
   increment,
+  numberOfIncrements,
   aliases,
   extras,
   breakpoints,
+  sections,
 }).then(
   () => console.log("done"),
   (err) => console.error(err)

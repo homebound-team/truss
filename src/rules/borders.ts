@@ -1,5 +1,5 @@
 import { makeRule } from "../utils";
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 
 const borderDefs: [string, [string, string]][] = [
   ["ba", ["borderStyle", "borderWidth"]],

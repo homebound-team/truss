@@ -1,5 +1,5 @@
+import { Aliases, Config, UtilityMethod, UtilityName } from "./config";
 import { Properties } from "csstype";
-import { TrussConfig } from "rules";
 
 export type Prop = keyof Properties;
 
@@ -17,7 +17,7 @@ export function makeRules<P extends Prop>(
   prop: P,
   defs: Record<string, Properties[P]>,
   methodName?: string
-): string[] {
+): UtilityMethod[] {
   return [
     ...Object.entries(defs).map(([abbr, value]) =>
       makeRule(abbr, { [prop]: value })
@@ -31,7 +31,7 @@ export function makeRules<P extends Prop>(
  * Given a single abbreviation (i.e. `mt0`) and multiple `prop` -> `value` CSS values, returns the
  * TypeScript for the `mt0` utility method in the Truss output.
  */
-export function makeRule(abbr: string, defs: Properties): string {
+export function makeRule(abbr: UtilityName, defs: Properties): UtilityMethod {
   return `get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
     .join("")}; }`;
@@ -45,7 +45,10 @@ export function makeRule(abbr: string, defs: Properties): string {
  *
  * The `value` parameter's type will be the csstype value for the given `prop`.
  */
-export function makeValueRule(abbr: string, prop: keyof Properties) {
+export function makeValueRule(
+  abbr: UtilityName,
+  prop: keyof Properties
+): UtilityMethod {
   return `${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`;
 }
 
@@ -53,7 +56,7 @@ export function makeValueRule(abbr: string, prop: keyof Properties) {
  * Given a record of aliases, i.e. `aliasName -> otherUtilityClasses[]`, returns
  * a new TypeScript utility method for each alias.
  */
-export function makeAliases(aliases: Record<string, string[]>): string[] {
+export function makeAliases(aliases: Aliases): UtilityMethod[] {
   return Object.entries(aliases).map(([abbr, values]) => {
     return `get ${abbr}() { return this${values
       .map((v) => `.${v}`)
@@ -71,9 +74,9 @@ export function makeAliases(aliases: Record<string, string[]>): string[] {
  * something like `Css.foo({ "--Foo", "bar" }).$` yet.
  */
 export function makeCssVariablesRule(
-  abbr: string,
+  abbr: UtilityName,
   defs: Record<string, string>
-): string {
+): UtilityMethod {
   return `get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}" as any, "${value}")`)
     .join("")}; }`;
@@ -85,8 +88,8 @@ export type IncConfig = [string, Prop | string[]];
 
 // If conf is a string[], we assume we're doing an alias like mx/my, and the conf entries are themselves mt/mb abbreviations
 export function makeIncRules(
-  config: TrussConfig,
-  abbr: string,
+  config: Config,
+  abbr: UtilityName,
   conf: Prop | string[]
 ): string[] {
   const incRules = zeroTo(config.numberOfIncrements).map(

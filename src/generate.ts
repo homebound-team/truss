@@ -1,39 +1,9 @@
-import { promises as fs } from "fs";
 import { Properties } from "csstype";
+import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
-import { defaultRuleFns, TrussConfig, RuleFn } from "./rules";
+import { Config, RuleFn, Section, SectionName, UtilityMethod } from "./config";
+import { defaultRuleFns } from "./rules";
 import { makeAliases, makeBreakpoints } from "./utils";
-
-// Rules = record heights -> string[]
-// Module Templates = record name --> Code
-// Class templates = name --> Code
-
-// TODO Combine this with TrussConfig
-export type GenerateOpts = {
-  /** The output path of the `Css.ts` file. */
-  outputPath: string;
-
-  /** The map of "section" to list of getters/methods, i.e. "border-colors" -> `get ml1() { ... }`. */
-  methods: Record<string, string[]>;
-
-  /** The app's palette, i.e. logical color name to hex. */
-  palette: Record<string, string>;
-
-  /** Your theme's increment, i.e. 6 or 8. */
-  increment: number;
-
-  /** Any extra chunks of code you want appended to the end of the file. */
-  extras?: Array<string | Code>;
-
-  /** Short-hand aliases like `bodyText` --> `["f12", "black"]`. */
-  aliases?: Record<string, string[]>;
-
-  /** Type aliases for Only clauses, i.e. `Margin` --> `["marginTop", ...]`. `Margin` and `Padding` are provided. */
-  typeAliases?: Record<string, Array<keyof Properties>>;
-
-  /** Breakpoints, i.e. `{ sm: 0, md: 500 }`. */
-  breakpoints?: Record<string, number>;
-};
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
@@ -46,9 +16,9 @@ export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   ],
 };
 
-export async function generate(opts: GenerateOpts): Promise<void> {
-  const { outputPath } = opts;
-  const output = await generateCssBuilder(opts).toStringWithImports();
+export async function generate(config: Config): Promise<void> {
+  const { outputPath } = config;
+  const output = await generateCssBuilder(config).toStringWithImports();
   await fs.writeFile(outputPath, output);
 }
 
@@ -59,35 +29,36 @@ export async function generate(opts: GenerateOpts): Promise<void> {
  * Callers can optionally pass in their own `sectionName -> RuleFn` `ruleFns` but we'll also default
  * to the out-of-the-box Tachyons-ish rules defined in `defaultRuleFns`.
  */
-export function generateRules(
-  config: TrussConfig,
-  ruleFns?: Record<string, RuleFn>
-): Record<string, string[]> {
+function generateRules(
+  config: Config,
+  ruleFns: Record<SectionName, RuleFn>
+): Record<SectionName, UtilityMethod[]> {
   return Object.fromEntries(
-    Object.entries(ruleFns || defaultRuleFns).map(([name, fn]) => [
-      name,
-      fn(config),
-    ])
+    Object.entries(ruleFns).map(([name, fn]) => [name, fn(config)])
   );
 }
 
-export function generateCssBuilder(opts: GenerateOpts): Code {
+export function generateCssBuilder(config: Config): Code {
   const {
     aliases,
-    methods,
     increment,
     extras,
     typeAliases,
     breakpoints,
     palette,
-  } = opts;
+    sections: customSections,
+  } = config;
+
+  // Combine our out-of-the-box utility methods with any custom ones
+  const sections = {
+    ...generateRules(config, defaultRuleFns),
+    ...(customSections ? generateRules(config, customSections) : {}),
+    ...(aliases && { aliases: makeAliases(aliases) }),
+  };
 
   const Properties = imp("Properties@csstype");
 
-  const lines = Object.entries({
-    ...methods,
-    ...(aliases && { aliases: makeAliases(aliases) }),
-  })
+  const lines = Object.entries(sections)
     .map(([name, value]) => [`// ${name}`, ...value, ""])
     .flat();
 

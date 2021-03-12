@@ -1,4 +1,4 @@
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 import { makeRules } from "../utils";
 
 // https://github.com/tachyons-css/tachyons-overflow/blob/master/src/tachyons-overflow.css
