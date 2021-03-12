@@ -15,7 +15,7 @@ import { objectFitRules } from "./objectFit";
 import { outlineRules } from "./outlines";
 import { overflowRules } from "./overflow";
 import { positionRules } from "./position";
-import { RuleFn } from "../config";
+import { MethodFn, SectionName } from "../config";
 import { skinRules } from "./skins";
 import { spacingRules } from "./spacing";
 import { textAlignRules } from "./text-align";
@@ -30,7 +30,7 @@ import { whitespaceRules } from "./white-space";
 import { widthRules } from "./widths";
 import { zIndexRules } from "./zIndex";
 
-export const defaultRuleFns: Record<string, RuleFn> = {
+export const defaultMethodFns: Record<SectionName, MethodFn> = {
   borderColorRules,
   borderRadiusRules,
   borderRules,

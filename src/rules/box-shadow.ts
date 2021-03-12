@@ -1,6 +1,6 @@
 import { newMethod } from "../methods";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 
-export const boxShadowRules: RuleFn = () => [
+export const boxShadowRules: MethodFn = () => [
   newMethod("shadowNone", { boxShadow: "none" }),
 ];

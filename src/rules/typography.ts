@@ -1,7 +1,7 @@
 import { newMethod } from "../methods";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 
-export const typographyRules: RuleFn = () => [
+export const typographyRules: MethodFn = () => [
   newMethod("measure", { maxWidth: "30em", }),
   newMethod("measureWide", { maxWidth: "34em", }),
   newMethod("measureNarrow", { maxWidth: "20em", }),

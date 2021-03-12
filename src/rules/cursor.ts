@@ -1,6 +1,6 @@
 import { newMethod } from "../methods";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 
-export const cursorRules: RuleFn = () => [
+export const cursorRules: MethodFn = () => [
   newMethod("cursorPointer", { cursor: "pointer" }),
 ];

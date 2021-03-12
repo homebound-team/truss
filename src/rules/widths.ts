@@ -1,7 +1,7 @@
 import { newIncrementMethods, newMethodsForProp } from "../methods";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 
-export const widthRules: RuleFn = (config) => [
+export const widthRules: MethodFn = (config) => [
   ...newMethodsForProp("width", {
     w25: "25%",
     w50: "50%",

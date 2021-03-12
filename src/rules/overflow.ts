@@ -1,8 +1,8 @@
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
 // https://github.com/tachyons-css/tachyons-overflow/blob/master/src/tachyons-overflow.css
-export const overflowRules: RuleFn = () => {
+export const overflowRules: MethodFn = () => {
   return [
     ...newMethodsForProp(
       "overflow",

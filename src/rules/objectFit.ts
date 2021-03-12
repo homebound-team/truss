@@ -1,8 +1,8 @@
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
 // https://tailwindcss.com/docs/object-fit
-export const objectFitRules: RuleFn = () =>
+export const objectFitRules: MethodFn = () =>
   newMethodsForProp(
     "objectFit",
     {

@@ -61,7 +61,7 @@ export interface Config {
    *
    * This can be used to either add new sections or override built-in sections.
    */
-  sections?: Record<SectionName, RuleFn>;
+  sections?: Record<SectionName, MethodFn>;
 
   /** Any extra chunks of code you want appended to the end of the file. */
   extras?: Array<string | Code>;
@@ -84,7 +84,7 @@ export interface Config {
  * See the `newMethod` and `newParamMethod` functions for more easily
  * creating the `get ...() { ... }` output.
  */
-export type RuleFn = (config: Config) => UtilityMethod[];
+export type MethodFn = (config: Config) => UtilityMethod[];
 
 /**
  * A type-alias to clarify strings that are meant to be abbreviation/utility names.

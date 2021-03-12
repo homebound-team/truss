@@ -1,7 +1,7 @@
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
-export const verticalAlignRules: RuleFn = () =>
+export const verticalAlignRules: MethodFn = () =>
   newMethodsForProp("verticalAlign", {
     vBase: "baseline",
     vMid: "middle",

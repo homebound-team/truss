@@ -1,9 +1,9 @@
 import { newIncrementMethods, Prop } from "../methods";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 
 const directions: Prop[] = ["top", "right", "bottom", "left"];
 
-export const coordinateRules: RuleFn = (config) =>
+export const coordinateRules: MethodFn = (config) =>
   directions.flatMap((d) => {
     return newIncrementMethods(config, d, d);
   });

@@ -1,8 +1,8 @@
 import { newMethodsForProp, newParamMethod } from "../methods";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons-z-index/blob/master/src/tachyons-z-index.css
-export const zIndexRules: RuleFn = (config) => [
+export const zIndexRules: MethodFn = (config) => [
   // Even though we define const z0/z1/etc indexes to follow Tachyons, ideally applications
   // should define their own application-specific indexes, i.e.:
   //

@@ -1,7 +1,7 @@
 import { newMethodsForProp } from "../methods";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 
-export const textDecorationRules: RuleFn = () =>
+export const textDecorationRules: MethodFn = () =>
   newMethodsForProp("textDecoration", {
     noUnderline: "none",
     strike: "line-through",

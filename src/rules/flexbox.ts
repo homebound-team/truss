@@ -1,7 +1,7 @@
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
-export const flexboxRules: RuleFn = () => [
+export const flexboxRules: MethodFn = () => [
   ...newMethodsForProp(
     "justifyContent",
     {
