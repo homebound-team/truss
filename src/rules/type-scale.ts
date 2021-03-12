@@ -1,5 +1,5 @@
 import { makeRule } from "../utils";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 
 export const typeScaleRules: RuleFn = ({ fonts }) =>
   Object.entries(fonts).map(([abbr, defs]) => {

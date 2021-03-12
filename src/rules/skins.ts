@@ -1,5 +1,5 @@
 import { lowerCaseFirst, makeRules } from "../utils";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 
 export const skinRules: RuleFn = (config) => {
   const { palette } = config;

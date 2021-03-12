@@ -1,5 +1,5 @@
 import { makeRules } from "../utils";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 
 // https://tailwindcss.com/docs/user-select/
 export const userSelectRules: RuleFn = () =>

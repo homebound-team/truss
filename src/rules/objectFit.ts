@@ -1,4 +1,4 @@
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 import { makeRules } from "../utils";
 
 // https://tailwindcss.com/docs/object-fit

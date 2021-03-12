@@ -238,7 +238,8 @@ const fonts = {
   f16: "16px",
   f14: "14px",
   f12: "12px",
-  f10: "10px",
+  // Can also set multiple properties if necessary
+  f10: { fontSize: "10px", fontWeight: 500 },
 };
 
 const breakpoints = { sm: 0, md: 600, lg: 960 };
@@ -246,7 +247,7 @@ const breakpoints = { sm: 0, md: 600, lg: 960 };
 // ...rest of the config file...
 ```
 
-Projects should heavily customize these settings, then run `npm run generate` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have rules added like:
+Projects should heavily customize these settings to match their project-specific design system, then run `npm run generate` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have rules added like:
 
 ```typescript
   get green() { return this.add("color", "green"); }
@@ -257,15 +258,16 @@ Projects should heavily customize these settings, then run `npm run generate` to
 
 ### Per-Project Rules
 
-In the same `index.ts`, projects can easily add their own new rules/abbreviations:
+In the same `index.ts`, projects can add their own new rules/abbreviations:
 
 ```typescript
-methods["our-section"] = [makeRule("someAbbreviation", { color: "#000000" })];
+methods["ourSection"] = [makeRule("someAbbreviation", { color: "#000000" })];
 ```
 
 Will result in `Css.ts` having a line that looks like:
 
 ```typescript
+  // ourSection
   get someAbbreviation() { return this.add("color", "#000000"); }
 ```
 

@@ -1,5 +1,5 @@
 import { makeRule } from "../utils";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 
 export const typographyRules: RuleFn = () => [
   makeRule("measure", { maxWidth: "30em", }),

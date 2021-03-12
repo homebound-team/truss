@@ -1,5 +1,5 @@
 import { makeIncRules, Prop } from "../utils";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 
 const directions: Prop[] = ["top", "right", "bottom", "left"];
 
