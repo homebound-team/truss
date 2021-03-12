@@ -50,7 +50,7 @@ export function newParamMethod(
  * Given a record of aliases, i.e. `aliasName -> otherUtilityClasses[]`, returns
  * a new TypeScript utility method for each alias.
  */
-export function makeAliasesMethods(aliases: Aliases): UtilityMethod[] {
+export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
   return Object.entries(aliases).map(([abbr, values]) => {
     return `get ${abbr}() { return this${values
       .map((v) => `.${v}`)
@@ -82,6 +82,15 @@ export type IncConfig = [string, Prop | string[]];
 
 /**
  * Makes [`mt0`, `mt1`, ...] utility methods for each configured increment.
+ *
+ * We assume that `prop` is a CSS property that accepts pixels as values, and
+ * so convert each increment x (1, 2, 3) --> pixels Y (8, 16, 24) and create
+ * a utility method for each x/Y pair.
+ *
+ * We also create a final param method, i.e. `mt(number)`, for callers that
+ * need to call `mt` with a conditional amount of increments.
+ *
+ * TODO: Support non-pixel increments.
  *
  * @param abbr the utility prefix, i.e. `mt`
  * @param conf if a CSS prop, we assume "mt0 --> marginTop: 0px", otherwise if an array we delegate

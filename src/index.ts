@@ -2,7 +2,7 @@ export * from "./config";
 export { defaultRuleFns } from "./rules";
 export { generate } from "./generate";
 export {
-  makeAliasesMethods,
+  newAliasesMethods,
   newMethod,
   newMethodsForProp,
   newIncrementMethods,

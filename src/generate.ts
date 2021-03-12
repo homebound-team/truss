@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
 import { makeBreakpoints } from "./breakpoints";
 import { Config, RuleFn, SectionName, UtilityMethod } from "./config";
-import { makeAliasesMethods } from "./methods";
+import { newAliasesMethods } from "./methods";
 import { defaultRuleFns } from "./rules";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
@@ -54,7 +54,7 @@ export function generateCssBuilder(config: Config): Code {
   const sections = {
     ...generateRules(config, defaultRuleFns),
     ...(customSections ? generateRules(config, customSections) : {}),
-    ...(aliases && { aliases: makeAliasesMethods(aliases) }),
+    ...(aliases && { aliases: newAliasesMethods(aliases) }),
   };
 
   const Properties = imp("Properties@csstype");
