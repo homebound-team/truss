@@ -1,5 +1,6 @@
-export { TrussConfig, FontConfig, defaultRuleFns } from "./rules";
-export { generate, generateRules, GenerateOpts } from "./generate";
+export * from "./config";
+export { defaultRuleFns } from "./rules";
+export { generate } from "./generate";
 export {
   makeAliases,
   makeRule,

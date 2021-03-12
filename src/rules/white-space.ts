@@ -1,5 +1,5 @@
 import { makeRules } from "../utils";
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 
 export const whitespaceRules: RuleFn = () =>
   makeRules("whiteSpace", {

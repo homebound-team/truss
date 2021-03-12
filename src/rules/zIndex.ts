@@ -1,5 +1,5 @@
 import { makeRules, makeValueRule } from "../utils";
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons-z-index/blob/master/src/tachyons-z-index.css
 export const zIndexRules: RuleFn = (config) => [

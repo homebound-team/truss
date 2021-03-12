@@ -1,4 +1,4 @@
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 import { makeIncRules, makeRules } from "../utils";
 
 export const heightRules: RuleFn = (config) => [

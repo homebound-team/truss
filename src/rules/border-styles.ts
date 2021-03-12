@@ -1,4 +1,4 @@
-import { RuleFn } from "./TrussConfig";
+import { RuleFn } from "../config";
 import { makeRules } from "../utils";
 
 // http://tachyons.io/docs/themes/borders/
