@@ -1,5 +1,5 @@
 import { RuleFn } from "../config";
-import { newMethodsForProp, newIncrementMethods } from "../utils";
+import { newMethodsForProp, newIncrementMethods } from "../methods";
 
 // http://tachyons.io/docs/themes/borders/
 export const borderWidthRules: RuleFn = () => [

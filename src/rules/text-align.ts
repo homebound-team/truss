@@ -1,4 +1,4 @@
-import { newMethodsForProp } from "../utils";
+import { newMethodsForProp } from "../methods";
 import { RuleFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_text-align.css

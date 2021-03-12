@@ -1,5 +1,5 @@
 import { RuleFn } from "../config";
-import { newMethodsForProp } from "../utils";
+import { newMethodsForProp } from "../methods";
 
 // http://tachyons.io/docs/themes/borders/
 // https://tailwindcss.com/docs/border-style/#app

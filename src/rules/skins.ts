@@ -1,5 +1,6 @@
-import { lowerCaseFirst, newMethodsForProp } from "../utils";
 import { RuleFn } from "../config";
+import { newMethodsForProp } from "../methods";
+import { lowerCaseFirst } from "../utils";
 
 export const skinRules: RuleFn = (config) => {
   const { palette } = config;

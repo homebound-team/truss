@@ -1,4 +1,4 @@
-import { newIncrementMethods, newMethodsForProp } from "../utils";
+import { newIncrementMethods, newMethodsForProp } from "../methods";
 import { RuleFn } from "../config";
 
 export const widthRules: RuleFn = (config) => [

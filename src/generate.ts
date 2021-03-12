@@ -1,9 +1,10 @@
 import { Properties } from "csstype";
 import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
-import { Config, RuleFn, Section, SectionName, UtilityMethod } from "./config";
+import { makeBreakpoints } from "./breakpoints";
+import { Config, RuleFn, SectionName, UtilityMethod } from "./config";
+import { makeAliasesMethods } from "./methods";
 import { defaultRuleFns } from "./rules";
-import { makeAliasesMethods, makeBreakpoints } from "./utils";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],

@@ -1,5 +1,5 @@
 import { RuleFn } from "../config";
-import { newIncrementMethods, newMethodsForProp } from "../utils";
+import { newIncrementMethods, newMethodsForProp } from "../methods";
 
 export const heightRules: RuleFn = (config) => [
   // https://github.com/tachyons-css/tachyons/blob/master/src/_heights.css

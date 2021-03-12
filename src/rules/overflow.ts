@@ -1,5 +1,5 @@
 import { RuleFn } from "../config";
-import { newMethodsForProp } from "../utils";
+import { newMethodsForProp } from "../methods";
 
 // https://github.com/tachyons-css/tachyons-overflow/blob/master/src/tachyons-overflow.css
 export const overflowRules: RuleFn = () => {

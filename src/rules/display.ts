@@ -1,5 +1,5 @@
 import { RuleFn } from "../config";
-import { newMethodsForProp } from "../utils";
+import { newMethodsForProp } from "../methods";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_display.css
 export const displayRules: RuleFn = () =>

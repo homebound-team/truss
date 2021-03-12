@@ -1,4 +1,4 @@
-import { newMethodsForProp } from "../utils";
+import { newMethodsForProp } from "../methods";
 import { RuleFn } from "../config";
 
 // https://tailwindcss.com/docs/user-select/

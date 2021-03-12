@@ -1,5 +1,5 @@
 import { RuleFn } from "../config";
-import { newMethodsForProp } from "../utils";
+import { newMethodsForProp } from "../methods";
 
 export const outlineRules: RuleFn = () =>
   newMethodsForProp("outline", {

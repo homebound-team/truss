@@ -1,4 +1,4 @@
-import { newMethod } from "../utils";
+import { newMethod } from "../methods";
 import { RuleFn } from "../config";
 
 export const typeScaleRules: RuleFn = ({ fonts }) =>

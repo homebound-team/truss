@@ -1,4 +1,4 @@
-import { newMethod } from "../utils";
+import { newMethod } from "../methods";
 import { RuleFn } from "../config";
 
 const borderDefs: [string, [string, string]][] = [

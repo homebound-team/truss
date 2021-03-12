@@ -8,4 +8,4 @@ export {
   newIncrementMethods,
   newSetCssVariableMethod,
   IncConfig,
-} from "./utils";
+} from "./methods";
