@@ -1,4 +1,4 @@
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 import { makeRules } from "../utils";
 
 export const borderColorRules: RuleFn = ({ palette }) => {

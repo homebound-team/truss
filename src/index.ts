@@ -1,4 +1,4 @@
-export { RuleConfig, defaultRuleFns } from "./rules";
+export { TrussConfig, defaultRuleFns } from "./rules";
 export { generate, generateRules, GenerateOpts } from "./generate";
 export {
   makeAliases,

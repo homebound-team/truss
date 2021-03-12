@@ -1,5 +1,5 @@
 import { makeRules } from "../utils";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 
 export const textDecorationRules: RuleFn = () =>
   makeRules("textDecoration", {

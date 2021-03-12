@@ -1,4 +1,4 @@
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 import { IncConfig, makeIncRules } from "../utils";
 
 export const spacingRules: RuleFn = (config) => {

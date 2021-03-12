@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import { Properties } from "csstype";
 import { code, Code, def, imp } from "ts-poet";
-import { defaultRuleFns, RuleConfig, RuleFn } from "./rules";
+import { defaultRuleFns, TrussConfig, RuleFn } from "./rules";
 import { makeAliases, makeBreakpoints } from "./utils";
 
 // Rules = record heights -> string[]
@@ -57,7 +57,7 @@ export async function generate(opts: GenerateOpts): Promise<void> {
  * to the out-of-the-box Tachyons-ish rules defined in `defaultRuleFns`.
  */
 export function generateRules(
-  ruleConfig: RuleConfig,
+  ruleConfig: TrussConfig,
   ruleFns?: Record<string, RuleFn>
 ): Record<string, string[]> {
   return Object.fromEntries(

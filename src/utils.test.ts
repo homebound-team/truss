@@ -1,8 +1,8 @@
-import { RuleConfig } from "./rules";
+import { TrussConfig } from "./rules";
 import { makeBreakpoints, makeIncRules } from "./utils";
 
 describe("utils", () => {
-  const config: RuleConfig = { numberOfIncrements: 3, fonts: {}, palette: {} };
+  const config: TrussConfig = { numberOfIncrements: 3, fonts: {}, palette: {} };
 
   describe("makeIncRules", () => {
     it("can handle mt", () => {

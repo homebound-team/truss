@@ -1,4 +1,4 @@
-export { RuleConfig, RuleFn } from "./RuleConfig";
+export { TrussConfig, RuleFn } from "./TrussConfig";
 import { borderColorRules } from "./border-colors";
 import { borderRadiusRules } from "./border-radius";
 import { borderRules } from "./borders";
@@ -16,7 +16,7 @@ import { objectFitRules } from "./objectFit";
 import { outlineRules } from "./outlines";
 import { overflowRules } from "./overflow";
 import { positionRules } from "./position";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 import { skinRules } from "./skins";
 import { spacingRules } from "./spacing";
 import { textAlignRules } from "./text-align";

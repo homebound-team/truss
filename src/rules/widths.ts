@@ -1,5 +1,5 @@
 import { makeIncRules, makeRules } from "../utils";
-import { RuleFn } from "./RuleConfig";
+import { RuleFn } from "./TrussConfig";
 
 export const widthRules: RuleFn = (config) => [
   ...makeRules("width", {
