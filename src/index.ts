@@ -6,6 +6,6 @@ export {
   newMethod,
   newMethodsForProp,
   newIncrementMethods,
-  newSetCssVariableMethod,
+  newSetCssVariablesMethod,
   IncConfig,
 } from "./methods";

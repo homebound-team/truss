@@ -2,7 +2,7 @@ import {
   Aliases,
   FontConfig,
   generate,
-  newSetCssVariableMethod,
+  newSetCssVariablesMethod,
   newMethod,
 } from "../src";
 
@@ -35,7 +35,7 @@ const sections = {
 
   // Create a rule that sets a CSS variable.
   vars: () => [
-    newSetCssVariableMethod("setVars", { "--primary": "#000000" }),
+    newSetCssVariablesMethod("setVars", { "--primary": "#000000" }),
     newMethod("var", { color: "var(--primary)" }),
   ],
 };

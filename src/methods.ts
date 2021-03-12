@@ -4,8 +4,8 @@ import { Properties } from "csstype";
 export type Prop = keyof Properties;
 
 /**
- * Given a single abbreviation (i.e. `mt0`) and multiple `prop` -> `value` CSS values, returns the
- * TypeScript for the `mt0` utility method in the Truss output.
+ * Given a single abbreviation (i.e. `mt0`) and multiple `{ prop: value }` CSS values, returns
+ * the TypeScript code for a `mt0` utility method.
  */
 export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
   return `get ${abbr}() { return this${Object.entries(defs)
@@ -14,12 +14,10 @@ export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
 }
 
 /**
- * Given a property name `prop` (i.e. `marginTop`), returns a method named `abbr` (i.e. `mt`)
- * that accepts a user-defined value of what to set the prop.
+ * Given a single abbreviation (i.e. `mt`) and a property name (i.e. `marginTop`), returns the
+ * TypeScript code for a `mt` utility method that accepts a user-provided value of the prop to set.
  *
  * I.e. `Css.mt(someValue).$`
- *
- * The `value` parameter's type will be the csstype value for the given `prop`.
  */
 export function newParamMethod(
   abbr: UtilityName,
@@ -29,8 +27,8 @@ export function newParamMethod(
 }
 
 /**
- * Given a prop (i.e. `marginTop`), and multiple abbreviation/value pairs (i.e. `mt0 = 0px`,
- * `mt1 = 4px`), returns TypeScript methods for each abbreviation.
+ * Given a prop to set (i.e. `marginTop`), and multiple abbr/value pairs (i.e. `{ mt0: "0px", mt1: "4px" }`),
+ * returns a utility method for each abbr/value pair.
  */
 export function newMethodsForProp<P extends Prop>(
   prop: P,
@@ -47,8 +45,8 @@ export function newMethodsForProp<P extends Prop>(
 }
 
 /**
- * Given a record of aliases, i.e. `aliasName -> otherUtilityClasses[]`, returns
- * a new TypeScript utility method for each alias.
+ * Given aliases, i.e. `{ bodyText: ["f12", "bold"] }`, returns a utility method
+ * for each alias that calls its corresponding utility classes.
  */
 export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
   return Object.entries(aliases).map(([abbr, values]) => {
@@ -59,15 +57,17 @@ export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
 }
 
 /**
- * Makes a method that can set CSS custom values.
+ * Makes a utility method that can set CSS custom values.
  *
- * I.e. `newSetCssVariableMethod("foo", { "--Foo": "bar" })` will create a
- * utility method `Css.foo.$ that will set `--Foo` to `bar`.
+ * I.e. `newSetCssVariableMethod("dark", { "--Primary": "white" })` will create a
+ * utility method `Css.dark.$ that will set `--Primary` to `white`.
  *
  * Currently this only supports compile-time/hard-coded values. I.e. we don't support
- * something like `Css.foo({ "--Foo", "bar" }).$` yet.
+ * something like `Css.dark({ "--Primary", someRuntimeValue }).$` yet.
+ *
+ * TODO: Create a `Css.set(cssVars).$` method.
  */
-export function newSetCssVariableMethod(
+export function newSetCssVariablesMethod(
   abbr: UtilityName,
   defs: Record<string, string>
 ): UtilityMethod {
@@ -84,8 +84,8 @@ export type IncConfig = [string, Prop | string[]];
  * Makes [`mt0`, `mt1`, ...] utility methods for each configured increment.
  *
  * We assume that `prop` is a CSS property that accepts pixels as values, and
- * so convert each increment x (1, 2, 3) --> pixels Y (8, 16, 24) and create
- * a utility method for each x/Y pair.
+ * so convert each increment `x` (1, 2, 3) to pixels `Y` (8, 16, 24) and create
+ * a utility method for each `x -> Y` pair, i.e. `mt0 = mt(px(0))`.
  *
  * We also create a final param method, i.e. `mt(number)`, for callers that
  * need to call `mt` with a conditional amount of increments.
@@ -101,7 +101,10 @@ export function newIncrementMethods(
   abbr: UtilityName,
   conf: Prop | string[]
 ): UtilityMethod[] {
-  const delegateMethods = newIncrementDelegateMethods(config, abbr);
+  const delegateMethods = newIncrementDelegateMethods(
+    abbr,
+    config.numberOfIncrements
+  );
   if (Array.isArray(conf)) {
     return [
       ...delegateMethods,
@@ -123,10 +126,10 @@ export function newIncrementMethods(
 
 /** Creates `<abbr>X` utility methods that call an `abbr(number)` that the caller is responsible for creating. */
 export function newIncrementDelegateMethods(
-  config: Config,
-  abbr: UtilityName
+  abbr: UtilityName,
+  numberOfIncrements: number
 ): UtilityMethod[] {
-  return zeroTo(config.numberOfIncrements).map(
+  return zeroTo(numberOfIncrements).map(
     (i) => `get ${abbr}${i}() { return this.${abbr}(${i}); }`
   );
 }
