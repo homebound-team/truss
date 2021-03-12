@@ -211,9 +211,9 @@ export function px(pixels: number): string {
   return \`\${pixels}px\`;
 }
 
-export const Palette = {
+export enum Palette {
   ${Object.entries(palette).map(([name, value]) => {
-    return `${name}: "${value}",`;
+    return `${name} = "${value}",`;
   })}
 }
 
