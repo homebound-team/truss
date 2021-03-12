@@ -4,24 +4,6 @@ import { Properties } from "csstype";
 export type Prop = keyof Properties;
 
 /**
- * Given a prop (i.e. `marginTop`), and multiple abbreviation/value pairs (i.e. `mt0 = 0px`,
- * `mt1 = 4px`), returns TypeScript methods for each abbreviation.
- */
-export function newMethodsForProp<P extends Prop>(
-  prop: P,
-  defs: Record<UtilityName, Properties[P]>,
-  paramMethodName?: string
-): UtilityMethod[] {
-  return [
-    ...Object.entries(defs).map(([abbr, value]) =>
-      newMethod(abbr, { [prop]: value })
-    ),
-    // Conditionally add a method that directly accepts a value for prop
-    ...(paramMethodName ? [newParamMethod(paramMethodName, prop)] : []),
-  ];
-}
-
-/**
  * Given a single abbreviation (i.e. `mt0`) and multiple `prop` -> `value` CSS values, returns the
  * TypeScript for the `mt0` utility method in the Truss output.
  */
@@ -44,6 +26,24 @@ export function newParamMethod(
   prop: keyof Properties
 ): UtilityMethod {
   return `${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`;
+}
+
+/**
+ * Given a prop (i.e. `marginTop`), and multiple abbreviation/value pairs (i.e. `mt0 = 0px`,
+ * `mt1 = 4px`), returns TypeScript methods for each abbreviation.
+ */
+export function newMethodsForProp<P extends Prop>(
+  prop: P,
+  defs: Record<UtilityName, Properties[P]>,
+  paramMethodName?: string
+): UtilityMethod[] {
+  return [
+    ...Object.entries(defs).map(([abbr, value]) =>
+      newMethod(abbr, { [prop]: value })
+    ),
+    // Conditionally add a method that directly accepts a value for prop
+    ...(paramMethodName ? [newParamMethod(paramMethodName, prop)] : []),
+  ];
 }
 
 /**
