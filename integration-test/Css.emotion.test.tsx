@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { render } from "@testing-library/react";
-import { Css, Margin, Only, sm, Xss } from "./Css";
+import { Css, Margin, Only, print, sm, Xss } from "./Css";
 
 describe("Css.emotion", () => {
   it("works with emotion", () => {
@@ -74,7 +74,9 @@ describe("Css.emotion", () => {
   });
 
   it("can use generated breakpoints", () => {
-    const r = render(<div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$ }} />);
+    const r = render(
+      <div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$, [print]: Css.m0.$ }} />
+    );
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
         margin-bottom: 8px;
@@ -84,6 +86,15 @@ describe("Css.emotion", () => {
       @media screen and (max-width:599px) {
         .emotion-0 {
           padding-bottom: 24px;
+        }
+      }
+
+      @media print {
+        .emotion-0 {
+          margin-bottom: 0px;
+          margin-left: 0px;
+          margin-right: 0px;
+          margin-top: 0px;
         }
       }
 

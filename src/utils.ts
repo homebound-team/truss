@@ -118,7 +118,9 @@ export function makeIncRules(
 export function makeBreakpoints(
   breakpoints: Record<string, number>
 ): Record<string, string> {
-  const r: Record<string, string> = {};
+  const r: Record<string, string> = {
+    print: "@media print",
+  };
   const bps = Object.keys(breakpoints);
   Object.entries(breakpoints).forEach(([bp, px], i) => {
     const isFirst = i === 0;
