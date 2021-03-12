@@ -1,4 +1,4 @@
-import { makeRules, makeValueRule } from "../utils";
+import { newMethodsForProp, newParamMethod } from "../utils";
 import { RuleFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons-z-index/blob/master/src/tachyons-z-index.css
@@ -13,7 +13,7 @@ export const zIndexRules: RuleFn = (config) => [
   //
   // And then use `Css.z(zIndexes.ourModals).$` to get better documentation and maintainability
   // then just using the zN abbreviations.
-  ...makeRules("zIndex", {
+  ...newMethodsForProp("zIndex", {
     z0: 0,
     z1: 1,
     z2: 2,
@@ -26,5 +26,5 @@ export const zIndexRules: RuleFn = (config) => [
     zInitial: "initial",
     zUnset: "unset",
   }),
-  makeValueRule("z", "zIndex"),
+  newParamMethod("z", "zIndex"),
 ];

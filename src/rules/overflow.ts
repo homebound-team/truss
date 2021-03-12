@@ -1,10 +1,10 @@
 import { RuleFn } from "../config";
-import { makeRules } from "../utils";
+import { newMethodsForProp } from "../utils";
 
 // https://github.com/tachyons-css/tachyons-overflow/blob/master/src/tachyons-overflow.css
 export const overflowRules: RuleFn = () => {
   return [
-    ...makeRules(
+    ...newMethodsForProp(
       "overflow",
       {
         overflowVisible: "visible",
@@ -14,7 +14,7 @@ export const overflowRules: RuleFn = () => {
       },
       "overflow"
     ),
-    ...makeRules(
+    ...newMethodsForProp(
       "overflowY",
       {
         overflowYVisible: "visible",
@@ -24,7 +24,7 @@ export const overflowRules: RuleFn = () => {
       },
       "overflowY"
     ),
-    ...makeRules(
+    ...newMethodsForProp(
       "overflowX",
       {
         overflowXVisible: "visible",

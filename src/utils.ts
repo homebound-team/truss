@@ -13,17 +13,17 @@ export function lowerCaseFirst(s: string) {
  * Given a prop (i.e. `marginTop`), and multiple abbreviation/value pairs (i.e. `mt0 = 0px`,
  * `mt1 = 4px`), returns TypeScript methods for each abbreviation.
  */
-export function makeRules<P extends Prop>(
+export function newMethodsForProp<P extends Prop>(
   prop: P,
-  defs: Record<string, Properties[P]>,
-  methodName?: string
+  defs: Record<UtilityName, Properties[P]>,
+  paramMethodName?: string
 ): UtilityMethod[] {
   return [
     ...Object.entries(defs).map(([abbr, value]) =>
-      makeRule(abbr, { [prop]: value })
+      newMethod(abbr, { [prop]: value })
     ),
     // Conditionally add a method that directly accepts a value for prop
-    ...(methodName ? [makeValueRule(methodName, prop)] : []),
+    ...(paramMethodName ? [newParamMethod(paramMethodName, prop)] : []),
   ];
 }
 
@@ -31,7 +31,7 @@ export function makeRules<P extends Prop>(
  * Given a single abbreviation (i.e. `mt0`) and multiple `prop` -> `value` CSS values, returns the
  * TypeScript for the `mt0` utility method in the Truss output.
  */
-export function makeRule(abbr: UtilityName, defs: Properties): UtilityMethod {
+export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
   return `get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
     .join("")}; }`;
@@ -45,7 +45,7 @@ export function makeRule(abbr: UtilityName, defs: Properties): UtilityMethod {
  *
  * The `value` parameter's type will be the csstype value for the given `prop`.
  */
-export function makeValueRule(
+export function newParamMethod(
   abbr: UtilityName,
   prop: keyof Properties
 ): UtilityMethod {
@@ -56,7 +56,7 @@ export function makeValueRule(
  * Given a record of aliases, i.e. `aliasName -> otherUtilityClasses[]`, returns
  * a new TypeScript utility method for each alias.
  */
-export function makeAliases(aliases: Aliases): UtilityMethod[] {
+export function makeAliasesMethods(aliases: Aliases): UtilityMethod[] {
   return Object.entries(aliases).map(([abbr, values]) => {
     return `get ${abbr}() { return this${values
       .map((v) => `.${v}`)
@@ -67,13 +67,13 @@ export function makeAliases(aliases: Aliases): UtilityMethod[] {
 /**
  * Makes a method that can set CSS custom values.
  *
- * I.e. `makeCssVariablesRule("foo", { "--Foo": "bar" })` will create a method
- * `Css.foo.$ that will set `--Foo` to `bar`.
+ * I.e. `newSetCssVariableMethod("foo", { "--Foo": "bar" })` will create a
+ * utility method `Css.foo.$ that will set `--Foo` to `bar`.
  *
  * Currently this only supports compile-time/hard-coded values. I.e. we don't support
  * something like `Css.foo({ "--Foo", "bar" }).$` yet.
  */
-export function makeCssVariablesRule(
+export function newSetCssVariableMethod(
   abbr: UtilityName,
   defs: Record<string, string>
 ): UtilityMethod {
@@ -86,18 +86,22 @@ export function makeCssVariablesRule(
 // to its longName or N other increment abbreviation that it composes.
 export type IncConfig = [string, Prop | string[]];
 
-// If conf is a string[], we assume we're doing an alias like mx/my, and the conf entries are themselves mt/mb abbreviations
-export function makeIncRules(
+/**
+ * Makes [`mt0`, `mt1`, ...] utility methods for each configured increment.
+ *
+ * @param abbr the utility prefix, i.e. `mt`
+ * @param conf if a CSS prop, we assume "mt0 --> marginTop: 0px", otherwise if an array we delegate
+ *   to other existing utility methods, i.e. `m0` -> `mx0.my0`.
+ */
+export function newIncrementMethods(
   config: Config,
   abbr: UtilityName,
   conf: Prop | string[]
-): string[] {
-  const incRules = zeroTo(config.numberOfIncrements).map(
-    (i) => `get ${abbr}${i}() { return this.${abbr}(${i}); }`
-  );
+): UtilityMethod[] {
+  const delegateMethods = newIncrementDelegateMethods(config, abbr);
   if (Array.isArray(conf)) {
     return [
-      ...incRules,
+      ...delegateMethods,
       `${abbr}(inc: number | string) { return this.${conf
         .map((l) => `${l}(inc)`)
         .join(".")}; }`,
@@ -107,11 +111,21 @@ export function makeIncRules(
     ];
   } else {
     return [
-      ...incRules,
+      ...delegateMethods,
       `${abbr}(inc: number | string) { return this.add("${conf}", maybeInc(inc)); }`,
       `${abbr}Px(px: number) { return this.add("${conf}", \`\${px}px\`); }`,
     ];
   }
+}
+
+/** Creates `<abbr>X` utility methods that call an `abbr(number)` that the caller is responsible for creating. */
+export function newIncrementDelegateMethods(
+  config: Config,
+  abbr: UtilityName
+): UtilityMethod[] {
+  return zeroTo(config.numberOfIncrements).map(
+    (i) => `get ${abbr}${i}() { return this.${abbr}(${i}); }`
+  );
 }
 
 /** Turns a high-level `{ sm: 0, md: 200 }` breakpoint config into a useful set of multiple media queries. */

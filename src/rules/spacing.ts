@@ -1,5 +1,5 @@
 import { RuleFn } from "../config";
-import { IncConfig, makeIncRules } from "../utils";
+import { IncConfig, newIncrementMethods } from "../utils";
 
 export const spacingRules: RuleFn = (config) => {
   const marginDefs: IncConfig[] = [
@@ -12,7 +12,7 @@ export const spacingRules: RuleFn = (config) => {
     ["m", ["mt", "mb", "mr", "ml"]],
   ];
   const margins = marginDefs
-    .map(([abbr, conf]) => makeIncRules(config, abbr, conf))
+    .map(([abbr, conf]) => newIncrementMethods(config, abbr, conf))
     .flat();
 
   const paddingDefs: IncConfig[] = [
@@ -25,7 +25,7 @@ export const spacingRules: RuleFn = (config) => {
     ["p", ["pt", "pb", "pr", "pl"]],
   ];
   const paddings = paddingDefs
-    .map(([abbr, conf]) => makeIncRules(config, abbr, conf))
+    .map(([abbr, conf]) => newIncrementMethods(config, abbr, conf))
     .flat();
 
   return [...margins, ...paddings];

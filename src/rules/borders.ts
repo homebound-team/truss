@@ -1,4 +1,4 @@
-import { makeRule } from "../utils";
+import { newMethod } from "../utils";
 import { RuleFn } from "../config";
 
 const borderDefs: [string, [string, string]][] = [
@@ -11,7 +11,7 @@ const borderDefs: [string, [string, string]][] = [
 
 export const borderRules: RuleFn = () => [
   ...borderDefs.map(([abbr, [style, width]]) => {
-    return makeRule(abbr, { [style]: "solid", [width]: "1px" });
+    return newMethod(abbr, { [style]: "solid", [width]: "1px" });
   }),
-  makeRule("bn", { borderStyle: "none", borderWidth: "0" }),
+  newMethod("bn", { borderStyle: "none", borderWidth: "0" }),
 ];

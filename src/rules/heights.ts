@@ -1,13 +1,13 @@
 import { RuleFn } from "../config";
-import { makeIncRules, makeRules } from "../utils";
+import { newIncrementMethods, newMethodsForProp } from "../utils";
 
 export const heightRules: RuleFn = (config) => [
   // https://github.com/tachyons-css/tachyons/blob/master/src/_heights.css
 
   // Technically h1 in tachyons is 1em and ours is 1 inc
-  ...makeIncRules(config, "h", "height"),
+  ...newIncrementMethods(config, "h", "height"),
 
-  ...makeRules("height", {
+  ...newMethodsForProp("height", {
     h25: "25%",
     h50: "50%",
     h75: "75%",
@@ -18,7 +18,7 @@ export const heightRules: RuleFn = (config) => [
     vh100: "100vh",
   }),
 
-  ...makeRules(
+  ...newMethodsForProp(
     "minHeight",
     {
       mh0: 0,
@@ -31,7 +31,7 @@ export const heightRules: RuleFn = (config) => [
     "mh"
   ),
 
-  ...makeRules(
+  ...newMethodsForProp(
     "maxHeight",
     {
       maxh0: "0",

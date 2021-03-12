@@ -1,9 +1,9 @@
-import { makeRules } from "../utils";
+import { newMethodsForProp } from "../utils";
 import { RuleFn } from "../config";
 
 // https://tailwindcss.com/docs/visibility/
 export const visibilityRules: RuleFn = () =>
-  makeRules("visibility", {
+  newMethodsForProp("visibility", {
     visible: "visible",
     invisible: "hidden",
   });

@@ -81,7 +81,7 @@ export interface Config {
  *   ]
  * ```
  *
- * See the `makeRule` and `makeRules` functions for more easily
+ * See the `newMethod` and `newParamMethod` functions for more easily
  * creating the `get ...() { ... }` output.
  */
 export type RuleFn = (config: Config) => UtilityMethod[];
@@ -96,7 +96,7 @@ export type UtilityName = string;
  *
  * I.e. they should be a line of TypeScript code like `get abbr() { ... }`.
  *
- * See `makeRule` for a helper method to create the string.
+ * See `newMethod` for a helper method to create the string.
  */
 export type UtilityMethod = string;
 

@@ -1,8 +1,8 @@
 import { RuleFn } from "../config";
-import { makeRules } from "../utils";
+import { newMethodsForProp } from "../utils";
 
 export const outlineRules: RuleFn = () =>
-  makeRules("outline", {
+  newMethodsForProp("outline", {
     outline: "1px solid",
     outlineTransparent: "1px solid transparent",
     outline0: "0",

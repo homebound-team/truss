@@ -1,17 +1,17 @@
-import { makeRule } from "../utils";
+import { newMethod } from "../utils";
 import { RuleFn } from "../config";
 
 export const typographyRules: RuleFn = () => [
-  makeRule("measure", { maxWidth: "30em", }),
-  makeRule("measureWide", { maxWidth: "34em", }),
-  makeRule("measureNarrow", { maxWidth: "20em", }),
-  makeRule("indent", {
+  newMethod("measure", { maxWidth: "30em", }),
+  newMethod("measureWide", { maxWidth: "34em", }),
+  newMethod("measureNarrow", { maxWidth: "20em", }),
+  newMethod("indent", {
     textIndent: "1em",
     marginTop: 0,
     marginBottom: 0,
   }),
-  makeRule("smallCaps", { fontVariant: "small-caps" }),
-  makeRule("truncate", {
+  newMethod("smallCaps", { fontVariant: "small-caps" }),
+  newMethod("truncate", {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",

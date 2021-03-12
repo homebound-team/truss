@@ -1,5 +1,5 @@
 import { Config } from "./config";
-import { makeBreakpoints, makeIncRules } from "./utils";
+import { makeBreakpoints, newIncrementMethods } from "./utils";
 
 describe("utils", () => {
   const config: Config = {
@@ -10,9 +10,10 @@ describe("utils", () => {
     palette: {},
   };
 
-  describe("makeIncRules", () => {
+  describe("newIncrementMethods", () => {
     it("can handle mt", () => {
-      expect(makeIncRules(config, "mt", "marginTop")).toMatchInlineSnapshot(`
+      expect(newIncrementMethods(config, "mt", "marginTop"))
+        .toMatchInlineSnapshot(`
         Array [
           "get mt0() { return this.mt(0); }",
           "get mt1() { return this.mt(1); }",
@@ -25,7 +26,8 @@ describe("utils", () => {
     });
 
     it("can handle mx", () => {
-      expect(makeIncRules(config, "mx", ["ml", "mr"])).toMatchInlineSnapshot(`
+      expect(newIncrementMethods(config, "mx", ["ml", "mr"]))
+        .toMatchInlineSnapshot(`
         Array [
           "get mx0() { return this.mx(0); }",
           "get mx1() { return this.mx(1); }",
@@ -38,7 +40,7 @@ describe("utils", () => {
     });
 
     it("can handle m", () => {
-      expect(makeIncRules(config, "m", ["mt", "mr", "mb", "ml"]))
+      expect(newIncrementMethods(config, "m", ["mt", "mr", "mb", "ml"]))
         .toMatchInlineSnapshot(`
         Array [
           "get m0() { return this.m(0); }",

@@ -1,15 +1,15 @@
-import { makeIncRules, makeRules } from "../utils";
+import { newIncrementMethods, newMethodsForProp } from "../utils";
 import { RuleFn } from "../config";
 
 export const widthRules: RuleFn = (config) => [
-  ...makeRules("width", {
+  ...newMethodsForProp("width", {
     w25: "25%",
     w50: "50%",
     w75: "75%",
     w100: "100%",
   }),
 
-  ...makeRules(
+  ...newMethodsForProp(
     "minWidth",
     {
       mw0: 0,
@@ -21,7 +21,7 @@ export const widthRules: RuleFn = (config) => [
     "mw"
   ),
 
-  ...makeRules(
+  ...newMethodsForProp(
     "maxWidth",
     {
       maxw0: "0",
@@ -33,5 +33,5 @@ export const widthRules: RuleFn = (config) => [
     "maxw"
   ),
 
-  ...makeIncRules(config, "w", "width"),
+  ...newIncrementMethods(config, "w", "width"),
 ];
