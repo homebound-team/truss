@@ -5,7 +5,9 @@ export {
   newAliasesMethods,
   newMethod,
   newMethodsForProp,
+  newIncrementDelegateMethods,
   newIncrementMethods,
+  newParamMethod,
   newSetCssVariablesMethod,
   IncConfig,
 } from "./methods";

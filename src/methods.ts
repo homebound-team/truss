@@ -5,7 +5,7 @@ export type Prop = keyof Properties;
 
 /**
  * Given a single abbreviation (i.e. `mt0`) and multiple `{ prop: value }` CSS values, returns
- * the TypeScript code for a `mt0` utility method.
+ * the TypeScript code for a `mt0` utility method that sets those values.
  */
 export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
   return `get ${abbr}() { return this${Object.entries(defs)
@@ -29,6 +29,11 @@ export function newParamMethod(
 /**
  * Given a prop to set (i.e. `marginTop`), and multiple abbr/value pairs (i.e. `{ mt0: "0px", mt1: "4px" }`),
  * returns a utility method for each abbr/value pair.
+ *
+ * I.e. `mt0() { ...add("marginTop", "0px")... }`
+ *
+ * If `paramMethodName` is set (i.e. to `mt`), this also returns a param method, i.e. `mt(value)`
+ * to set the prop (i.e. `marginTop`) to a user-accepted value.
  */
 export function newMethodsForProp<P extends Prop>(
   prop: P,
@@ -57,7 +62,7 @@ export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
 }
 
 /**
- * Makes a utility method that can set CSS custom values.
+ * Makes a utility method that can set CSS custom variables.
  *
  * I.e. `newSetCssVariableMethod("dark", { "--Primary": "white" })` will create a
  * utility method `Css.dark.$ that will set `--Primary` to `white`.
@@ -81,9 +86,10 @@ export function newSetCssVariablesMethod(
 export type IncConfig = [string, Prop | string[]];
 
 /**
- * Makes [`mt0`, `mt1`, ...] utility methods for each configured increment.
+ * Makes [`mt0`, `mt1`, ...] utility methods for each configured increment
+ * to set `prop` to that given increment's value in pixels.
  *
- * We assume that `prop` is a CSS property that accepts pixels as values, and
+ * I.e. we assume that `prop` is a CSS property that accepts pixels as values, and
  * so convert each increment `x` (1, 2, 3) to pixels `Y` (8, 16, 24) and create
  * a utility method for each `x -> Y` pair, i.e. `mt0 = mt(px(0))`.
  *
