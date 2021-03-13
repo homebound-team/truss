@@ -1,5 +1,5 @@
 export * from "./config";
-export { defaultMethodFns } from "./rules";
+export { defaultMethodFns } from "./methodFns";
 export { generate } from "./generate";
 export {
   newAliasesMethods,

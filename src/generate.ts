@@ -4,7 +4,7 @@ import { code, Code, def, imp } from "ts-poet";
 import { makeBreakpoints } from "./breakpoints";
 import { Config, MethodFn, SectionName, UtilityMethod } from "./config";
 import { newAliasesMethods } from "./methods";
-import { defaultMethodFns } from "./rules";
+import { defaultMethodFns } from "./methodFns";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],

@@ -25,7 +25,7 @@ class CssBuilder<T extends Properties1> {
     return new CssBuilder({ ...this.opts, ...opts });
   }
 
-  // borderColorRules
+  // borderColor
   get bBlack() { return this.add("borderColor", "#353535"); }
   get bMidGray() { return this.add("borderColor", "#888888"); }
   get bLightGray() { return this.add("borderColor", "#cecece"); }
@@ -33,7 +33,7 @@ class CssBuilder<T extends Properties1> {
   get bBlue() { return this.add("borderColor", "#526675"); }
   get bPrimary() { return this.add("borderColor", "var(--primary)"); }
 
-  // borderRadiusRules
+  // borderRadius
   get br0() { return this.add("borderRadius", "0"); }
   get br1() { return this.add("borderRadius", ".125rem"); }
   get br2() { return this.add("borderRadius", ".25rem"); }
@@ -42,7 +42,7 @@ class CssBuilder<T extends Properties1> {
   get br100() { return this.add("borderRadius", "100%"); }
   get brPill() { return this.add("borderRadius", "9999px"); }
 
-  // borderRules
+  // border
   get ba() { return this.add("borderStyle", "solid").add("borderWidth", "1px"); }
   get bt() { return this.add("borderTopStyle", "solid").add("borderTopWidth", "1px"); }
   get br() { return this.add("borderRightStyle", "solid").add("borderRightWidth", "1px"); }
@@ -50,21 +50,21 @@ class CssBuilder<T extends Properties1> {
   get bl() { return this.add("borderLeftStyle", "solid").add("borderLeftWidth", "1px"); }
   get bn() { return this.add("borderStyle", "none").add("borderWidth", "0"); }
 
-  // borderStyleRules
+  // borderStyle
   get bsDashed() { return this.add("borderStyle", "dashed"); }
   get bsDotted() { return this.add("borderStyle", "dotted"); }
   get bsNone() { return this.add("borderStyle", "none"); }
   get bsSolid() { return this.add("borderStyle", "solid"); }
 
-  // borderWidthRules
+  // borderWidth
   get bw1() { return this.add("borderWidth", "1px"); }
   get bw2() { return this.add("borderWidth", "2px"); }
   bw(value: Properties["borderWidth"]) { return this.add("borderWidth", value); }
 
-  // boxShadowRules
+  // boxShadow
   get shadowNone() { return this.add("boxShadow", "none"); }
 
-  // coordinateRules
+  // coordinates
   get top0() { return this.top(0); }
   get top1() { return this.top(1); }
   get top2() { return this.top(2); }
@@ -94,10 +94,10 @@ class CssBuilder<T extends Properties1> {
   left(inc: number | string) { return this.add("left", maybeInc(inc)); }
   leftPx(px: number) { return this.add("left", `${px}px`); }
 
-  // cursorRules
+  // cursor
   get cursorPointer() { return this.add("cursor", "pointer"); }
 
-  // displayRules
+  // display
   get dn() { return this.add("display", "none"); }
   get db() { return this.add("display", "block"); }
   get dib() { return this.add("display", "inline-block"); }
@@ -112,7 +112,7 @@ class CssBuilder<T extends Properties1> {
   get dif() { return this.add("display", "inline-flex"); }
   display(value: Properties["display"]) { return this.add("display", value); }
 
-  // flexboxRules
+  // flexbox
   get justifyStart() { return this.add("justifyContent", "flex-start"); }
   get justifyEnd() { return this.add("justifyContent", "flex-end"); }
   get justifyCenter() { return this.add("justifyContent", "center"); }
@@ -156,12 +156,12 @@ class CssBuilder<T extends Properties1> {
   get flexColumnReverse() { return this.add("flexDirection", "column-reverse"); }
   flexDirection(value: Properties["flexDirection"]) { return this.add("flexDirection", value); }
 
-  // floatRules
+  // float
   get fl() { return this.add("float", "left"); }
   get fn() { return this.add("float", "none"); }
   get fr() { return this.add("float", "right"); }
 
-  // fontWeightRules
+  // fontWeight
   get normal() { return this.add("fontWeight", "normal"); }
   get b() { return this.add("fontWeight", "bold"); }
   get fw1() { return this.add("fontWeight", 100); }
@@ -174,7 +174,7 @@ class CssBuilder<T extends Properties1> {
   get fw8() { return this.add("fontWeight", 800); }
   get fw9() { return this.add("fontWeight", 900); }
 
-  // heightRules
+  // height
   get h0() { return this.h(0); }
   get h1() { return this.h(1); }
   get h2() { return this.h(2); }
@@ -204,12 +204,12 @@ class CssBuilder<T extends Properties1> {
   get maxh100() { return this.add("maxHeight", "100%"); }
   maxh(value: Properties["maxHeight"]) { return this.add("maxHeight", value); }
 
-  // outlineRules
+  // outline
   get outline() { return this.add("outline", "1px solid"); }
   get outlineTransparent() { return this.add("outline", "1px solid transparent"); }
   get outline0() { return this.add("outline", "0"); }
 
-  // objectFitRules
+  // objectFit
   get objectContain() { return this.add("objectFit", "contain"); }
   get objectCover() { return this.add("objectFit", "cover"); }
   get objectFill() { return this.add("objectFit", "fill"); }
@@ -217,7 +217,7 @@ class CssBuilder<T extends Properties1> {
   get objectScaleDown() { return this.add("objectFit", "scale-down"); }
   objectFit(value: Properties["objectFit"]) { return this.add("objectFit", value); }
 
-  // overflowRules
+  // overflow
   get overflowVisible() { return this.add("overflow", "visible"); }
   get overflowHidden() { return this.add("overflow", "hidden"); }
   get overflowScroll() { return this.add("overflow", "scroll"); }
@@ -234,14 +234,14 @@ class CssBuilder<T extends Properties1> {
   get overflowXAuto() { return this.add("overflowX", "auto"); }
   overflowX(value: Properties["overflowX"]) { return this.add("overflowX", value); }
 
-  // positionRules
+  // position
   get absolute() { return this.add("position", "absolute"); }
   get fixed() { return this.add("position", "fixed"); }
   get static() { return this.add("position", "static"); }
   get relative() { return this.add("position", "relative"); }
   get sticky() { return this.add("position", "sticky"); }
 
-  // skinRules
+  // skins
   get black() { return this.add("color", "#353535"); }
   get midGray() { return this.add("color", "#888888"); }
   get lightGray() { return this.add("color", "#cecece"); }
@@ -258,7 +258,7 @@ class CssBuilder<T extends Properties1> {
   bgColor(value: string) { return this.add("backgroundColor", value); }
   fill(value: string) { return this.add("fill", value); }
 
-  // spacingRules
+  // spacing
   get mt0() { return this.mt(0); }
   get mt1() { return this.mt(1); }
   get mt2() { return this.mt(2); }
@@ -358,24 +358,24 @@ class CssBuilder<T extends Properties1> {
   p(inc: number | string) { return this.pt(inc).pb(inc).pr(inc).pl(inc); }
   pPx(px: number) { return this.ptPx(px).pbPx(px).prPx(px).plPx(px); }
 
-  // textAlignRules
+  // textAlign
   get tl() { return this.add("textAlign", "left"); }
   get tc() { return this.add("textAlign", "center"); }
   get tr() { return this.add("textAlign", "right"); }
   get tj() { return this.add("textAlign", "justify"); }
 
-  // textDecorationRules
+  // textDecoration
   get noUnderline() { return this.add("textDecoration", "none"); }
   get strike() { return this.add("textDecoration", "line-through"); }
   get underline() { return this.add("textDecoration", "underline"); }
 
-  // textTransformRules
+  // textTransform
   get ttc() { return this.add("textTransform", "capitalize"); }
   get ttl() { return this.add("textTransform", "lowercase"); }
   get ttu() { return this.add("textTransform", "uppercase"); }
   get ttn() { return this.add("textTransform", "none"); }
 
-  // typeScaleRules
+  // typeScale
   get f24() { return this.add("fontSize", "24px"); }
   get f18() { return this.add("fontSize", "18px"); }
   get f16() { return this.add("fontSize", "16px"); }
@@ -383,7 +383,7 @@ class CssBuilder<T extends Properties1> {
   get f12() { return this.add("fontSize", "12px"); }
   get f10() { return this.add("fontSize", "10px").add("fontWeight", 500); }
 
-  // typographyRules
+  // typography
   get measure() { return this.add("maxWidth", "30em"); }
   get measureWide() { return this.add("maxWidth", "34em"); }
   get measureNarrow() { return this.add("maxWidth", "20em"); }
@@ -391,28 +391,28 @@ class CssBuilder<T extends Properties1> {
   get smallCaps() { return this.add("fontVariant", "small-caps"); }
   get truncate() { return this.add("whiteSpace", "nowrap").add("overflow", "hidden").add("textOverflow", "ellipsis"); }
 
-  // userSelectRules
+  // userSelect
   get selectNone() { return this.add("userSelect", "none"); }
   get selectText() { return this.add("userSelect", "text"); }
   get selectAll() { return this.add("userSelect", "all"); }
   get selectAuto() { return this.add("userSelect", "auto"); }
 
-  // verticalAlignRules
+  // verticalAlign
   get vBase() { return this.add("verticalAlign", "baseline"); }
   get vMid() { return this.add("verticalAlign", "middle"); }
   get vTop() { return this.add("verticalAlign", "top"); }
   get vBottom() { return this.add("verticalAlign", "bottom"); }
 
-  // visibilityRules
+  // visibility
   get visible() { return this.add("visibility", "visible"); }
   get invisible() { return this.add("visibility", "hidden"); }
 
-  // whitespaceRules
+  // whitespace
   get nowrap() { return this.add("whiteSpace", "nowrap"); }
   get pre() { return this.add("whiteSpace", "pre"); }
   get wsNormal() { return this.add("whiteSpace", "normal"); }
 
-  // widthRules
+  // width
   get w25() { return this.add("width", "25%"); }
   get w50() { return this.add("width", "50%"); }
   get w75() { return this.add("width", "75%"); }
@@ -437,7 +437,7 @@ class CssBuilder<T extends Properties1> {
   w(inc: number | string) { return this.add("width", maybeInc(inc)); }
   wPx(px: number) { return this.add("width", `${px}px`); }
 
-  // zIndexRules
+  // zIndex
   get z0() { return this.add("zIndex", 0); }
   get z1() { return this.add("zIndex", 1); }
   get z2() { return this.add("zIndex", 2); }

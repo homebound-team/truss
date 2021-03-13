@@ -12,7 +12,7 @@ export type FontConfig = Record<string, string | Properties>;
  * Provides users with an easy way to configure the major/most-often configurable
  * aspect of a design system, i.e. the palette, fonts, and increments.
  *
- * Truss's built-in rules, i.e. `type-scale.ts` for fonts, `skins.ts` for colors,
+ * Truss's built-in rules, i.e. `typeScale.ts` for fonts, `skins.ts` for colors,
  * will read these values to determine their output.
  *
  * Note that users can always override whole sections of Truss's default set
