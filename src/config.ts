@@ -61,7 +61,7 @@ export interface Config {
    *
    * This can be used to either add new sections or override built-in sections.
    */
-  sections?: Record<SectionName, MethodFn>;
+  sections?: Sections;
 
   /** Any extra chunks of code you want appended to the end of the file. */
   extras?: Array<string | Code>;
@@ -92,7 +92,7 @@ export type MethodFn = (config: Config) => UtilityMethod[];
 export type UtilityName = string;
 
 /**
- * A type-alias to clarify which method returns types that are utility methods.
+ * A type-alias to clarify which method returns types are utility methods.
  *
  * I.e. they should be a line of TypeScript code like `get abbr() { ... }`.
  *
@@ -104,7 +104,7 @@ export type UtilityMethod = string;
 export type SectionName = string;
 
 /** A type-alias for a group of utility methods. */
-export type Section = Record<SectionName, UtilityMethod[]>;
+export type Sections = Record<SectionName, MethodFn>;
 
 /** A type-alias for aliasing existing utility methods as a new utility method. */
 export type Aliases = Record<UtilityName, UtilityName[]>;

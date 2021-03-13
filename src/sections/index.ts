@@ -15,7 +15,6 @@ import { objectFit } from "./objectFit";
 import { outline } from "./outlines";
 import { overflow } from "./overflow";
 import { position } from "./position";
-import { MethodFn, SectionName } from "../config";
 import { skins } from "./skins";
 import { spacing } from "./spacing";
 import { textAlign } from "./textAlign";
@@ -30,7 +29,7 @@ import { whitespace } from "./whitespace";
 import { width } from "./widths";
 import { zIndex } from "./zIndex";
 
-export const defaultMethodFns: Record<SectionName, MethodFn> = {
+export const defaultSections = {
   borderColor,
   borderRadius,
   border,
@@ -61,4 +60,4 @@ export const defaultMethodFns: Record<SectionName, MethodFn> = {
   whitespace,
   width,
   zIndex,
-};
+} as const;
