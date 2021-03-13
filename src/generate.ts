@@ -4,7 +4,7 @@ import { code, Code, def, imp } from "ts-poet";
 import { makeBreakpoints } from "./breakpoints";
 import { Config, MethodFn, SectionName, UtilityMethod } from "./config";
 import { newAliasesMethods } from "./methods";
-import { defaultMethodFns } from "./rules";
+import { defaultMethodFns } from "./methodFns";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
@@ -35,7 +35,7 @@ function generateCssBuilder(config: Config): Code {
   } = config;
 
   // Combine our out-of-the-box utility methods with any custom ones
-  const sections = {
+  const sections: Record<string, string[]> = {
     ...generateMethods(config, defaultMethodFns),
     ...(customSections ? generateMethods(config, customSections) : {}),
     ...(aliases && { aliases: newAliasesMethods(aliases) }),
