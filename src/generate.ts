@@ -35,7 +35,7 @@ function generateCssBuilder(config: Config): Code {
   } = config;
 
   // Combine our out-of-the-box utility methods with any custom ones
-  const sections = {
+  const sections: Record<string, string[]> = {
     ...generateMethods(config, defaultMethodFns),
     ...(customSections ? generateMethods(config, customSections) : {}),
     ...(aliases && { aliases: newAliasesMethods(aliases) }),
