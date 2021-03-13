@@ -1,9 +1,9 @@
-import { RuleFn } from "../config";
-import { makeRules } from "../utils";
+import { MethodFn } from "../config";
+import { newMethodsForProp } from "../methods";
 
-export const borderColorRules: RuleFn = ({ palette }) => {
+export const borderColorRules: MethodFn = ({ palette }) => {
   const defs = Object.fromEntries(
     Object.entries(palette).map(([key, value]) => [`b${key}`, value])
   );
-  return makeRules("borderColor", defs);
+  return newMethodsForProp("borderColor", defs);
 };

@@ -1,4 +1,10 @@
-import { Aliases, FontConfig, generate, makeCssVariablesRule, makeRule } from "../src";
+import {
+  Aliases,
+  FontConfig,
+  generate,
+  newSetCssVariablesMethod,
+  newMethod,
+} from "../src";
 
 const increment = 8;
 const numberOfIncrements = 4;
@@ -25,12 +31,12 @@ const breakpoints = { sm: 0, md: 600, lg: 960 };
 
 // Add/remove application-specific/one-off rules as needed.
 const sections = {
-  customStuff: () => [makeRule("foo", { color: "#000000" })],
+  customStuff: () => [newMethod("foo", { color: "#000000" })],
 
   // Create a rule that sets a CSS variable.
   vars: () => [
-    makeCssVariablesRule("setVars", { "--primary": "#000000" }),
-    makeRule("var", { color: "var(--primary)" }),
+    newSetCssVariablesMethod("setVars", { "--primary": "#000000" }),
+    newMethod("var", { color: "var(--primary)" }),
   ],
 };
 

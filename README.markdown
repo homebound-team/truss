@@ -262,7 +262,7 @@ In the same `index.ts`, projects can add their own new rules/abbreviations:
 
 ```typescript
 const sections = {
-  ourSection: () => [makeRule("someAbbreviation", { color: "#000000" })],
+  ourSection: () => [newMethod("someAbbreviation", { color: "#000000" })],
 };
 ```
 

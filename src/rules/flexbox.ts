@@ -1,8 +1,8 @@
-import { RuleFn } from "../config";
-import { makeRules } from "../utils";
+import { MethodFn } from "../config";
+import { newMethodsForProp } from "../methods";
 
-export const flexboxRules: RuleFn = () => [
-  ...makeRules(
+export const flexboxRules: MethodFn = () => [
+  ...newMethodsForProp(
     "justifyContent",
     {
       justifyStart: "flex-start",
@@ -15,7 +15,7 @@ export const flexboxRules: RuleFn = () => [
     "justify"
   ),
 
-  ...makeRules(
+  ...newMethodsForProp(
     "alignSelf",
     {
       selfStart: "flex-start",
@@ -27,7 +27,7 @@ export const flexboxRules: RuleFn = () => [
     "self"
   ),
 
-  ...makeRules(
+  ...newMethodsForProp(
     "alignItems",
     {
       itemsStart: "flex-start",
@@ -39,7 +39,7 @@ export const flexboxRules: RuleFn = () => [
     "items"
   ),
 
-  ...makeRules(
+  ...newMethodsForProp(
     "flexBasis",
     // https://github.com/tack-hammer/tailwind-plugin-flex-basis#usage
     {
@@ -56,14 +56,14 @@ export const flexboxRules: RuleFn = () => [
   ),
 
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
-  ...makeRules("flex", { flexAuto: "auto", flexNone: "none" }, "flex"),
+  ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }, "flex"),
 
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L69
-  ...makeRules("flexGrow", { fg0: 0, fg1: 1 }, "flexGrow"),
-  ...makeRules("flexShrink", { fs0: 0, fs1: 1 }, "flexShrink"),
+  ...newMethodsForProp("flexGrow", { fg0: 0, fg1: 1 }, "flexGrow"),
+  ...newMethodsForProp("flexShrink", { fs0: 0, fs1: 1 }, "flexShrink"),
 
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L25
-  ...makeRules("flexDirection", {
+  ...newMethodsForProp("flexDirection", {
     flexRow: "row",
     flexRowReverse: "row-reverse",
     flexColumn: "column",

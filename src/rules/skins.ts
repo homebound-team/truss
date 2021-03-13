@@ -1,10 +1,11 @@
-import { lowerCaseFirst, makeRules } from "../utils";
-import { RuleFn } from "../config";
+import { MethodFn } from "../config";
+import { newMethodsForProp } from "../methods";
+import { lowerCaseFirst } from "../utils";
 
-export const skinRules: RuleFn = (config) => {
+export const skinRules: MethodFn = (config) => {
   const { palette } = config;
 
-  const colors = makeRules(
+  const colors = newMethodsForProp(
     "color",
     Object.fromEntries(
       Object.entries(palette).map(([key, value]) => [
@@ -14,7 +15,7 @@ export const skinRules: RuleFn = (config) => {
     )
   );
 
-  const backgroundColors = makeRules(
+  const backgroundColors = newMethodsForProp(
     "backgroundColor",
     Object.fromEntries(
       Object.entries(palette).map(([key, value]) => [`bg${key}`, value])

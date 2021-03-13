@@ -1,9 +1,9 @@
-import { makeRules } from "../utils";
-import { RuleFn } from "../config";
+import { newMethodsForProp } from "../methods";
+import { MethodFn } from "../config";
 
 // https://tailwindcss.com/docs/user-select/
-export const userSelectRules: RuleFn = () =>
-  makeRules("userSelect", {
+export const userSelectRules: MethodFn = () =>
+  newMethodsForProp("userSelect", {
     selectNone: "none",
     selectText: "text",
     selectAll: "all",

@@ -1,9 +1,9 @@
-import { makeRules } from "../utils";
-import { RuleFn } from "../config";
+import { newMethodsForProp } from "../methods";
+import { MethodFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_text-align.css
-export const textAlignRules: RuleFn = () =>
-  makeRules("textAlign", {
+export const textAlignRules: MethodFn = () =>
+  newMethodsForProp("textAlign", {
     tl: "left",
     tc: "center",
     tr: "right",

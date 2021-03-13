@@ -1,8 +1,8 @@
-import { RuleFn } from "../config";
-import { makeRules } from "../utils";
+import { MethodFn } from "../config";
+import { newMethodsForProp } from "../methods";
 
-export const borderRadiusRules: RuleFn = () =>
-  makeRules("borderRadius", {
+export const borderRadiusRules: MethodFn = () =>
+  newMethodsForProp("borderRadius", {
     br0: "0",
     br1: ".125rem",
     br2: ".25rem",

@@ -1,8 +1,8 @@
-import { makeRules } from "../utils";
-import { RuleFn } from "../config";
+import { newMethodsForProp } from "../methods";
+import { MethodFn } from "../config";
 
-export const whitespaceRules: RuleFn = () =>
-  makeRules("whiteSpace", {
+export const whitespaceRules: MethodFn = () =>
+  newMethodsForProp("whiteSpace", {
     nowrap: "nowrap",
     pre: "pre",
     wsNormal: "normal",

@@ -1,11 +1,11 @@
 export * from "./config";
-export { defaultRuleFns } from "./rules";
+export { defaultMethodFns } from "./rules";
 export { generate } from "./generate";
 export {
-  makeAliases,
-  makeRule,
-  makeRules,
-  makeIncRules,
-  makeCssVariablesRule,
+  newAliasesMethods,
+  newMethod,
+  newMethodsForProp,
+  newIncrementMethods,
+  newSetCssVariablesMethod,
   IncConfig,
-} from "./utils";
+} from "./methods";

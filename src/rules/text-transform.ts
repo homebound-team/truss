@@ -1,9 +1,9 @@
-import { makeRules } from "../utils";
-import { RuleFn } from "../config";
+import { newMethodsForProp } from "../methods";
+import { MethodFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_text-transform.css
-export const textTransformRules: RuleFn = () =>
-  makeRules("textTransform", {
+export const textTransformRules: MethodFn = () =>
+  newMethodsForProp("textTransform", {
     ttc: "capitalize",
     ttl: "lowercase",
     ttu: "uppercase",

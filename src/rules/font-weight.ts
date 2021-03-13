@@ -1,8 +1,8 @@
-import { RuleFn } from "../config";
-import { makeRules } from "../utils";
+import { MethodFn } from "../config";
+import { newMethodsForProp } from "../methods";
 
-export const fontWeightRules: RuleFn = () =>
-  makeRules("fontWeight", {
+export const fontWeightRules: MethodFn = () =>
+  newMethodsForProp("fontWeight", {
     normal: "normal",
     b: "bold",
     fw1: 100,

@@ -1,9 +1,10 @@
 import { Properties } from "csstype";
 import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
-import { Config, RuleFn, Section, SectionName, UtilityMethod } from "./config";
-import { defaultRuleFns } from "./rules";
-import { makeAliases, makeBreakpoints } from "./utils";
+import { makeBreakpoints } from "./breakpoints";
+import { Config, MethodFn, SectionName, UtilityMethod } from "./config";
+import { newAliasesMethods } from "./methods";
+import { defaultMethodFns } from "./rules";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
@@ -22,23 +23,7 @@ export async function generate(config: Config): Promise<void> {
   await fs.writeFile(outputPath, output);
 }
 
-/**
- * Given the user's config like colors/fonts/increments, generates the project's utility methods
- * from the (provided or default) ruleFns.
- *
- * Callers can optionally pass in their own `sectionName -> RuleFn` `ruleFns` but we'll also default
- * to the out-of-the-box Tachyons-ish rules defined in `defaultRuleFns`.
- */
-function generateRules(
-  config: Config,
-  ruleFns: Record<SectionName, RuleFn>
-): Record<SectionName, UtilityMethod[]> {
-  return Object.fromEntries(
-    Object.entries(ruleFns).map(([name, fn]) => [name, fn(config)])
-  );
-}
-
-export function generateCssBuilder(config: Config): Code {
+function generateCssBuilder(config: Config): Code {
   const {
     aliases,
     increment,
@@ -51,9 +36,9 @@ export function generateCssBuilder(config: Config): Code {
 
   // Combine our out-of-the-box utility methods with any custom ones
   const sections = {
-    ...generateRules(config, defaultRuleFns),
-    ...(customSections ? generateRules(config, customSections) : {}),
-    ...(aliases && { aliases: makeAliases(aliases) }),
+    ...generateMethods(config, defaultMethodFns),
+    ...(customSections ? generateMethods(config, customSections) : {}),
+    ...(aliases && { aliases: newAliasesMethods(aliases) }),
   };
 
   const Properties = imp("Properties@csstype");
@@ -203,4 +188,14 @@ ${breakpointCode}
 
 ${extras || ""}
   `;
+}
+
+/** Invokes all of the `MethodFns` to create actual `UtilityMethod`s. */
+function generateMethods(
+  config: Config,
+  methodFns: Record<SectionName, MethodFn>
+): Record<SectionName, UtilityMethod[]> {
+  return Object.fromEntries(
+    Object.entries(methodFns).map(([name, fn]) => [name, fn(config)])
+  );
 }

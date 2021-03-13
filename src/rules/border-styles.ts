@@ -1,10 +1,10 @@
-import { RuleFn } from "../config";
-import { makeRules } from "../utils";
+import { MethodFn } from "../config";
+import { newMethodsForProp } from "../methods";
 
 // http://tachyons.io/docs/themes/borders/
 // https://tailwindcss.com/docs/border-style/#app
-export const borderStyleRules: RuleFn = () =>
-  makeRules("borderStyle", {
+export const borderStyleRules: MethodFn = () =>
+  newMethodsForProp("borderStyle", {
     bsDashed: "dashed",
     bsDotted: "dotted",
     bsNone: "none",
