@@ -8,9 +8,9 @@ Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) 
 
 Truss lets you:
 
-* Write `<div css={Css.mt1.black.$}>`, and Truss turns this into `css={{ margin-top: 8px, color: "black" }}`, and then Emotion (or another CSS-in-JS library) automatically turns into CSS classes.
+* Write `<div css={Css.mt1.black.$}>`, which Truss turns into `css={{ margin-top: 8px, color: "black" }}`, and then Emotion (or another CSS-in-JS library) turns into injected CSS classes.
 
-* Setup your project's design system in Truss's configuration ([see example code](https://github.com/homebound-team/truss/blob/main/integration-test/index.ts#L12) and the "Customization" section below)
+* Setup your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example code](https://github.com/homebound-team/truss/blob/main/integration-test/index.ts#L12) and the "Customization" section below)
 
 * Achieve both utility-class brevity and critical-CSS delivery.
 
