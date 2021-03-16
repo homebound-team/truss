@@ -255,7 +255,7 @@ const breakpoints = { sm: 0, md: 600, lg: 960 };
 // ...rest of the config file...
 ```
 
-Projects should heavily customize these settings to match their project-specific design system, then run `npm run generate` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have rules added like:
+Projects should heavily customize these settings to match their project-specific design system, then run `npm run generate` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have utility methods added like:
 
 ```typescript
   get green() { return this.add("color", "green"); }
@@ -264,9 +264,9 @@ Projects should heavily customize these settings to match their project-specific
 
 ```
 
-### Per-Project Rules
+### Per-Project Utility Methods
 
-In the same `index.ts`, projects can add their own new rules/abbreviations:
+In the same `index.ts`, projects can add their own new abbreviations/utility methods:
 
 ```typescript
 const sections = {
@@ -283,15 +283,15 @@ Will result in `Css.ts` having a line that looks like:
 
 Which can then be used as `Css.m2.someAbbreviation.$`.
 
-Besides adding one-off additional rules/abbreviations, if your project wants to replace a whole section of Truss's out-of-the-box rules, you can replace an entire section via:
+Besides adding one-off additional methods, if your project wants to replace a whole section of Truss's out-of-the-box rules, you can replace an entire section via:
 
 ```typescript
 const sections = {
-  spacing: () => ourCustomSpacingRules,
+  spacing: (config) => ourCustomSpacingRules,
 };
 ```
 
-Where `"spacing"` matches the name of the file that declared these rules in Truss's `src/rules` directory (which generally matches Tachyon's sections of organization).
+Where `"spacing"` matches the name of the section that declared these methods in Truss's [`sections`](https://github.com/homebound-team/truss/tree/main/src/sections) directory (which generally matches Tachyon's sections of organization).
 
 ### Forking
 
