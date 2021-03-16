@@ -287,11 +287,16 @@ Besides adding one-off additional methods, if your project wants to replace a wh
 
 ```typescript
 const sections = {
-  spacing: (config) => ourCustomSpacingRules,
+  // Prefer app-specific border radiuses 
+  borderRadius: () => newMethodsForProp("borderRadius", {
+    br4: "4px",
+    br8: "8px",
+    br16: "16px",
+  }),
 };
 ```
 
-Where `"spacing"` matches the name of the section that declared these methods in Truss's [`sections`](https://github.com/homebound-team/truss/tree/main/src/sections) directory (which generally matches Tachyon's sections of organization).
+Where `borderRadius` matches the name of the section in Truss's [sections](https://github.com/homebound-team/truss/tree/main/src/sections) directory (which generally matches Tachyon's organization).
 
 ### Forking
 
@@ -362,7 +367,6 @@ Several libraries influenced Truss, specifically:
 
 - `npx -p @homebound/truss init` type experience for setup - inspired by [Storybook](https://storybook.js.org/docs/guides/quick-start-guide/)
 - Support `number[]` increments as config
-- Upstream optional per-font size letter spacing/line height support
 - Babel plugin that evaluates `Css...$` expressions at build-time
   - I.e. see babel-plugin-tailwind-components and [typed.tw's implementation](https://github.com/dvkndn/typed.tw/tree/master/webpack-loader)
 - Server-side generation; in theory this should just work?
