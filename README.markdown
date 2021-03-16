@@ -2,13 +2,21 @@
   <img src="logo.svg" width="400" />
 </p>
 
-Truss is a mini-framework that provides a Tachyons-ish TypeScript DSL for writing framework-agnostic CSS-in-JS (i.e. Emotion, MUI, and Fela are all supported) that achieves both utility-class brevity and critical-CSS delivery.
+Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) in React/JSX, but on top of existing CSS-in-JS libraries (i.e. Emotion, MUI, and Fela).
 
-(tldr: you write your CSS in TypeScript/tsx like `<div css={Css.mt1.black.$}>`; truss turns `Css.mt2.black.$` into the long-form `{ margin-top: 8px, color: "black" }`, which is then output to the DOM/encoded in a unique CSS class name "as usual" by CSS-in-JS frameworks like Emotion/Fela/MUI. See below for more details.)
+## Quick Features
 
-See the "Why This Approach?" section for more rationale.
+Truss lets you:
 
-Truss should generally support any CSS-in-JS framework without any customizations; currently the same generated `Css.ts` file can work with all three of Material UI, Emotion, and Fela with no changes (see the integration-test directory for examples).
+* Write `<div css={Css.mt1.black.$}>`, and Truss turns this into `css={{ margin-top: 8px, color: "black" }}`, and then Emotion (or another CSS-in-JS library) automatically turns into CSS classes.
+
+* Setup your project's design system in Truss's configuration ([see example code](https://github.com/homebound-team/truss/blob/main/integration-test/index.ts#L12) and the "Customization" section below)
+
+* Achieve both utility-class brevity and critical-CSS delivery.
+
+* Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
+  
+Also see the "Why This Approach?" section for more rationale.
 
 ## Quick Intro
 
