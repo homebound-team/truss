@@ -283,7 +283,7 @@ Will result in `Css.ts` having a line that looks like:
 
 Which can then be used as `Css.m2.someAbbreviation.$`.
 
-Besides adding one-off additional methods, if your project wants to replace a whole section of Truss's out-of-the-box rules, you can replace an entire section via:
+Besides adding one-off additional methods, if your project wants to replace a whole section of Truss's out-of-the-box methods, you can do this via:
 
 ```typescript
 const sections = {
@@ -305,7 +305,7 @@ And, even if so, the coupling between Truss and your application code is limited
 
 Truss's approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having short/cute utility class definitions.
 
-However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then outputted by Emotion (or your CSS-in-JS framework of choice), as if the rules had originally been written long-form.
+However, the abbreviations are runtime resolved to object-style CSS-in-JS rules that are then injected into the DOM by Emotion (or your CSS-in-JS framework of choice), as if the rules had originally been written long-form.
 
 The benefits of this approach are:
 
@@ -321,7 +321,7 @@ The benefits of this approach are:
 
 - "Regular Emotion/CSS-in-JS" is easily/inherently available as an escape hatch for places where utility classes don't make sense.
 
-  It's very likely you'll need "not utility" styles at some point in your project, and because Truss's DSL is already going through Emotion/CSS-in-JS anyway, it means your one-off "not utility" rules will use the same/consistent CSS-in-JS output/generation pipeline.
+  It's very likely you'll need "not utility" styles at some point in your project, and because Truss's DSL is already going through Emotion/CSS-in-JS anyway, it means your one-off "not utility" styles will use the same/consistent CSS-in-JS output/generation pipeline.
 
   This means you don't end up with mixed idioms of `className="mx2 black"` for 90% of your styles, but then "something different" like `css={...}` for the last 10%.
 
@@ -335,7 +335,7 @@ The word "theme" can mean either "static themes" (i.e. using the same consistent
 
 For static themes, Truss's `index.ts`/`palette.ts` are specifically setup to centrally define your application's fonts, colors, etc. (see the "Configuration" section), so that they are consistently applied through your application.
 
-For dynamic themes, Truss doesn't have any features dedicated explicitly to support them, but you can easily use CSS variables in your rules, i.e.:
+For dynamic themes, Truss doesn't have any features dedicated explicitly to support them, but you can easily use CSS variables in your methods, i.e.:
 
 ```typescript
 const palette = {
