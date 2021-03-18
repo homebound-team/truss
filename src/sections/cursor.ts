@@ -1,6 +1,9 @@
-import { newMethod } from "../methods";
+import { newMethod, newMethodsForProp } from "../methods";
 import { MethodFn } from "../config";
 
 export const cursor: MethodFn = () => [
-  newMethod("cursorPointer", { cursor: "pointer" }),
+  ...newMethodsForProp("cursor", {
+    cursorPointer: "pointer",
+    cursorNotAllowed: "not-allowed",
+  }),
 ];
