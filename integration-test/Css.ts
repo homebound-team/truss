@@ -178,7 +178,13 @@ class CssBuilder<T extends Properties1> {
   // grid
   gtc(value: Properties["gridTemplateColumns"]) { return this.add("gridTemplateColumns", value); }
   gtr(value: Properties["gridTemplateRows"]) { return this.add("gridTemplateRows", value); }
-  gap(value: Properties["gap"]) { return this.add("gap", value); }
+  get gap0() { return this.gap(0); }
+  get gap1() { return this.gap(1); }
+  get gap2() { return this.gap(2); }
+  get gap3() { return this.gap(3); }
+  get gap4() { return this.gap(4); }
+  gap(inc: number | string) { return this.add("gap", maybeInc(inc)); }
+  gapPx(px: number) { return this.add("gap", `${px}px`); }
 
   // height
   get h0() { return this.h(0); }
