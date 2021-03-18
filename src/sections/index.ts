@@ -1,6 +1,6 @@
+import { border } from "./border";
 import { borderColor } from "./borderColors";
 import { borderRadius } from "./borderRadius";
-import { border } from "./border";
 import { borderStyle } from "./borderStyles";
 import { borderWidth } from "./borderWidths";
 import { boxShadow } from "./boxShadow";
@@ -10,6 +10,7 @@ import { display } from "./display";
 import { flexbox } from "./flexbox";
 import { float } from "./floats";
 import { fontWeight } from "./fontWeight";
+import { grid } from "./grid";
 import { height } from "./heights";
 import { objectFit } from "./objectFit";
 import { outline } from "./outlines";
@@ -30,9 +31,9 @@ import { width } from "./widths";
 import { zIndex } from "./zIndex";
 
 export const defaultSections = {
+  border,
   borderColor,
   borderRadius,
-  border,
   borderStyle,
   borderWidth,
   boxShadow,
@@ -42,9 +43,10 @@ export const defaultSections = {
   flexbox,
   float,
   fontWeight,
+  grid,
   height,
-  outline,
   objectFit,
+  outline,
   overflow,
   position,
   skins,

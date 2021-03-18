@@ -25,6 +25,14 @@ class CssBuilder<T extends Properties1> {
     return new CssBuilder({ ...this.opts, ...opts });
   }
 
+  // border
+  get ba() { return this.add("borderStyle", "solid").add("borderWidth", "1px"); }
+  get bt() { return this.add("borderTopStyle", "solid").add("borderTopWidth", "1px"); }
+  get br() { return this.add("borderRightStyle", "solid").add("borderRightWidth", "1px"); }
+  get bb() { return this.add("borderBottomStyle", "solid").add("borderBottomWidth", "1px"); }
+  get bl() { return this.add("borderLeftStyle", "solid").add("borderLeftWidth", "1px"); }
+  get bn() { return this.add("borderStyle", "none").add("borderWidth", "0"); }
+
   // borderColor
   get bBlack() { return this.add("borderColor", "#353535"); }
   get bMidGray() { return this.add("borderColor", "#888888"); }
@@ -41,14 +49,6 @@ class CssBuilder<T extends Properties1> {
   get br4() { return this.add("borderRadius", "1rem"); }
   get br100() { return this.add("borderRadius", "100%"); }
   get brPill() { return this.add("borderRadius", "9999px"); }
-
-  // border
-  get ba() { return this.add("borderStyle", "solid").add("borderWidth", "1px"); }
-  get bt() { return this.add("borderTopStyle", "solid").add("borderTopWidth", "1px"); }
-  get br() { return this.add("borderRightStyle", "solid").add("borderRightWidth", "1px"); }
-  get bb() { return this.add("borderBottomStyle", "solid").add("borderBottomWidth", "1px"); }
-  get bl() { return this.add("borderLeftStyle", "solid").add("borderLeftWidth", "1px"); }
-  get bn() { return this.add("borderStyle", "none").add("borderWidth", "0"); }
 
   // borderStyle
   get bsDashed() { return this.add("borderStyle", "dashed"); }
@@ -96,6 +96,7 @@ class CssBuilder<T extends Properties1> {
 
   // cursor
   get cursorPointer() { return this.add("cursor", "pointer"); }
+  get cursorNotAllowed() { return this.add("cursor", "not-allowed"); }
 
   // display
   get dn() { return this.add("display", "none"); }
@@ -174,6 +175,11 @@ class CssBuilder<T extends Properties1> {
   get fw8() { return this.add("fontWeight", 800); }
   get fw9() { return this.add("fontWeight", 900); }
 
+  // grid
+  gtc(value: Properties["gridTemplateColumns"]) { return this.add("gridTemplateColumns", value); }
+  gtr(value: Properties["gridTemplateRows"]) { return this.add("gridTemplateRows", value); }
+  gap(value: Properties["gap"]) { return this.add("gap", value); }
+
   // height
   get h0() { return this.h(0); }
   get h1() { return this.h(1); }
@@ -204,11 +210,6 @@ class CssBuilder<T extends Properties1> {
   get maxh100() { return this.add("maxHeight", "100%"); }
   maxh(value: Properties["maxHeight"]) { return this.add("maxHeight", value); }
 
-  // outline
-  get outline() { return this.add("outline", "1px solid"); }
-  get outlineTransparent() { return this.add("outline", "1px solid transparent"); }
-  get outline0() { return this.add("outline", "0"); }
-
   // objectFit
   get objectContain() { return this.add("objectFit", "contain"); }
   get objectCover() { return this.add("objectFit", "cover"); }
@@ -216,6 +217,11 @@ class CssBuilder<T extends Properties1> {
   get objectNone() { return this.add("objectFit", "none"); }
   get objectScaleDown() { return this.add("objectFit", "scale-down"); }
   objectFit(value: Properties["objectFit"]) { return this.add("objectFit", value); }
+
+  // outline
+  get outline() { return this.add("outline", "1px solid"); }
+  get outlineTransparent() { return this.add("outline", "1px solid transparent"); }
+  get outline0() { return this.add("outline", "0"); }
 
   // overflow
   get overflowVisible() { return this.add("overflow", "visible"); }
