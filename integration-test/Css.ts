@@ -109,6 +109,7 @@ class CssBuilder<T extends Properties1> {
   get dtColumn() { return this.add("display", "table-column"); }
   get dtColumnGroup() { return this.add("display", "table-column-group"); }
   get dg() { return this.add("display", "grid"); }
+  get dig() { return this.add("display", "inline-grid"); }
   get df() { return this.add("display", "flex"); }
   get dif() { return this.add("display", "inline-flex"); }
   display(value: Properties["display"]) { return this.add("display", value); }
@@ -268,6 +269,12 @@ class CssBuilder<T extends Properties1> {
   get bgBlue() { return this.add("backgroundColor", "#526675"); }
   get bgPrimary() { return this.add("backgroundColor", "var(--primary)"); }
   bgColor(value: string) { return this.add("backgroundColor", value); }
+  get fBlack() { return this.add("fill", "#353535"); }
+  get fMidGray() { return this.add("fill", "#888888"); }
+  get fLightGray() { return this.add("fill", "#cecece"); }
+  get fWhite() { return this.add("fill", "#fcfcfa"); }
+  get fBlue() { return this.add("fill", "#526675"); }
+  get fPrimary() { return this.add("fill", "var(--primary)"); }
   fill(value: string) { return this.add("fill", value); }
 
   // spacing

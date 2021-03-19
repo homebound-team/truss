@@ -16,6 +16,7 @@ export const display: MethodFn = () =>
       dtColumnGroup: "table-column-group",
       // added
       dg: "grid",
+      dig: "inline-grid",
       df: "flex",
       dif: "inline-flex",
     },
