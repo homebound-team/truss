@@ -109,6 +109,7 @@ class CssBuilder<T extends Properties1> {
   get dtColumn() { return this.add("display", "table-column"); }
   get dtColumnGroup() { return this.add("display", "table-column-group"); }
   get dg() { return this.add("display", "grid"); }
+  get dig() { return this.add("display", "inline-grid"); }
   get df() { return this.add("display", "flex"); }
   get dif() { return this.add("display", "inline-flex"); }
   display(value: Properties["display"]) { return this.add("display", value); }
