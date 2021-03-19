@@ -22,7 +22,7 @@ export const skins: MethodFn = (config) => {
     )
   );
 
-  const fillColors = makeRules(
+  const fillColors = newMethodsForProp(
     "fill",
     Object.fromEntries(
       Object.entries(palette).map(([key, value]) => [`f${key}`, value])
