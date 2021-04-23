@@ -370,3 +370,4 @@ Several libraries influenced Truss, specifically:
 - Babel plugin that evaluates `Css...$` expressions at build-time
   - I.e. see babel-plugin-tailwind-components and [typed.tw's implementation](https://github.com/dvkndn/typed.tw/tree/master/webpack-loader)
 - Server-side generation; in theory this should just work?
+- Add [goober](https://github.com/cristianbote/goober#css-prop) example
