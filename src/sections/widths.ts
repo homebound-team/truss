@@ -2,12 +2,16 @@ import { newIncrementMethods, newMethodsForProp } from "../methods";
 import { MethodFn } from "../config";
 
 export const width: MethodFn = (config) => [
-  ...newMethodsForProp("width", {
-    w25: "25%",
-    w50: "50%",
-    w75: "75%",
-    w100: "100%",
-  }),
+  ...newMethodsForProp(
+    "width",
+    {
+      w25: "25%",
+      w50: "50%",
+      w75: "75%",
+      w100: "100%",
+    },
+    null
+  ),
 
   ...newMethodsForProp(
     "minWidth",

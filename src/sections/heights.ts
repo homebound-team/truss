@@ -7,16 +7,20 @@ export const height: MethodFn = (config) => [
   // Technically h1 in tachyons is 1em and ours is 1 inc
   ...newIncrementMethods(config, "h", "height"),
 
-  ...newMethodsForProp("height", {
-    h25: "25%",
-    h50: "50%",
-    h75: "75%",
-    h100: "100%",
-    vh25: "25vh",
-    vh50: "50vh",
-    vh75: "75vh",
-    vh100: "100vh",
-  }),
+  ...newMethodsForProp(
+    "height",
+    {
+      h25: "25%",
+      h50: "50%",
+      h75: "75%",
+      h100: "100%",
+      vh25: "25vh",
+      vh50: "50vh",
+      vh75: "75vh",
+      vh100: "100vh",
+    },
+    null
+  ),
 
   ...newMethodsForProp(
     "minHeight",

@@ -19,7 +19,8 @@ export const skins: MethodFn = (config) => {
     "backgroundColor",
     Object.fromEntries(
       Object.entries(palette).map(([key, value]) => [`bg${key}`, value])
-    )
+    ),
+    "bgColor"
   );
 
   const fillColors = newMethodsForProp(
@@ -29,12 +30,5 @@ export const skins: MethodFn = (config) => {
     )
   );
 
-  return [
-    ...colors,
-    `color(value: string) { return this.add("color", value); }`,
-    ...backgroundColors,
-    `bgColor(value: string) { return this.add("backgroundColor", value); }`,
-    ...fillColors,
-    `fill(value: string) { return this.add("fill", value); }`,
-  ];
+  return [...colors, ...backgroundColors, ...fillColors];
 };

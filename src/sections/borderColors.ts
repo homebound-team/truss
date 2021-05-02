@@ -5,5 +5,5 @@ export const borderColor: MethodFn = ({ palette }) => {
   const defs = Object.fromEntries(
     Object.entries(palette).map(([key, value]) => [`b${key}`, value])
   );
-  return newMethodsForProp("borderColor", defs);
+  return newMethodsForProp("borderColor", defs, "bc");
 };

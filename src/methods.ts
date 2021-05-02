@@ -32,20 +32,24 @@ export function newParamMethod(
  *
  * I.e. `mt0() { ...add("marginTop", "0px")... }`
  *
- * If `paramMethodName` is set (i.e. to `mt`), this also returns a param method, i.e. `mt(value)`
- * to set the prop (i.e. `marginTop`) to a user-accepted value.
+ * By default, we also generate a param method for `prop`, i.e. if `prop` is `marginTop`, we'll
+ * make a `marginTop(value)` method for users to pass variable values. You can change the
+ * name of this method by setting `paramMethodName` or disable it completely by setting `paramMethodName`
+ * to `null`.
  */
 export function newMethodsForProp<P extends Prop>(
   prop: P,
   defs: Record<UtilityName, Properties[P]>,
-  paramMethodName?: string
+  paramMethodName: string | null = prop
 ): UtilityMethod[] {
   return [
     ...Object.entries(defs).map(([abbr, value]) =>
       newMethod(abbr, { [prop]: value })
     ),
     // Conditionally add a method that directly accepts a value for prop
-    ...(paramMethodName ? [newParamMethod(paramMethodName, prop)] : []),
+    ...(paramMethodName !== null
+      ? [newParamMethod(paramMethodName, prop)]
+      : []),
   ];
 }
 
