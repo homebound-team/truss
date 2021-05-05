@@ -52,15 +52,15 @@ export const flexbox: MethodFn = () => [
       fb7: "14.285714%",
       fb0: "12.5%",
     },
-    "fb",
+    "fb"
   ),
 
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
-  ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }, "flex"),
+  ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }),
 
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L69
-  ...newMethodsForProp("flexGrow", { fg0: 0, fg1: 1 }, "flexGrow"),
-  ...newMethodsForProp("flexShrink", { fs0: 0, fs1: 1 }, "flexShrink"),
+  ...newMethodsForProp("flexGrow", { fg0: 0, fg1: 1 }),
+  ...newMethodsForProp("flexShrink", { fs0: 0, fs1: 1 }),
 
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L25
   ...newMethodsForProp("flexDirection", {
@@ -68,5 +68,5 @@ export const flexbox: MethodFn = () => [
     flexRowReverse: "row-reverse",
     flexColumn: "column",
     flexColumnReverse: "column-reverse",
-  }, "flexDirection"),
+  }),
 ];

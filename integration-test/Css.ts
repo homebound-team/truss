@@ -40,6 +40,7 @@ class CssBuilder<T extends Properties1> {
   get bWhite() { return this.add("borderColor", "#fcfcfa"); }
   get bBlue() { return this.add("borderColor", "#526675"); }
   get bPrimary() { return this.add("borderColor", "var(--primary)"); }
+  bc(value: Properties["borderColor"]) { return this.add("borderColor", value); }
 
   // borderRadius
   get br0() { return this.add("borderRadius", "0"); }
@@ -49,12 +50,14 @@ class CssBuilder<T extends Properties1> {
   get br4() { return this.add("borderRadius", "1rem"); }
   get br100() { return this.add("borderRadius", "100%"); }
   get brPill() { return this.add("borderRadius", "9999px"); }
+  borderRadius(value: Properties["borderRadius"]) { return this.add("borderRadius", value); }
 
   // borderStyle
   get bsDashed() { return this.add("borderStyle", "dashed"); }
   get bsDotted() { return this.add("borderStyle", "dotted"); }
   get bsNone() { return this.add("borderStyle", "none"); }
   get bsSolid() { return this.add("borderStyle", "solid"); }
+  bs(value: Properties["borderStyle"]) { return this.add("borderStyle", value); }
 
   // borderWidth
   get bw1() { return this.add("borderWidth", "1px"); }
@@ -97,6 +100,7 @@ class CssBuilder<T extends Properties1> {
   // cursor
   get cursorPointer() { return this.add("cursor", "pointer"); }
   get cursorNotAllowed() { return this.add("cursor", "not-allowed"); }
+  cursor(value: Properties["cursor"]) { return this.add("cursor", value); }
 
   // display
   get dn() { return this.add("display", "none"); }
@@ -162,6 +166,7 @@ class CssBuilder<T extends Properties1> {
   get fl() { return this.add("float", "left"); }
   get fn() { return this.add("float", "none"); }
   get fr() { return this.add("float", "right"); }
+  f(value: Properties["float"]) { return this.add("float", value); }
 
   // fontWeight
   get normal() { return this.add("fontWeight", "normal"); }
@@ -175,6 +180,7 @@ class CssBuilder<T extends Properties1> {
   get fw7() { return this.add("fontWeight", 700); }
   get fw8() { return this.add("fontWeight", 800); }
   get fw9() { return this.add("fontWeight", 900); }
+  fw(value: Properties["fontWeight"]) { return this.add("fontWeight", value); }
 
   // grid
   gtc(value: Properties["gridTemplateColumns"]) { return this.add("gridTemplateColumns", value); }
@@ -226,9 +232,10 @@ class CssBuilder<T extends Properties1> {
   objectFit(value: Properties["objectFit"]) { return this.add("objectFit", value); }
 
   // outline
-  get outline() { return this.add("outline", "1px solid"); }
+  get outline1() { return this.add("outline", "1px solid"); }
   get outlineTransparent() { return this.add("outline", "1px solid transparent"); }
   get outline0() { return this.add("outline", "0"); }
+  outline(value: Properties["outline"]) { return this.add("outline", value); }
 
   // overflow
   get overflowVisible() { return this.add("overflow", "visible"); }
@@ -253,6 +260,7 @@ class CssBuilder<T extends Properties1> {
   get static() { return this.add("position", "static"); }
   get relative() { return this.add("position", "relative"); }
   get sticky() { return this.add("position", "sticky"); }
+  position(value: Properties["position"]) { return this.add("position", value); }
 
   // skins
   get black() { return this.add("color", "#353535"); }
@@ -261,21 +269,21 @@ class CssBuilder<T extends Properties1> {
   get white() { return this.add("color", "#fcfcfa"); }
   get blue() { return this.add("color", "#526675"); }
   get primary() { return this.add("color", "var(--primary)"); }
-  color(value: string) { return this.add("color", value); }
+  color(value: Properties["color"]) { return this.add("color", value); }
   get bgBlack() { return this.add("backgroundColor", "#353535"); }
   get bgMidGray() { return this.add("backgroundColor", "#888888"); }
   get bgLightGray() { return this.add("backgroundColor", "#cecece"); }
   get bgWhite() { return this.add("backgroundColor", "#fcfcfa"); }
   get bgBlue() { return this.add("backgroundColor", "#526675"); }
   get bgPrimary() { return this.add("backgroundColor", "var(--primary)"); }
-  bgColor(value: string) { return this.add("backgroundColor", value); }
+  bgColor(value: Properties["backgroundColor"]) { return this.add("backgroundColor", value); }
   get fBlack() { return this.add("fill", "#353535"); }
   get fMidGray() { return this.add("fill", "#888888"); }
   get fLightGray() { return this.add("fill", "#cecece"); }
   get fWhite() { return this.add("fill", "#fcfcfa"); }
   get fBlue() { return this.add("fill", "#526675"); }
   get fPrimary() { return this.add("fill", "var(--primary)"); }
-  fill(value: string) { return this.add("fill", value); }
+  fill(value: Properties["fill"]) { return this.add("fill", value); }
 
   // spacing
   get mt0() { return this.mt(0); }
@@ -382,17 +390,20 @@ class CssBuilder<T extends Properties1> {
   get tc() { return this.add("textAlign", "center"); }
   get tr() { return this.add("textAlign", "right"); }
   get tj() { return this.add("textAlign", "justify"); }
+  ta(value: Properties["textAlign"]) { return this.add("textAlign", value); }
 
   // textDecoration
   get noUnderline() { return this.add("textDecoration", "none"); }
   get strike() { return this.add("textDecoration", "line-through"); }
   get underline() { return this.add("textDecoration", "underline"); }
+  textDecoration(value: Properties["textDecoration"]) { return this.add("textDecoration", value); }
 
   // textTransform
   get ttc() { return this.add("textTransform", "capitalize"); }
   get ttl() { return this.add("textTransform", "lowercase"); }
   get ttu() { return this.add("textTransform", "uppercase"); }
   get ttn() { return this.add("textTransform", "none"); }
+  tt(value: Properties["textTransform"]) { return this.add("textTransform", value); }
 
   // typeScale
   get f24() { return this.add("fontSize", "24px"); }
@@ -415,21 +426,25 @@ class CssBuilder<T extends Properties1> {
   get selectText() { return this.add("userSelect", "text"); }
   get selectAll() { return this.add("userSelect", "all"); }
   get selectAuto() { return this.add("userSelect", "auto"); }
+  select(value: Properties["userSelect"]) { return this.add("userSelect", value); }
 
   // verticalAlign
   get vBase() { return this.add("verticalAlign", "baseline"); }
   get vMid() { return this.add("verticalAlign", "middle"); }
   get vTop() { return this.add("verticalAlign", "top"); }
   get vBottom() { return this.add("verticalAlign", "bottom"); }
+  va(value: Properties["verticalAlign"]) { return this.add("verticalAlign", value); }
 
   // visibility
   get visible() { return this.add("visibility", "visible"); }
   get invisible() { return this.add("visibility", "hidden"); }
+  visibility(value: Properties["visibility"]) { return this.add("visibility", value); }
 
   // whitespace
   get nowrap() { return this.add("whiteSpace", "nowrap"); }
   get pre() { return this.add("whiteSpace", "pre"); }
   get wsNormal() { return this.add("whiteSpace", "normal"); }
+  whiteSpace(value: Properties["whiteSpace"]) { return this.add("whiteSpace", value); }
 
   // width
   get w25() { return this.add("width", "25%"); }
