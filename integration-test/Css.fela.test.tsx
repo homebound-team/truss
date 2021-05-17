@@ -5,7 +5,6 @@ import { Css } from "./Css";
 
 describe("Css.fela", () => {
   it("supports css prop", () => {
-    // @ts-ignore
     const r = createSnapshot(<span css={Css.mt1.$} />);
     expect(r).toMatchInlineSnapshot(`
       ".a {
