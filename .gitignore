@@ -1,3 +1,4 @@
 /node_modules
+/integration-test/node_modules
 /.idea/
 /build
