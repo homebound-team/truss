@@ -6,7 +6,10 @@ import { Css } from "../Css";
 import { createRenderer } from "fela";
 import { RendererProvider } from "react-fela";
 
-const renderer = createRenderer();
+const renderer = createRenderer({
+  optimizeCaching: true,
+} as any);
+
 export default {
   title: "Fela",
   decorators: [
@@ -19,9 +22,11 @@ export default {
 export const LargeTable = () => {
   return (
     <table>
-      {zeroTo(1000).map((i) => {
-        return <Row i={i} />;
-      })}
+      <tbody>
+        {zeroTo(1000).map((i) => {
+          return <Row key={i} i={i} />;
+        })}
+      </tbody>
     </table>
   );
 };
@@ -32,7 +37,7 @@ function Row(props: { i: number }) {
     <tr>
       {zeroTo(7).map((j) => {
         return (
-          <td css={Css.p1.$}>
+          <td key={j} css={Css.p1.$}>
             cell {i} x {j}
           </td>
         );

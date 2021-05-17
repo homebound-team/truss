@@ -8,9 +8,11 @@ export default {
 export const LargeTable = () => {
   return (
     <table>
-      {zeroTo(1000).map((i) => {
-        return <Row i={i} />;
-      })}
+      <tbody>
+        {zeroTo(1000).map((i) => {
+          return <Row key={i} i={i} />;
+        })}
+      </tbody>
     </table>
   );
 };
@@ -21,7 +23,7 @@ function Row(props: { i: number }) {
     <tr>
       {zeroTo(7).map((j) => {
         return (
-          <td>
+          <td key={j}>
             cell {i} x {j}
           </td>
         );
