@@ -216,12 +216,14 @@ class CssBuilder<T extends Properties1> {
   get mh100() { return this.add("minHeight", "100%"); }
   get mvh100() { return this.add("minHeight", "100vh"); }
   mh(value: Properties["minHeight"]) { return this.add("minHeight", value); }
+  mhPx(px: number) { return this.add("minHeight", `${px}px`); }
   get maxh0() { return this.add("maxHeight", "0"); }
   get maxh25() { return this.add("maxHeight", "25%"); }
   get maxh50() { return this.add("maxHeight", "50%"); }
   get maxh75() { return this.add("maxHeight", "75%"); }
   get maxh100() { return this.add("maxHeight", "100%"); }
   maxh(value: Properties["maxHeight"]) { return this.add("maxHeight", value); }
+  maxhPx(px: number) { return this.add("maxHeight", `${px}px`); }
 
   // objectFit
   get objectContain() { return this.add("objectFit", "contain"); }
