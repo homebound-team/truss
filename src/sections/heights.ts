@@ -34,6 +34,7 @@ export const height: MethodFn = (config) => [
     },
     "mh"
   ),
+  `mhPx(px: number) { return this.add("minHeight", \`\${px}px\`); }`,
 
   ...newMethodsForProp(
     "maxHeight",
@@ -46,4 +47,5 @@ export const height: MethodFn = (config) => [
     },
     "maxh"
   ),
+  `maxhPx(px: number) { return this.add("maxHeight", \`\${px}px\`); }`,
 ];
