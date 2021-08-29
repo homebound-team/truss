@@ -119,25 +119,25 @@ class CssBuilder<T extends Properties1> {
   display(value: Properties["display"]) { return this.add("display", value); }
 
   // flexbox
-  get justifyStart() { return this.add("justifyContent", "flex-start"); }
-  get justifyEnd() { return this.add("justifyContent", "flex-end"); }
-  get justifyCenter() { return this.add("justifyContent", "center"); }
-  get justifyBetween() { return this.add("justifyContent", "space-between"); }
-  get justifyAround() { return this.add("justifyContent", "space-around"); }
-  get justifyEvenly() { return this.add("justifyContent", "space-evenly"); }
-  justify(value: Properties["justifyContent"]) { return this.add("justifyContent", value); }
-  get selfStart() { return this.add("alignSelf", "flex-start"); }
-  get selfEnd() { return this.add("alignSelf", "flex-end"); }
-  get selfCenter() { return this.add("alignSelf", "center"); }
-  get selfBaseline() { return this.add("alignSelf", "baseline"); }
-  get selfStretch() { return this.add("alignSelf", "stretch"); }
-  self(value: Properties["alignSelf"]) { return this.add("alignSelf", value); }
-  get itemsStart() { return this.add("alignItems", "flex-start"); }
-  get itemsEnd() { return this.add("alignItems", "flex-end"); }
-  get itemsCenter() { return this.add("alignItems", "center"); }
-  get itemsBaseline() { return this.add("alignItems", "baseline"); }
-  get itemsStretch() { return this.add("alignItems", "stretch"); }
-  items(value: Properties["alignItems"]) { return this.add("alignItems", value); }
+  get js() { return this.add("justifyContent", "flex-start"); }
+  get je() { return this.add("justifyContent", "flex-end"); }
+  get jc() { return this.add("justifyContent", "center"); }
+  get jb() { return this.add("justifyContent", "space-between"); }
+  get ja() { return this.add("justifyContent", "space-around"); }
+  get jEvenly() { return this.add("justifyContent", "space-evenly"); }
+  j(value: Properties["justifyContent"]) { return this.add("justifyContent", value); }
+  get asStart() { return this.add("alignSelf", "flex-start"); }
+  get ase() { return this.add("alignSelf", "flex-end"); }
+  get asc() { return this.add("alignSelf", "center"); }
+  get asb() { return this.add("alignSelf", "baseline"); }
+  get asStretch() { return this.add("alignSelf", "stretch"); }
+  as(value: Properties["alignSelf"]) { return this.add("alignSelf", value); }
+  get ais() { return this.add("alignItems", "flex-start"); }
+  get aie() { return this.add("alignItems", "flex-end"); }
+  get aic() { return this.add("alignItems", "center"); }
+  get aib() { return this.add("alignItems", "baseline"); }
+  get aiStretch() { return this.add("alignItems", "stretch"); }
+  ai(value: Properties["alignItems"]) { return this.add("alignItems", value); }
   get fb1() { return this.add("flexBasis", "100%"); }
   get fb2() { return this.add("flexBasis", "50%"); }
   get fb3() { return this.add("flexBasis", "33.333333%"); }
@@ -156,10 +156,10 @@ class CssBuilder<T extends Properties1> {
   get fs0() { return this.add("flexShrink", 0); }
   get fs1() { return this.add("flexShrink", 1); }
   flexShrink(value: Properties["flexShrink"]) { return this.add("flexShrink", value); }
-  get flexRow() { return this.add("flexDirection", "row"); }
-  get flexRowReverse() { return this.add("flexDirection", "row-reverse"); }
-  get flexColumn() { return this.add("flexDirection", "column"); }
-  get flexColumnReverse() { return this.add("flexDirection", "column-reverse"); }
+  get fdRow() { return this.add("flexDirection", "row"); }
+  get fdRowReverse() { return this.add("flexDirection", "row-reverse"); }
+  get fdColumn() { return this.add("flexDirection", "column"); }
+  get fdColumnReverse() { return this.add("flexDirection", "column-reverse"); }
   flexDirection(value: Properties["flexDirection"]) { return this.add("flexDirection", value); }
 
   // float

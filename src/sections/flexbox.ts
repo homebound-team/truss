@@ -5,38 +5,38 @@ export const flexbox: MethodFn = () => [
   ...newMethodsForProp(
     "justifyContent",
     {
-      justifyStart: "flex-start",
-      justifyEnd: "flex-end",
-      justifyCenter: "center",
-      justifyBetween: "space-between",
-      justifyAround: "space-around",
-      justifyEvenly: "space-evenly",
+      js: "flex-start",
+      je: "flex-end",
+      jc: "center",
+      jb: "space-between",
+      ja: "space-around",
+      jEvenly: "space-evenly",
     },
-    "justify"
+    "j"
   ),
 
   ...newMethodsForProp(
     "alignSelf",
     {
-      selfStart: "flex-start",
-      selfEnd: "flex-end",
-      selfCenter: "center",
-      selfBaseline: "baseline",
-      selfStretch: "stretch",
+      asStart: "flex-start",
+      ase: "flex-end",
+      asc: "center",
+      asb: "baseline",
+      asStretch: "stretch",
     },
-    "self"
+    "as"
   ),
 
   ...newMethodsForProp(
     "alignItems",
     {
-      itemsStart: "flex-start",
-      itemsEnd: "flex-end",
-      itemsCenter: "center",
-      itemsBaseline: "baseline",
-      itemsStretch: "stretch",
+      ais: "flex-start",
+      aie: "flex-end",
+      aic: "center",
+      aib: "baseline",
+      aiStretch: "stretch",
     },
-    "items"
+    "ai"
   ),
 
   ...newMethodsForProp(
@@ -64,9 +64,9 @@ export const flexbox: MethodFn = () => [
 
   // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L25
   ...newMethodsForProp("flexDirection", {
-    flexRow: "row",
-    flexRowReverse: "row-reverse",
-    flexColumn: "column",
-    flexColumnReverse: "column-reverse",
+    fdRow: "row",
+    fdRowReverse: "row-reverse",
+    fdColumn: "column",
+    fdColumnReverse: "column-reverse",
   }),
 ];
