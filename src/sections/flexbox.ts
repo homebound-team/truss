@@ -17,7 +17,7 @@ export const flexbox: MethodFn = () => [
       jcc: "center",
       jcsb: "space-between",
       jcsa: "space-around",
-      jce: "space-evenly",
+      jcse: "space-evenly",
     },
     "jc"
   ),
