@@ -1,25 +1,32 @@
 import { MethodFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
+// We originally used the tachyons mappings:
+// https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
+//
+// But later shortened them with the rationale that, once we've all been writing
+// flex on a day-to-day basis, we don't need the longer "not-Tachyons-ish" names
+// that Tachyons originally picked (i.e. maybe because the flex properties were
+// "too new/different" at the time of adding them?).
 export const flexbox: MethodFn = () => [
   ...newMethodsForProp(
     "justifyContent",
     {
-      js: "flex-start",
-      je: "flex-end",
-      jc: "center",
-      jb: "space-between",
-      ja: "space-around",
-      jEvenly: "space-evenly",
+      jcfs: "flex-start",
+      jcfe: "flex-end",
+      jcc: "center",
+      jcsb: "space-between",
+      jcsa: "space-around",
+      jce: "space-evenly",
     },
-    "j"
+    "jc"
   ),
 
   ...newMethodsForProp(
     "alignSelf",
     {
-      asStart: "flex-start",
-      ase: "flex-end",
+      asfs: "flex-start",
+      asfe: "flex-end",
       asc: "center",
       asb: "baseline",
       asStretch: "stretch",
@@ -30,11 +37,11 @@ export const flexbox: MethodFn = () => [
   ...newMethodsForProp(
     "alignItems",
     {
-      ais: "flex-start",
-      aie: "flex-end",
+      aifs: "flex-start",
+      aife: "flex-end",
       aic: "center",
       aib: "baseline",
-      aiStretch: "stretch",
+      ais: "stretch",
     },
     "ai"
   ),
@@ -55,18 +62,19 @@ export const flexbox: MethodFn = () => [
     "fb"
   ),
 
-  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
   ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }),
 
-  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L69
   ...newMethodsForProp("flexGrow", { fg0: 0, fg1: 1 }),
   ...newMethodsForProp("flexShrink", { fs0: 0, fs1: 1 }),
 
-  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L25
-  ...newMethodsForProp("flexDirection", {
-    fdRow: "row",
-    fdRowReverse: "row-reverse",
-    fdColumn: "column",
-    fdColumnReverse: "column-reverse",
-  }),
+  ...newMethodsForProp(
+    "flexDirection",
+    {
+      fdr: "row",
+      fdrr: "row-reverse",
+      fdc: "column",
+      fdcr: "column-reverse",
+    },
+    "fd"
+  ),
 ];
