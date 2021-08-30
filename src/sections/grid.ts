@@ -9,4 +9,6 @@ export const grid: MethodFn = (config) => [
   newParamMethod("gtc", "gridTemplateColumns"),
   newParamMethod("gtr", "gridTemplateRows"),
   ...newIncrementMethods(config, "gap", "gap"),
+  ...newIncrementMethods(config, "rg", "rowGap"),
+  ...newIncrementMethods(config, "cg", "columnGap"),
 ];

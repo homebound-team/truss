@@ -192,6 +192,20 @@ class CssBuilder<T extends Properties1> {
   get gap4() { return this.gap(4); }
   gap(inc: number | string) { return this.add("gap", maybeInc(inc)); }
   gapPx(px: number) { return this.add("gap", `${px}px`); }
+  get rg0() { return this.rg(0); }
+  get rg1() { return this.rg(1); }
+  get rg2() { return this.rg(2); }
+  get rg3() { return this.rg(3); }
+  get rg4() { return this.rg(4); }
+  rg(inc: number | string) { return this.add("rowGap", maybeInc(inc)); }
+  rgPx(px: number) { return this.add("rowGap", `${px}px`); }
+  get cg0() { return this.cg(0); }
+  get cg1() { return this.cg(1); }
+  get cg2() { return this.cg(2); }
+  get cg3() { return this.cg(3); }
+  get cg4() { return this.cg(4); }
+  cg(inc: number | string) { return this.add("columnGap", maybeInc(inc)); }
+  cgPx(px: number) { return this.add("columnGap", `${px}px`); }
 
   // height
   get h0() { return this.h(0); }
