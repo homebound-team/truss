@@ -1,42 +1,49 @@
 import { MethodFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
+// We originally used the tachyons mappings:
+// https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
+//
+// But later shortened them with the rationale that, once we've all been writing
+// flex on a day-to-day basis, we don't need the longer "not-Tachyons-ish" names
+// that Tachyons originally picked (i.e. maybe because the flex properties were
+// "too new/different" at the time of adding them?).
 export const flexbox: MethodFn = () => [
   ...newMethodsForProp(
     "justifyContent",
     {
-      justifyStart: "flex-start",
-      justifyEnd: "flex-end",
-      justifyCenter: "center",
-      justifyBetween: "space-between",
-      justifyAround: "space-around",
-      justifyEvenly: "space-evenly",
+      jcfs: "flex-start",
+      jcfe: "flex-end",
+      jcc: "center",
+      jcsb: "space-between",
+      jcsa: "space-around",
+      jcse: "space-evenly",
     },
-    "justify"
+    "jc"
   ),
 
   ...newMethodsForProp(
     "alignSelf",
     {
-      selfStart: "flex-start",
-      selfEnd: "flex-end",
-      selfCenter: "center",
-      selfBaseline: "baseline",
-      selfStretch: "stretch",
+      asfs: "flex-start",
+      asfe: "flex-end",
+      asc: "center",
+      asb: "baseline",
+      asStretch: "stretch",
     },
-    "self"
+    "as"
   ),
 
   ...newMethodsForProp(
     "alignItems",
     {
-      itemsStart: "flex-start",
-      itemsEnd: "flex-end",
-      itemsCenter: "center",
-      itemsBaseline: "baseline",
-      itemsStretch: "stretch",
+      aifs: "flex-start",
+      aife: "flex-end",
+      aic: "center",
+      aib: "baseline",
+      ais: "stretch",
     },
-    "items"
+    "ai"
   ),
 
   ...newMethodsForProp(
@@ -55,18 +62,19 @@ export const flexbox: MethodFn = () => [
     "fb"
   ),
 
-  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
   ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }),
 
-  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L69
   ...newMethodsForProp("flexGrow", { fg0: 0, fg1: 1 }),
   ...newMethodsForProp("flexShrink", { fs0: 0, fs1: 1 }),
 
-  // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L25
-  ...newMethodsForProp("flexDirection", {
-    flexRow: "row",
-    flexRowReverse: "row-reverse",
-    flexColumn: "column",
-    flexColumnReverse: "column-reverse",
-  }),
+  ...newMethodsForProp(
+    "flexDirection",
+    {
+      fdr: "row",
+      fdrr: "row-reverse",
+      fdc: "column",
+      fdcr: "column-reverse",
+    },
+    "fd"
+  ),
 ];
