@@ -542,10 +542,13 @@ class CssBuilder<T extends Properties1> {
   }
 
   /** Adds new properties, either a specific key/value or a Properties object, to a nested selector. */
-  addIn<P extends Properties>(selector: string, props: P): CssBuilder<T & P>;
+  addIn<P extends Properties>(selector: string, props: P | undefined): CssBuilder<T & P>;
   addIn<K extends keyof Properties>(selector: string, prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
   addIn<K extends keyof Properties>(selector: string, propOrProperties: K | Properties, value?: Properties[K]): CssBuilder<any> {
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
+    if (newRules === undefined) {
+      return this;
+    }
     const rules = { ...this.rules, [selector]: { ...(this.rules as any)[selector], ...newRules } };
     return this.newCss({ rules: rules as any });
   }

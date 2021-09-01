@@ -318,6 +318,10 @@ describe("Css", () => {
     `);
   });
 
+  it("skips addIn if passed undefined", () => {
+    expect(Css.addIn("& > * + *", undefined).$).toEqual({});
+  });
+
   it("doesn't incorrectly infer never", () => {
     // If the string literals of white and black snuck into the the type, then this becomes never, which won't spread
     const s = { ...Css.white.else.black.$ };
