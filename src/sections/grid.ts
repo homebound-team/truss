@@ -8,6 +8,8 @@ import {
 export const grid: MethodFn = (config) => [
   newParamMethod("gtc", "gridTemplateColumns"),
   newParamMethod("gtr", "gridTemplateRows"),
+  newParamMethod("gr", "gridRow"),
+  newParamMethod("gc", "gridColumn"),
   ...newIncrementMethods(config, "gap", "gap"),
   ...newIncrementMethods(config, "rg", "rowGap"),
   ...newIncrementMethods(config, "cg", "columnGap"),

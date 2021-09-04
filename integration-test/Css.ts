@@ -185,6 +185,8 @@ class CssBuilder<T extends Properties1> {
   // grid
   gtc(value: Properties["gridTemplateColumns"]) { return this.add("gridTemplateColumns", value); }
   gtr(value: Properties["gridTemplateRows"]) { return this.add("gridTemplateRows", value); }
+  gr(value: Properties["gridRow"]) { return this.add("gridRow", value); }
+  gc(value: Properties["gridColumn"]) { return this.add("gridColumn", value); }
   get gap0() { return this.gap(0); }
   get gap1() { return this.gap(1); }
   get gap2() { return this.gap(2); }
