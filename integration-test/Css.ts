@@ -119,6 +119,15 @@ class CssBuilder<T extends Properties1> {
   display(value: Properties["display"]) { return this.add("display", value); }
 
   // flexbox
+  get fi() { return this.add("flex", "initial"); }
+  get fa() { return this.add("flex", "auto"); }
+  get fn() { return this.add("flex", "none"); }
+  get f1() { return this.add("flex", "1"); }
+  get f2() { return this.add("flex", "2"); }
+  get f3() { return this.add("flex", "3"); }
+  get f4() { return this.add("flex", "4"); }
+  get f5() { return this.add("flex", "5"); }
+  f(value: Properties["flex"]) { return this.add("flex", value); }
   get jcfs() { return this.add("justifyContent", "flex-start"); }
   get jcfe() { return this.add("justifyContent", "flex-end"); }
   get jcc() { return this.add("justifyContent", "center"); }
@@ -164,9 +173,8 @@ class CssBuilder<T extends Properties1> {
 
   // float
   get fl() { return this.add("float", "left"); }
-  get fn() { return this.add("float", "none"); }
   get fr() { return this.add("float", "right"); }
-  f(value: Properties["float"]) { return this.add("float", value); }
+  float(value: Properties["float"]) { return this.add("float", value); }
 
   // fontWeight
   get normal() { return this.add("fontWeight", "normal"); }
