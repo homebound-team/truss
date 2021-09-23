@@ -10,6 +10,20 @@ import { newMethodsForProp } from "../methods";
 // "too new/different" at the time of adding them?).
 export const flexbox: MethodFn = () => [
   ...newMethodsForProp(
+    "flex",
+    {
+      fi: "initial",
+      fa: "auto",
+      fn: "none",
+      f1: "1",
+      f2: "2",
+      f3: "3",
+      f4: "4",
+      f5: "5",
+    },
+    "f"
+  ),
+  ...newMethodsForProp(
     "justifyContent",
     {
       jcfs: "flex-start",

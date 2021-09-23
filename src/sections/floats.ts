@@ -7,8 +7,7 @@ export const float: MethodFn = () =>
     "float",
     {
       fl: "left",
-      fn: "none",
       fr: "right",
     },
-    "f"
+    "float"
   );
