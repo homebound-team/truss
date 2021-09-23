@@ -34,22 +34,27 @@ export function newParamMethod(
  *
  * By default, we also generate a param method for `prop`, i.e. if `prop` is `marginTop`, we'll
  * make a `marginTop(value)` method for users to pass variable values. You can change the
- * name of this method by setting `paramMethodName` or disable it completely by setting `paramMethodName`
+ * name of this method by setting `baseName` or disable it completely by setting `baseName`
  * to `null`.
+ *
+ * @param prop the CSS property we're setting, i.e. `marginTop`
+ * @param defs a map of abbreviation name --> value
+ * @param baseName the base name to use, i.e. `mt`
+ * @param includePx generate an extra `${baseName}Px` method that calls the base method with a converted px value
  */
 export function newMethodsForProp<P extends Prop>(
   prop: P,
   defs: Record<UtilityName, Properties[P]>,
-  paramMethodName: string | null = prop
+  baseName: string | null = prop,
+  includePx: boolean = false
 ): UtilityMethod[] {
   return [
     ...Object.entries(defs).map(([abbr, value]) =>
       newMethod(abbr, { [prop]: value })
     ),
     // Conditionally add a method that directly accepts a value for prop
-    ...(paramMethodName !== null
-      ? [newParamMethod(paramMethodName, prop)]
-      : []),
+    ...(baseName !== null ? [newParamMethod(baseName, prop)] : []),
+    ...(baseName !== null && includePx ? [newPxMethod(baseName)] : []),
   ];
 }
 
@@ -129,7 +134,7 @@ export function newIncrementMethods(
     return [
       ...delegateMethods,
       `${abbr}(inc: number | string) { return this.add("${conf}", maybeInc(inc)); }`,
-      `${abbr}Px(px: number) { return this.add("${conf}", \`\${px}px\`); }`,
+      newPxMethod(abbr),
     ];
   }
 }
@@ -142,6 +147,10 @@ export function newIncrementDelegateMethods(
   return zeroTo(numberOfIncrements).map(
     (i) => `get ${abbr}${i}() { return this.${abbr}(${i}); }`
   );
+}
+
+export function newPxMethod(abbr: UtilityName): UtilityName {
+  return `${abbr}Px(px: number) { return this.${abbr}(\`\${px}px\`); }`;
 }
 
 const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
