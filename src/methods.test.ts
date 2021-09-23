@@ -20,7 +20,7 @@ describe("methods", () => {
           "get mt2() { return this.mt(2); }",
           "get mt3() { return this.mt(3); }",
           "mt(inc: number | string) { return this.add(\\"marginTop\\", maybeInc(inc)); }",
-          "mtPx(px: number) { return this.add(\\"marginTop\\", \`\${px}px\`); }",
+          "mtPx(px: number) { return this.mt(\`\${px}px\`); }",
         ]
       `);
     });

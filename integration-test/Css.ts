@@ -74,28 +74,28 @@ class CssBuilder<T extends Properties1> {
   get top3() { return this.top(3); }
   get top4() { return this.top(4); }
   top(inc: number | string) { return this.add("top", maybeInc(inc)); }
-  topPx(px: number) { return this.add("top", `${px}px`); }
+  topPx(px: number) { return this.top(`${px}px`); }
   get right0() { return this.right(0); }
   get right1() { return this.right(1); }
   get right2() { return this.right(2); }
   get right3() { return this.right(3); }
   get right4() { return this.right(4); }
   right(inc: number | string) { return this.add("right", maybeInc(inc)); }
-  rightPx(px: number) { return this.add("right", `${px}px`); }
+  rightPx(px: number) { return this.right(`${px}px`); }
   get bottom0() { return this.bottom(0); }
   get bottom1() { return this.bottom(1); }
   get bottom2() { return this.bottom(2); }
   get bottom3() { return this.bottom(3); }
   get bottom4() { return this.bottom(4); }
   bottom(inc: number | string) { return this.add("bottom", maybeInc(inc)); }
-  bottomPx(px: number) { return this.add("bottom", `${px}px`); }
+  bottomPx(px: number) { return this.bottom(`${px}px`); }
   get left0() { return this.left(0); }
   get left1() { return this.left(1); }
   get left2() { return this.left(2); }
   get left3() { return this.left(3); }
   get left4() { return this.left(4); }
   left(inc: number | string) { return this.add("left", maybeInc(inc)); }
-  leftPx(px: number) { return this.add("left", `${px}px`); }
+  leftPx(px: number) { return this.left(`${px}px`); }
 
   // cursor
   get cursorPointer() { return this.add("cursor", "pointer"); }
@@ -201,21 +201,21 @@ class CssBuilder<T extends Properties1> {
   get gap3() { return this.gap(3); }
   get gap4() { return this.gap(4); }
   gap(inc: number | string) { return this.add("gap", maybeInc(inc)); }
-  gapPx(px: number) { return this.add("gap", `${px}px`); }
+  gapPx(px: number) { return this.gap(`${px}px`); }
   get rg0() { return this.rg(0); }
   get rg1() { return this.rg(1); }
   get rg2() { return this.rg(2); }
   get rg3() { return this.rg(3); }
   get rg4() { return this.rg(4); }
   rg(inc: number | string) { return this.add("rowGap", maybeInc(inc)); }
-  rgPx(px: number) { return this.add("rowGap", `${px}px`); }
+  rgPx(px: number) { return this.rg(`${px}px`); }
   get cg0() { return this.cg(0); }
   get cg1() { return this.cg(1); }
   get cg2() { return this.cg(2); }
   get cg3() { return this.cg(3); }
   get cg4() { return this.cg(4); }
   cg(inc: number | string) { return this.add("columnGap", maybeInc(inc)); }
-  cgPx(px: number) { return this.add("columnGap", `${px}px`); }
+  cgPx(px: number) { return this.cg(`${px}px`); }
 
   // height
   get h0() { return this.h(0); }
@@ -224,7 +224,7 @@ class CssBuilder<T extends Properties1> {
   get h3() { return this.h(3); }
   get h4() { return this.h(4); }
   h(inc: number | string) { return this.add("height", maybeInc(inc)); }
-  hPx(px: number) { return this.add("height", `${px}px`); }
+  hPx(px: number) { return this.h(`${px}px`); }
   get h25() { return this.add("height", "25%"); }
   get h50() { return this.add("height", "50%"); }
   get h75() { return this.add("height", "75%"); }
@@ -318,28 +318,28 @@ class CssBuilder<T extends Properties1> {
   get mt3() { return this.mt(3); }
   get mt4() { return this.mt(4); }
   mt(inc: number | string) { return this.add("marginTop", maybeInc(inc)); }
-  mtPx(px: number) { return this.add("marginTop", `${px}px`); }
+  mtPx(px: number) { return this.mt(`${px}px`); }
   get mr0() { return this.mr(0); }
   get mr1() { return this.mr(1); }
   get mr2() { return this.mr(2); }
   get mr3() { return this.mr(3); }
   get mr4() { return this.mr(4); }
   mr(inc: number | string) { return this.add("marginRight", maybeInc(inc)); }
-  mrPx(px: number) { return this.add("marginRight", `${px}px`); }
+  mrPx(px: number) { return this.mr(`${px}px`); }
   get mb0() { return this.mb(0); }
   get mb1() { return this.mb(1); }
   get mb2() { return this.mb(2); }
   get mb3() { return this.mb(3); }
   get mb4() { return this.mb(4); }
   mb(inc: number | string) { return this.add("marginBottom", maybeInc(inc)); }
-  mbPx(px: number) { return this.add("marginBottom", `${px}px`); }
+  mbPx(px: number) { return this.mb(`${px}px`); }
   get ml0() { return this.ml(0); }
   get ml1() { return this.ml(1); }
   get ml2() { return this.ml(2); }
   get ml3() { return this.ml(3); }
   get ml4() { return this.ml(4); }
   ml(inc: number | string) { return this.add("marginLeft", maybeInc(inc)); }
-  mlPx(px: number) { return this.add("marginLeft", `${px}px`); }
+  mlPx(px: number) { return this.ml(`${px}px`); }
   get mx0() { return this.mx(0); }
   get mx1() { return this.mx(1); }
   get mx2() { return this.mx(2); }
@@ -367,28 +367,28 @@ class CssBuilder<T extends Properties1> {
   get pt3() { return this.pt(3); }
   get pt4() { return this.pt(4); }
   pt(inc: number | string) { return this.add("paddingTop", maybeInc(inc)); }
-  ptPx(px: number) { return this.add("paddingTop", `${px}px`); }
+  ptPx(px: number) { return this.pt(`${px}px`); }
   get pr0() { return this.pr(0); }
   get pr1() { return this.pr(1); }
   get pr2() { return this.pr(2); }
   get pr3() { return this.pr(3); }
   get pr4() { return this.pr(4); }
   pr(inc: number | string) { return this.add("paddingRight", maybeInc(inc)); }
-  prPx(px: number) { return this.add("paddingRight", `${px}px`); }
+  prPx(px: number) { return this.pr(`${px}px`); }
   get pb0() { return this.pb(0); }
   get pb1() { return this.pb(1); }
   get pb2() { return this.pb(2); }
   get pb3() { return this.pb(3); }
   get pb4() { return this.pb(4); }
   pb(inc: number | string) { return this.add("paddingBottom", maybeInc(inc)); }
-  pbPx(px: number) { return this.add("paddingBottom", `${px}px`); }
+  pbPx(px: number) { return this.pb(`${px}px`); }
   get pl0() { return this.pl(0); }
   get pl1() { return this.pl(1); }
   get pl2() { return this.pl(2); }
   get pl3() { return this.pl(3); }
   get pl4() { return this.pl(4); }
   pl(inc: number | string) { return this.add("paddingLeft", maybeInc(inc)); }
-  plPx(px: number) { return this.add("paddingLeft", `${px}px`); }
+  plPx(px: number) { return this.pl(`${px}px`); }
   get px0() { return this.px(0); }
   get px1() { return this.px(1); }
   get px2() { return this.px(2); }
@@ -483,19 +483,21 @@ class CssBuilder<T extends Properties1> {
   get mw75() { return this.add("minWidth", "75%"); }
   get mw100() { return this.add("minWidth", "100%"); }
   mw(value: Properties["minWidth"]) { return this.add("minWidth", value); }
+  mwPx(px: number) { return this.mw(`${px}px`); }
   get maxw0() { return this.add("maxWidth", "0"); }
   get maxw25() { return this.add("maxWidth", "25%"); }
   get maxw50() { return this.add("maxWidth", "50%"); }
   get maxw75() { return this.add("maxWidth", "75%"); }
   get maxw100() { return this.add("maxWidth", "100%"); }
   maxw(value: Properties["maxWidth"]) { return this.add("maxWidth", value); }
+  maxwPx(px: number) { return this.maxw(`${px}px`); }
   get w0() { return this.w(0); }
   get w1() { return this.w(1); }
   get w2() { return this.w(2); }
   get w3() { return this.w(3); }
   get w4() { return this.w(4); }
   w(inc: number | string) { return this.add("width", maybeInc(inc)); }
-  wPx(px: number) { return this.add("width", `${px}px`); }
+  wPx(px: number) { return this.w(`${px}px`); }
 
   // zIndex
   get z0() { return this.add("zIndex", 0); }

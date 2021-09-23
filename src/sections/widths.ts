@@ -1,4 +1,8 @@
-import { newIncrementMethods, newMethodsForProp } from "../methods";
+import {
+  newIncrementMethods,
+  newMethodsForProp,
+  newPxMethod,
+} from "../methods";
 import { MethodFn } from "../config";
 
 export const width: MethodFn = (config) => [
@@ -22,7 +26,8 @@ export const width: MethodFn = (config) => [
       mw75: "75%",
       mw100: "100%",
     },
-    "mw"
+    "mw",
+    true
   ),
 
   ...newMethodsForProp(
@@ -34,7 +39,8 @@ export const width: MethodFn = (config) => [
       maxw75: "75%",
       maxw100: "100%",
     },
-    "maxw"
+    "maxw",
+    true
   ),
 
   ...newIncrementMethods(config, "w", "width"),
