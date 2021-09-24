@@ -5,14 +5,17 @@ import { Css } from "./Css";
 
 describe("Css.fela", () => {
   it("supports css prop", () => {
-    const r = createSnapshot(<span css={Css.mt1.$} />);
+    const r = createSnapshot(<span css={Css.mt1.mb2.$} />);
     expect(r).toMatchInlineSnapshot(`
       ".a {
+        margin-bottom: 16px;
+      }
+      .b {
         margin-top: 8px;
       }
 
 
-      <span className=a />;
+      <span className=a b />;
       "
     `);
   });
