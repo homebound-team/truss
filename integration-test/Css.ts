@@ -499,6 +499,13 @@ class CssBuilder<T extends Properties1> {
   w(inc: number | string) { return this.add("width", maybeInc(inc)); }
   wPx(px: number) { return this.w(`${px}px`); }
 
+  // wordBreak
+  get breakNormal() { return this.add("wordBreak", "normal"); }
+  get breakAll() { return this.add("wordBreak", "break-all"); }
+  get breakKeepAll() { return this.add("wordBreak", "keep-all"); }
+  get breakWord() { return this.add("wordBreak", "break-word"); }
+  wordBreak(value: Properties["wordBreak"]) { return this.add("wordBreak", value); }
+
   // zIndex
   get z0() { return this.add("zIndex", 0); }
   get z1() { return this.add("zIndex", 1); }
