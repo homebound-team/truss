@@ -28,6 +28,7 @@ import { verticalAlign } from "./verticalAlign";
 import { visibility } from "./visibility";
 import { whitespace } from "./whitespace";
 import { width } from "./widths";
+import { wordBreak } from "./wordBreak";
 import { zIndex } from "./zIndex";
 
 export const defaultSections = {
@@ -61,5 +62,6 @@ export const defaultSections = {
   visibility,
   whitespace,
   width,
+  wordBreak,
   zIndex,
 } as const;
