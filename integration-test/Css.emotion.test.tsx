@@ -105,6 +105,26 @@ describe("Css.emotion", () => {
       </div>
     `);
   });
+
+  it("lineClamp outputs prefixes", () => {
+    const r = render(<div css={Css.lineClamp1.$} />);
+    expect(r.container).toMatchInlineSnapshot(`
+      .emotion-0 {
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        -webkit-display: -webkit-box;
+        display: -webkit-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      <div>
+        <div
+          class="emotion-0"
+        />
+      </div>
+    `);
+  });
 });
 
 type FooXss = Xss<Margin>;
