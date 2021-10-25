@@ -153,7 +153,7 @@ export function newPxMethod(abbr: UtilityName): UtilityName {
   return `${abbr}Px(px: number) { return this.${abbr}(\`\${px}px\`); }`;
 }
 
-const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
+export const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
 
 /** Keeps numbers as literals, and wraps anything else with double quotes. */
 function maybeWrap(value: unknown): string {

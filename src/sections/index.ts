@@ -12,6 +12,7 @@ import { float } from "./floats";
 import { fontWeight } from "./fontWeight";
 import { grid } from "./grid";
 import { height } from "./heights";
+import { lineClamp } from "./lineClamp";
 import { objectFit } from "./objectFit";
 import { outline } from "./outlines";
 import { overflow } from "./overflow";
@@ -46,6 +47,7 @@ export const defaultSections = {
   fontWeight,
   grid,
   height,
+  lineClamp,
   objectFit,
   outline,
   overflow,
