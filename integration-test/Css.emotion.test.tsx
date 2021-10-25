@@ -110,9 +110,9 @@ describe("Css.emotion", () => {
     const r = render(<div css={Css.lineClamp1.$} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
-        box-orient: vertical;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
         display: -webkit-box;
-        line-clamp: 1px;
         overflow: hidden;
       }
 

@@ -7,9 +7,9 @@ export const lineClamp: MethodFn = () => [
     newMethod(`lineClamp${i + 1}`, {
       overflow: "hidden",
       display: "-webkit-box",
-      boxOrient: "vertical",
-      lineClamp: i + 1,
+      WebkitBoxOrient: "vertical",
+      WebkitLineClamp: i + 1,
     })
   ),
-  newMethod(`lineClampNone`, { lineClamp: "unset" }),
+  newMethod(`lineClampNone`, { WebkitLineClamp: "unset" }),
 ];

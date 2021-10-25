@@ -250,13 +250,13 @@ class CssBuilder<T extends Properties1> {
   maxhPx(px: number) { return this.add("maxHeight", `${px}px`); }
 
   // lineClamp
-  get lineClamp1() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("boxOrient", "vertical").add("lineClamp", 1); }
-  get lineClamp2() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("boxOrient", "vertical").add("lineClamp", 2); }
-  get lineClamp3() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("boxOrient", "vertical").add("lineClamp", 3); }
-  get lineClamp4() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("boxOrient", "vertical").add("lineClamp", 4); }
-  get lineClamp5() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("boxOrient", "vertical").add("lineClamp", 5); }
-  get lineClamp6() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("boxOrient", "vertical").add("lineClamp", 6); }
-  get lineClampNone() { return this.add("lineClamp", "unset"); }
+  get lineClamp1() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add("WebkitLineClamp", 1); }
+  get lineClamp2() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add("WebkitLineClamp", 2); }
+  get lineClamp3() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add("WebkitLineClamp", 3); }
+  get lineClamp4() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add("WebkitLineClamp", 4); }
+  get lineClamp5() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add("WebkitLineClamp", 5); }
+  get lineClamp6() { return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add("WebkitLineClamp", 6); }
+  get lineClampNone() { return this.add("WebkitLineClamp", "unset"); }
 
   // objectFit
   get objectContain() { return this.add("objectFit", "contain"); }
