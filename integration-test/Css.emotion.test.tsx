@@ -112,6 +112,7 @@ describe("Css.emotion", () => {
       .emotion-0 {
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 1;
+        -webkit-display: -webkit-box;
         display: -webkit-box;
         overflow: hidden;
       }
