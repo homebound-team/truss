@@ -115,6 +115,7 @@ describe("Css.emotion", () => {
         -webkit-display: -webkit-box;
         display: -webkit-box;
         overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       <div>
