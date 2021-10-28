@@ -26,6 +26,7 @@ export async function generate(config: Config): Promise<void> {
 function generateCssBuilder(config: Config): Code {
   const {
     aliases,
+    fonts,
     increment,
     extras,
     typeAliases,
@@ -56,6 +57,12 @@ function generateCssBuilder(config: Config): Code {
       .join(" | ")};\n\n`;
   });
 
+  const typographyType = code`
+    export type ${def("Typography")} = ${Object.keys(fonts)
+    .map((f) => `"${f}"`)
+    .join(" | ")};
+  `;
+
   let breakpointCode =
     breakpoints === undefined
       ? []
@@ -75,6 +82,8 @@ function generateCssBuilder(config: Config): Code {
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
 export type ${def("Properties")} = ${Properties};
+
+${typographyType}
 
 type Opts<T> = {
   rules: T,
