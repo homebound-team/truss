@@ -5,6 +5,7 @@ import { makeBreakpoints } from "./breakpoints";
 import { Config, SectionName, Sections, UtilityMethod } from "./config";
 import { newAliasesMethods } from "./methods";
 import { defaultSections } from "./sections";
+import { quote } from "./utils";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
@@ -26,6 +27,7 @@ export async function generate(config: Config): Promise<void> {
 function generateCssBuilder(config: Config): Code {
   const {
     aliases,
+    fonts,
     increment,
     extras,
     typeAliases,
@@ -51,10 +53,14 @@ function generateCssBuilder(config: Config): Code {
     ...defaultTypeAliases,
     ...typeAliases,
   }).map(([name, props]) => {
-    return `export type ${name} = ${props
-      .map((p) => `"${p}"`)
-      .join(" | ")};\n\n`;
+    return `export type ${name} = ${props.map(quote).join(" | ")};\n\n`;
   });
+
+  const typographyType = code`
+    export type ${def("Typography")} = ${Object.keys(fonts)
+    .map(quote)
+    .join(" | ")};
+  `;
 
   let breakpointCode =
     breakpoints === undefined
@@ -75,6 +81,8 @@ function generateCssBuilder(config: Config): Code {
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
 export type ${def("Properties")} = ${Properties};
+
+${typographyType}
 
 type Opts<T> = {
   rules: T,

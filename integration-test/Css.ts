@@ -7,6 +7,8 @@ export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
 export type Properties = Properties1;
 
+export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
+
 type Opts<T> = {
   rules: T;
   enabled: boolean;
