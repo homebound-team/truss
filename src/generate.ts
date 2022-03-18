@@ -33,12 +33,16 @@ function generateCssBuilder(config: Config): Code {
     typeAliases,
     breakpoints,
     palette,
+    defaultMethods = "tachyons",
     sections: customSections,
   } = config;
 
   // Combine our out-of-the-box utility methods with any custom ones
   const sections: Record<string, string[]> = {
-    ...generateMethods(config, defaultSections),
+    // We only ship with tachyons methods currently
+    ...(defaultMethods === "tachyons"
+      ? generateMethods(config, defaultSections)
+      : {}),
     ...(customSections ? generateMethods(config, customSections) : {}),
     ...(aliases && { aliases: newAliasesMethods(aliases) }),
   };

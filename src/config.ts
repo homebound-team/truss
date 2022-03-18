@@ -55,7 +55,16 @@ export interface Config {
   breakpoints?: Record<string, number>;
 
   /**
-   * A map of "section" to list of rules to create utility methods.
+   * Which default methods to include.
+   *
+   * Currently, we support either `tachyons` or `none`. Could eventually support
+   * `tachyons-rn` or `tailwinds` / `tailwinds-rn` as additional options.
+   */
+  defaultMethods?: "tachyons" | "none";
+
+  /**
+   * A map of "section" to list of rules to create application-specific
+   * utility methods.
    *
    * I.e. "borderColors" -> () => [`get ml1() { ... }`].
    *
