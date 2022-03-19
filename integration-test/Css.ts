@@ -457,6 +457,7 @@ class CssBuilder<T extends Properties1> {
   get indent() { return this.add("textIndent", "1em").add("marginTop", 0).add("marginBottom", 0); }
   get smallCaps() { return this.add("fontVariant", "small-caps"); }
   get truncate() { return this.add("whiteSpace", "nowrap").add("overflow", "hidden").add("textOverflow", "ellipsis"); }
+  lh(value: Properties["lineHeight"]) { return this.add("lineHeight", value); }
 
   // userSelect
   get selectNone() { return this.add("userSelect", "none"); }

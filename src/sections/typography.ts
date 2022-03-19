@@ -1,4 +1,4 @@
-import { newMethod } from "../methods";
+import { newMethod, newParamMethod } from "../methods";
 import { MethodFn } from "../config";
 
 // See typeScale for the FontConfig.fonts handling
@@ -18,4 +18,5 @@ export const typography: MethodFn = () => [
     overflow: "hidden",
     textOverflow: "ellipsis",
   }),
+  newParamMethod("lh", "lineHeight"),
 ];
