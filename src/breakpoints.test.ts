@@ -1,4 +1,4 @@
-import { makeBreakpoints } from "./breakpoints";
+import { makeBreakpoints } from "src/breakpoints";
 
 describe("breakpoints", () => {
   it("works with one breakpoint", () => {

@@ -1,6 +1,7 @@
-export * from "./config";
-export { defaultSections } from "./sections";
-export { generate } from "./generate";
+export * from "src/config";
+export { defaultSections } from "src/sections/tachyons";
+export { generate } from "src/generate";
+export type { IncConfig } from "src/methods";
 export {
   newAliasesMethods,
   newMethod,
@@ -9,5 +10,4 @@ export {
   newIncrementMethods,
   newParamMethod,
   newSetCssVariablesMethod,
-  IncConfig,
 } from "./methods";

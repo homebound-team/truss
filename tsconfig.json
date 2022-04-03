@@ -1,20 +1,10 @@
 {
+  "extends": "@homebound/tsconfig/tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
     "target": "es5",
-    "lib": ["ESNext"],
-    "esModuleInterop": true,
-    "declaration": true,
-    "declarationMap": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
     "sourceMap": true,
-    "strict": true,
     "downlevelIteration": true,
-    "noEmit": false,
-    "baseUrl": "src/",
-    "outDir": "build/",
-    "types": ["jest", "node"]
-  },
-  "include": ["src/"]
+    "outDir": "build/"
+  }
 }
