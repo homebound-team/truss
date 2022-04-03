@@ -1,11 +1,12 @@
 {
   "name": "@homebound/truss",
-  "version": "1.0.0-bump",
+  "version": "1.109.0",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
     "generate": "ts-node ./integration-test/index.ts",
-    "test": "jest && (cd integration-test; npm test)"
+    "test": "jest && (cd integration-test; npm test)",
+    "semantic-release": "semantic-release"
   },
   "license": "ISC",
   "dependencies": {
@@ -17,6 +18,13 @@
     "@emotion/jest": "^11.1.0",
     "@emotion/react": "^11.1.4",
     "@material-ui/core": "^4.10.2",
+    "@semantic-release/changelog": "^6.0.1",
+    "@semantic-release/commit-analyzer": "^9.0.2",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^8.0.2",
+    "@semantic-release/npm": "^9.0.1",
+    "@semantic-release/release-notes-generator": "^10.0.3",
     "@testing-library/react": "^10.3.0",
     "@types/jest": "^26.0.20",
     "fela": "^11.6.1",
@@ -25,6 +33,7 @@
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
     "react-fela": "^11.6.1",
+    "semantic-release": "^19.0.2",
     "ts-jest": "^26.4.4",
     "ts-node": "^8.10.2",
     "typescript": "^4.1.3"

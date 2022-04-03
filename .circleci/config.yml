@@ -12,6 +12,7 @@ workflows:
       - publish:
           context:
             - npm-publish
+            - github
           requires:
             - build
           filters:
@@ -40,6 +41,4 @@ jobs:
       - run: 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc'
       - node/install-packages
       - run: npm run build
-      - run: ./bump.sh package.json
-      - run: npm publish
-
+      - run: npm run semantic-release
