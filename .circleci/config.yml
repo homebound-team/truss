@@ -27,10 +27,10 @@ jobs:
     working_directory: ~/project
     steps:
       - checkout
-      - run: 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc'
-      - node/install-packages
-      - run: npm run build
-      - run: npm run test
+      - node/install-packages:
+          pkg-manager: yarn
+      - run: yarn build
+      - run: yarn test
 
   publish:
     docker:
@@ -38,7 +38,7 @@ jobs:
     working_directory: ~/project
     steps:
       - checkout
-      - run: 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc'
-      - node/install-packages
-      - run: npm run build
-      - run: npm run semantic-release
+      - node/install-packages:
+          pkg-manager: yarn
+      - run: yarn build
+      - run: yarn semantic-release

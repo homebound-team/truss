@@ -1,0 +1,12 @@
+{
+  "extends": "@homebound/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "sourceMap": true,
+    "downlevelIteration": true,
+    "outDir": "build/",
+    "jsx": "react"
+  },
+  "include": ["./src"]
+}

@@ -592,7 +592,7 @@ function sortObject<T extends object>(obj: T): T {
     .reduce((acc, key) => {
       acc[key as keyof T] = obj[key as keyof T];
       return acc;
-    }, ({} as any) as T) as T;
+    }, {} as any as T) as T;
 }
 
 /** Conditionally adds `important!` to everything. */
@@ -658,7 +658,8 @@ type Brand<K, T> = K & { __brand: T };
 type Breakpoint = Brand<string, "Breakpoint">;
 export const print = "@media print" as Breakpoint;
 export const sm = "@media screen and (max-width:599px)" as Breakpoint;
-export const md = "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
+export const md =
+  "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
 export const smOrMd = "@media screen and (max-width:959px)" as Breakpoint;
 export const mdAndUp = "@media screen and (min-width:600px)" as Breakpoint;
 export const mdAndDown = "@media screen and (max-width:959px)" as Breakpoint;

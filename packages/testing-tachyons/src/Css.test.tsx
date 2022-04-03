@@ -1,7 +1,5 @@
-/** @jsxImportSource @emotion/react */
-import { Button } from "@material-ui/core";
-import { render } from "@testing-library/react";
-import { Css, Only, sm, px, Palette, Xss, Margin } from "./Css";
+import React from "react";
+import { Css, Margin, Only, Palette, px, sm, Xss } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -9,107 +7,6 @@ describe("Css", () => {
       Object {
         "marginBottom": "8px",
       }
-    `);
-  });
-
-  it("works on divs", () => {
-    const r = render(<div css={Css.mb1.pb2.$} />);
-    expect(r.container).toMatchInlineSnapshot(`
-      .emotion-0 {
-        margin-bottom: 8px;
-        padding-bottom: 16px;
-      }
-
-      <div>
-        <div
-          class="emotion-0"
-        />
-      </div>
-    `);
-  });
-
-  it("works on MUI components", () => {
-    const r = render(<Button css={Css.mb1.$}>Click</Button>);
-    expect(r.container).toMatchInlineSnapshot(`
-      .emotion-0 {
-        margin-bottom: 8px;
-      }
-
-      <div>
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text emotion-0"
-          tabindex="0"
-          type="button"
-        >
-          <span
-            class="MuiButton-label"
-          >
-            Click
-          </span>
-          <span
-            class="MuiTouchRipple-root"
-          />
-        </button>
-      </div>
-    `);
-  });
-
-  it("works on components as xstyle", () => {
-    const r = render(<FooComponent name="foo" xss={Css.mb1.$} />);
-    expect(r.container).toMatchInlineSnapshot(`
-      .emotion-0 {
-        padding-bottom: 8px;
-        margin-bottom: 8px;
-      }
-
-      <div>
-        <span
-          class="emotion-0"
-        >
-          foo
-        </span>
-      </div>
-    `);
-  });
-
-  it("can be combined with regular emotion rules", () => {
-    const phoneOnly = `@media (max-width:500px)`;
-    const r = render(
-      <div
-        css={{
-          ...Css.mb1.pb2.$,
-          "&:hover": { marginBottom: "16px", ...Css.pb3.$ },
-          "&:focus": Css.pb4.$,
-          [phoneOnly]: Css.pb3.$,
-        }}
-      />
-    );
-    expect(r.container).toMatchInlineSnapshot(`
-      .emotion-0 {
-        margin-bottom: 8px;
-        padding-bottom: 16px;
-      }
-
-      .emotion-0:hover {
-        margin-bottom: 16px;
-        padding-bottom: 24px;
-      }
-
-      .emotion-0:focus {
-        padding-bottom: 32px;
-      }
-
-      @media (max-width:500px) {
-        .emotion-0 {
-          padding-bottom: 24px;
-        }
-      }
-
-      <div>
-        <div
-          class="emotion-0"
-        />
-      </div>
     `);
   });
 
@@ -142,35 +39,6 @@ describe("Css", () => {
     // @ts-expect-error
     const d = <FooComponent xss={Css.mb1.pb1.$} name="foo" />;
     expect(d).toBeDefined();
-  });
-
-  it("uses emotion which reuses classes", () => {
-    // We use p3 (all padding) then pb2 after that, so pb2 should always win.
-    // And we can move mb1 either to the front or the end, and it'll be the same output.
-    const r = render(
-      <div css={Css.mb1.p3.pb2.$}>
-        <span css={Css.p3.pb2.mb1.$} />
-      </div>
-    );
-    expect(r.container).toMatchInlineSnapshot(`
-      .emotion-0 {
-        margin-bottom: 8px;
-        padding-bottom: 16px;
-        padding-left: 24px;
-        padding-right: 24px;
-        padding-top: 24px;
-      }
-
-      <div>
-        <div
-          class="emotion-0"
-        >
-          <span
-            class="emotion-0"
-          />
-        </div>
-      </div>
-    `);
   });
 
   it("can set two properties at a time", () => {
@@ -221,28 +89,6 @@ describe("Css", () => {
         "color": "#353535 !important",
         "marginBottom": "8px !important",
       }
-    `);
-  });
-
-  it("can use generated breakpoints with emotion", () => {
-    const r = render(<div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$ }} />);
-    expect(r.container).toMatchInlineSnapshot(`
-      .emotion-0 {
-        margin-bottom: 8px;
-        padding-bottom: 16px;
-      }
-
-      @media screen and (max-width:599px) {
-        .emotion-0 {
-          padding-bottom: 24px;
-        }
-      }
-
-      <div>
-        <div
-          class="emotion-0"
-        />
-      </div>
     `);
   });
 
@@ -337,7 +183,8 @@ type FooXss = Xss<Margin>;
 
 type FooProps<X extends FooXss> = { name: string; xss?: X };
 
-/** This component styles it's own padding but lets the caller define margin. */
+/** This component styles its own padding but lets the caller define margin. */
 function FooComponent<X extends Only<FooXss, X>>(props: FooProps<X>) {
-  return <span css={{ ...Css.pb1.$, ...props.xss }}>{props.name}</span>;
+  // return <span css={{ ...Css.pb1.$, ...props.xss } as any}>{props.name}</span>;
+  return <span>{props.name}</span>;
 }

@@ -1,7 +1,7 @@
 /** @jsx fe */
 import { createSnapshot } from "jest-react-fela";
 import { fe, useFela } from "react-fela";
-import { Css } from "./Css";
+import { Css } from "@homebound/truss-testing-tachyons";
 
 describe("Css.fela", () => {
   it("supports css prop", () => {

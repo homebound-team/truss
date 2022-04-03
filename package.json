@@ -1,24 +1,20 @@
 {
-  "name": "@homebound/truss",
+  "name": "truss",
   "version": "1.110.0",
-  "main": "build/index.js",
+  "license": "ISC",
   "scripts": {
-    "build": "ttsc",
-    "generate": "ts-node ./integration-test/index.ts",
-    "test": "jest && (cd integration-test; npm test)",
+    "build": "ttsc --build",
+    "test": "yarn workspaces foreach run test",
     "semantic-release": "semantic-release"
   },
-  "license": "ISC",
-  "dependencies": {
-    "csstype": "^2.6.10",
-    "prettier": "^2.0.5",
-    "ts-poet": "^3.2.2"
-  },
+  "workspaces": [
+    "packages/truss",
+    "packages/testing-tachyons",
+    "packages/testing-tachyons-emotion",
+    "packages/testing-tachyons-fela",
+    "packages/testing-tachyons-mui"
+  ],
   "devDependencies": {
-    "@emotion/jest": "^11.1.0",
-    "@emotion/react": "^11.1.4",
-    "@homebound/tsconfig": "^1.0.3",
-    "@material-ui/core": "^4.10.2",
     "@semantic-release/changelog": "^6.0.1",
     "@semantic-release/commit-analyzer": "^9.0.2",
     "@semantic-release/exec": "^6.0.3",
@@ -26,28 +22,12 @@
     "@semantic-release/github": "^8.0.2",
     "@semantic-release/npm": "^9.0.1",
     "@semantic-release/release-notes-generator": "^10.0.3",
-    "@testing-library/react": "^10.3.0",
-    "@types/jest": "^26.0.20",
-    "fela": "^11.6.1",
-    "jest": "^26.6.3",
-    "jest-react-fela": "^11.6.1",
-    "react": "^16.14.0",
-    "react-dom": "^16.14.0",
-    "react-fela": "^11.6.1",
+    "@types/node": "^16.0.3",
     "semantic-release": "^19.0.2",
-    "ts-jest": "^26.4.4",
     "ts-node": "^10.7.0",
     "ttypescript": "^1.5.13",
-    "typescript": "^4.6.3",
+    "typescript": "^4.5.2",
     "typescript-transform-paths": "^3.3.1"
   },
-  "jest": {
-    "preset": "ts-jest",
-    "testMatch": [
-      "<rootDir>/src/*.test.(ts|tsx)"
-    ],
-    "moduleNameMapper": {
-      "^src(.*)": "<rootDir>/src$1"
-    }
-  }
+  "packageManager": "yarn@3.2.0"
 }

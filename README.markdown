@@ -11,14 +11,14 @@ Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) 
 
 Truss lets you:
 
-* Write `<div css={Css.mt1.black.$}>`, which Truss turns into `css={{ margin-top: 8px, color: "black" }}`, and then Emotion (or another CSS-in-JS library) turns into injected CSS classes.
+- Write `<div css={Css.mt1.black.$}>`, which Truss turns into `css={{ margin-top: 8px, color: "black" }}`, and then Emotion (or another CSS-in-JS library) turns into injected CSS classes.
 
-* Setup your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example code](https://github.com/homebound-team/truss/blob/main/integration-test/index.ts#L12) and the "Customization" section below)
+- Setup your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example code](https://github.com/homebound-team/truss/blob/main/integration-test/index.ts#L12) and the "Customization" section below)
 
-* Achieve both utility-class brevity and critical-CSS delivery.
+- Achieve both utility-class brevity and critical-CSS delivery.
 
-* Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
-  
+- Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
+
 Also see the "Why This Approach?" section for more rationale.
 
 ## Quick Intro
@@ -114,12 +114,8 @@ And breakpoints like:
 /** @jsxImportSource @emotion/react */
 import { Css, sm } from "src/Css";
 
-function MyReactComponent(props: ...) {
-  return (
-    <div css={{...Css.mx2.black.$, [sm]: Css.mx1.$}}>
-      content
-    </div>
-  );
+function MyReactComponent(props: MyProps) {
+  return <div css={{ ...Css.mx2.black.$, [sm]: Css.mx1.$ }}>content</div>;
 }
 ```
 
@@ -192,9 +188,7 @@ export interface DatePickerProps<X> {
 }
 
 // Use the `Only` type to ensure `xss` prop is a subset of DatePickerXss
-export function DatePicker<X extends Only<DatePickerXss, X>>(
-  props: DatePickerProps<X>
-) {
+export function DatePicker<X extends Only<DatePickerXss, X>>(props: DatePickerProps<X>) {
   const { date, xss } = props;
   // The component controls marginTop/marginBottom, and defers to the caller for marginLeft/marginRight
   return <div css={{ ...Css.my2.$, ...xss }}>{date}</div>;
@@ -290,12 +284,13 @@ Besides adding one-off additional methods, if your project wants to replace a wh
 
 ```typescript
 const sections = {
-  // Prefer app-specific border radiuses 
-  borderRadius: () => newMethodsForProp("borderRadius", {
-    br4: "4px",
-    br8: "8px",
-    br16: "16px",
-  }),
+  // Prefer app-specific border radiuses
+  borderRadius: () =>
+    newMethodsForProp("borderRadius", {
+      br4: "4px",
+      br8: "8px",
+      br16: "16px",
+    }),
 };
 ```
 
@@ -365,6 +360,18 @@ Several libraries influenced Truss, specifically:
   The main difference between Truss and both Typed.tw and babel-plugin-tailwind-components is that Truss doesn't try to "perfectly match Tachyons or Tailwinds" (see "Why This Approach?"). Specifically, both projects assume that a `tachyons.css` or `tailwinds.css` file is the source-of-truth for your project's rules (and so parse/generate the TypeScript code from that CSS file); however, with Truss your source-of-truth is Truss's out-of-the-box TypeScript rules + whatever customizations you make in your project's `truss/index.ts` file (so rules are defined directly in TypeScript).
 
 - Facebook's XStyles for the "typed extension" idea
+
+## Contributing
+
+The Truss repository is set up as a Yarn workspace, although really the core package is just `packages/truss`, and the other packages are only for testing Truss with various output and various CSS-in-JS engines.
+
+A basic development flow is:
+
+- In the root directory, run `yarn`
+- In the root directory, run `yarn build -w`
+- Iterate as you want
+- In the root directory, run `yarn test` to run all tests
+  - Running individual tests in your IDE/each package should work as well
 
 ## Todo
 
