@@ -1,7 +1,7 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
-export const verticalAlign: MethodFn = () =>
+export const verticalAlign: CreateMethodsFn = () =>
   newMethodsForProp(
     "verticalAlign",
     {

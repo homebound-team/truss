@@ -1,7 +1,7 @@
 import { newMethodsForProp } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
-export const whitespace: MethodFn = () =>
+export const whitespace: CreateMethodsFn = () =>
   newMethodsForProp("whiteSpace", {
     nowrap: "nowrap",
     pre: "pre",

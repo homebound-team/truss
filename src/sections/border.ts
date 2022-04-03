@@ -1,5 +1,5 @@
 import { newMethod } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
 const borderDefs: [string, [string, string]][] = [
   ["ba", ["borderStyle", "borderWidth"]],
@@ -9,7 +9,7 @@ const borderDefs: [string, [string, string]][] = [
   ["bl", ["borderLeftStyle", "borderLeftWidth"]],
 ];
 
-export const border: MethodFn = () => [
+export const border: CreateMethodsFn = () => [
   ...borderDefs.map(([abbr, [style, width]]) => {
     return newMethod(abbr, { [style]: "solid", [width]: "1px" });
   }),

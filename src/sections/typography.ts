@@ -1,9 +1,9 @@
 import { newMethod, newParamMethod } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
 // See typeScale for the FontConfig.fonts handling
 
-export const typography: MethodFn = () => [
+export const typography: CreateMethodsFn = () => [
   newMethod("measure", { maxWidth: "30em" }),
   newMethod("measureWide", { maxWidth: "34em" }),
   newMethod("measureNarrow", { maxWidth: "20em" }),

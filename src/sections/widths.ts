@@ -3,9 +3,9 @@ import {
   newMethodsForProp,
   newPxMethod,
 } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
-export const width: MethodFn = (config) => [
+export const width: CreateMethodsFn = (config) => [
   ...newMethodsForProp(
     "width",
     {

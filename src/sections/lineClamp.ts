@@ -1,8 +1,8 @@
 import { newMethod, zeroTo } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
 // https://github.com/tailwindlabs/tailwindcss-line-clamp/
-export const lineClamp: MethodFn = () => [
+export const lineClamp: CreateMethodsFn = () => [
   ...zeroTo(5).map((i) =>
     newMethod(`lineClamp${i + 1}`, {
       overflow: "hidden",

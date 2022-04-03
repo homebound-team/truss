@@ -1,7 +1,7 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newIncrementMethods, newMethodsForProp } from "../methods";
 
-export const height: MethodFn = (config) => [
+export const height: CreateMethodsFn = (config) => [
   // https://github.com/tachyons-css/tachyons/blob/master/src/_heights.css
 
   // Technically h1 in tachyons is 1em and ours is 1 inc

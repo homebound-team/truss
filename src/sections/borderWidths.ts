@@ -1,8 +1,8 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
 // http://tachyons.io/docs/themes/borders/
-export const borderWidth: MethodFn = () =>
+export const borderWidth: CreateMethodsFn = () =>
   newMethodsForProp(
     "borderWidth",
     {

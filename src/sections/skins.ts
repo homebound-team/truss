@@ -1,8 +1,8 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newMethodsForProp } from "../methods";
 import { lowerCaseFirst } from "../utils";
 
-export const skins: MethodFn = (config) => {
+export const skins: CreateMethodsFn = (config) => {
   const { palette } = config;
 
   const colors = newMethodsForProp(

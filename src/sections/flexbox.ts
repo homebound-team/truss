@@ -1,4 +1,4 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
 // We originally used the tachyons mappings:
@@ -8,7 +8,7 @@ import { newMethodsForProp } from "../methods";
 // flex on a day-to-day basis, we don't need the longer "not-Tachyons-ish" names
 // that Tachyons originally picked (i.e. maybe because the flex properties were
 // "too new/different" at the time of adding them?).
-export const flexbox: MethodFn = () => [
+export const flexbox: CreateMethodsFn = () => [
   ...newMethodsForProp(
     "flex",
     {

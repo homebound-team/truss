@@ -1,7 +1,7 @@
 import { newMethod } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
-export const typeScale: MethodFn = ({ fonts }) =>
+export const typeScale: CreateMethodsFn = ({ fonts }) =>
   Object.entries(fonts).map(([abbr, defs]) => {
     if (typeof defs === "string") {
       return newMethod(abbr, { fontSize: defs });

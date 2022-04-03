@@ -1,8 +1,8 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_display.css
-export const display: MethodFn = () =>
+export const display: CreateMethodsFn = () =>
   newMethodsForProp("display", {
     dn: "none",
     db: "block",

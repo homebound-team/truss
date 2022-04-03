@@ -1,8 +1,8 @@
 import { newMethodsForProp } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
 // https://tailwindcss.com/docs/visibility/
-export const visibility: MethodFn = () =>
+export const visibility: CreateMethodsFn = () =>
   newMethodsForProp("visibility", {
     visible: "visible",
     invisible: "hidden",

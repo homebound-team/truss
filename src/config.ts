@@ -77,9 +77,8 @@ export interface Config {
 }
 
 /**
- * A rule takes the project's `TrussConfig` and produces a list
- * of ~one-liner TypeScript code to add to the generated `Css.ts`
- * file.
+ * A function takes the project's `Config` and produces a list of utility methods to
+ * add to the generated `Css.ts` file.
  *
  * I.e. a return value might be:
  *
@@ -93,7 +92,7 @@ export interface Config {
  * See the `newMethod` and `newParamMethod` functions for more easily
  * creating the `get ...() { ... }` output.
  */
-export type MethodFn = (config: Config) => UtilityMethod[];
+export type CreateMethodsFn = (config: Config) => UtilityMethod[];
 
 /**
  * A type-alias to clarify strings that are meant to be abbreviation/utility names.
@@ -113,7 +112,7 @@ export type UtilityMethod = string;
 export type SectionName = string;
 
 /** A type-alias for a group of utility methods. */
-export type Sections = Record<SectionName, MethodFn>;
+export type Sections = Record<SectionName, CreateMethodsFn>;
 
 /** A type-alias for aliasing existing utility methods as a new utility method. */
 export type Aliases = Record<UtilityName, UtilityName[]>;

@@ -1,7 +1,7 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
-export const fontWeight: MethodFn = () =>
+export const fontWeight: CreateMethodsFn = () =>
   newMethodsForProp(
     "fontWeight",
     {

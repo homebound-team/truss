@@ -1,7 +1,7 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { IncConfig, newIncrementMethods } from "../methods";
 
-export const spacing: MethodFn = (config) => {
+export const spacing: CreateMethodsFn = (config) => {
   const marginDefs: IncConfig[] = [
     ["mt", "marginTop"],
     ["mr", "marginRight"],

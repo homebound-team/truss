@@ -1,8 +1,8 @@
 import { newMethodsForProp } from "../methods";
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_text-transform.css
-export const textTransform: MethodFn = () =>
+export const textTransform: CreateMethodsFn = () =>
   newMethodsForProp(
     "textTransform",
     {

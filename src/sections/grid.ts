@@ -1,11 +1,11 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import {
   newIncrementMethods,
   newMethodsForProp,
   newParamMethod,
 } from "../methods";
 
-export const grid: MethodFn = (config) => [
+export const grid: CreateMethodsFn = (config) => [
   newParamMethod("gtc", "gridTemplateColumns"),
   newParamMethod("gtr", "gridTemplateRows"),
   newParamMethod("gr", "gridRow"),

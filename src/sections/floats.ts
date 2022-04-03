@@ -1,8 +1,8 @@
-import { MethodFn } from "../config";
+import { CreateMethodsFn } from "../config";
 import { newMethodsForProp } from "../methods";
 
 // https://github.com/tachyons-css/tachyons/blob/master/src/_floats.css
-export const float: MethodFn = () =>
+export const float: CreateMethodsFn = () =>
   newMethodsForProp(
     "float",
     {
