@@ -1,5 +1,5 @@
-import { Config } from "config";
-import { newIncrementMethods } from "./methods";
+import { Config } from "src/config";
+import { newIncrementMethods } from "src/methods";
 
 describe("methods", () => {
   const config: Config = {

@@ -1,4 +1,4 @@
-import { Aliases, Config, UtilityMethod, UtilityName } from "config";
+import { Aliases, Config, UtilityMethod, UtilityName } from "src/config";
 import { Properties } from "csstype";
 
 export type Prop = keyof Properties;
