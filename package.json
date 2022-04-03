@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss",
-  "version": "1.109.0",
+  "version": "1.110.0",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
