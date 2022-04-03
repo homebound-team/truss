@@ -1,3 +1,6 @@
+![npm](https://img.shields.io/npm/v/@homebound/truss)
+[![CircleCI](https://circleci.com/gh/homebound-team/truss.svg?style=svg)](https://circleci.com/gh/homebound-team/truss)
+
 <p align="center" style="padding: 100px">
   <img src="logo.svg" width="400" />
 </p>
