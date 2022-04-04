@@ -1,3 +1,10 @@
+# [1.112.0](https://github.com/homebound-team/truss/compare/v1.111.3...v1.112.0) (2022-04-04)
+
+
+### Features
+
+* Add a template to copy/paste from. ([39cc9dc](https://github.com/homebound-team/truss/commit/39cc9dcfd47dcdfdd22fa419fecfd1ef53d021f8))
+
 ## [1.111.3](https://github.com/homebound-team/truss/compare/v1.111.2...v1.111.3) (2022-04-04)
 
 

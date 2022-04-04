@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss-testing-tachyons-emotion",
-  "version": "1.111.3",
+  "version": "1.112.0",
   "private": true,
   "scripts": {
     "test": "jest"
