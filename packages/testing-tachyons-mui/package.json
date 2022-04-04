@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss-testing-tachyons-mui",
-  "version": "1.110.0",
+  "version": "1.110.1",
   "private": true,
   "scripts": {
     "test": "jest"
