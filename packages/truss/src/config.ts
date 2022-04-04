@@ -77,6 +77,18 @@ export interface Config {
 }
 
 /**
+ * A helper method to define config w/o a trailing cast.
+ *
+ * Based on `vite.config.ts`'s approach.
+ *
+ * We could eventually use this as a place to apply defaults, but currently
+ * just return the passed in `config` object as-is.
+ */
+export function defineConfig(config: Config): Config {
+  return config;
+}
+
+/**
  * A function takes the project's `Config` and produces a list of utility methods to
  * add to the generated `Css.ts` file.
  *

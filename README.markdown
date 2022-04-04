@@ -48,7 +48,7 @@ You can then pass this POJO to whatever CSS-in-JS framework you're using, i.e. w
 ```tsx
 /** @jsxImportSource @emotion/react */
 
-function MyReactComponent(props: ...) {
+function MyReactComponent(props: MyProps) {
   // Use emotion's css prop
   return <div css={Css.mx2.black.$}>content</div>
 }
@@ -60,31 +60,30 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
 ## Installation
 
-The recommended Truss installation involves checking a few `index.ts`/`package.json` files into a `truss/` subdirectory of your project, to provide a place for Truss configuration/customization, as well as an easy way to kick off the code generator (i.e. it keeps Truss's `package.json`/`tsconfig.json` from interfering with your project's existing setup).
+* `npm i --save-dev @homebound/truss`
+* Add a `truss` command to your `package.json`:
+  ```json
+  {
+    "scripts": {
+      "truss": "truss"
+    }
+  }
+  ```
+* Copy/paste a `truss-config.ts` into your project
+* Run `npm run truss`
+  * Re-run `npm run truss` anytime you change `truss-config.ts`
 
-In your current project, run (todo script/make this shorter):
+We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
-- `mkdir truss`
-- `cd truss`
-- `wget https://github.com/homebound-team/truss-project-files/archive/main.zip`
-- `unzip main.zip`
-- `mv truss-project-files-main/* .`
-- `mv truss-project-files-main/.gitignore .`
-- `rmdir truss-project-files-main`
-- `rm main.zip`
-- `npm install --save @homebound/truss`
-  - Note this is purposefully `install`-ing into the `truss/package.json` and not your root `package.json` file
-- `npm run generate`
+* Your design system will likely be pretty stable, so the `Css.ts` output should rarely change.
+* When it does change, it can be nice to see the diff-d output in the PR for others to review.
+* It's the simplest "just works" setup for new contributors.
 
-This should create a `src/Css.ts` in your project's main `src/` directory (you can change the output path in `index.ts` if needed).
-
-You can then check in the `truss/` directory, and the generated `src/Css.ts` file (which will be in your root project's `src/` directory and not the `truss/` subdirectory).
-
-Note that you do not need to run `npm run generate` on a regular basis/as part of your day-to-day workflow; you only need to run it when you're specifically making updates to the `truss/index.ts`/`truss/palette.ts` files.
+Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it.
 
 ## Configuration
 
-Truss's configuration is all done in the `truss/index.ts` and `truss/palette.ts` files that are installed in your local project.
+Truss's configuration is all done in the `truss-config.ts` files that are installed in your local project.
 
 See the comments in [that file](https://github.com/homebound-team/truss-project-files/blob/main/index.ts) for the available config options.
 
