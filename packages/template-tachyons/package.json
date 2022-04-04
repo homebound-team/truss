@@ -1,0 +1,16 @@
+{
+  "name": "@homebound/truss-template-tachyons",
+  "version": "1.111.2",
+  "private": true,
+  "scripts": {
+    "codegen": "truss"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@homebound/truss": "workspace:*"
+  },
+  "devDependencies": {
+    "@homebound/tsconfig": "^1.0.3",
+    "typescript": "^4.6.3"
+  }
+}

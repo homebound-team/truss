@@ -10,6 +10,7 @@
   },
   "workspaces": [
     "packages/truss",
+    "packages/template-tachyons",
     "packages/testing-tachyons",
     "packages/testing-tachyons-emotion",
     "packages/testing-tachyons-fela",

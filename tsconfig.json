@@ -1,6 +1,7 @@
 {
   "references": [
     { "path": "./packages/truss" },
+    { "path": "./packages/template-tachyons" },
     { "path": "./packages/testing-tachyons" },
     { "path": "./packages/testing-tachyons-emotion" },
     { "path": "./packages/testing-tachyons-fela" },
