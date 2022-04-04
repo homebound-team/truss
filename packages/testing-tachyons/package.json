@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "scripts": {
     "test": "jest",
-    "codegen": "ts-node ./truss-config.ts"
+    "codegen": "truss"
   },
   "license": "ISC",
   "dependencies": {
@@ -14,10 +14,8 @@
   "devDependencies": {
     "@homebound/tsconfig": "^1.0.3",
     "@types/jest": "^26.0.20",
-    "@types/node": "^16.0.3",
     "jest": "^26.6.3",
     "ts-jest": "^26.4.4",
-    "ts-node": "^10.7.0",
     "typescript": "^4.6.3"
   },
   "jest": {

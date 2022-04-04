@@ -656,10 +656,8 @@ __metadata:
     "@homebound/truss": "workspace:*"
     "@homebound/tsconfig": ^1.0.3
     "@types/jest": ^26.0.20
-    "@types/node": ^16.0.3
     jest: ^26.6.3
     ts-jest: ^26.4.4
-    ts-node: ^10.7.0
     typescript: ^4.6.3
   languageName: unknown
   linkType: soft
@@ -670,12 +668,15 @@ __metadata:
   dependencies:
     "@homebound/tsconfig": ^1.0.3
     "@types/jest": ^26.0.20
+    "@types/node": ^16.0.3
     csstype: ^2.6.10
     jest: ^26.6.3
-    prettier: ^2.0.5
     ts-jest: ^26.4.4
+    ts-node: ^10.7.0
     ts-poet: ^3.2.2
     typescript: ^4.6.3
+  bin:
+    truss: build/index.js
   languageName: unknown
   linkType: soft
 
@@ -7535,7 +7536,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^2.0.2, prettier@npm:^2.0.5":
+"prettier@npm:^2.0.2":
   version: 2.6.2
   resolution: "prettier@npm:2.6.2"
   bin:

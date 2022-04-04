@@ -1,10 +1,4 @@
-import {
-  Aliases,
-  FontConfig,
-  generate,
-  newMethod,
-  newSetCssVariablesMethod,
-} from "@homebound/truss";
+import { Aliases, defineConfig, FontConfig, newMethod, newSetCssVariablesMethod } from "@homebound/truss";
 
 const increment = 8;
 const numberOfIncrements = 4;
@@ -48,7 +42,7 @@ const aliases: Aliases = {
 // Or just suffix random stuff at the bottom of the file.
 const extras = [`export type CustomType = number;`];
 
-generate({
+export default defineConfig({
   outputPath: "./src/Css.ts",
   palette,
   fonts,
@@ -58,7 +52,4 @@ generate({
   extras,
   breakpoints,
   sections,
-}).then(
-  () => console.log("done"),
-  (err) => console.error(err)
-);
+});

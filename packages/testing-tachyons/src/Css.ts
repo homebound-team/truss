@@ -633,33 +633,17 @@ export enum Palette {
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({
-  rules: {},
-  enabled: true,
-  important: false,
-  selector: undefined,
-});
+export const Css = new CssBuilder({ rules: {}, enabled: true, important: false, selector: undefined });
 
-export type Margin =
-  | "margin"
-  | "marginTop"
-  | "marginRight"
-  | "marginBottom"
-  | "marginLeft";
+export type Margin = "margin" | "marginTop" | "marginRight" | "marginBottom" | "marginLeft";
 
-export type Padding =
-  | "padding"
-  | "paddingTop"
-  | "paddingRight"
-  | "paddingBottom"
-  | "paddingLeft";
+export type Padding = "padding" | "paddingTop" | "paddingRight" | "paddingBottom" | "paddingLeft";
 
 type Brand<K, T> = K & { __brand: T };
 type Breakpoint = Brand<string, "Breakpoint">;
 export const print = "@media print" as Breakpoint;
 export const sm = "@media screen and (max-width:599px)" as Breakpoint;
-export const md =
-  "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
+export const md = "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
 export const smOrMd = "@media screen and (max-width:959px)" as Breakpoint;
 export const mdAndUp = "@media screen and (min-width:600px)" as Breakpoint;
 export const mdAndDown = "@media screen and (max-width:959px)" as Breakpoint;
