@@ -1,6 +1,7 @@
 {
   "name": "@homebound/truss",
   "version": "1.110.2",
+  "private": false,
   "main": "build/index.js",
   "scripts": {
     "test": "jest"
