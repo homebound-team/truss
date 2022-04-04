@@ -1,3 +1,10 @@
+## [1.112.1](https://github.com/homebound-team/truss/compare/v1.112.0...v1.112.1) (2022-04-04)
+
+
+### Bug Fixes
+
+* Pass module: commonjs to ts-node. ([cec97db](https://github.com/homebound-team/truss/commit/cec97db76268edc66050a48392bd99665d40b55e))
+
 # [1.112.0](https://github.com/homebound-team/truss/compare/v1.111.3...v1.112.0) (2022-04-04)
 
 
