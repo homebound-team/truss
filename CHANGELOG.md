@@ -1,3 +1,10 @@
+## [1.110.3](https://github.com/homebound-team/truss/compare/v1.110.2...v1.110.3) (2022-04-04)
+
+
+### Bug Fixes
+
+* Mark truss as not private. ([7e68b6f](https://github.com/homebound-team/truss/commit/7e68b6f91f57f09bb42723d52c3c5a6ddb2d4bb7))
+
 ## [1.110.2](https://github.com/homebound-team/truss/compare/v1.110.1...v1.110.2) (2022-04-04)
 
 
