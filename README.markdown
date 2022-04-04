@@ -69,7 +69,8 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
     }
   }
   ```
-* Copy/paste an initial `truss-config.ts` into your project
+* Copy/paste an initial [truss-config.ts](https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts
+) into your project
   * `wget https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts`
 * Run `npm run truss`
   * Re-run `npm run truss` anytime you change `truss-config.ts`
