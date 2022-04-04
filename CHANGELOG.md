@@ -1,3 +1,10 @@
+# [1.111.0](https://github.com/homebound-team/truss/compare/v1.110.3...v1.111.0) (2022-04-04)
+
+
+### Features
+
+* Move to data-based config. ([#73](https://github.com/homebound-team/truss/issues/73)) ([16f7e1a](https://github.com/homebound-team/truss/commit/16f7e1a25530e4af1b681c8b65a78e6c5d61c274)), closes [#64](https://github.com/homebound-team/truss/issues/64)
+
 ## [1.110.3](https://github.com/homebound-team/truss/compare/v1.110.2...v1.110.3) (2022-04-04)
 
 
