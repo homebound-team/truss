@@ -676,7 +676,7 @@ __metadata:
     ts-poet: ^3.2.2
     typescript: ^4.6.3
   bin:
-    truss: build/index.js
+    truss: cli.js
   languageName: unknown
   linkType: soft
 

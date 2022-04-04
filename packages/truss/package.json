@@ -2,7 +2,7 @@
   "name": "@homebound/truss",
   "version": "1.111.2",
   "main": "build/index.js",
-  "bin": "build/index.js",
+  "bin": "cli.js",
   "scripts": {
     "test": "jest"
   },
