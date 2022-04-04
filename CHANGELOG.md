@@ -1,3 +1,10 @@
+## [1.111.2](https://github.com/homebound-team/truss/compare/v1.111.1...v1.111.2) (2022-04-04)
+
+
+### Bug Fixes
+
+* Poke release to fix npm error. ([29b6fdd](https://github.com/homebound-team/truss/commit/29b6fdda0746766aefdd124aaba67fa2558b662e))
+
 ## [1.111.1](https://github.com/homebound-team/truss/compare/v1.111.0...v1.111.1) (2022-04-04)
 
 
