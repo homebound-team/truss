@@ -1,3 +1,10 @@
+## [1.111.3](https://github.com/homebound-team/truss/compare/v1.111.2...v1.111.3) (2022-04-04)
+
+
+### Bug Fixes
+
+* Use a cli.js for the shebang. ([6a29ed6](https://github.com/homebound-team/truss/commit/6a29ed61d4f0b0903e863b3dedb87ae80d3a90c6))
+
 ## [1.111.2](https://github.com/homebound-team/truss/compare/v1.111.1...v1.111.2) (2022-04-04)
 
 
