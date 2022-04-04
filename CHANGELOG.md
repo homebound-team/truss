@@ -1,3 +1,10 @@
+## [1.111.1](https://github.com/homebound-team/truss/compare/v1.111.0...v1.111.1) (2022-04-04)
+
+
+### Bug Fixes
+
+* Fix publishing to the org should still be public. ([92b2ab3](https://github.com/homebound-team/truss/commit/92b2ab32fe7496822a45848710257adfef883bc9))
+
 # [1.111.0](https://github.com/homebound-team/truss/compare/v1.110.3...v1.111.0) (2022-04-04)
 
 
