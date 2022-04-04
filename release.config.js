@@ -4,8 +4,12 @@ module.exports = {
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     "@semantic-release/changelog",
-    "@semantic-release/npm",
+    [
+      "@semantic-release/exec",
+      { prepareCmd: "yarn workspaces foreach exec npm version --no-git-tag-version ${nextRelease.version}" },
+    ],
+    ["@semantic-release/exec", { publishCmd: "yarn npm publish", execCwd: "packages/truss" }],
     "@semantic-release/github",
-    "@semantic-release/git",
+    ["@semantic-release/git", { assets: ["CHANGELOG.md", "package.json", "packages/*/package.json"] }],
   ],
 };

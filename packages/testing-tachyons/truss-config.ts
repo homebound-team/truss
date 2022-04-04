@@ -2,9 +2,9 @@ import {
   Aliases,
   FontConfig,
   generate,
-  newSetCssVariablesMethod,
   newMethod,
-} from "../src";
+  newSetCssVariablesMethod,
+} from "@homebound/truss";
 
 const increment = 8;
 const numberOfIncrements = 4;
@@ -49,7 +49,7 @@ const aliases: Aliases = {
 const extras = [`export type CustomType = number;`];
 
 generate({
-  outputPath: "./integration-test/Css.ts",
+  outputPath: "./src/Css.ts",
   palette,
   fonts,
   increment,

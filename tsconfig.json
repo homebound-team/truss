@@ -1,10 +1,12 @@
 {
-  "extends": "@homebound/tsconfig/tsconfig.json",
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "es5",
-    "sourceMap": true,
-    "downlevelIteration": true,
-    "outDir": "build/"
-  }
+  "references": [
+    { "path": "./packages/truss" },
+    { "path": "./packages/testing-tachyons" },
+    { "path": "./packages/testing-tachyons-emotion" },
+    { "path": "./packages/testing-tachyons-fela" },
+    { "path": "./packages/testing-tachyons-mui" }
+  ],
+  "files": [],
+  "include": [],
+  "exclude": ["**/node_modules"]
 }

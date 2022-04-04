@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@5.0.0
+  node: circleci/node@5.0.1
 
 workflows:
   version: 2
@@ -23,22 +23,22 @@ workflows:
 jobs:
   build:
     docker:
-      - image: cimg/node:16.4.0
+      - image: cimg/node:16.14.2
     working_directory: ~/project
     steps:
       - checkout
-      - run: 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc'
-      - node/install-packages
-      - run: npm run build
-      - run: npm run test
+      - node/install-packages:
+          pkg-manager: yarn
+      - run: yarn build
+      - run: yarn test
 
   publish:
     docker:
-      - image: cimg/node:16.4.0
+      - image: cimg/node:16.14.2
     working_directory: ~/project
     steps:
       - checkout
-      - run: 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc'
-      - node/install-packages
-      - run: npm run build
-      - run: npm run semantic-release
+      - node/install-packages:
+          pkg-manager: yarn
+      - run: yarn build
+      - run: yarn semantic-release

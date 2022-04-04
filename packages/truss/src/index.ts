@@ -10,4 +10,4 @@ export {
   newIncrementMethods,
   newParamMethod,
   newSetCssVariablesMethod,
-} from "./methods";
+} from "src/methods";
