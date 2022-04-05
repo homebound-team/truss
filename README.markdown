@@ -74,6 +74,7 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
   * `wget https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts`
 * Run `npm run truss`
   * Re-run `npm run truss` anytime you change `truss-config.ts`
+* Start using `Css.mt1.etc.$` in your project's CSS-in-JS setup
 
 We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
