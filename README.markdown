@@ -334,6 +334,16 @@ The benefits of this approach are:
 
   Granted, this is very similar in spirit to Tailwinds customization, but for Truss, the config process is "just change some TypeScript code and run `generate`", and doesn't involve any changes to your build/webpack/PostCSS/etc. setup.
 
+## Why Tachyons Instead of Tailwinds?
+
+Truss's out-of-the-box abbreviations are based on Tachyons. The reasons for this are:
+
+1. Historically we started using Tachyons and Tachyons-style abbreviations before Tailwinds had obviously won the utility CSS mindshare, and so we have both legacy code and also just personal preference established for the Tachyons abbreviations.
+
+2. The Tachyons abbreviations are generally more succint, and in our opinion if you're going to learn an esoteric way of writing CSS (e.g. learning what all of the abbreviations mean), you might as well go all the way and get the most brevity as possible, to achieve the best inline-ability.
+
+That said, it's possible to use Truss to generate Tailwinds-based abbreviations; see [this issue](https://github.com/homebound-team/truss/issues/65) if you're interested in helping contribute.
+
 ## Themes
 
 The word "theme" can mean either "static themes" (i.e. using the same consistent colors/fonts throughout your app, but the values themselves never really change) or "dynamic themes" (i.e. the user changing from light mode to dark mode).
