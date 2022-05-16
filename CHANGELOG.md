@@ -1,3 +1,10 @@
+# [1.113.0](https://github.com/homebound-team/truss/compare/v1.112.1...v1.113.0) (2022-05-16)
+
+
+### Features
+
+* Support 'justify-items' ([#74](https://github.com/homebound-team/truss/issues/74)) ([ad4e602](https://github.com/homebound-team/truss/commit/ad4e602b5230ba6efaf7c03a6089fa4fb01c9f4e))
+
 ## [1.112.1](https://github.com/homebound-team/truss/compare/v1.112.0...v1.112.1) (2022-04-04)
 
 
