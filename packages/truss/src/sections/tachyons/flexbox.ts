@@ -37,6 +37,19 @@ export const flexbox: CreateMethodsFn = () => [
   ),
 
   ...newMethodsForProp(
+    "justifyItems",
+    {
+      jifs: "flex-start",
+      jife: "flex-end",
+      jic: "center",
+      jisb: "space-between",
+      jisa: "space-around",
+      jise: "space-evenly",
+    },
+    "ji"
+  ),
+
+  ...newMethodsForProp(
     "alignSelf",
     {
       asfs: "flex-start",
