@@ -1,3 +1,10 @@
+## [1.113.1](https://github.com/homebound-team/truss/compare/v1.113.0...v1.113.1) (2022-06-22)
+
+
+### Bug Fixes
+
+* Update README and package.json to be compatible with npmjs ([#75](https://github.com/homebound-team/truss/issues/75)) ([d523bb0](https://github.com/homebound-team/truss/commit/d523bb0ed09049978caa65dab5d69452a1849270))
+
 # [1.113.0](https://github.com/homebound-team/truss/compare/v1.112.1...v1.113.0) (2022-05-16)
 
 
