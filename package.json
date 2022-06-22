@@ -1,7 +1,7 @@
 {
   "name": "truss",
   "version": "1.113.0",
-  "private": true,
+  "private": false,
   "license": "ISC",
   "scripts": {
     "build": "ttsc --build",
@@ -31,5 +31,9 @@
     "typescript": "^4.5.2",
     "typescript-transform-paths": "^3.3.1"
   },
-  "packageManager": "yarn@3.2.0"
+  "packageManager": "yarn@3.2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/homebound-team/truss"
+  }
 }

@@ -1,9 +1,12 @@
-![npm](https://img.shields.io/npm/v/@homebound/truss)
-[![CircleCI](https://circleci.com/gh/homebound-team/truss.svg?style=svg)](https://circleci.com/gh/homebound-team/truss)
-
 <p align="center" style="padding: 100px">
   <img src="logo.svg" width="400" />
 </p>
+
+<div align="center">
+  <img src="https://img.shields.io/npm/v/@homebound/truss" />
+  <img src="https://circleci.com/gh/homebound-team/truss.svg?style=svg" />
+  <hr />
+</div>
 
 Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) in React/JSX, but on top of existing CSS-in-JS libraries (i.e. Emotion, MUI, and Fela).
 
@@ -50,7 +53,7 @@ You can then pass this POJO to whatever CSS-in-JS framework you're using, i.e. w
 
 function MyReactComponent(props: MyProps) {
   // Use emotion's css prop
-  return <div css={Css.mx2.black.$}>content</div>
+  return <div css={Css.mx2.black.$}>content</div>;
 }
 ```
 
@@ -60,8 +63,8 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
 ## Installation
 
-* `npm i --save-dev @homebound/truss`
-* Add a `truss` command to your `package.json`:
+- `npm i --save-dev @homebound/truss`
+- Add a `truss` command to your `package.json`:
   ```json
   {
     "scripts": {
@@ -69,18 +72,17 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
     }
   }
   ```
-* Copy/paste an initial [truss-config.ts](https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts
-) into your project
-  * `wget https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts`
-* Run `npm run truss`
-  * Re-run `npm run truss` anytime you change `truss-config.ts`
-* Start using `Css.mt1.etc.$` in your project's CSS-in-JS setup
+- Copy/paste an initial [truss-config.ts](https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts) into your project
+  - `wget https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts`
+- Run `npm run truss`
+  - Re-run `npm run truss` anytime you change `truss-config.ts`
+- Start using `Css.mt1.etc.$` in your project's CSS-in-JS setup
 
 We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
-* Your design system will likely be pretty stable, so the `Css.ts` output should rarely change.
-* When it does change, it can be nice to see the diff-d output in the PR for others to review.
-* It's the simplest "just works" setup for new contributors.
+- Your design system will likely be pretty stable, so the `Css.ts` output should rarely change.
+- When it does change, it can be nice to see the diff-d output in the PR for others to review.
+- It's the simplest "just works" setup for new contributors.
 
 Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it.
 
@@ -393,4 +395,3 @@ A basic development flow is:
   - I.e. see babel-plugin-tailwind-components and [typed.tw's implementation](https://github.com/dvkndn/typed.tw/tree/master/webpack-loader)
 - Server-side generation; in theory this should just work?
 - Add [goober](https://github.com/cristianbote/goober#css-prop) example
-
