@@ -86,6 +86,21 @@ We recommend checking the `src/Css.ts` file into your repository, with the ratio
 
 Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it.
 
+## Truss Command
+
+The truss command accepts an optional second argument which is the path to your
+configuration file. If omitted, it will look for `./truss-config.ts`. This is
+good if your truss configuration file is not at the root level or the file must
+use a different name.
+
+```json
+{
+  "scripts": {
+    "truss": "truss path/to/configuration/file.ts"
+  }
+}
+```
+
 ## Configuration
 
 Truss's configuration is all done in the `truss-config.ts` files that are installed in your local project.
