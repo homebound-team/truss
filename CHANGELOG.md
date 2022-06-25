@@ -1,3 +1,10 @@
+# [1.114.0](https://github.com/homebound-team/truss/compare/v1.113.1...v1.114.0) (2022-06-25)
+
+
+### Features
+
+* Support custom configuration path ([#76](https://github.com/homebound-team/truss/issues/76)) ([4a7a386](https://github.com/homebound-team/truss/commit/4a7a3867e788817e7f5c2acac761e6fa090c46bd))
+
 ## [1.113.1](https://github.com/homebound-team/truss/compare/v1.113.0...v1.113.1) (2022-06-22)
 
 
