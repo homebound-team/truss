@@ -66,16 +66,25 @@ function generateCssBuilder(config: Config): Code {
     .join(" | ")};
   `;
 
+  const genBreakpoints = makeBreakpoints(breakpoints || {});
+
   let breakpointCode =
     breakpoints === undefined
       ? []
       : [
           "type Brand<K, T> = K & { __brand: T };",
           "type Breakpoint = Brand<string, 'Breakpoint'>;",
-          ...Object.entries(makeBreakpoints(breakpoints || {})).map(
+          `export type BreakpointKey = ${Object.keys(genBreakpoints).map(quote).join(" | ")};`,
+          `export enum Breakpoints {
+            ${Object.entries(genBreakpoints).map(([name, value]) => {
+                return `${name} = "${value}"`;
+              })}
+            };`,
+           ...Object.entries(genBreakpoints).map(
             ([name, query]) =>
               `export const ${name} = "${query}" as Breakpoint;`
           ),
+
         ];
 
   return code`
