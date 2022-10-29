@@ -401,6 +401,7 @@ A basic development flow is:
 - Iterate as you want
 - In the root directory, run `yarn test` to run all tests
   - Running individual tests in your IDE/each package should work as well
+- In the root directory run `yarn workspaces foreach run codegen` to generate the testing `Css.ts` files
 
 ## Todo
 
