@@ -1,3 +1,10 @@
+# [1.115.0](https://github.com/homebound-team/truss/compare/v1.114.0...v1.115.0) (2022-10-29)
+
+
+### Features
+
+* Add breakpoint types and enum ([#79](https://github.com/homebound-team/truss/issues/79)) ([d4cd82f](https://github.com/homebound-team/truss/commit/d4cd82ff78f65c5d115cf8cf1edd27cef8a9aff3))
+
 # [1.114.0](https://github.com/homebound-team/truss/compare/v1.113.1...v1.114.0) (2022-06-25)
 
 
