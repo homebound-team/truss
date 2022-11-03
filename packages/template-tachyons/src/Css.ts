@@ -742,40 +742,40 @@ class CssBuilder<T extends Properties1> {
 
   // lineClamp
   get lineClamp1() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "WebkitLineClamp",
-      1,
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 1).add(
+      "textOverflow",
+      "ellipsis",
+    );
   }
   get lineClamp2() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "WebkitLineClamp",
-      2,
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 2).add(
+      "textOverflow",
+      "ellipsis",
+    );
   }
   get lineClamp3() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "WebkitLineClamp",
-      3,
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 3).add(
+      "textOverflow",
+      "ellipsis",
+    );
   }
   get lineClamp4() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "WebkitLineClamp",
-      4,
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 4).add(
+      "textOverflow",
+      "ellipsis",
+    );
   }
   get lineClamp5() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "WebkitLineClamp",
-      5,
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 5).add(
+      "textOverflow",
+      "ellipsis",
+    );
   }
   get lineClamp6() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "WebkitLineClamp",
-      6,
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 6).add(
+      "textOverflow",
+      "ellipsis",
+    );
   }
   get lineClampNone() {
     return this.add("WebkitLineClamp", "unset");
