@@ -8,7 +8,7 @@
   },
   "license": "ISC",
   "dependencies": {
-    "csstype": "^2.6.21",
+    "csstype": "^3.1.1",
     "ts-node": "^10.9.1",
     "ts-poet": "^6.1.0"
   },

@@ -924,7 +924,7 @@ __metadata:
     "@homebound/tsconfig": ^1.0.3
     "@types/jest": ^29.2.1
     "@types/node": ^18.11.9
-    csstype: ^2.6.21
+    csstype: ^3.1.1
     jest: ^29.2.2
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
@@ -3567,13 +3567,6 @@ __metadata:
   dependencies:
     cssom: ~0.3.6
   checksum: 5f05e6fd2e3df0b44695c2f08b9ef38b011862b274e320665176467c0725e44a53e341bc4959a41176e83b66064ab786262e7380fd1cabeae6efee0d255bb4e3
-  languageName: node
-  linkType: hard
-
-"csstype@npm:^2.6.21":
-  version: 2.6.21
-  resolution: "csstype@npm:2.6.21"
-  checksum: 2ce8bc832375146eccdf6115a1f8565a27015b74cce197c35103b4494955e9516b246140425ad24103864076aa3e1257ac9bab25a06c8d931dd87a6428c9dccf
   languageName: node
   linkType: hard
 
