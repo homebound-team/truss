@@ -5,7 +5,8 @@
   "scripts": {
     "build": "ttsc --build",
     "test": "yarn workspaces foreach run test",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "codegen": "yarn workspaces foreach run codegen"
   },
   "workspaces": [
     "packages/truss",
