@@ -9,18 +9,12 @@ import { quote } from "src/utils";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
-  Padding: [
-    "padding",
-    "paddingTop",
-    "paddingRight",
-    "paddingBottom",
-    "paddingLeft",
-  ],
+  Padding: ["padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
 };
 
 export async function generate(config: Config): Promise<void> {
   const { outputPath } = config;
-  const output = await generateCssBuilder(config).toStringWithImports();
+  const output = generateCssBuilder(config).toString();
   await fs.writeFile(outputPath, output);
 }
 
@@ -40,9 +34,7 @@ function generateCssBuilder(config: Config): Code {
   // Combine our out-of-the-box utility methods with any custom ones
   const sections: Record<string, string[]> = {
     // We only ship with tachyons methods currently
-    ...(defaultMethods === "tachyons"
-      ? generateMethods(config, defaultSections)
-      : {}),
+    ...(defaultMethods === "tachyons" ? generateMethods(config, defaultSections) : {}),
     ...(customSections ? generateMethods(config, customSections) : {}),
     ...(aliases && { aliases: newAliasesMethods(aliases) }),
   };
@@ -61,9 +53,7 @@ function generateCssBuilder(config: Config): Code {
   });
 
   const typographyType = code`
-    export type ${def("Typography")} = ${Object.keys(fonts)
-    .map(quote)
-    .join(" | ")};
+    export type ${def("Typography")} = ${Object.keys(fonts).map(quote).join(" | ")};
   `;
 
   const genBreakpoints = makeBreakpoints(breakpoints || {});
@@ -77,14 +67,10 @@ function generateCssBuilder(config: Config): Code {
           `export type BreakpointKey = ${Object.keys(genBreakpoints).map(quote).join(" | ")};`,
           `export enum Breakpoints {
             ${Object.entries(genBreakpoints).map(([name, value]) => {
-                return `${name} = "${value}"`;
-              })}
+              return `${name} = "${value}"`;
+            })}
             };`,
-           ...Object.entries(genBreakpoints).map(
-            ([name, query]) =>
-              `export const ${name} = "${query}" as Breakpoint;`
-          ),
-
+          ...Object.entries(genBreakpoints).map(([name, query]) => `export const ${name} = "${query}" as Breakpoint;`),
         ];
 
   return code`
@@ -215,11 +201,6 @@ ${extras || ""}
 }
 
 /** Invokes all of the `MethodFns` to create actual `UtilityMethod`s. */
-function generateMethods(
-  config: Config,
-  methodFns: Sections
-): Record<SectionName, UtilityMethod[]> {
-  return Object.fromEntries(
-    Object.entries(methodFns).map(([name, fn]) => [name, fn(config)])
-  );
+function generateMethods(config: Config, methodFns: Sections): Record<SectionName, UtilityMethod[]> {
+  return Object.fromEntries(Object.entries(methodFns).map(([name, fn]) => [name, fn(config)]));
 }

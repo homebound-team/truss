@@ -1,10 +1,10 @@
 import React from "react";
-import { Css, Margin, Only, Palette, px, sm, Xss } from "./Css";
+import {Css, Margin, Only, Palette, px, sm, Xss} from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
     expect(Css.mb1.$).toMatchInlineSnapshot(`
-      Object {
+      {
         "marginBottom": "8px",
       }
     `);
@@ -47,7 +47,7 @@ describe("Css", () => {
       borderWidth: string | 0 | undefined;
     } = Css.ba.$;
     expect(a).toMatchInlineSnapshot(`
-      Object {
+      {
         "borderStyle": "solid",
         "borderWidth": "1px",
       }
@@ -58,7 +58,7 @@ describe("Css", () => {
     const props = { marginTop: "1px", marginBottom: "1px" };
     const a: { marginTop: string; marginBottom: string } = Css.add(props).$;
     expect(a).toMatchInlineSnapshot(`
-      Object {
+      {
         "marginBottom": "1px",
         "marginTop": "1px",
       }
@@ -68,7 +68,7 @@ describe("Css", () => {
   it("can do conditional output", () => {
     let open = true;
     expect(Css.black.if(open).mb1.else.mb2.$).toMatchInlineSnapshot(`
-      Object {
+      {
         "color": "#353535",
         "marginBottom": "8px",
       }
@@ -76,7 +76,7 @@ describe("Css", () => {
 
     open = false;
     expect(Css.black.if(open).mb1.else.mb2.$).toMatchInlineSnapshot(`
-      Object {
+      {
         "color": "#353535",
         "marginBottom": "16px",
       }
@@ -85,7 +85,7 @@ describe("Css", () => {
 
   it("can be important conditional output", () => {
     expect(Css.black.mb1.important.$).toMatchInlineSnapshot(`
-      Object {
+      {
         "color": "#353535 !important",
         "marginBottom": "8px !important",
       }
@@ -94,8 +94,8 @@ describe("Css", () => {
 
   it("can use generated breakpoints with if dsl", () => {
     expect(Css.pb2.white.if(sm).pb3.black.$).toMatchInlineSnapshot(`
-      Object {
-        "@media screen and (max-width:599px)": Object {
+      {
+        "@media screen and (max-width:599px)": {
           "color": "#353535",
           "paddingBottom": "24px",
         },
@@ -118,7 +118,7 @@ describe("Css", () => {
 
   it("can render with px conversion", () => {
     expect(Css.mb(px(8)).$).toMatchInlineSnapshot(`
-      Object {
+      {
         "marginBottom": "8px",
       }
     `);
@@ -126,7 +126,7 @@ describe("Css", () => {
 
   it("has px-specific utility methods", () => {
     expect(Css.mbPx(12).$).toMatchInlineSnapshot(`
-      Object {
+      {
         "marginBottom": "12px",
       }
     `);
@@ -134,12 +134,12 @@ describe("Css", () => {
 
   it("can set css variables", () => {
     expect(Css.setVars.$).toMatchInlineSnapshot(`
-      Object {
+      {
         "--primary": "#000000",
       }
     `);
     expect(Css.var.$).toMatchInlineSnapshot(`
-      Object {
+      {
         "color": "var(--primary)",
       }
     `);
@@ -147,7 +147,7 @@ describe("Css", () => {
 
   it("has the palette", () => {
     expect(Css.fill(Palette.Black).$).toMatchInlineSnapshot(`
-      Object {
+      {
         "fill": "#353535",
       }
     `);
@@ -156,8 +156,8 @@ describe("Css", () => {
   it("can addIn with selectors", () => {
     expect(Css.addIn("& > * + *", "marginBottom", "1px").$)
       .toMatchInlineSnapshot(`
-      Object {
-        "& > * + *": Object {
+      {
+        "& > * + *": {
           "marginBottom": "1px",
         },
       }
@@ -172,7 +172,7 @@ describe("Css", () => {
     // If the string literals of white and black snuck into the the type, then this becomes never, which won't spread
     const s = { ...Css.white.else.black.$ };
     expect(s).toMatchInlineSnapshot(`
-      Object {
+      {
         "color": "#fcfcfa",
       }
     `);

@@ -12,23 +12,21 @@ describe("methods", () => {
 
   describe("newIncrementMethods", () => {
     it("can handle mt", () => {
-      expect(newIncrementMethods(config, "mt", "marginTop"))
-        .toMatchInlineSnapshot(`
-        Array [
+      expect(newIncrementMethods(config, "mt", "marginTop")).toMatchInlineSnapshot(`
+        [
           "get mt0() { return this.mt(0); }",
           "get mt1() { return this.mt(1); }",
           "get mt2() { return this.mt(2); }",
           "get mt3() { return this.mt(3); }",
-          "mt(inc: number | string) { return this.add(\\"marginTop\\", maybeInc(inc)); }",
+          "mt(inc: number | string) { return this.add("marginTop", maybeInc(inc)); }",
           "mtPx(px: number) { return this.mt(\`\${px}px\`); }",
         ]
       `);
     });
 
     it("can handle mx", () => {
-      expect(newIncrementMethods(config, "mx", ["ml", "mr"]))
-        .toMatchInlineSnapshot(`
-        Array [
+      expect(newIncrementMethods(config, "mx", ["ml", "mr"])).toMatchInlineSnapshot(`
+        [
           "get mx0() { return this.mx(0); }",
           "get mx1() { return this.mx(1); }",
           "get mx2() { return this.mx(2); }",
@@ -40,9 +38,8 @@ describe("methods", () => {
     });
 
     it("can handle m", () => {
-      expect(newIncrementMethods(config, "m", ["mt", "mr", "mb", "ml"]))
-        .toMatchInlineSnapshot(`
-        Array [
+      expect(newIncrementMethods(config, "m", ["mt", "mr", "mb", "ml"])).toMatchInlineSnapshot(`
+        [
           "get m0() { return this.m(0); }",
           "get m1() { return this.m(1); }",
           "get m2() { return this.m(2); }",

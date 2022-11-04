@@ -1,13 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { render } from "@testing-library/react";
-import {
-  Css,
-  Margin,
-  Only,
-  print,
-  sm,
-  Xss,
-} from "@homebound/truss-testing-tachyons";
+import { Css, Margin, Only, print, sm, Xss } from "@homebound/truss-testing-tachyons";
 
 describe("Css.emotion", () => {
   it("works on divs", () => {
@@ -54,7 +47,7 @@ describe("Css.emotion", () => {
           "&:focus": Css.pb4.$,
           [phoneOnly]: Css.pb3.$,
         }}
-      />
+      />,
     );
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
@@ -91,7 +84,7 @@ describe("Css.emotion", () => {
     const r = render(
       <div css={Css.mb1.p3.pb2.$}>
         <span css={Css.p3.pb2.mb1.$} />
-      </div>
+      </div>,
     );
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
@@ -120,7 +113,7 @@ describe("Css.emotion", () => {
     const r = render(
       <div css={Css.mb1.p3.pb2.$}>
         <span css={Css.p3.pb2.mb1.$} />
-      </div>
+      </div>,
     );
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
@@ -153,7 +146,7 @@ describe("Css.emotion", () => {
           "&:focus": Css.pb4.$,
           [phoneOnly]: Css.pb3.$,
         }}
-      />
+      />,
     );
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
@@ -185,9 +178,7 @@ describe("Css.emotion", () => {
   });
 
   it("can use generated breakpoints", () => {
-    const r = render(
-      <div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$, [print]: Css.m0.$ }} />
-    );
+    const r = render(<div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$, [print]: Css.m0.$ }} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
         margin-bottom: 8px;
@@ -243,7 +234,6 @@ describe("Css.emotion", () => {
     const r = render(<div css={Css.lineClamp1.$} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
-        -webkit-box-orient: vertical;
         -webkit-line-clamp: 1;
         display: -webkit-box;
         overflow: hidden;
