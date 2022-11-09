@@ -14,7 +14,8 @@
     "packages/testing-tachyons",
     "packages/testing-tachyons-emotion",
     "packages/testing-tachyons-fela",
-    "packages/testing-tachyons-mui"
+    "packages/testing-tachyons-mui",
+    "packages/app-tachyons-fela-prop"
   ],
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.1",
