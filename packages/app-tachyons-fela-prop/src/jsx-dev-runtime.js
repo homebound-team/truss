@@ -30,16 +30,12 @@ export function jsxDEV(type, props = {}, ...children) {
   if (props) {
     const { css, className, ...otherProps } = props;
     if (css) {
-      // Convert `{ color: "blue" }` --> `a`
-      const cn = renderer.renderRule(() => css, {});
-      return _jsxDEV(
-        type,
-        {
-          ...otherProps,
-          className: className ? cn + " " + className : cn,
-        },
-        ...children,
-      );
+      // Use emotion to convert `{ color: "blue" }` --> `a`
+      // const cn = renderer.renderRule(() => css, {});
+      // return _jsxDEV(type, { ...otherProps, className: className ? cn + " " + className : cn }, ...children);
+
+      // Or just use `style`
+      return _jsxDEV(type, { ...otherProps, style: css }, ...children);
     }
   }
   return _jsxDEV(type, props, ...children);
