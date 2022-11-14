@@ -30,12 +30,15 @@ export function jsxDEV(type, props = {}, ...children) {
   if (props) {
     const { css, className, ...otherProps } = props;
     if (css) {
-      // Use emotion to convert `{ color: "blue" }` --> `a`
-      // const cn = renderer.renderRule(() => css, {});
-      // return _jsxDEV(type, { ...otherProps, className: className ? cn + " " + className : cn }, ...children);
+      // Use fela/emotion to convert `{ color: "blue" }` --> `a`
+      const cn = renderer.renderRule(() => css, {});
+      // Wrinkles with skipping the wrapper FelaComponent/EmotionCssPropInternal are:
+      // 1) Technically we should get renderer from `useContext` instead of a global variable :shrug:
+      // 2) Ideally in React 18 we'd use useInsertionEffect to batch style insertions but also maybe :shrug:
+      return _jsxDEV(type, { ...otherProps, className: className ? cn + " " + className : cn }, ...children);
 
-      // Or just use `style`
-      return _jsxDEV(type, { ...otherProps, style: css }, ...children);
+      // Or just use `style`, ideally after partitioning `css` into selector/not-selector rules.
+      // return _jsxDEV(type, { ...otherProps, style: css }, ...children);
     }
   }
   return _jsxDEV(type, props, ...children);
