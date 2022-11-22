@@ -1,5 +1,5 @@
 import React from "react";
-import {Css, Margin, Only, Palette, px, sm, Xss} from "./Css";
+import { Css, Margin, Only, Palette, px, sm, Xss } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -111,9 +111,7 @@ describe("Css", () => {
   });
 
   it("cannot 'else' when using `if(bp)`", () => {
-    expect(() => Css.if(sm).black.else.white.$).toThrow(
-      "else is not supported"
-    );
+    expect(() => Css.if(sm).black.else.white.$).toThrow("else is not supported");
   });
 
   it("can render with px conversion", () => {
@@ -154,8 +152,7 @@ describe("Css", () => {
   });
 
   it("can addIn with selectors", () => {
-    expect(Css.addIn("& > * + *", "marginBottom", "1px").$)
-      .toMatchInlineSnapshot(`
+    expect(Css.addIn("& > * + *", "marginBottom", "1px").$).toMatchInlineSnapshot(`
       {
         "& > * + *": {
           "marginBottom": "1px",
@@ -174,6 +171,17 @@ describe("Css", () => {
     expect(s).toMatchInlineSnapshot(`
       {
         "color": "#fcfcfa",
+      }
+    `);
+  });
+
+  it("can use breakpoints via ifs", () => {
+    expect(Css.black.ifMd.blue.$).toMatchInlineSnapshot(`
+      {
+        "@media screen and (min-width:600px) and (max-width:959px)": {
+          "color": "#526675",
+        },
+        "color": "#353535",
       }
     `);
   });

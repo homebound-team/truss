@@ -1480,6 +1480,31 @@ class CssBuilder<T extends Properties1> {
     }
   }
 
+  get ifPrint() {
+    return this.newCss({ selector: "@media print" });
+  }
+  get ifSm() {
+    return this.newCss({ selector: "@media screen and (max-width:599px)" });
+  }
+  get ifMd() {
+    return this.newCss({ selector: "@media screen and (min-width:600px) and (max-width:959px)" });
+  }
+  get ifSmOrMd() {
+    return this.newCss({ selector: "@media screen and (max-width:959px)" });
+  }
+  get ifMdAndUp() {
+    return this.newCss({ selector: "@media screen and (min-width:600px)" });
+  }
+  get ifMdAndDown() {
+    return this.newCss({ selector: "@media screen and (max-width:959px)" });
+  }
+  get ifLg() {
+    return this.newCss({ selector: "@media screen and (min-width:960px)" });
+  }
+  get ifMdOrLg() {
+    return this.newCss({ selector: "@media screen and (min-width:600px)" });
+  }
+
   get else() {
     if (this.selector !== undefined) {
       throw new Error("else is not supported with if(selector)");
