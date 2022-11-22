@@ -22,6 +22,8 @@ Truss lets you:
 
 - Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
 
+- Use selectors as needed, i.e. `css={{ "&>div": Css.black.$ }}`, using your CSS-in-JS library's selector support
+
 Also see the "Why This Approach?" section for more rationale.
 
 ## Quick Intro
@@ -63,6 +65,8 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
 ## Installation
 
+Truss is "just a single `Css.ts` TypeScript file", so does not require any special configuration of your app's bundling/build pipeline, but we do create a `truss` command to easily generate the `Css.ts` file from your `truss-config.ts`:
+
 - `npm i --save-dev @homebound/truss`
 - Add a `truss` command to your `package.json`:
   ```json
@@ -77,6 +81,8 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 - Run `npm run truss`
   - Re-run `npm run truss` anytime you change `truss-config.ts`
 - Start using `Css.mt1.etc.$` in your project's CSS-in-JS setup
+
+Note that for the `css={Css.blue.$}` syntax to work in JSX, you'll have to figure your CSS-in-JS library's React integration (i.e. for Emotion by setting the React `importSource`, see [their docs](https://emotion.sh/docs/css-prop)).
 
 We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
@@ -109,9 +115,9 @@ See the comments in [that file](https://github.com/homebound-team/truss-project-
 
 ## Psuedo-Selectors and Media Queries
 
-Unlike Tachyons and Tailwinds, Truss's DSL does not have abbreviations/method names for psuedo-selectors and media queries.
+Unlike Tachyons and Tailwinds, Truss does not create duplicate/repetitive abbreviations/method names for psuedo-selectors and media queries (e.g. `md-blue` or `lg-red`).
 
-Instead of building these complications into the DSL, with Truss you use your CSS-in-JS framework-of-choice's existing psuedo-selector and media query support.
+Instead of building these complications into the DSL, Truss leverages your CSS-in-JS library's existing psuedo-selector and media query support.
 
 For example, using Emotion you would do hover-specific styling like:
 
@@ -142,7 +148,7 @@ Where `sm` is just a regular media query string, i.e. `@media (max-width: 420px)
 
 This leveraging of the existing framework's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
 
-## Common CSS-in-JS Frameworks
+## Supported CSS-in-JS Frameworks
 
 Truss generates a TypeScript/`Css.ts` DSL that, without any changes, can be used in MUI, Emotion, and Fela.
 
@@ -353,13 +359,15 @@ The benefits of this approach are:
 
 ## Why Tachyons Instead of Tailwinds?
 
+tldr: They're shorter. :-)
+
 Truss's out-of-the-box abbreviations are based on Tachyons. The reasons for this are:
 
 1. Historically we started using Tachyons and Tachyons-style abbreviations before Tailwinds had obviously won the utility CSS mindshare, and so we have both legacy code and also just personal preference established for the Tachyons abbreviations.
 
 2. The Tachyons abbreviations are generally more succint, and in our opinion if you're going to learn an esoteric way of writing CSS (e.g. learning what all of the abbreviations mean), you might as well go all the way and get the most brevity as possible, to achieve the best inline-ability.
 
-That said, it's possible to use Truss to generate Tailwinds-based abbreviations; see [this issue](https://github.com/homebound-team/truss/issues/65) if you're interested in helping contribute.
+That said, it's very possible to teach Truss how to generate Tailwinds-based abbreviations, we just haven't done it yet; see [this issue](https://github.com/homebound-team/truss/issues/65) if you're interested in helping contribute.
 
 ## Themes
 
