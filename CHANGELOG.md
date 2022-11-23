@@ -1,3 +1,10 @@
+# [1.120.0](https://github.com/homebound-team/truss/compare/v1.119.0...v1.120.0) (2022-11-23)
+
+
+### Features
+
+* Add comments to the utility methods. ([#89](https://github.com/homebound-team/truss/issues/89)) ([d0f6720](https://github.com/homebound-team/truss/commit/d0f67209eb7f759c6b39d72df747513af3b0d265))
+
 # [1.119.0](https://github.com/homebound-team/truss/compare/v1.118.0...v1.119.0) (2022-11-23)
 
 
