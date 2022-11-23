@@ -8,7 +8,7 @@ export type Prop = keyof Properties;
  * the TypeScript code for a `mt0` utility method that sets those values.
  */
 export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
-  return `get ${abbr}() { return this${Object.entries(defs)
+  return `${comment(defs)} get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
     .join("")}; }`;
 }
@@ -19,11 +19,8 @@ export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
  *
  * I.e. `Css.mt(someValue).$`
  */
-export function newParamMethod(
-  abbr: UtilityName,
-  prop: keyof Properties
-): UtilityMethod {
-  return `${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`;
+export function newParamMethod(abbr: UtilityName, prop: keyof Properties): UtilityMethod {
+  return `${comment({ [prop]: "value" })} ${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value); }`;
 }
 
 /**
@@ -46,15 +43,13 @@ export function newMethodsForProp<P extends Prop>(
   prop: P,
   defs: Record<UtilityName, Properties[P]>,
   baseName: string | null = prop,
-  includePx: boolean = false
+  includePx: boolean = false,
 ): UtilityMethod[] {
   return [
-    ...Object.entries(defs).map(([abbr, value]) =>
-      newMethod(abbr, { [prop]: value })
-    ),
+    ...Object.entries(defs).map(([abbr, value]) => newMethod(abbr, { [prop]: value })),
     // Conditionally add a method that directly accepts a value for prop
     ...(baseName !== null ? [newParamMethod(baseName, prop)] : []),
-    ...(baseName !== null && includePx ? [newPxMethod(baseName)] : []),
+    ...(baseName !== null && includePx ? [newPxMethod(baseName, prop)] : []),
   ];
 }
 
@@ -64,9 +59,7 @@ export function newMethodsForProp<P extends Prop>(
  */
 export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
   return Object.entries(aliases).map(([abbr, values]) => {
-    return `get ${abbr}() { return this${values
-      .map((v) => `.${v}`)
-      .join("")}; }`;
+    return `get ${abbr}() { return this${values.map((v) => `.${v}`).join("")}; }`;
   });
 }
 
@@ -81,10 +74,7 @@ export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
  *
  * TODO: Create a `Css.set(cssVars).$` method.
  */
-export function newSetCssVariablesMethod(
-  abbr: UtilityName,
-  defs: Record<string, string>
-): UtilityMethod {
+export function newSetCssVariablesMethod(abbr: UtilityName, defs: Record<string, string>): UtilityMethod {
   return `get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}" as any, "${value}")`)
     .join("")}; }`;
@@ -107,50 +97,40 @@ export type IncConfig = [string, Prop | string[]];
  *
  * TODO: Support non-pixel increments.
  *
+ * @param config the config
  * @param abbr the utility prefix, i.e. `mt`
  * @param conf if a CSS prop, we assume "mt0 --> marginTop: 0px", otherwise if an array we delegate
  *   to other existing utility methods, i.e. `m0` -> `mx0.my0`.
  */
-export function newIncrementMethods(
-  config: Config,
-  abbr: UtilityName,
-  conf: Prop | string[]
-): UtilityMethod[] {
-  const delegateMethods = newIncrementDelegateMethods(
-    abbr,
-    config.numberOfIncrements
-  );
+export function newIncrementMethods(config: Config, abbr: UtilityName, conf: Prop | string[]): UtilityMethod[] {
+  // Create `m1`, `m2`, etc. that will call our main `m` method.
+  const delegateMethods = newIncrementDelegateMethods(config, abbr, typeof conf === "string" ? conf : (conf as Prop[]));
   if (Array.isArray(conf)) {
     return [
       ...delegateMethods,
-      `${abbr}(inc: number | string) { return this.${conf
-        .map((l) => `${l}(inc)`)
-        .join(".")}; }`,
-      `${abbr}Px(px: number) { return this.${conf
-        .map((l) => `${l}Px(px)`)
-        .join(".")}; }`,
+      `${abbr}(inc: number | string) { return this.${conf.map((l) => `${l}(inc)`).join(".")}; }`,
+      `${abbr}Px(px: number) { return this.${conf.map((l) => `${l}Px(px)`).join(".")}; }`,
     ];
   } else {
     return [
       ...delegateMethods,
-      `${abbr}(inc: number | string) { return this.add("${conf}", maybeInc(inc)); }`,
-      newPxMethod(abbr),
+      `${comment({ [conf]: "inc" })} ${abbr}(inc: number | string) { return this.add("${conf}", maybeInc(inc)); }`,
+      newPxMethod(abbr, conf),
     ];
   }
 }
 
 /** Creates `<abbr>X` utility methods that call an `abbr(number)` that the caller is responsible for creating. */
-export function newIncrementDelegateMethods(
-  abbr: UtilityName,
-  numberOfIncrements: number
-): UtilityMethod[] {
-  return zeroTo(numberOfIncrements).map(
-    (i) => `get ${abbr}${i}() { return this.${abbr}(${i}); }`
-  );
+export function newIncrementDelegateMethods(config: Config, abbr: UtilityName, prop: Prop | Prop[]): UtilityMethod[] {
+  return zeroTo(config.numberOfIncrements).map((i) => {
+    const px = `${i * config.increment}px`;
+    const defs = typeof prop === "string" ? { [prop]: px } : Object.fromEntries(prop.map((prop) => [prop, px]));
+    return `${comment(defs)} get ${abbr}${i}() { return this.${abbr}(${i}); }`;
+  });
 }
 
-export function newPxMethod(abbr: UtilityName): UtilityName {
-  return `${abbr}Px(px: number) { return this.${abbr}(\`\${px}px\`); }`;
+export function newPxMethod(abbr: UtilityName, prop: Prop): UtilityMethod {
+  return `${comment({ [prop]: "px" })} ${abbr}Px(px: number) { return this.${abbr}(\`\${px}px\`); }`;
 }
 
 export const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
@@ -158,4 +138,12 @@ export const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
 /** Keeps numbers as literals, and wraps anything else with double quotes. */
 function maybeWrap(value: unknown): string {
   return typeof value === "number" ? String(value) : `"${value}"`;
+}
+
+export function comment(defs: object): string {
+  const paramNames = ["value", "px", "inc"];
+  const values = Object.entries(defs)
+    .map(([prop, value]) => `${prop}: ${paramNames.includes(value) ? value : maybeWrap(value)}`)
+    .join("; ");
+  return `/** Sets \`${values}\`. */ \n`;
 }

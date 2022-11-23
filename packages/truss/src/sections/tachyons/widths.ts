@@ -10,7 +10,8 @@ export const width: CreateMethodsFn = (config) => [
       w75: "75%",
       w100: "100%",
     },
-    null
+    // Skip `w` here b/c it's created by newIncrementMethods below
+    null,
   ),
 
   ...newMethodsForProp(
@@ -23,7 +24,7 @@ export const width: CreateMethodsFn = (config) => [
       mw100: "100%",
     },
     "mw",
-    true
+    true,
   ),
 
   ...newMethodsForProp(
@@ -36,7 +37,7 @@ export const width: CreateMethodsFn = (config) => [
       maxw100: "100%",
     },
     "maxw",
-    true
+    true,
   ),
 
   ...newIncrementMethods(config, "w", "width"),
