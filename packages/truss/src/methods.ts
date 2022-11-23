@@ -145,5 +145,5 @@ export function comment(defs: object): string {
   const values = Object.entries(defs)
     .map(([prop, value]) => `${prop}: ${paramNames.includes(value) ? value : maybeWrap(value)}`)
     .join("; ");
-  return `/** Sets \`${values}\`. */ \n`;
+  return `/** Sets \`${values}\`. */\n`;
 }
