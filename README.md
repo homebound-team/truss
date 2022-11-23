@@ -28,6 +28,12 @@ Truss lets you:
 
 Also see the "Why This Approach?" section for more rationale.
 
+<p align="center" style="padding: 100px">
+  <img src="truss-example.png" width="400" />
+</p>
+
+
+
 ## Quick Intro
 
 Truss generates a `src/Css.ts` file in your local project; this file exports a `Css` const that you use like:
