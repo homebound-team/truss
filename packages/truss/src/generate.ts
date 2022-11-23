@@ -115,7 +115,7 @@ class CssBuilder<T extends ${Properties}> {
   }
 
   get onHover() {
-    return this.newCss({ selector: "&>:hover" });
+    return this.newCss({ selector: ":hover" });
   }
   
   ${breakpointIfs}

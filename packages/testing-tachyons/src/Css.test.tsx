@@ -202,7 +202,7 @@ describe("Css", () => {
   it("can use hover", () => {
     expect(Css.black.onHover.blue.$).toMatchInlineSnapshot(`
       {
-        "&>:hover": {
+        ":hover": {
           "color": "#526675",
         },
         "color": "#353535",

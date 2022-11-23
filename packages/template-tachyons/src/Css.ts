@@ -1691,7 +1691,7 @@ class CssBuilder<T extends Properties1> {
   }
 
   get onHover() {
-    return this.newCss({ selector: "&>:hover" });
+    return this.newCss({ selector: ":hover" });
   }
 
   get ifPrint() {

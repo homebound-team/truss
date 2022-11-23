@@ -247,6 +247,25 @@ describe("Css.emotion", () => {
       </div>
     `);
   });
+
+  it("can use onHover", () => {
+    const r = render(<div css={Css.mb1.onHover.mb2.$} />);
+    expect(r.container).toMatchInlineSnapshot(`
+      .emotion-0 {
+        margin-bottom: 8px;
+      }
+
+      .emotion-0:hover {
+        margin-bottom: 16px;
+      }
+
+      <div>
+        <div
+          class="emotion-0"
+        />
+      </div>
+    `);
+  });
 });
 
 type FooXss = Xss<Margin>;
