@@ -129,34 +129,63 @@ Unlike Tachyons and Tailwinds, Truss does not create duplicate/repetitive abbrev
 
 Instead of building these complications into the DSL, Truss leverages your CSS-in-JS library's existing psuedo-selector and media query support.
 
-For example, using Emotion you would do hover-specific styling like:
+For example, Emotion allows you to pass selectors keys in a map, so you can add `:hover` styling like:
 
 ```tsx
-/** @jsxImportSource @emotion/react */
-
-function MyReactComponent(props: ...) {
+function MyReactComponent(props: {}) {
   return (
-    <div css={{...Css.mx2.black.$, "&:hover": Css.blue.$ }}>
-      content
+    <div
+      css={{
+        ...Css.mx2.black.$,
+        "&:hover": Css.blue.$,
+      }}
+    >
+      ...
     </div>
   );
 }
 ```
 
-And breakpoints like:
+Or, you can create the same output using Truss's `onHover` command, which adds `{ color: "blue" }` to the same `&:hover` key as in the previous example:
 
 ```tsx
-/** @jsxImportSource @emotion/react */
-import { Css, sm } from "src/Css";
+function MyReactComponent(props: {}) {
+  return <div css={Css.mx2.black.onHover.blue.$}>...</div>;
+}
+```
 
-function MyReactComponent(props: MyProps) {
-  return <div css={{ ...Css.mx2.black.$, [sm]: Css.mx1.$ }}>content</div>;
+You can also use media queries to create responsive breakpoints, again either using Emotion's "pass selectors as a key" syntax directly:
+
+```tsx
+import { Breakpoints } from "src/Css";
+
+function MyReactComponent(props: {}) {
+  return (
+    <div
+      css={{
+        ...Css.mx2.black.$,
+        [Breakpoints.sm]: Css.mx1.$,
+      }}
+    >
+      ...
+    </div>
+  );
 }
 ```
 
 Where `sm` is just a regular media query string, i.e. `@media (max-width: 420px)`, that you can either generate with Truss's `breakpoints` config setting or just write your own by hand.
 
-This leveraging of the existing framework's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
+Or you can use Truss's `ifSm`, `ifMd`, etc. breakpoint commands (which will be based on your application's specific breakpoints defined in `truss-config.ts`):
+
+```tsx
+import { Breakpoints } from "src/Css";
+
+function MyReactComponent(props: {}) {
+  return <div css={Css.mx2.black.ifSm.mx1.$}>...</div>;
+}
+```
+
+This leveraging of the existing library's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
 
 ## Supported CSS-in-JS Frameworks
 
