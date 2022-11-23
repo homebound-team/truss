@@ -1472,11 +1472,13 @@ class CssBuilder<T extends Properties1> {
     return maybeImportant(sortObject(this.rules), this.opts.important);
   }
 
-  if(t: boolean | Breakpoint) {
-    if (typeof t === "boolean") {
-      return this.newCss({ enabled: t });
+  if(bp: Breakpoint): CssBuilder<T>;
+  if(cond: boolean): CssBuilder<T>;
+  if(arg: boolean | Breakpoint): CssBuilder<T> {
+    if (typeof arg === "boolean") {
+      return this.newCss({ enabled: arg });
     } else {
-      return this.newCss({ selector: t as string });
+      return this.newCss({ selector: Breakpoints[arg] });
     }
   }
 
@@ -1602,9 +1604,7 @@ export type Margin = "margin" | "marginTop" | "marginRight" | "marginBottom" | "
 
 export type Padding = "padding" | "paddingTop" | "paddingRight" | "paddingBottom" | "paddingLeft";
 
-type Brand<K, T> = K & { __brand: T };
-type Breakpoint = Brand<string, "Breakpoint">;
-export type BreakpointKey = "print" | "sm" | "md" | "smOrMd" | "mdAndUp" | "mdAndDown" | "lg" | "mdOrLg";
+export type Breakpoint = "print" | "sm" | "md" | "smOrMd" | "mdAndUp" | "mdAndDown" | "lg" | "mdOrLg";
 export enum Breakpoints {
   print = "@media print",
   sm = "@media screen and (max-width:599px)",
@@ -1615,13 +1615,5 @@ export enum Breakpoints {
   lg = "@media screen and (min-width:960px)",
   mdOrLg = "@media screen and (min-width:600px)",
 }
-export const print = "@media print" as Breakpoint;
-export const sm = "@media screen and (max-width:599px)" as Breakpoint;
-export const md = "@media screen and (min-width:600px) and (max-width:959px)" as Breakpoint;
-export const smOrMd = "@media screen and (max-width:959px)" as Breakpoint;
-export const mdAndUp = "@media screen and (min-width:600px)" as Breakpoint;
-export const mdAndDown = "@media screen and (max-width:959px)" as Breakpoint;
-export const lg = "@media screen and (min-width:960px)" as Breakpoint;
-export const mdOrLg = "@media screen and (min-width:600px)" as Breakpoint;
 
 export type CustomType = number;

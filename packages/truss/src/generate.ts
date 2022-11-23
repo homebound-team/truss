@@ -60,15 +60,10 @@ function generateCssBuilder(config: Config): Code {
   const genBreakpoints = makeBreakpoints(breakpoints);
 
   const breakpointCode = [
-    "type Brand<K, T> = K & { __brand: T };",
-    "type Breakpoint = Brand<string, 'Breakpoint'>;",
-    `export type BreakpointKey = ${Object.keys(genBreakpoints).map(quote).join(" | ")};`,
+    `export type Breakpoint = ${Object.keys(genBreakpoints).map(quote).join(" | ")};`,
     `export enum Breakpoints {
-            ${Object.entries(genBreakpoints).map(([name, value]) => {
-              return `${name} = "${value}"`;
-            })}
-            };`,
-    ...Object.entries(genBreakpoints).map(([name, query]) => `export const ${name} = "${query}" as Breakpoint;`),
+       ${Object.entries(genBreakpoints).map(([name, value]) => `${name} = "${value}"`)}
+    };`,
   ];
 
   const breakpointIfs = Object.entries(genBreakpoints).map(([name, value]) => {
@@ -109,11 +104,13 @@ class CssBuilder<T extends ${Properties}> {
   ${lines.join("\n  ").replace(/ +\n/g, "\n")}
   get $(): T { return maybeImportant(sortObject(this.rules), this.opts.important); }
 
-  if(t: boolean | Breakpoint) {
-    if (typeof t === "boolean") {
-      return this.newCss({ enabled: t });
+  if(bp: Breakpoint): CssBuilder<T>;
+  if(cond: boolean): CssBuilder<T>;
+  if(arg: boolean | Breakpoint): CssBuilder<T> {
+    if (typeof arg === "boolean") {
+      return this.newCss({ enabled: arg });
     } else {
-      return this.newCss({ selector: t as string });
+      return this.newCss({ selector: Breakpoints[arg] });
     }
   }
   

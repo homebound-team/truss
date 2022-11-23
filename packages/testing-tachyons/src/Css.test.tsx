@@ -1,5 +1,5 @@
 import React from "react";
-import { Css, Margin, Only, Palette, px, sm, Xss } from "./Css";
+import {Css, Margin, Only, Palette, px, Xss} from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -93,7 +93,20 @@ describe("Css", () => {
   });
 
   it("can use generated breakpoints with if dsl", () => {
-    expect(Css.pb2.white.if(sm).pb3.black.$).toMatchInlineSnapshot(`
+    expect(Css.pb2.white.ifSm.pb3.black.$).toMatchInlineSnapshot(`
+      {
+        "@media screen and (max-width:599px)": {
+          "color": "#353535",
+          "paddingBottom": "24px",
+        },
+        "color": "#fcfcfa",
+        "paddingBottom": "16px",
+      }
+    `);
+  });
+
+  it("can use generated breakpoints with if dsl string", () => {
+    expect(Css.pb2.white.if("sm").pb3.black.$).toMatchInlineSnapshot(`
       {
         "@media screen and (max-width:599px)": {
           "color": "#353535",
@@ -111,7 +124,7 @@ describe("Css", () => {
   });
 
   it("cannot 'else' when using `if(bp)`", () => {
-    expect(() => Css.if(sm).black.else.white.$).toThrow("else is not supported");
+    expect(() => Css.ifSm.black.else.white.$).toThrow("else is not supported");
   });
 
   it("can render with px conversion", () => {
