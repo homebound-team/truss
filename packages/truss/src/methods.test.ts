@@ -14,12 +14,18 @@ describe("methods", () => {
     it("can handle mt", () => {
       expect(newIncrementMethods(config, "mt", "marginTop")).toMatchInlineSnapshot(`
         [
-          "get mt0() { return this.mt(0); }",
-          "get mt1() { return this.mt(1); }",
-          "get mt2() { return this.mt(2); }",
-          "get mt3() { return this.mt(3); }",
-          "mt(inc: number | string) { return this.add("marginTop", maybeInc(inc)); }",
-          "mtPx(px: number) { return this.mt(\`\${px}px\`); }",
+          "/** Sets \`marginTop: "0px"\`. */
+         get mt0() { return this.mt(0); }",
+          "/** Sets \`marginTop: "8px"\`. */
+         get mt1() { return this.mt(1); }",
+          "/** Sets \`marginTop: "16px"\`. */
+         get mt2() { return this.mt(2); }",
+          "/** Sets \`marginTop: "24px"\`. */
+         get mt3() { return this.mt(3); }",
+          "/** Sets \`marginTop: inc\`. */
+         mt(inc: number | string) { return this.add("marginTop", maybeInc(inc)); }",
+          "/** Sets \`marginTop: px\`. */
+         mtPx(px: number) { return this.mt(\`\${px}px\`); }",
         ]
       `);
     });
@@ -27,10 +33,14 @@ describe("methods", () => {
     it("can handle mx", () => {
       expect(newIncrementMethods(config, "mx", ["ml", "mr"])).toMatchInlineSnapshot(`
         [
-          "get mx0() { return this.mx(0); }",
-          "get mx1() { return this.mx(1); }",
-          "get mx2() { return this.mx(2); }",
-          "get mx3() { return this.mx(3); }",
+          "/** Sets \`ml: "0px"; mr: "0px"\`. */
+         get mx0() { return this.mx(0); }",
+          "/** Sets \`ml: "8px"; mr: "8px"\`. */
+         get mx1() { return this.mx(1); }",
+          "/** Sets \`ml: "16px"; mr: "16px"\`. */
+         get mx2() { return this.mx(2); }",
+          "/** Sets \`ml: "24px"; mr: "24px"\`. */
+         get mx3() { return this.mx(3); }",
           "mx(inc: number | string) { return this.ml(inc).mr(inc); }",
           "mxPx(px: number) { return this.mlPx(px).mrPx(px); }",
         ]
@@ -40,10 +50,14 @@ describe("methods", () => {
     it("can handle m", () => {
       expect(newIncrementMethods(config, "m", ["mt", "mr", "mb", "ml"])).toMatchInlineSnapshot(`
         [
-          "get m0() { return this.m(0); }",
-          "get m1() { return this.m(1); }",
-          "get m2() { return this.m(2); }",
-          "get m3() { return this.m(3); }",
+          "/** Sets \`mt: "0px"; mr: "0px"; mb: "0px"; ml: "0px"\`. */
+         get m0() { return this.m(0); }",
+          "/** Sets \`mt: "8px"; mr: "8px"; mb: "8px"; ml: "8px"\`. */
+         get m1() { return this.m(1); }",
+          "/** Sets \`mt: "16px"; mr: "16px"; mb: "16px"; ml: "16px"\`. */
+         get m2() { return this.m(2); }",
+          "/** Sets \`mt: "24px"; mr: "24px"; mb: "24px"; ml: "24px"\`. */
+         get m3() { return this.m(3); }",
           "m(inc: number | string) { return this.mt(inc).mr(inc).mb(inc).ml(inc); }",
           "mPx(px: number) { return this.mtPx(px).mrPx(px).mbPx(px).mlPx(px); }",
         ]

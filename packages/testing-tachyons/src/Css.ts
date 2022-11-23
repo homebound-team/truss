@@ -12,7 +12,6 @@ export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
 type Opts<T> = { rules: T; enabled: boolean; important: boolean; selector: string | undefined };
 
-// prettier-ignore
 class CssBuilder<T extends Properties> {
   constructor(private opts: Opts<T>) {}
 
@@ -30,949 +29,1246 @@ class CssBuilder<T extends Properties> {
   }
 
   // border
+  /** Sets `borderStyle: "solid"; borderWidth: "1px"`. */
   get ba() {
     return this.add("borderStyle", "solid").add("borderWidth", "1px");
   }
+  /** Sets `borderTopStyle: "solid"; borderTopWidth: "1px"`. */
   get bt() {
     return this.add("borderTopStyle", "solid").add("borderTopWidth", "1px");
   }
+  /** Sets `borderRightStyle: "solid"; borderRightWidth: "1px"`. */
   get br() {
     return this.add("borderRightStyle", "solid").add("borderRightWidth", "1px");
   }
+  /** Sets `borderBottomStyle: "solid"; borderBottomWidth: "1px"`. */
   get bb() {
     return this.add("borderBottomStyle", "solid").add("borderBottomWidth", "1px");
   }
+  /** Sets `borderLeftStyle: "solid"; borderLeftWidth: "1px"`. */
   get bl() {
     return this.add("borderLeftStyle", "solid").add("borderLeftWidth", "1px");
   }
+  /** Sets `borderStyle: "none"; borderWidth: "0"`. */
   get bn() {
     return this.add("borderStyle", "none").add("borderWidth", "0");
   }
 
   // borderColor
+  /** Sets `borderColor: "#353535"`. */
   get bBlack() {
     return this.add("borderColor", "#353535");
   }
+  /** Sets `borderColor: "#888888"`. */
   get bMidGray() {
     return this.add("borderColor", "#888888");
   }
+  /** Sets `borderColor: "#cecece"`. */
   get bLightGray() {
     return this.add("borderColor", "#cecece");
   }
+  /** Sets `borderColor: "#fcfcfa"`. */
   get bWhite() {
     return this.add("borderColor", "#fcfcfa");
   }
+  /** Sets `borderColor: "#526675"`. */
   get bBlue() {
     return this.add("borderColor", "#526675");
   }
+  /** Sets `borderColor: "var(--primary)"`. */
   get bPrimary() {
     return this.add("borderColor", "var(--primary)");
   }
+  /** Sets `borderColor: value`. */
   bc(value: Properties["borderColor"]) {
     return this.add("borderColor", value);
   }
 
   // borderRadius
+  /** Sets `borderRadius: "0"`. */
   get br0() {
     return this.add("borderRadius", "0");
   }
+  /** Sets `borderRadius: ".125rem"`. */
   get br1() {
     return this.add("borderRadius", ".125rem");
   }
+  /** Sets `borderRadius: ".25rem"`. */
   get br2() {
     return this.add("borderRadius", ".25rem");
   }
+  /** Sets `borderRadius: ".5rem"`. */
   get br3() {
     return this.add("borderRadius", ".5rem");
   }
+  /** Sets `borderRadius: "1rem"`. */
   get br4() {
     return this.add("borderRadius", "1rem");
   }
+  /** Sets `borderRadius: "100%"`. */
   get br100() {
     return this.add("borderRadius", "100%");
   }
+  /** Sets `borderRadius: "9999px"`. */
   get brPill() {
     return this.add("borderRadius", "9999px");
   }
+  /** Sets `borderRadius: value`. */
   borderRadius(value: Properties["borderRadius"]) {
     return this.add("borderRadius", value);
   }
 
   // borderStyle
+  /** Sets `borderStyle: "dashed"`. */
   get bsDashed() {
     return this.add("borderStyle", "dashed");
   }
+  /** Sets `borderStyle: "dotted"`. */
   get bsDotted() {
     return this.add("borderStyle", "dotted");
   }
+  /** Sets `borderStyle: "none"`. */
   get bsNone() {
     return this.add("borderStyle", "none");
   }
+  /** Sets `borderStyle: "solid"`. */
   get bsSolid() {
     return this.add("borderStyle", "solid");
   }
+  /** Sets `borderStyle: value`. */
   bs(value: Properties["borderStyle"]) {
     return this.add("borderStyle", value);
   }
 
   // borderWidth
+  /** Sets `borderWidth: "1px"`. */
   get bw1() {
     return this.add("borderWidth", "1px");
   }
+  /** Sets `borderWidth: "2px"`. */
   get bw2() {
     return this.add("borderWidth", "2px");
   }
+  /** Sets `borderWidth: value`. */
   bw(value: Properties["borderWidth"]) {
     return this.add("borderWidth", value);
   }
 
   // boxShadow
+  /** Sets `boxShadow: "none"`. */
   get shadowNone() {
     return this.add("boxShadow", "none");
   }
 
   // coordinates
+  /** Sets `top: "0px"`. */
   get top0() {
     return this.top(0);
   }
+  /** Sets `top: "8px"`. */
   get top1() {
     return this.top(1);
   }
+  /** Sets `top: "16px"`. */
   get top2() {
     return this.top(2);
   }
+  /** Sets `top: "24px"`. */
   get top3() {
     return this.top(3);
   }
+  /** Sets `top: "32px"`. */
   get top4() {
     return this.top(4);
   }
+  /** Sets `top: inc`. */
   top(inc: number | string) {
     return this.add("top", maybeInc(inc));
   }
+  /** Sets `top: px`. */
   topPx(px: number) {
     return this.top(`${px}px`);
   }
+  /** Sets `right: "0px"`. */
   get right0() {
     return this.right(0);
   }
+  /** Sets `right: "8px"`. */
   get right1() {
     return this.right(1);
   }
+  /** Sets `right: "16px"`. */
   get right2() {
     return this.right(2);
   }
+  /** Sets `right: "24px"`. */
   get right3() {
     return this.right(3);
   }
+  /** Sets `right: "32px"`. */
   get right4() {
     return this.right(4);
   }
+  /** Sets `right: inc`. */
   right(inc: number | string) {
     return this.add("right", maybeInc(inc));
   }
+  /** Sets `right: px`. */
   rightPx(px: number) {
     return this.right(`${px}px`);
   }
+  /** Sets `bottom: "0px"`. */
   get bottom0() {
     return this.bottom(0);
   }
+  /** Sets `bottom: "8px"`. */
   get bottom1() {
     return this.bottom(1);
   }
+  /** Sets `bottom: "16px"`. */
   get bottom2() {
     return this.bottom(2);
   }
+  /** Sets `bottom: "24px"`. */
   get bottom3() {
     return this.bottom(3);
   }
+  /** Sets `bottom: "32px"`. */
   get bottom4() {
     return this.bottom(4);
   }
+  /** Sets `bottom: inc`. */
   bottom(inc: number | string) {
     return this.add("bottom", maybeInc(inc));
   }
+  /** Sets `bottom: px`. */
   bottomPx(px: number) {
     return this.bottom(`${px}px`);
   }
+  /** Sets `left: "0px"`. */
   get left0() {
     return this.left(0);
   }
+  /** Sets `left: "8px"`. */
   get left1() {
     return this.left(1);
   }
+  /** Sets `left: "16px"`. */
   get left2() {
     return this.left(2);
   }
+  /** Sets `left: "24px"`. */
   get left3() {
     return this.left(3);
   }
+  /** Sets `left: "32px"`. */
   get left4() {
     return this.left(4);
   }
+  /** Sets `left: inc`. */
   left(inc: number | string) {
     return this.add("left", maybeInc(inc));
   }
+  /** Sets `left: px`. */
   leftPx(px: number) {
     return this.left(`${px}px`);
   }
 
   // cursor
+  /** Sets `cursor: "pointer"`. */
   get cursorPointer() {
     return this.add("cursor", "pointer");
   }
+  /** Sets `cursor: "not-allowed"`. */
   get cursorNotAllowed() {
     return this.add("cursor", "not-allowed");
   }
+  /** Sets `cursor: value`. */
   cursor(value: Properties["cursor"]) {
     return this.add("cursor", value);
   }
 
   // display
+  /** Sets `display: "none"`. */
   get dn() {
     return this.add("display", "none");
   }
+  /** Sets `display: "block"`. */
   get db() {
     return this.add("display", "block");
   }
+  /** Sets `display: "inline-block"`. */
   get dib() {
     return this.add("display", "inline-block");
   }
+  /** Sets `display: "inline-table"`. */
   get dit() {
     return this.add("display", "inline-table");
   }
+  /** Sets `display: "table"`. */
   get dt() {
     return this.add("display", "table");
   }
+  /** Sets `display: "table-cell"`. */
   get dtc() {
     return this.add("display", "table-cell");
   }
+  /** Sets `display: "table-row"`. */
   get dtRow() {
     return this.add("display", "table-row");
   }
+  /** Sets `display: "table-column"`. */
   get dtColumn() {
     return this.add("display", "table-column");
   }
+  /** Sets `display: "table-column-group"`. */
   get dtColumnGroup() {
     return this.add("display", "table-column-group");
   }
+  /** Sets `display: "grid"`. */
   get dg() {
     return this.add("display", "grid");
   }
+  /** Sets `display: "inline-grid"`. */
   get dig() {
     return this.add("display", "inline-grid");
   }
+  /** Sets `display: "flex"`. */
   get df() {
     return this.add("display", "flex");
   }
+  /** Sets `display: "inline-flex"`. */
   get dif() {
     return this.add("display", "inline-flex");
   }
+  /** Sets `display: value`. */
   display(value: Properties["display"]) {
     return this.add("display", value);
   }
 
   // flexbox
+  /** Sets `flex: "initial"`. */
   get fi() {
     return this.add("flex", "initial");
   }
+  /** Sets `flex: "auto"`. */
   get fa() {
     return this.add("flex", "auto");
   }
+  /** Sets `flex: "none"`. */
   get fn() {
     return this.add("flex", "none");
   }
+  /** Sets `flex: "1"`. */
   get f1() {
     return this.add("flex", "1");
   }
+  /** Sets `flex: "2"`. */
   get f2() {
     return this.add("flex", "2");
   }
+  /** Sets `flex: "3"`. */
   get f3() {
     return this.add("flex", "3");
   }
+  /** Sets `flex: "4"`. */
   get f4() {
     return this.add("flex", "4");
   }
+  /** Sets `flex: "5"`. */
   get f5() {
     return this.add("flex", "5");
   }
+  /** Sets `flex: value`. */
   f(value: Properties["flex"]) {
     return this.add("flex", value);
   }
+  /** Sets `justifyContent: "flex-start"`. */
   get jcfs() {
     return this.add("justifyContent", "flex-start");
   }
+  /** Sets `justifyContent: "flex-end"`. */
   get jcfe() {
     return this.add("justifyContent", "flex-end");
   }
+  /** Sets `justifyContent: "center"`. */
   get jcc() {
     return this.add("justifyContent", "center");
   }
+  /** Sets `justifyContent: "space-between"`. */
   get jcsb() {
     return this.add("justifyContent", "space-between");
   }
+  /** Sets `justifyContent: "space-around"`. */
   get jcsa() {
     return this.add("justifyContent", "space-around");
   }
+  /** Sets `justifyContent: "space-evenly"`. */
   get jcse() {
     return this.add("justifyContent", "space-evenly");
   }
+  /** Sets `justifyContent: value`. */
   jc(value: Properties["justifyContent"]) {
     return this.add("justifyContent", value);
   }
+  /** Sets `justifyItems: "flex-start"`. */
   get jifs() {
     return this.add("justifyItems", "flex-start");
   }
+  /** Sets `justifyItems: "flex-end"`. */
   get jife() {
     return this.add("justifyItems", "flex-end");
   }
+  /** Sets `justifyItems: "center"`. */
   get jic() {
     return this.add("justifyItems", "center");
   }
+  /** Sets `justifyItems: "space-between"`. */
   get jisb() {
     return this.add("justifyItems", "space-between");
   }
+  /** Sets `justifyItems: "space-around"`. */
   get jisa() {
     return this.add("justifyItems", "space-around");
   }
+  /** Sets `justifyItems: "space-evenly"`. */
   get jise() {
     return this.add("justifyItems", "space-evenly");
   }
+  /** Sets `justifyItems: value`. */
   ji(value: Properties["justifyItems"]) {
     return this.add("justifyItems", value);
   }
+  /** Sets `alignSelf: "flex-start"`. */
   get asfs() {
     return this.add("alignSelf", "flex-start");
   }
+  /** Sets `alignSelf: "flex-end"`. */
   get asfe() {
     return this.add("alignSelf", "flex-end");
   }
+  /** Sets `alignSelf: "center"`. */
   get asc() {
     return this.add("alignSelf", "center");
   }
+  /** Sets `alignSelf: "baseline"`. */
   get asb() {
     return this.add("alignSelf", "baseline");
   }
+  /** Sets `alignSelf: "stretch"`. */
   get asStretch() {
     return this.add("alignSelf", "stretch");
   }
+  /** Sets `alignSelf: value`. */
   as(value: Properties["alignSelf"]) {
     return this.add("alignSelf", value);
   }
+  /** Sets `alignItems: "flex-start"`. */
   get aifs() {
     return this.add("alignItems", "flex-start");
   }
+  /** Sets `alignItems: "flex-end"`. */
   get aife() {
     return this.add("alignItems", "flex-end");
   }
+  /** Sets `alignItems: "center"`. */
   get aic() {
     return this.add("alignItems", "center");
   }
+  /** Sets `alignItems: "baseline"`. */
   get aib() {
     return this.add("alignItems", "baseline");
   }
+  /** Sets `alignItems: "stretch"`. */
   get ais() {
     return this.add("alignItems", "stretch");
   }
+  /** Sets `alignItems: value`. */
   ai(value: Properties["alignItems"]) {
     return this.add("alignItems", value);
   }
+  /** Sets `flexBasis: "100%"`. */
   get fb1() {
     return this.add("flexBasis", "100%");
   }
+  /** Sets `flexBasis: "50%"`. */
   get fb2() {
     return this.add("flexBasis", "50%");
   }
+  /** Sets `flexBasis: "33.333333%"`. */
   get fb3() {
     return this.add("flexBasis", "33.333333%");
   }
+  /** Sets `flexBasis: "25%"`. */
   get fb4() {
     return this.add("flexBasis", "25%");
   }
+  /** Sets `flexBasis: "20%"`. */
   get fb5() {
     return this.add("flexBasis", "20%");
   }
+  /** Sets `flexBasis: "16.666666%"`. */
   get fb6() {
     return this.add("flexBasis", "16.666666%");
   }
+  /** Sets `flexBasis: "14.285714%"`. */
   get fb7() {
     return this.add("flexBasis", "14.285714%");
   }
+  /** Sets `flexBasis: "12.5%"`. */
   get fb0() {
     return this.add("flexBasis", "12.5%");
   }
+  /** Sets `flexBasis: value`. */
   fb(value: Properties["flexBasis"]) {
     return this.add("flexBasis", value);
   }
+  /** Sets `flex: "auto"`. */
   get flexAuto() {
     return this.add("flex", "auto");
   }
+  /** Sets `flex: "none"`. */
   get flexNone() {
     return this.add("flex", "none");
   }
+  /** Sets `flex: value`. */
   flex(value: Properties["flex"]) {
     return this.add("flex", value);
   }
+  /** Sets `flexGrow: 0`. */
   get fg0() {
     return this.add("flexGrow", 0);
   }
+  /** Sets `flexGrow: 1`. */
   get fg1() {
     return this.add("flexGrow", 1);
   }
+  /** Sets `flexGrow: value`. */
   flexGrow(value: Properties["flexGrow"]) {
     return this.add("flexGrow", value);
   }
+  /** Sets `flexShrink: 0`. */
   get fs0() {
     return this.add("flexShrink", 0);
   }
+  /** Sets `flexShrink: 1`. */
   get fs1() {
     return this.add("flexShrink", 1);
   }
+  /** Sets `flexShrink: value`. */
   flexShrink(value: Properties["flexShrink"]) {
     return this.add("flexShrink", value);
   }
+  /** Sets `flexDirection: "row"`. */
   get fdr() {
     return this.add("flexDirection", "row");
   }
+  /** Sets `flexDirection: "row-reverse"`. */
   get fdrr() {
     return this.add("flexDirection", "row-reverse");
   }
+  /** Sets `flexDirection: "column"`. */
   get fdc() {
     return this.add("flexDirection", "column");
   }
+  /** Sets `flexDirection: "column-reverse"`. */
   get fdcr() {
     return this.add("flexDirection", "column-reverse");
   }
+  /** Sets `flexDirection: value`. */
   fd(value: Properties["flexDirection"]) {
     return this.add("flexDirection", value);
   }
 
   // float
+  /** Sets `float: "left"`. */
   get fl() {
     return this.add("float", "left");
   }
+  /** Sets `float: "right"`. */
   get fr() {
     return this.add("float", "right");
   }
+  /** Sets `float: value`. */
   float(value: Properties["float"]) {
     return this.add("float", value);
   }
 
   // fontWeight
+  /** Sets `fontWeight: "normal"`. */
   get normal() {
     return this.add("fontWeight", "normal");
   }
+  /** Sets `fontWeight: "bold"`. */
   get b() {
     return this.add("fontWeight", "bold");
   }
+  /** Sets `fontWeight: 100`. */
   get fw1() {
     return this.add("fontWeight", 100);
   }
+  /** Sets `fontWeight: 200`. */
   get fw2() {
     return this.add("fontWeight", 200);
   }
+  /** Sets `fontWeight: 300`. */
   get fw3() {
     return this.add("fontWeight", 300);
   }
+  /** Sets `fontWeight: 400`. */
   get fw4() {
     return this.add("fontWeight", 400);
   }
+  /** Sets `fontWeight: 500`. */
   get fw5() {
     return this.add("fontWeight", 500);
   }
+  /** Sets `fontWeight: 600`. */
   get fw6() {
     return this.add("fontWeight", 600);
   }
+  /** Sets `fontWeight: 700`. */
   get fw7() {
     return this.add("fontWeight", 700);
   }
+  /** Sets `fontWeight: 800`. */
   get fw8() {
     return this.add("fontWeight", 800);
   }
+  /** Sets `fontWeight: 900`. */
   get fw9() {
     return this.add("fontWeight", 900);
   }
+  /** Sets `fontWeight: value`. */
   fw(value: Properties["fontWeight"]) {
     return this.add("fontWeight", value);
   }
 
   // grid
+  /** Sets `gridTemplateColumns: value`. */
   gtc(value: Properties["gridTemplateColumns"]) {
     return this.add("gridTemplateColumns", value);
   }
+  /** Sets `gridTemplateRows: value`. */
   gtr(value: Properties["gridTemplateRows"]) {
     return this.add("gridTemplateRows", value);
   }
+  /** Sets `gridRow: value`. */
   gr(value: Properties["gridRow"]) {
     return this.add("gridRow", value);
   }
+  /** Sets `gridColumn: value`. */
   gc(value: Properties["gridColumn"]) {
     return this.add("gridColumn", value);
   }
+  /** Sets `gap: "0px"`. */
   get gap0() {
     return this.gap(0);
   }
+  /** Sets `gap: "8px"`. */
   get gap1() {
     return this.gap(1);
   }
+  /** Sets `gap: "16px"`. */
   get gap2() {
     return this.gap(2);
   }
+  /** Sets `gap: "24px"`. */
   get gap3() {
     return this.gap(3);
   }
+  /** Sets `gap: "32px"`. */
   get gap4() {
     return this.gap(4);
   }
+  /** Sets `gap: inc`. */
   gap(inc: number | string) {
     return this.add("gap", maybeInc(inc));
   }
+  /** Sets `gap: px`. */
   gapPx(px: number) {
     return this.gap(`${px}px`);
   }
+  /** Sets `rowGap: "0px"`. */
   get rg0() {
     return this.rg(0);
   }
+  /** Sets `rowGap: "8px"`. */
   get rg1() {
     return this.rg(1);
   }
+  /** Sets `rowGap: "16px"`. */
   get rg2() {
     return this.rg(2);
   }
+  /** Sets `rowGap: "24px"`. */
   get rg3() {
     return this.rg(3);
   }
+  /** Sets `rowGap: "32px"`. */
   get rg4() {
     return this.rg(4);
   }
+  /** Sets `rowGap: inc`. */
   rg(inc: number | string) {
     return this.add("rowGap", maybeInc(inc));
   }
+  /** Sets `rowGap: px`. */
   rgPx(px: number) {
     return this.rg(`${px}px`);
   }
+  /** Sets `columnGap: "0px"`. */
   get cg0() {
     return this.cg(0);
   }
+  /** Sets `columnGap: "8px"`. */
   get cg1() {
     return this.cg(1);
   }
+  /** Sets `columnGap: "16px"`. */
   get cg2() {
     return this.cg(2);
   }
+  /** Sets `columnGap: "24px"`. */
   get cg3() {
     return this.cg(3);
   }
+  /** Sets `columnGap: "32px"`. */
   get cg4() {
     return this.cg(4);
   }
+  /** Sets `columnGap: inc`. */
   cg(inc: number | string) {
     return this.add("columnGap", maybeInc(inc));
   }
+  /** Sets `columnGap: px`. */
   cgPx(px: number) {
     return this.cg(`${px}px`);
   }
 
   // height
+  /** Sets `height: "0px"`. */
   get h0() {
     return this.h(0);
   }
+  /** Sets `height: "8px"`. */
   get h1() {
     return this.h(1);
   }
+  /** Sets `height: "16px"`. */
   get h2() {
     return this.h(2);
   }
+  /** Sets `height: "24px"`. */
   get h3() {
     return this.h(3);
   }
+  /** Sets `height: "32px"`. */
   get h4() {
     return this.h(4);
   }
+  /** Sets `height: inc`. */
   h(inc: number | string) {
     return this.add("height", maybeInc(inc));
   }
+  /** Sets `height: px`. */
   hPx(px: number) {
     return this.h(`${px}px`);
   }
+  /** Sets `height: "25%"`. */
   get h25() {
     return this.add("height", "25%");
   }
+  /** Sets `height: "50%"`. */
   get h50() {
     return this.add("height", "50%");
   }
+  /** Sets `height: "75%"`. */
   get h75() {
     return this.add("height", "75%");
   }
+  /** Sets `height: "100%"`. */
   get h100() {
     return this.add("height", "100%");
   }
+  /** Sets `height: "25vh"`. */
   get vh25() {
     return this.add("height", "25vh");
   }
+  /** Sets `height: "50vh"`. */
   get vh50() {
     return this.add("height", "50vh");
   }
+  /** Sets `height: "75vh"`. */
   get vh75() {
     return this.add("height", "75vh");
   }
+  /** Sets `height: "100vh"`. */
   get vh100() {
     return this.add("height", "100vh");
   }
+  /** Sets `minHeight: 0`. */
   get mh0() {
     return this.add("minHeight", 0);
   }
+  /** Sets `minHeight: "25%"`. */
   get mh25() {
     return this.add("minHeight", "25%");
   }
+  /** Sets `minHeight: "50%"`. */
   get mh50() {
     return this.add("minHeight", "50%");
   }
+  /** Sets `minHeight: "75%"`. */
   get mh75() {
     return this.add("minHeight", "75%");
   }
+  /** Sets `minHeight: "100%"`. */
   get mh100() {
     return this.add("minHeight", "100%");
   }
+  /** Sets `minHeight: "100vh"`. */
   get mvh100() {
     return this.add("minHeight", "100vh");
   }
+  /** Sets `minHeight: value`. */
   mh(value: Properties["minHeight"]) {
     return this.add("minHeight", value);
   }
+  /** Sets `minHeight: px`. */
   mhPx(px: number) {
-    return this.add("minHeight", `${px}px`);
+    return this.mh(`${px}px`);
   }
+  /** Sets `maxHeight: "0"`. */
   get maxh0() {
     return this.add("maxHeight", "0");
   }
+  /** Sets `maxHeight: "25%"`. */
   get maxh25() {
     return this.add("maxHeight", "25%");
   }
+  /** Sets `maxHeight: "50%"`. */
   get maxh50() {
     return this.add("maxHeight", "50%");
   }
+  /** Sets `maxHeight: "75%"`. */
   get maxh75() {
     return this.add("maxHeight", "75%");
   }
+  /** Sets `maxHeight: "100%"`. */
   get maxh100() {
     return this.add("maxHeight", "100%");
   }
+  /** Sets `maxHeight: value`. */
   maxh(value: Properties["maxHeight"]) {
     return this.add("maxHeight", value);
   }
+  /** Sets `maxHeight: px`. */
   maxhPx(px: number) {
     return this.maxh(`${px}px`);
   }
+  /** Sets `height: px; width: px`. */
+
   sqPx(px: number) {
     return this.add("height", `${px}px`).add("width", `${px}px`);
   }
 
   // lineClamp
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 1; textOverflow: "ellipsis"`. */
   get lineClamp1() {
     return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 1).add(
       "textOverflow",
       "ellipsis",
     );
   }
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 2; textOverflow: "ellipsis"`. */
   get lineClamp2() {
     return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 2).add(
       "textOverflow",
       "ellipsis",
     );
   }
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 3; textOverflow: "ellipsis"`. */
   get lineClamp3() {
     return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 3).add(
       "textOverflow",
       "ellipsis",
     );
   }
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 4; textOverflow: "ellipsis"`. */
   get lineClamp4() {
     return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 4).add(
       "textOverflow",
       "ellipsis",
     );
   }
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 5; textOverflow: "ellipsis"`. */
   get lineClamp5() {
     return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 5).add(
       "textOverflow",
       "ellipsis",
     );
   }
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 6; textOverflow: "ellipsis"`. */
   get lineClamp6() {
     return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 6).add(
       "textOverflow",
       "ellipsis",
     );
   }
+  /** Sets `WebkitLineClamp: "unset"`. */
   get lineClampNone() {
     return this.add("WebkitLineClamp", "unset");
   }
 
   // objectFit
+  /** Sets `objectFit: "contain"`. */
   get objectContain() {
     return this.add("objectFit", "contain");
   }
+  /** Sets `objectFit: "cover"`. */
   get objectCover() {
     return this.add("objectFit", "cover");
   }
+  /** Sets `objectFit: "fill"`. */
   get objectFill() {
     return this.add("objectFit", "fill");
   }
+  /** Sets `objectFit: "none"`. */
   get objectNone() {
     return this.add("objectFit", "none");
   }
+  /** Sets `objectFit: "scale-down"`. */
   get objectScaleDown() {
     return this.add("objectFit", "scale-down");
   }
+  /** Sets `objectFit: value`. */
   objectFit(value: Properties["objectFit"]) {
     return this.add("objectFit", value);
   }
 
   // outline
+  /** Sets `outline: "1px solid"`. */
   get outline1() {
     return this.add("outline", "1px solid");
   }
+  /** Sets `outline: "1px solid transparent"`. */
   get outlineTransparent() {
     return this.add("outline", "1px solid transparent");
   }
+  /** Sets `outline: "0"`. */
   get outline0() {
     return this.add("outline", "0");
   }
+  /** Sets `outline: value`. */
   outline(value: Properties["outline"]) {
     return this.add("outline", value);
   }
 
   // overflow
+  /** Sets `overflow: "visible"`. */
   get overflowVisible() {
     return this.add("overflow", "visible");
   }
+  /** Sets `overflow: "hidden"`. */
   get overflowHidden() {
     return this.add("overflow", "hidden");
   }
+  /** Sets `overflow: "scroll"`. */
   get overflowScroll() {
     return this.add("overflow", "scroll");
   }
+  /** Sets `overflow: "auto"`. */
   get overflowAuto() {
     return this.add("overflow", "auto");
   }
+  /** Sets `overflow: value`. */
   overflow(value: Properties["overflow"]) {
     return this.add("overflow", value);
   }
+  /** Sets `overflowY: "visible"`. */
   get overflowYVisible() {
     return this.add("overflowY", "visible");
   }
+  /** Sets `overflowY: "hidden"`. */
   get overflowYHidden() {
     return this.add("overflowY", "hidden");
   }
+  /** Sets `overflowY: "scroll"`. */
   get overflowYScroll() {
     return this.add("overflowY", "scroll");
   }
+  /** Sets `overflowY: "auto"`. */
   get overflowYAuto() {
     return this.add("overflowY", "auto");
   }
+  /** Sets `overflowY: value`. */
   overflowY(value: Properties["overflowY"]) {
     return this.add("overflowY", value);
   }
+  /** Sets `overflowX: "visible"`. */
   get overflowXVisible() {
     return this.add("overflowX", "visible");
   }
+  /** Sets `overflowX: "hidden"`. */
   get overflowXHidden() {
     return this.add("overflowX", "hidden");
   }
+  /** Sets `overflowX: "scroll"`. */
   get overflowXScroll() {
     return this.add("overflowX", "scroll");
   }
+  /** Sets `overflowX: "auto"`. */
   get overflowXAuto() {
     return this.add("overflowX", "auto");
   }
+  /** Sets `overflowX: value`. */
   overflowX(value: Properties["overflowX"]) {
     return this.add("overflowX", value);
   }
 
   // position
+  /** Sets `position: "absolute"`. */
   get absolute() {
     return this.add("position", "absolute");
   }
+  /** Sets `position: "fixed"`. */
   get fixed() {
     return this.add("position", "fixed");
   }
+  /** Sets `position: "static"`. */
   get static() {
     return this.add("position", "static");
   }
+  /** Sets `position: "relative"`. */
   get relative() {
     return this.add("position", "relative");
   }
+  /** Sets `position: "sticky"`. */
   get sticky() {
     return this.add("position", "sticky");
   }
+  /** Sets `position: value`. */
   position(value: Properties["position"]) {
     return this.add("position", value);
   }
 
   // skins
+  /** Sets `color: "#353535"`. */
   get black() {
     return this.add("color", "#353535");
   }
+  /** Sets `color: "#888888"`. */
   get midGray() {
     return this.add("color", "#888888");
   }
+  /** Sets `color: "#cecece"`. */
   get lightGray() {
     return this.add("color", "#cecece");
   }
+  /** Sets `color: "#fcfcfa"`. */
   get white() {
     return this.add("color", "#fcfcfa");
   }
+  /** Sets `color: "#526675"`. */
   get blue() {
     return this.add("color", "#526675");
   }
+  /** Sets `color: "var(--primary)"`. */
   get primary() {
     return this.add("color", "var(--primary)");
   }
+  /** Sets `color: value`. */
   color(value: Properties["color"]) {
     return this.add("color", value);
   }
+  /** Sets `backgroundColor: "#353535"`. */
   get bgBlack() {
     return this.add("backgroundColor", "#353535");
   }
+  /** Sets `backgroundColor: "#888888"`. */
   get bgMidGray() {
     return this.add("backgroundColor", "#888888");
   }
+  /** Sets `backgroundColor: "#cecece"`. */
   get bgLightGray() {
     return this.add("backgroundColor", "#cecece");
   }
+  /** Sets `backgroundColor: "#fcfcfa"`. */
   get bgWhite() {
     return this.add("backgroundColor", "#fcfcfa");
   }
+  /** Sets `backgroundColor: "#526675"`. */
   get bgBlue() {
     return this.add("backgroundColor", "#526675");
   }
+  /** Sets `backgroundColor: "var(--primary)"`. */
   get bgPrimary() {
     return this.add("backgroundColor", "var(--primary)");
   }
+  /** Sets `backgroundColor: value`. */
   bgColor(value: Properties["backgroundColor"]) {
     return this.add("backgroundColor", value);
   }
+  /** Sets `fill: "#353535"`. */
   get fBlack() {
     return this.add("fill", "#353535");
   }
+  /** Sets `fill: "#888888"`. */
   get fMidGray() {
     return this.add("fill", "#888888");
   }
+  /** Sets `fill: "#cecece"`. */
   get fLightGray() {
     return this.add("fill", "#cecece");
   }
+  /** Sets `fill: "#fcfcfa"`. */
   get fWhite() {
     return this.add("fill", "#fcfcfa");
   }
+  /** Sets `fill: "#526675"`. */
   get fBlue() {
     return this.add("fill", "#526675");
   }
+  /** Sets `fill: "var(--primary)"`. */
   get fPrimary() {
     return this.add("fill", "var(--primary)");
   }
+  /** Sets `fill: value`. */
   fill(value: Properties["fill"]) {
     return this.add("fill", value);
   }
 
   // spacing
+  /** Sets `marginTop: "0px"`. */
   get mt0() {
     return this.mt(0);
   }
+  /** Sets `marginTop: "8px"`. */
   get mt1() {
     return this.mt(1);
   }
+  /** Sets `marginTop: "16px"`. */
   get mt2() {
     return this.mt(2);
   }
+  /** Sets `marginTop: "24px"`. */
   get mt3() {
     return this.mt(3);
   }
+  /** Sets `marginTop: "32px"`. */
   get mt4() {
     return this.mt(4);
   }
+  /** Sets `marginTop: inc`. */
   mt(inc: number | string) {
     return this.add("marginTop", maybeInc(inc));
   }
+  /** Sets `marginTop: px`. */
   mtPx(px: number) {
     return this.mt(`${px}px`);
   }
+  /** Sets `marginRight: "0px"`. */
   get mr0() {
     return this.mr(0);
   }
+  /** Sets `marginRight: "8px"`. */
   get mr1() {
     return this.mr(1);
   }
+  /** Sets `marginRight: "16px"`. */
   get mr2() {
     return this.mr(2);
   }
+  /** Sets `marginRight: "24px"`. */
   get mr3() {
     return this.mr(3);
   }
+  /** Sets `marginRight: "32px"`. */
   get mr4() {
     return this.mr(4);
   }
+  /** Sets `marginRight: inc`. */
   mr(inc: number | string) {
     return this.add("marginRight", maybeInc(inc));
   }
+  /** Sets `marginRight: px`. */
   mrPx(px: number) {
     return this.mr(`${px}px`);
   }
+  /** Sets `marginBottom: "0px"`. */
   get mb0() {
     return this.mb(0);
   }
+  /** Sets `marginBottom: "8px"`. */
   get mb1() {
     return this.mb(1);
   }
+  /** Sets `marginBottom: "16px"`. */
   get mb2() {
     return this.mb(2);
   }
+  /** Sets `marginBottom: "24px"`. */
   get mb3() {
     return this.mb(3);
   }
+  /** Sets `marginBottom: "32px"`. */
   get mb4() {
     return this.mb(4);
   }
+  /** Sets `marginBottom: inc`. */
   mb(inc: number | string) {
     return this.add("marginBottom", maybeInc(inc));
   }
+  /** Sets `marginBottom: px`. */
   mbPx(px: number) {
     return this.mb(`${px}px`);
   }
+  /** Sets `marginLeft: "0px"`. */
   get ml0() {
     return this.ml(0);
   }
+  /** Sets `marginLeft: "8px"`. */
   get ml1() {
     return this.ml(1);
   }
+  /** Sets `marginLeft: "16px"`. */
   get ml2() {
     return this.ml(2);
   }
+  /** Sets `marginLeft: "24px"`. */
   get ml3() {
     return this.ml(3);
   }
+  /** Sets `marginLeft: "32px"`. */
   get ml4() {
     return this.ml(4);
   }
+  /** Sets `marginLeft: inc`. */
   ml(inc: number | string) {
     return this.add("marginLeft", maybeInc(inc));
   }
+  /** Sets `marginLeft: px`. */
   mlPx(px: number) {
     return this.ml(`${px}px`);
   }
+  /** Sets `ml: "0px"; mr: "0px"`. */
   get mx0() {
     return this.mx(0);
   }
+  /** Sets `ml: "8px"; mr: "8px"`. */
   get mx1() {
     return this.mx(1);
   }
+  /** Sets `ml: "16px"; mr: "16px"`. */
   get mx2() {
     return this.mx(2);
   }
+  /** Sets `ml: "24px"; mr: "24px"`. */
   get mx3() {
     return this.mx(3);
   }
+  /** Sets `ml: "32px"; mr: "32px"`. */
   get mx4() {
     return this.mx(4);
   }
@@ -982,18 +1278,23 @@ class CssBuilder<T extends Properties> {
   mxPx(px: number) {
     return this.mlPx(px).mrPx(px);
   }
+  /** Sets `mt: "0px"; mb: "0px"`. */
   get my0() {
     return this.my(0);
   }
+  /** Sets `mt: "8px"; mb: "8px"`. */
   get my1() {
     return this.my(1);
   }
+  /** Sets `mt: "16px"; mb: "16px"`. */
   get my2() {
     return this.my(2);
   }
+  /** Sets `mt: "24px"; mb: "24px"`. */
   get my3() {
     return this.my(3);
   }
+  /** Sets `mt: "32px"; mb: "32px"`. */
   get my4() {
     return this.my(4);
   }
@@ -1003,18 +1304,23 @@ class CssBuilder<T extends Properties> {
   myPx(px: number) {
     return this.mtPx(px).mbPx(px);
   }
+  /** Sets `mt: "0px"; mb: "0px"; mr: "0px"; ml: "0px"`. */
   get m0() {
     return this.m(0);
   }
+  /** Sets `mt: "8px"; mb: "8px"; mr: "8px"; ml: "8px"`. */
   get m1() {
     return this.m(1);
   }
+  /** Sets `mt: "16px"; mb: "16px"; mr: "16px"; ml: "16px"`. */
   get m2() {
     return this.m(2);
   }
+  /** Sets `mt: "24px"; mb: "24px"; mr: "24px"; ml: "24px"`. */
   get m3() {
     return this.m(3);
   }
+  /** Sets `mt: "32px"; mb: "32px"; mr: "32px"; ml: "32px"`. */
   get m4() {
     return this.m(4);
   }
@@ -1024,102 +1330,135 @@ class CssBuilder<T extends Properties> {
   mPx(px: number) {
     return this.mtPx(px).mbPx(px).mrPx(px).mlPx(px);
   }
+  /** Sets `paddingTop: "0px"`. */
   get pt0() {
     return this.pt(0);
   }
+  /** Sets `paddingTop: "8px"`. */
   get pt1() {
     return this.pt(1);
   }
+  /** Sets `paddingTop: "16px"`. */
   get pt2() {
     return this.pt(2);
   }
+  /** Sets `paddingTop: "24px"`. */
   get pt3() {
     return this.pt(3);
   }
+  /** Sets `paddingTop: "32px"`. */
   get pt4() {
     return this.pt(4);
   }
+  /** Sets `paddingTop: inc`. */
   pt(inc: number | string) {
     return this.add("paddingTop", maybeInc(inc));
   }
+  /** Sets `paddingTop: px`. */
   ptPx(px: number) {
     return this.pt(`${px}px`);
   }
+  /** Sets `paddingRight: "0px"`. */
   get pr0() {
     return this.pr(0);
   }
+  /** Sets `paddingRight: "8px"`. */
   get pr1() {
     return this.pr(1);
   }
+  /** Sets `paddingRight: "16px"`. */
   get pr2() {
     return this.pr(2);
   }
+  /** Sets `paddingRight: "24px"`. */
   get pr3() {
     return this.pr(3);
   }
+  /** Sets `paddingRight: "32px"`. */
   get pr4() {
     return this.pr(4);
   }
+  /** Sets `paddingRight: inc`. */
   pr(inc: number | string) {
     return this.add("paddingRight", maybeInc(inc));
   }
+  /** Sets `paddingRight: px`. */
   prPx(px: number) {
     return this.pr(`${px}px`);
   }
+  /** Sets `paddingBottom: "0px"`. */
   get pb0() {
     return this.pb(0);
   }
+  /** Sets `paddingBottom: "8px"`. */
   get pb1() {
     return this.pb(1);
   }
+  /** Sets `paddingBottom: "16px"`. */
   get pb2() {
     return this.pb(2);
   }
+  /** Sets `paddingBottom: "24px"`. */
   get pb3() {
     return this.pb(3);
   }
+  /** Sets `paddingBottom: "32px"`. */
   get pb4() {
     return this.pb(4);
   }
+  /** Sets `paddingBottom: inc`. */
   pb(inc: number | string) {
     return this.add("paddingBottom", maybeInc(inc));
   }
+  /** Sets `paddingBottom: px`. */
   pbPx(px: number) {
     return this.pb(`${px}px`);
   }
+  /** Sets `paddingLeft: "0px"`. */
   get pl0() {
     return this.pl(0);
   }
+  /** Sets `paddingLeft: "8px"`. */
   get pl1() {
     return this.pl(1);
   }
+  /** Sets `paddingLeft: "16px"`. */
   get pl2() {
     return this.pl(2);
   }
+  /** Sets `paddingLeft: "24px"`. */
   get pl3() {
     return this.pl(3);
   }
+  /** Sets `paddingLeft: "32px"`. */
   get pl4() {
     return this.pl(4);
   }
+  /** Sets `paddingLeft: inc`. */
   pl(inc: number | string) {
     return this.add("paddingLeft", maybeInc(inc));
   }
+  /** Sets `paddingLeft: px`. */
   plPx(px: number) {
     return this.pl(`${px}px`);
   }
+  /** Sets `pl: "0px"; pr: "0px"`. */
   get px0() {
     return this.px(0);
   }
+  /** Sets `pl: "8px"; pr: "8px"`. */
   get px1() {
     return this.px(1);
   }
+  /** Sets `pl: "16px"; pr: "16px"`. */
   get px2() {
     return this.px(2);
   }
+  /** Sets `pl: "24px"; pr: "24px"`. */
   get px3() {
     return this.px(3);
   }
+  /** Sets `pl: "32px"; pr: "32px"`. */
   get px4() {
     return this.px(4);
   }
@@ -1129,18 +1468,23 @@ class CssBuilder<T extends Properties> {
   pxPx(px: number) {
     return this.plPx(px).prPx(px);
   }
+  /** Sets `pt: "0px"; pb: "0px"`. */
   get py0() {
     return this.py(0);
   }
+  /** Sets `pt: "8px"; pb: "8px"`. */
   get py1() {
     return this.py(1);
   }
+  /** Sets `pt: "16px"; pb: "16px"`. */
   get py2() {
     return this.py(2);
   }
+  /** Sets `pt: "24px"; pb: "24px"`. */
   get py3() {
     return this.py(3);
   }
+  /** Sets `pt: "32px"; pb: "32px"`. */
   get py4() {
     return this.py(4);
   }
@@ -1150,18 +1494,23 @@ class CssBuilder<T extends Properties> {
   pyPx(px: number) {
     return this.ptPx(px).pbPx(px);
   }
+  /** Sets `pt: "0px"; pb: "0px"; pr: "0px"; pl: "0px"`. */
   get p0() {
     return this.p(0);
   }
+  /** Sets `pt: "8px"; pb: "8px"; pr: "8px"; pl: "8px"`. */
   get p1() {
     return this.p(1);
   }
+  /** Sets `pt: "16px"; pb: "16px"; pr: "16px"; pl: "16px"`. */
   get p2() {
     return this.p(2);
   }
+  /** Sets `pt: "24px"; pb: "24px"; pr: "24px"; pl: "24px"`. */
   get p3() {
     return this.p(3);
   }
+  /** Sets `pt: "32px"; pb: "32px"; pr: "32px"; pl: "32px"`. */
   get p4() {
     return this.p(4);
   }
@@ -1173,288 +1522,375 @@ class CssBuilder<T extends Properties> {
   }
 
   // textAlign
+  /** Sets `textAlign: "left"`. */
   get tl() {
     return this.add("textAlign", "left");
   }
+  /** Sets `textAlign: "center"`. */
   get tc() {
     return this.add("textAlign", "center");
   }
+  /** Sets `textAlign: "right"`. */
   get tr() {
     return this.add("textAlign", "right");
   }
+  /** Sets `textAlign: "justify"`. */
   get tj() {
     return this.add("textAlign", "justify");
   }
+  /** Sets `textAlign: value`. */
   ta(value: Properties["textAlign"]) {
     return this.add("textAlign", value);
   }
 
   // textDecoration
+  /** Sets `textDecoration: "none"`. */
   get noUnderline() {
     return this.add("textDecoration", "none");
   }
+  /** Sets `textDecoration: "line-through"`. */
   get strike() {
     return this.add("textDecoration", "line-through");
   }
+  /** Sets `textDecoration: "underline"`. */
   get underline() {
     return this.add("textDecoration", "underline");
   }
+  /** Sets `textDecoration: value`. */
   textDecoration(value: Properties["textDecoration"]) {
     return this.add("textDecoration", value);
   }
 
   // textTransform
+  /** Sets `textTransform: "capitalize"`. */
   get ttc() {
     return this.add("textTransform", "capitalize");
   }
+  /** Sets `textTransform: "lowercase"`. */
   get ttl() {
     return this.add("textTransform", "lowercase");
   }
+  /** Sets `textTransform: "uppercase"`. */
   get ttu() {
     return this.add("textTransform", "uppercase");
   }
+  /** Sets `textTransform: "none"`. */
   get ttn() {
     return this.add("textTransform", "none");
   }
+  /** Sets `textTransform: value`. */
   tt(value: Properties["textTransform"]) {
     return this.add("textTransform", value);
   }
 
   // typeScale
+  /** Sets `fontSize: "24px"`. */
   get f24() {
     return this.add("fontSize", "24px");
   }
+  /** Sets `fontSize: "18px"`. */
   get f18() {
     return this.add("fontSize", "18px");
   }
+  /** Sets `fontSize: "16px"`. */
   get f16() {
     return this.add("fontSize", "16px");
   }
+  /** Sets `fontSize: "14px"`. */
   get f14() {
     return this.add("fontSize", "14px");
   }
+  /** Sets `fontSize: "12px"`. */
   get f12() {
     return this.add("fontSize", "12px");
   }
+  /** Sets `fontSize: "10px"; fontWeight: 500`. */
   get f10() {
     return this.add("fontSize", "10px").add("fontWeight", 500);
   }
 
   // typography
+  /** Sets `maxWidth: "30em"`. */
   get measure() {
     return this.add("maxWidth", "30em");
   }
+  /** Sets `maxWidth: "34em"`. */
   get measureWide() {
     return this.add("maxWidth", "34em");
   }
+  /** Sets `maxWidth: "20em"`. */
   get measureNarrow() {
     return this.add("maxWidth", "20em");
   }
+  /** Sets `textIndent: "1em"; marginTop: 0; marginBottom: 0`. */
   get indent() {
     return this.add("textIndent", "1em").add("marginTop", 0).add("marginBottom", 0);
   }
+  /** Sets `fontVariant: "small-caps"`. */
   get smallCaps() {
     return this.add("fontVariant", "small-caps");
   }
+  /** Sets `whiteSpace: "nowrap"; overflow: "hidden"; textOverflow: "ellipsis"`. */
   get truncate() {
     return this.add("whiteSpace", "nowrap").add("overflow", "hidden").add("textOverflow", "ellipsis");
   }
+  /** Sets `lineHeight: value`. */
   lh(value: Properties["lineHeight"]) {
     return this.add("lineHeight", value);
   }
 
   // userSelect
+  /** Sets `userSelect: "none"`. */
   get selectNone() {
     return this.add("userSelect", "none");
   }
+  /** Sets `userSelect: "text"`. */
   get selectText() {
     return this.add("userSelect", "text");
   }
+  /** Sets `userSelect: "all"`. */
   get selectAll() {
     return this.add("userSelect", "all");
   }
+  /** Sets `userSelect: "auto"`. */
   get selectAuto() {
     return this.add("userSelect", "auto");
   }
+  /** Sets `userSelect: value`. */
   select(value: Properties["userSelect"]) {
     return this.add("userSelect", value);
   }
 
   // verticalAlign
+  /** Sets `verticalAlign: "baseline"`. */
   get vBase() {
     return this.add("verticalAlign", "baseline");
   }
+  /** Sets `verticalAlign: "middle"`. */
   get vMid() {
     return this.add("verticalAlign", "middle");
   }
+  /** Sets `verticalAlign: "top"`. */
   get vTop() {
     return this.add("verticalAlign", "top");
   }
+  /** Sets `verticalAlign: "bottom"`. */
   get vBottom() {
     return this.add("verticalAlign", "bottom");
   }
+  /** Sets `verticalAlign: value`. */
   va(value: Properties["verticalAlign"]) {
     return this.add("verticalAlign", value);
   }
 
   // visibility
+  /** Sets `visibility: "visible"`. */
   get visible() {
     return this.add("visibility", "visible");
   }
+  /** Sets `visibility: "hidden"`. */
   get invisible() {
     return this.add("visibility", "hidden");
   }
+  /** Sets `visibility: value`. */
   visibility(value: Properties["visibility"]) {
     return this.add("visibility", value);
   }
 
   // whitespace
+  /** Sets `whiteSpace: "nowrap"`. */
   get nowrap() {
     return this.add("whiteSpace", "nowrap");
   }
+  /** Sets `whiteSpace: "pre"`. */
   get pre() {
     return this.add("whiteSpace", "pre");
   }
+  /** Sets `whiteSpace: "normal"`. */
   get wsNormal() {
     return this.add("whiteSpace", "normal");
   }
+  /** Sets `whiteSpace: value`. */
   whiteSpace(value: Properties["whiteSpace"]) {
     return this.add("whiteSpace", value);
   }
 
   // width
+  /** Sets `width: "25%"`. */
   get w25() {
     return this.add("width", "25%");
   }
+  /** Sets `width: "50%"`. */
   get w50() {
     return this.add("width", "50%");
   }
+  /** Sets `width: "75%"`. */
   get w75() {
     return this.add("width", "75%");
   }
+  /** Sets `width: "100%"`. */
   get w100() {
     return this.add("width", "100%");
   }
+  /** Sets `minWidth: 0`. */
   get mw0() {
     return this.add("minWidth", 0);
   }
+  /** Sets `minWidth: "25%"`. */
   get mw25() {
     return this.add("minWidth", "25%");
   }
+  /** Sets `minWidth: "50%"`. */
   get mw50() {
     return this.add("minWidth", "50%");
   }
+  /** Sets `minWidth: "75%"`. */
   get mw75() {
     return this.add("minWidth", "75%");
   }
+  /** Sets `minWidth: "100%"`. */
   get mw100() {
     return this.add("minWidth", "100%");
   }
+  /** Sets `minWidth: value`. */
   mw(value: Properties["minWidth"]) {
     return this.add("minWidth", value);
   }
+  /** Sets `minWidth: px`. */
   mwPx(px: number) {
     return this.mw(`${px}px`);
   }
+  /** Sets `maxWidth: "0"`. */
   get maxw0() {
     return this.add("maxWidth", "0");
   }
+  /** Sets `maxWidth: "25%"`. */
   get maxw25() {
     return this.add("maxWidth", "25%");
   }
+  /** Sets `maxWidth: "50%"`. */
   get maxw50() {
     return this.add("maxWidth", "50%");
   }
+  /** Sets `maxWidth: "75%"`. */
   get maxw75() {
     return this.add("maxWidth", "75%");
   }
+  /** Sets `maxWidth: "100%"`. */
   get maxw100() {
     return this.add("maxWidth", "100%");
   }
+  /** Sets `maxWidth: value`. */
   maxw(value: Properties["maxWidth"]) {
     return this.add("maxWidth", value);
   }
+  /** Sets `maxWidth: px`. */
   maxwPx(px: number) {
     return this.maxw(`${px}px`);
   }
+  /** Sets `width: "0px"`. */
   get w0() {
     return this.w(0);
   }
+  /** Sets `width: "8px"`. */
   get w1() {
     return this.w(1);
   }
+  /** Sets `width: "16px"`. */
   get w2() {
     return this.w(2);
   }
+  /** Sets `width: "24px"`. */
   get w3() {
     return this.w(3);
   }
+  /** Sets `width: "32px"`. */
   get w4() {
     return this.w(4);
   }
+  /** Sets `width: inc`. */
   w(inc: number | string) {
     return this.add("width", maybeInc(inc));
   }
+  /** Sets `width: px`. */
   wPx(px: number) {
     return this.w(`${px}px`);
   }
 
   // wordBreak
+  /** Sets `wordBreak: "normal"`. */
   get breakNormal() {
     return this.add("wordBreak", "normal");
   }
+  /** Sets `wordBreak: "break-all"`. */
   get breakAll() {
     return this.add("wordBreak", "break-all");
   }
+  /** Sets `wordBreak: "keep-all"`. */
   get breakKeepAll() {
     return this.add("wordBreak", "keep-all");
   }
+  /** Sets `wordBreak: "break-word"`. */
   get breakWord() {
     return this.add("wordBreak", "break-word");
   }
+  /** Sets `wordBreak: value`. */
   wordBreak(value: Properties["wordBreak"]) {
     return this.add("wordBreak", value);
   }
 
   // zIndex
+  /** Sets `zIndex: 0`. */
   get z0() {
     return this.add("zIndex", 0);
   }
+  /** Sets `zIndex: 1`. */
   get z1() {
     return this.add("zIndex", 1);
   }
+  /** Sets `zIndex: 2`. */
   get z2() {
     return this.add("zIndex", 2);
   }
+  /** Sets `zIndex: 3`. */
   get z3() {
     return this.add("zIndex", 3);
   }
+  /** Sets `zIndex: 4`. */
   get z4() {
     return this.add("zIndex", 4);
   }
+  /** Sets `zIndex: 5`. */
   get z5() {
     return this.add("zIndex", 5);
   }
+  /** Sets `zIndex: 999`. */
   get z999() {
     return this.add("zIndex", 999);
   }
+  /** Sets `zIndex: 9999`. */
   get z9999() {
     return this.add("zIndex", 9999);
   }
+  /** Sets `zIndex: "inherit"`. */
   get zInherit() {
     return this.add("zIndex", "inherit");
   }
+  /** Sets `zIndex: "initial"`. */
   get zInitial() {
     return this.add("zIndex", "initial");
   }
+  /** Sets `zIndex: "unset"`. */
   get zUnset() {
     return this.add("zIndex", "unset");
   }
+  /** Sets `zIndex: value`. */
   z(value: Properties["zIndex"]) {
     return this.add("zIndex", value);
   }
 
   // customStuff
+  /** Sets `color: "#000000"`. */
   get foo() {
     return this.add("color", "#000000");
   }
@@ -1463,6 +1899,7 @@ class CssBuilder<T extends Properties> {
   get setVars() {
     return this.add("--primary" as any, "#000000");
   }
+  /** Sets `color: "var(--primary)"`. */
   get var() {
     return this.add("color", "var(--primary)");
   }
