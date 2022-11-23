@@ -1,3 +1,10 @@
+# [1.119.0](https://github.com/homebound-team/truss/compare/v1.118.0...v1.119.0) (2022-11-23)
+
+
+### Features
+
+* Simplify the exported Properties type. ([#88](https://github.com/homebound-team/truss/issues/88)) ([4570ff3](https://github.com/homebound-team/truss/commit/4570ff333635c5380a236343d9bfee0cc55f40ac))
+
 # [1.118.0](https://github.com/homebound-team/truss/compare/v1.117.0...v1.118.0) (2022-11-23)
 
 

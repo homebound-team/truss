@@ -1,6 +1,6 @@
 {
   "name": "truss",
-  "version": "1.118.0",
+  "version": "1.119.0",
   "license": "ISC",
   "scripts": {
     "build": "ttsc --build",
