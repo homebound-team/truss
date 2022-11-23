@@ -1,3 +1,10 @@
+# [1.117.0](https://github.com/homebound-team/truss/compare/v1.116.0...v1.117.0) (2022-11-23)
+
+
+### Features
+
+* Add onHover. ([#86](https://github.com/homebound-team/truss/issues/86)) ([fc8e73a](https://github.com/homebound-team/truss/commit/fc8e73a88a048999e0303de7a491775e6945b9e6))
+
 # [1.116.0](https://github.com/homebound-team/truss/compare/v1.115.0...v1.116.0) (2022-11-23)
 
 
