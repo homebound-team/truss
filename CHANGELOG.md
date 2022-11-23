@@ -1,3 +1,10 @@
+# [1.118.0](https://github.com/homebound-team/truss/compare/v1.117.0...v1.118.0) (2022-11-23)
+
+
+### Features
+
+* Add sqPx for setting w and h. ([#87](https://github.com/homebound-team/truss/issues/87)) ([74b3f1d](https://github.com/homebound-team/truss/commit/74b3f1dc459c2e3b7a0e43f42758779256d139e8))
+
 # [1.117.0](https://github.com/homebound-team/truss/compare/v1.116.0...v1.117.0) (2022-11-23)
 
 
