@@ -1,3 +1,10 @@
+# [1.116.0](https://github.com/homebound-team/truss/compare/v1.115.0...v1.116.0) (2022-11-23)
+
+
+### Features
+
+* Add if<breakpoint> methods. ([#85](https://github.com/homebound-team/truss/issues/85)) ([591cc3e](https://github.com/homebound-team/truss/commit/591cc3e524018310a235d9d33d9a23892edfb802))
+
 # [1.115.0](https://github.com/homebound-team/truss/compare/v1.114.0...v1.115.0) (2022-10-29)
 
 
