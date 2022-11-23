@@ -91,7 +91,6 @@ type Opts<T> = {
   selector: string | undefined
 };
 
-// dprint-ignore
 class CssBuilder<T extends Properties> {
   constructor(private opts: Opts<T>) {}
 

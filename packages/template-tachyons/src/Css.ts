@@ -12,7 +12,6 @@ export type Typography = "f10" | "f12" | "f14" | "f24" | "tiny";
 
 type Opts<T> = { rules: T; enabled: boolean; important: boolean; selector: string | undefined };
 
-// dprint-ignore
 class CssBuilder<T extends Properties> {
   constructor(private opts: Opts<T>) {}
 
