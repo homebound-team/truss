@@ -113,6 +113,10 @@ class CssBuilder<T extends ${Properties}> {
       return this.newCss({ selector: Breakpoints[arg] });
     }
   }
+
+  get onHover() {
+    return this.newCss({ selector: "&>:hover" });
+  }
   
   ${breakpointIfs}
 

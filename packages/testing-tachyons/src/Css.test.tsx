@@ -1,5 +1,5 @@
 import React from "react";
-import {Css, Margin, Only, Palette, px, Xss} from "./Css";
+import { Css, Margin, Only, Palette, px, Xss } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -192,6 +192,17 @@ describe("Css", () => {
     expect(Css.black.ifMd.blue.$).toMatchInlineSnapshot(`
       {
         "@media screen and (min-width:600px) and (max-width:959px)": {
+          "color": "#526675",
+        },
+        "color": "#353535",
+      }
+    `);
+  });
+
+  it("can use hover", () => {
+    expect(Css.black.onHover.blue.$).toMatchInlineSnapshot(`
+      {
+        "&>:hover": {
           "color": "#526675",
         },
         "color": "#353535",
