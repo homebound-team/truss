@@ -26,13 +26,15 @@ Truss lets you:
 
 - Tachyons-based abbreviations for the "best" inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
 
+- Strongly-typed using vanilla TypeScript
+
 Also see the "Why This Approach?" section for more rationale.
 
+Here's an example of production code using Truss:
+
 <p align="center" style="padding: 100px">
-  <img src="truss-example.png" width="400" />
+  <img src="truss-example.png" width="800" />
 </p>
-
-
 
 ## Quick Intro
 
