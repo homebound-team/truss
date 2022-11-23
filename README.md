@@ -363,13 +363,15 @@ The benefits of this approach are:
 
 tldr: Tachyon's abbreviations are shorter. :-)
 
-This is admittedly preference, but Truss's assertion is that **readability goes up when code sprawl decreases**, because you can visually fit more code into view at once.
+For example, the CSS `justify-content: flex-start` in Tailwinds is `justify-start`, and in Truss is `jcfs` (i.e. the Justify Content Flex Start).
 
-And so Tachyons-style abbreviations, even if each abbreviation in isolation is more complex, when taken as a whole (looking at 10-20 lines of non-trivially-styled JSX) they are the most readable/scalable way of writing inline CSS.
+This is admittedly preference, but Truss's assertion is that **readability goes up when code sprawl goes down**, because you can visually fit more code into view at once.
 
-Granted, the more-succinct code is still doing "the same work" (setting the same CSS properties) as the longer code, but in theory you are likely only paying attention to a small subset of code at any given time, so the currently-unimportant code/abbreviations will "fade into the background" more easily when they're shorter.
+And so Tachyons-style abbreviations, even if each abbreviation in isolation is more complex, when taken as a whole (looking at 10-20 lines of non-trivially-styled JSX) is arguably more readable.
 
-(This is also not to say all variable names in a codebase should be meaningless chicken-scratch like `a`, `b`, `c`, etc., but when there are very strong/consistent conventions (like loop variables being called `i`, `j`, `k`), then leaning into succinctness can be appropriate.)
+Granted, the more-succinct code is still doing "the same work" (setting the same CSS properties) as the longer code, but you are likely only paying attention to a small subset of code at any given time, so the currently-unimportant code/abbreviations will "fade into the background" more easily when they're shorter.
+
+(This is also not to say all names in a codebase should be meaningless chicken-scratch like `a`, `b`, `c`, etc., but when there are very strong/consistent conventions (like loop variables being called `i`, `j`, `k`), then leaning into succinctness can be appropriate.)
 
 All this said, it's very possible to teach Truss how to generate Tailwinds-based abbreviations, we just haven't done it yet; see [this issue](https://github.com/homebound-team/truss/issues/65) if you're interested in helping contribute.
 
