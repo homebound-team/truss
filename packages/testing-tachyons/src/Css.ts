@@ -1482,6 +1482,10 @@ class CssBuilder<T extends Properties1> {
     }
   }
 
+  get onHover() {
+    return this.newCss({ selector: ":hover" });
+  }
+
   get ifPrint() {
     return this.newCss({ selector: "@media print" });
   }
