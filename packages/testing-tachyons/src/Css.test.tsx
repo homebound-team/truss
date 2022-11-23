@@ -209,6 +209,15 @@ describe("Css", () => {
       }
     `);
   });
+
+  it("can use sqPx", () => {
+    expect(Css.sqPx(24).$).toMatchInlineSnapshot(`
+      {
+        "height": "24px",
+        "width": "24px",
+      }
+    `);
+  });
 });
 
 type FooXss = Xss<Margin>;

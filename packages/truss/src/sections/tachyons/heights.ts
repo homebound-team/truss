@@ -19,7 +19,7 @@ export const height: CreateMethodsFn = (config) => [
       vh75: "75vh",
       vh100: "100vh",
     },
-    null
+    null,
   ),
 
   ...newMethodsForProp(
@@ -32,7 +32,7 @@ export const height: CreateMethodsFn = (config) => [
       mh100: "100%",
       mvh100: "100vh",
     },
-    "mh"
+    "mh",
   ),
   `mhPx(px: number) { return this.add("minHeight", \`\${px}px\`); }`,
 
@@ -45,7 +45,10 @@ export const height: CreateMethodsFn = (config) => [
       maxh75: "75%",
       maxh100: "100%",
     },
-    "maxh"
+    "maxh",
+    true,
   ),
-  `maxhPx(px: number) { return this.add("maxHeight", \`\${px}px\`); }`,
+
+  // Sneak this into heights.ts even though it's for width & height
+  `sqPx(px: number) { return this.add("height", \`\${px}px\`).add("width", \`\${px}px\`); }`,
 ];

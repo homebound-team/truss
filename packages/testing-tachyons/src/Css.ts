@@ -662,7 +662,10 @@ class CssBuilder<T extends Properties1> {
     return this.add("maxHeight", value);
   }
   maxhPx(px: number) {
-    return this.add("maxHeight", `${px}px`);
+    return this.maxh(`${px}px`);
+  }
+  sqPx(px: number) {
+    return this.add("height", `${px}px`).add("width", `${px}px`);
   }
 
   // lineClamp
