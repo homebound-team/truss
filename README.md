@@ -32,6 +32,8 @@ Truss lets you:
 
 Also see the "Why This Approach?" section for more rationale.
 
+## Example
+
 Here's an example of production code using Truss:
 
 <p align="center" style="padding: 100px">
