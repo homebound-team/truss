@@ -229,7 +229,21 @@ describe("Css", () => {
   });
 
   it("skips addIn if conditional is disabled", () => {
-    expect(Css.if(false).addIn("& > * + *", "marginBottom", "1px").$).toMatchInlineSnapshot(`{}`);
+    expect(Css.if(false).addIn(">div", Css.mb1.$).$).toMatchInlineSnapshot(`{}`);
+    expect(Css.if(false).addIn(">div", Css.mb1.$).else.addIn(">div", Css.mb2.$).$).toMatchInlineSnapshot(`
+      {
+        ">div": {
+          "marginBottom": "16px",
+        },
+      }
+    `);
+    expect(Css.if(true).addIn(">div", Css.mb1.$).else.addIn(">div", Css.mb2.$).$).toMatchInlineSnapshot(`
+      {
+        ">div": {
+          "marginBottom": "8px",
+        },
+      }
+    `);
   });
 
   it("doesn't incorrectly infer never", () => {
