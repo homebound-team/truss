@@ -24,11 +24,11 @@ Truss lets you:
 
 - Use selectors as needed, i.e. `css={{ "&>div": Css.black.$ }}` or `Css.onHover.black.$`, using your CSS-in-JS library's selector support
 
-- Tachyons-based abbreviations for succinct inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
+- Use Tachyons-based abbreviations for superior inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
 
-- Strongly-typed using vanilla TypeScript
+- Leverage strongly-typed styles with just vanilla TypeScript
 
-- A built-in "cheat sheet", just control-click into abbreviations/methods to see what they do
+- Get immediate access to a built-in "cheat sheet", just control-click into abbreviations/methods to see what they do
 
 Also see the "Why This Approach?" section for more rationale.
 
