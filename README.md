@@ -22,11 +22,13 @@ Truss lets you:
 
 - Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
 
-- Use selectors as needed, i.e. `css={{ "&>div": Css.black.$ }}`, using your CSS-in-JS library's selector support
+- Use selectors as needed, i.e. `css={{ "&>div": Css.black.$ }}` or `Css.onHover.black.$`, using your CSS-in-JS library's selector support
 
-- Tachyons-based abbreviations for the "best" inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
+- Tachyons-based abbreviations for succinct inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
 
 - Strongly-typed using vanilla TypeScript
+
+- A built-in "cheat sheet", just control-click into abbreviations/methods to see what they do
 
 Also see the "Why This Approach?" section for more rationale.
 
