@@ -194,12 +194,12 @@ describe("Css", () => {
   });
 
   it("can set css variables", () => {
-    expect(Css.setVars.$).toMatchInlineSnapshot(`
+    expect(Css.darkMode.$).toMatchInlineSnapshot(`
       {
         "--primary": "#000000",
       }
     `);
-    expect(Css.var.$).toMatchInlineSnapshot(`
+    expect(Css.primary.$).toMatchInlineSnapshot(`
       {
         "color": "var(--primary)",
       }

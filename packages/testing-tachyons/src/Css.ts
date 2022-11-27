@@ -1896,12 +1896,8 @@ class CssBuilder<T extends Properties> {
   }
 
   // vars
-  get setVars() {
+  get darkMode() {
     return this.add("--primary" as any, "#000000");
-  }
-  /** Sets `color: "var(--primary)"`. */
-  get var() {
-    return this.add("color", "var(--primary)");
   }
 
   // aliases

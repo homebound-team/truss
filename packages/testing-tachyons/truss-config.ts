@@ -28,10 +28,7 @@ const sections = {
   customStuff: () => [newMethod("foo", { color: "#000000" })],
 
   // Create a rule that sets a CSS variable.
-  vars: () => [
-    newSetCssVariablesMethod("setVars", { "--primary": "#000000" }),
-    newMethod("var", { color: "var(--primary)" }),
-  ],
+  vars: () => [newSetCssVariablesMethod("darkMode", { "--primary": "#000000" })],
 };
 
 // You can also define common application-specific aliases.

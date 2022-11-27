@@ -69,7 +69,7 @@ export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
  * I.e. `newSetCssVariableMethod("dark", { "--Primary": "white" })` will create a
  * utility method `Css.dark.$ that will set `--Primary` to `white`.
  *
- * Currently this only supports compile-time/hard-coded values. I.e. we don't support
+ * Currently, this only supports compile-time/hard-coded values. I.e. we don't support
  * something like `Css.dark({ "--Primary", someRuntimeValue }).$` yet.
  *
  * TODO: Create a `Css.set(cssVars).$` method.
