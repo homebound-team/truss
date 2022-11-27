@@ -122,7 +122,11 @@ class CssBuilder<T extends Properties> {
 
   get else() {
     if (this.selector !== undefined) {
-      throw new Error("else is not supported with if(selector)");
+      if (this.selector.includes("not")) {
+        throw new Error("else was already called");
+      } else {
+        return this.newCss({ selector: this.selector.replace("@media", "@media not") });
+      }
     }
     return this.newCss({ enabled: !this.enabled });
   }
@@ -133,10 +137,11 @@ class CssBuilder<T extends Properties> {
   add<P extends Properties>(props: P): CssBuilder<T & P>;
   add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
   add<K extends keyof Properties>(propOrProperties: K | Properties, value?: Properties[K]): CssBuilder<any> {
+    if (!this.enabled) return this;
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
-      : this.enabled ? { ...this.rules, ...newRules } : this.rules;
+      : { ...this.rules, ...newRules };
     return this.newCss({ rules: rules as any });
   }
 
@@ -145,6 +150,7 @@ class CssBuilder<T extends Properties> {
   addIn<K extends keyof Properties>(selector: string, prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
   addIn<K extends keyof Properties>(selector: string, propOrProperties: K | Properties, value?: Properties[K]): CssBuilder<any> {
     const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
+    if (!this.enabled) return this;
     if (newRules === undefined) {
       return this;
     }

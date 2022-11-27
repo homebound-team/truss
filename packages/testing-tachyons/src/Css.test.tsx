@@ -123,8 +123,58 @@ describe("Css", () => {
     Css.black.if("rawstring").$;
   });
 
-  it("cannot 'else' when using `if(bp)`", () => {
-    expect(() => Css.ifSm.black.else.white.$).toThrow("else is not supported");
+  it("can use 'else' when using `ifSm`", () => {
+    expect(Css.ifSm.black.else.white.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (max-width:599px)": {
+          "color": "#fcfcfa",
+        },
+        "@media screen and (max-width:599px)": {
+          "color": "#353535",
+        },
+      }
+    `);
+  });
+
+  it("can use 'else' when using `ifMdAndUp`", () => {
+    expect(Css.ifMdAndUp.black.else.white.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (min-width:600px)": {
+          "color": "#fcfcfa",
+        },
+        "@media screen and (min-width:600px)": {
+          "color": "#353535",
+        },
+      }
+    `);
+  });
+
+  it("cannot use 'else' twice when using `ifMdAndUp`", () => {
+    expect(() => Css.ifMdAndUp.black.else.white.else.blue.$).toThrowError("else was already called");
+  });
+
+  it.skip("can use 'else' twice for conditional then breakpoint use 'else' twice when using `ifMdAndUp`", () => {
+    expect(Css.if(true).ifSm.black.else.blue.else.midGray.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (max-width:599px)": {
+          "color": "#526675",
+        },
+        "@media screen and (max-width:599px)": {
+          "color": "#353535",
+        },
+      }
+    `);
+    expect(Css.if(false).ifSm.black.else.blue.else.midGray.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (max-width:599px)": {
+          "color": "#888888",
+        },
+      }
+    `);
+  });
+
+  it("skips breakpoint code if conditional is disabled", () => {
+    expect(Css.if(false).ifMdAndUp.black.$).toMatchInlineSnapshot(`{}`);
   });
 
   it("can render with px conversion", () => {
@@ -176,6 +226,10 @@ describe("Css", () => {
 
   it("skips addIn if passed undefined", () => {
     expect(Css.addIn("& > * + *", undefined).$).toEqual({});
+  });
+
+  it("skips addIn if conditional is disabled", () => {
+    expect(Css.if(false).addIn("& > * + *", "marginBottom", "1px").$).toMatchInlineSnapshot(`{}`);
   });
 
   it("doesn't incorrectly infer never", () => {
