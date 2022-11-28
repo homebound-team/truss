@@ -1,3 +1,10 @@
+## [1.121.1](https://github.com/homebound-team/truss/compare/v1.121.0...v1.121.1) (2022-11-28)
+
+
+### Bug Fixes
+
+* Restore WebkitBoxOrient. ([#91](https://github.com/homebound-team/truss/issues/91)) ([5729145](https://github.com/homebound-team/truss/commit/5729145aee6f31b3eb5260edc52930a562df0a37))
+
 # [1.121.0](https://github.com/homebound-team/truss/compare/v1.120.0...v1.121.0) (2022-11-28)
 
 
