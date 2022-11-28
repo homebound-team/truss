@@ -1,3 +1,10 @@
+# [1.121.0](https://github.com/homebound-team/truss/compare/v1.120.0...v1.121.0) (2022-11-28)
+
+
+### Features
+
+* Support else w/breakpoints, fix addIn w/conditionals ([#90](https://github.com/homebound-team/truss/issues/90)) ([eecacee](https://github.com/homebound-team/truss/commit/eecacee507ae18eff56fccd3eaf62503207c2703))
+
 # [1.120.0](https://github.com/homebound-team/truss/compare/v1.119.0...v1.120.0) (2022-11-23)
 
 
