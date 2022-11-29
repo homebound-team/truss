@@ -21,7 +21,7 @@ Truss lets you:
 - Achieve both utility-class brevity and critical-CSS delivery.
 
 - Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
-
+And y
 - Use selectors as needed, i.e. `css={{ "&>div": Css.black.$ }}` or `Css.onHover.black.$`, using your CSS-in-JS library's selector support
 
 - Use Tachyons-based abbreviations for superior inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
@@ -32,7 +32,7 @@ Truss lets you:
 
 Also see the "Why This Approach?" section for more rationale.
 
-## Example
+## Quick Example
 
 Here's an example of production code using Truss:
 
@@ -40,7 +40,7 @@ Here's an example of production code using Truss:
   <img src="truss-example.png" width="800" />
 </p>
 
-## Quick Intro
+## Quick How It Works
 
 Truss generates a `src/Css.ts` file in your local project; this file exports a `Css` const that you use like:
 
@@ -106,12 +106,10 @@ We recommend checking the `src/Css.ts` file into your repository, with the ratio
 
 Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it.
 
-## Truss Command
+### Truss Command
 
 The truss command accepts an optional second argument which is the path to your
-configuration file. If omitted, it will look for `./truss-config.ts`. This is
-good if your truss configuration file is not at the root level or the file must
-use a different name.
+configuration file. If omitted, it will look for `./truss-config.ts`.
 
 ```json
 {
@@ -121,11 +119,25 @@ use a different name.
 }
 ```
 
-## Configuration
+### Configuration
 
-Truss's configuration is all done in the `truss-config.ts` files that are installed in your local project.
+Truss's configuration is done via a `truss-config.ts` file installed into your local project.
 
-See the comments in [that file](https://github.com/homebound-team/truss-project-files/blob/main/index.ts) for the available config options.
+See the comments in [that file](https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts) for the available config options. For example setting up your custom font abbreviations is set via a `FontConfig` hash:
+
+```
+// Defines the typeface abbreviations, the keys can be whatever you want
+const fonts: FontConfig = {
+  f10: "10px",
+  f12: "12px",
+  f14: "14px",
+  f24: "24px",
+  // Besides the "24px" shorthand, you can define weight+size+lineHeight tuples
+  tiny: { fontWeight: 400, fontSize: "10px", lineHeight: "14px" },
+};
+```
+
+Also see the [Customization](#customization) section for more advanced configuration options.
 
 ## Psuedo-Selectors and Media Queries
 
@@ -285,8 +297,8 @@ Also note that the XStyles/Xss feature is completely opt-in; you can use it if y
 
 Truss supports several levels of customization:
 
-1. Per-project fonts/colors/etc.
-2. Per-project rule additions or changes
+1. Per-project fonts/colors/etc. in `truss-config.ts`
+2. Per-project rule additions or changes in `truss-config.ts`
 3. Forking
 
 ### Per-Project Fonts/Colors/Etc
@@ -320,7 +332,7 @@ const breakpoints = { sm: 0, md: 600, lg: 960 };
 // ...rest of the config file...
 ```
 
-Projects should heavily customize these settings to match their project-specific design system, then run `npm run generate` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have utility methods added like:
+Projects should heavily customize these settings to match their project-specific design system, then run `npm run truss` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have utility methods added like:
 
 ```typescript
   get green() { return this.add("color", "green"); }
