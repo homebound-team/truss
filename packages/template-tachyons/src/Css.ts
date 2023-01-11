@@ -867,6 +867,10 @@ class CssBuilder<T extends Properties> {
   get h7() {
     return this.add("height", "42px");
   }
+  /** Sets `height: "auto"`. */
+  get ha() {
+    return this.add("height", "auto");
+  }
   /** Sets `height: "v"`. */
   h(v: number | string) {
     return this.add("height", maybeInc(v));
@@ -2192,6 +2196,10 @@ class CssBuilder<T extends Properties> {
   /** Sets `width: "42px"`. */
   get w7() {
     return this.add("width", "42px");
+  }
+  /** Sets `width: "auto"`. */
+  get wa() {
+    return this.add("width", "auto");
   }
   /** Sets `width: "v"`. */
   w(v: number | string) {
