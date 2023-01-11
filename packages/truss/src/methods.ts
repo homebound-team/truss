@@ -80,52 +80,63 @@ export function newSetCssVariablesMethod(abbr: UtilityName, defs: Record<string,
     .join("")}; }`;
 }
 
-// For any "increment" abbreviation, maps the abbreviation, i.e. "mt",
-// to its longName or N other increment abbreviation that it composes.
-export type IncConfig = [string, Prop | string[]];
+/** An abbreviation and its single or multiple CSS properties to set. */
+export type IncConfig = [string, Prop | Prop[]];
 
 /**
  * Makes [`mt0`, `mt1`, ...] utility methods for each configured increment
  * to set `prop` to that given increment's value in pixels.
  *
- * I.e. we assume that `prop` is a CSS property that accepts pixels as values, and
- * so convert each increment `x` (1, 2, 3) to pixels `Y` (8, 16, 24) and create
+ * I.e. we assume `prop` is a CSS property like `margin` that accepts pixels as values,
+ * and so convert each increment `x` (1, 2, 3) to pixels `Y` (8, 16, 24) and create
  * a utility method for each `x -> Y` pair, i.e. `mt0 = mt(px(0))`.
  *
  * We also create a final param method, i.e. `mt(number)`, for callers that
  * need to call `mt` with a conditional amount of increments.
  *
- * TODO: Support non-pixel increments.
- *
  * @param config the config
  * @param abbr the utility prefix, i.e. `mt`
- * @param conf if a CSS prop, we assume "mt0 --> marginTop: 0px", otherwise if an array we delegate
- *   to other existing utility methods, i.e. `m0` -> `mx0.my0`.
+ * @param props if a CSS prop like `marginTop`, we output "mt0 --> marginTop: 0px", if an array like
+ *   `["marginTop", "marginBottom"]`, we output "my0 --> marginTop: 0px, marginBottom: 0px"
+ * @param opts.auto if set to true, include an `a` suffix for auto values, i.e. `mta`
  */
-export function newIncrementMethods(config: Config, abbr: UtilityName, conf: Prop | string[]): UtilityMethod[] {
+export function newIncrementMethods(
+  config: Config,
+  abbr: UtilityName,
+  prop: Prop | Prop[],
+  opts: { auto?: boolean } = {},
+): UtilityMethod[] {
   // Create `m1`, `m2`, etc. that will call our main `m` method.
-  const delegateMethods = newIncrementDelegateMethods(config, abbr, typeof conf === "string" ? conf : (conf as Prop[]));
-  if (Array.isArray(conf)) {
-    return [
-      ...delegateMethods,
-      `${abbr}(inc: number | string) { return this.${conf.map((l) => `${l}(inc)`).join(".")}; }`,
-      `${abbr}Px(px: number) { return this.${conf.map((l) => `${l}Px(px)`).join(".")}; }`,
-    ];
-  } else {
-    return [
-      ...delegateMethods,
-      `${comment({ [conf]: "inc" })} ${abbr}(inc: number | string) { return this.add("${conf}", maybeInc(inc)); }`,
-      newPxMethod(abbr, conf),
-    ];
-  }
+  const props = typeof prop === "string" ? [prop] : prop;
+  const delegateMethods = newCoreIncrementMethods(config, abbr, props);
+
+  const autoComment = comment(Object.fromEntries(props.map((p) => [p, "auto"])));
+  const valueComment = comment(Object.fromEntries(props.map((p) => [p, "v"])));
+  const pxComment = comment(Object.fromEntries(props.map((p) => [p, "px"])));
+
+  return [
+    ...delegateMethods,
+    ...(opts.auto
+      ? [`${autoComment} get ${abbr}a() { return this.${props.map((p) => `add("${p}", "auto")`).join(".")}; }`]
+      : []),
+    `${valueComment} ${abbr}(v: number | string) { return this.${props
+      .map((p) => `add("${p}", maybeInc(v))`)
+      .join(".")}; }`,
+    `${pxComment} ${abbr}Px(px: number) { return this.${props.map((p) => `add("${p}", \`\${px}px\`)`).join(".")}; }`,
+  ];
 }
 
-/** Creates `<abbr>X` utility methods that call an `abbr(number)` that the caller is responsible for creating. */
-export function newIncrementDelegateMethods(config: Config, abbr: UtilityName, prop: Prop | Prop[]): UtilityMethod[] {
+/**
+ * Creates just the core `<abbr>X` utility methods that set `props` with each increment value.
+ *
+ * See `newIncrementMethods` for handling the `<abbr>Px`, `<abbr>a`, and `<attr>(value)` methods.
+ */
+export function newCoreIncrementMethods(config: Config, abbr: UtilityName, props: Prop[]): UtilityMethod[] {
   return zeroTo(config.numberOfIncrements).map((i) => {
     const px = `${i * config.increment}px`;
-    const defs = typeof prop === "string" ? { [prop]: px } : Object.fromEntries(prop.map((prop) => [prop, px]));
-    return `${comment(defs)} get ${abbr}${i}() { return this.${abbr}(${i}); }`;
+    const defs = Object.fromEntries(props.map((p) => [p, px]));
+    const sets = props.map((p) => `add("${p}", "${px}")`).join(".");
+    return `${comment(defs)} get ${abbr}${i}() { return this.${sets}; }`;
   });
 }
 

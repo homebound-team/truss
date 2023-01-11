@@ -12,54 +12,63 @@ describe("methods", () => {
 
   describe("newIncrementMethods", () => {
     it("can handle mt", () => {
-      expect(newIncrementMethods(config, "mt", "marginTop")).toMatchInlineSnapshot(`
+      expect(newIncrementMethods(config, "mt", "marginTop", { auto: true })).toMatchInlineSnapshot(`
         [
           "/** Sets \`marginTop: "0px"\`. */
-         get mt0() { return this.mt(0); }",
+         get mt0() { return this.add("marginTop", "0px"); }",
           "/** Sets \`marginTop: "8px"\`. */
-         get mt1() { return this.mt(1); }",
+         get mt1() { return this.add("marginTop", "8px"); }",
           "/** Sets \`marginTop: "16px"\`. */
-         get mt2() { return this.mt(2); }",
+         get mt2() { return this.add("marginTop", "16px"); }",
           "/** Sets \`marginTop: "24px"\`. */
-         get mt3() { return this.mt(3); }",
-          "/** Sets \`marginTop: inc\`. */
-         mt(inc: number | string) { return this.add("marginTop", maybeInc(inc)); }",
+         get mt3() { return this.add("marginTop", "24px"); }",
+          "/** Sets \`marginTop: "auto"\`. */
+         get mta() { return this.add("marginTop", "auto"); }",
+          "/** Sets \`marginTop: "v"\`. */
+         mt(v: number | string) { return this.add("marginTop", maybeInc(v)); }",
           "/** Sets \`marginTop: px\`. */
-         mtPx(px: number) { return this.mt(\`\${px}px\`); }",
+         mtPx(px: number) { return this.add("marginTop", \`\${px}px\`); }",
         ]
       `);
     });
 
     it("can handle mx", () => {
-      expect(newIncrementMethods(config, "mx", ["ml", "mr"])).toMatchInlineSnapshot(`
+      expect(newIncrementMethods(config, "mx", ["marginLeft", "marginRight"], { auto: true })).toMatchInlineSnapshot(`
         [
-          "/** Sets \`ml: "0px"; mr: "0px"\`. */
-         get mx0() { return this.mx(0); }",
-          "/** Sets \`ml: "8px"; mr: "8px"\`. */
-         get mx1() { return this.mx(1); }",
-          "/** Sets \`ml: "16px"; mr: "16px"\`. */
-         get mx2() { return this.mx(2); }",
-          "/** Sets \`ml: "24px"; mr: "24px"\`. */
-         get mx3() { return this.mx(3); }",
-          "mx(inc: number | string) { return this.ml(inc).mr(inc); }",
-          "mxPx(px: number) { return this.mlPx(px).mrPx(px); }",
+          "/** Sets \`marginLeft: "0px"; marginRight: "0px"\`. */
+         get mx0() { return this.add("marginLeft", "0px").add("marginRight", "0px"); }",
+          "/** Sets \`marginLeft: "8px"; marginRight: "8px"\`. */
+         get mx1() { return this.add("marginLeft", "8px").add("marginRight", "8px"); }",
+          "/** Sets \`marginLeft: "16px"; marginRight: "16px"\`. */
+         get mx2() { return this.add("marginLeft", "16px").add("marginRight", "16px"); }",
+          "/** Sets \`marginLeft: "24px"; marginRight: "24px"\`. */
+         get mx3() { return this.add("marginLeft", "24px").add("marginRight", "24px"); }",
+          "/** Sets \`marginLeft: "auto"; marginRight: "auto"\`. */
+         get mxa() { return this.add("marginLeft", "auto").add("marginRight", "auto"); }",
+          "/** Sets \`marginLeft: "v"; marginRight: "v"\`. */
+         mx(v: number | string) { return this.add("marginLeft", maybeInc(v)).add("marginRight", maybeInc(v)); }",
+          "/** Sets \`marginLeft: px; marginRight: px\`. */
+         mxPx(px: number) { return this.add("marginLeft", \`\${px}px\`).add("marginRight", \`\${px}px\`); }",
         ]
       `);
     });
 
     it("can handle m", () => {
-      expect(newIncrementMethods(config, "m", ["mt", "mr", "mb", "ml"])).toMatchInlineSnapshot(`
+      expect(newIncrementMethods(config, "m", ["marginTop", "marginRight", "marginBottom", "marginLeft"]))
+        .toMatchInlineSnapshot(`
         [
-          "/** Sets \`mt: "0px"; mr: "0px"; mb: "0px"; ml: "0px"\`. */
-         get m0() { return this.m(0); }",
-          "/** Sets \`mt: "8px"; mr: "8px"; mb: "8px"; ml: "8px"\`. */
-         get m1() { return this.m(1); }",
-          "/** Sets \`mt: "16px"; mr: "16px"; mb: "16px"; ml: "16px"\`. */
-         get m2() { return this.m(2); }",
-          "/** Sets \`mt: "24px"; mr: "24px"; mb: "24px"; ml: "24px"\`. */
-         get m3() { return this.m(3); }",
-          "m(inc: number | string) { return this.mt(inc).mr(inc).mb(inc).ml(inc); }",
-          "mPx(px: number) { return this.mtPx(px).mrPx(px).mbPx(px).mlPx(px); }",
+          "/** Sets \`marginTop: "0px"; marginRight: "0px"; marginBottom: "0px"; marginLeft: "0px"\`. */
+         get m0() { return this.add("marginTop", "0px").add("marginRight", "0px").add("marginBottom", "0px").add("marginLeft", "0px"); }",
+          "/** Sets \`marginTop: "8px"; marginRight: "8px"; marginBottom: "8px"; marginLeft: "8px"\`. */
+         get m1() { return this.add("marginTop", "8px").add("marginRight", "8px").add("marginBottom", "8px").add("marginLeft", "8px"); }",
+          "/** Sets \`marginTop: "16px"; marginRight: "16px"; marginBottom: "16px"; marginLeft: "16px"\`. */
+         get m2() { return this.add("marginTop", "16px").add("marginRight", "16px").add("marginBottom", "16px").add("marginLeft", "16px"); }",
+          "/** Sets \`marginTop: "24px"; marginRight: "24px"; marginBottom: "24px"; marginLeft: "24px"\`. */
+         get m3() { return this.add("marginTop", "24px").add("marginRight", "24px").add("marginBottom", "24px").add("marginLeft", "24px"); }",
+          "/** Sets \`marginTop: "v"; marginRight: "v"; marginBottom: "v"; marginLeft: "v"\`. */
+         m(v: number | string) { return this.add("marginTop", maybeInc(v)).add("marginRight", maybeInc(v)).add("marginBottom", maybeInc(v)).add("marginLeft", maybeInc(v)); }",
+          "/** Sets \`marginTop: px; marginRight: px; marginBottom: px; marginLeft: px\`. */
+         mPx(px: number) { return this.add("marginTop", \`\${px}px\`).add("marginRight", \`\${px}px\`).add("marginBottom", \`\${px}px\`).add("marginLeft", \`\${px}px\`); }",
         ]
       `);
     });

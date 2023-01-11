@@ -7,26 +7,22 @@ export const spacing: CreateMethodsFn = (config) => {
     ["mr", "marginRight"],
     ["mb", "marginBottom"],
     ["ml", "marginLeft"],
-    ["mx", ["ml", "mr"]],
-    ["my", ["mt", "mb"]],
-    ["m", ["mt", "mb", "mr", "ml"]],
+    ["mx", ["marginLeft", "marginRight"]],
+    ["my", ["marginTop", "marginBottom"]],
+    ["m", ["marginTop", "marginBottom", "marginRight", "marginLeft"]],
   ];
-  const margins = marginDefs
-    .map(([abbr, conf]) => newIncrementMethods(config, abbr, conf))
-    .flat();
+  const margins = [...marginDefs.map(([abbr, conf]) => newIncrementMethods(config, abbr, conf, { auto: true })).flat()];
 
   const paddingDefs: IncConfig[] = [
     ["pt", "paddingTop"],
     ["pr", "paddingRight"],
     ["pb", "paddingBottom"],
     ["pl", "paddingLeft"],
-    ["px", ["pl", "pr"]],
-    ["py", ["pt", "pb"]],
-    ["p", ["pt", "pb", "pr", "pl"]],
+    ["px", ["paddingLeft", "paddingRight"]],
+    ["py", ["paddingTop", "paddingBottom"]],
+    ["p", ["paddingTop", "paddingBottom", "paddingRight", "paddingLeft"]],
   ];
-  const paddings = paddingDefs
-    .map(([abbr, conf]) => newIncrementMethods(config, abbr, conf))
-    .flat();
+  const paddings = paddingDefs.map(([abbr, conf]) => newIncrementMethods(config, abbr, conf)).flat();
 
   return [...margins, ...paddings];
 };
