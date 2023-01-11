@@ -8,7 +8,7 @@ export {
   newAliasesMethods,
   newMethod,
   newMethodsForProp,
-  newIncrementDelegateMethods,
+  newCoreIncrementMethods,
   newIncrementMethods,
   newParamMethod,
   newSetCssVariablesMethod,
