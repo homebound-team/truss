@@ -231,9 +231,11 @@ describe("Css.emotion", () => {
   });
 
   it("lineClamp outputs prefixes", () => {
+    // @ts-ignore Not sure why `Type '"revert-layer"' is not assignable to type BoxOrient` is happening
     const r = render(<div css={Css.lineClamp1.$} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
+        -webkit-box-orient: vertical;
         -webkit-line-clamp: 1;
         display: -webkit-box;
         overflow: hidden;
