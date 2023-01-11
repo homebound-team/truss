@@ -5,7 +5,7 @@ export const height: CreateMethodsFn = (config) => [
   // https://github.com/tachyons-css/tachyons/blob/master/src/_heights.css
 
   // Technically h1 in tachyons is 1em and ours is 1 inc
-  ...newIncrementMethods(config, "h", "height"),
+  ...newIncrementMethods(config, "h", "height", { auto: true }),
 
   ...newMethodsForProp(
     "height",

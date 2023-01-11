@@ -40,5 +40,5 @@ export const width: CreateMethodsFn = (config) => [
     true,
   ),
 
-  ...newIncrementMethods(config, "w", "width"),
+  ...newIncrementMethods(config, "w", "width", { auto: true }),
 ];
