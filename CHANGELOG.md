@@ -1,3 +1,10 @@
+## [1.122.1](https://github.com/homebound-team/truss/compare/v1.122.0...v1.122.1) (2023-01-11)
+
+
+### Bug Fixes
+
+* Add wa/ha for width/height auto. ([#95](https://github.com/homebound-team/truss/issues/95)) ([dc10094](https://github.com/homebound-team/truss/commit/dc10094543a8904ec60579e772b9157889ec9ed4))
+
 # [1.122.0](https://github.com/homebound-team/truss/compare/v1.121.1...v1.122.0) (2023-01-11)
 
 
