@@ -1,3 +1,10 @@
+# [1.122.0](https://github.com/homebound-team/truss/compare/v1.121.1...v1.122.0) (2023-01-11)
+
+
+### Features
+
+* Add 'auto' margin abbreviations. ([#94](https://github.com/homebound-team/truss/issues/94)) ([0a6598b](https://github.com/homebound-team/truss/commit/0a6598b003a7f6b5340cd53514765b588241de4b))
+
 ## [1.121.1](https://github.com/homebound-team/truss/compare/v1.121.0...v1.121.1) (2022-11-28)
 
 
