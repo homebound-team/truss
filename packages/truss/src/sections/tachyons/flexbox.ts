@@ -21,7 +21,7 @@ export const flexbox: CreateMethodsFn = () => [
       f4: "4",
       f5: "5",
     },
-    "f"
+    "f",
   ),
   ...newMethodsForProp(
     "justifyContent",
@@ -33,7 +33,7 @@ export const flexbox: CreateMethodsFn = () => [
       jcsa: "space-around",
       jcse: "space-evenly",
     },
-    "jc"
+    "jc",
   ),
 
   ...newMethodsForProp(
@@ -46,7 +46,7 @@ export const flexbox: CreateMethodsFn = () => [
       jisa: "space-around",
       jise: "space-evenly",
     },
-    "ji"
+    "ji",
   ),
 
   ...newMethodsForProp(
@@ -58,7 +58,7 @@ export const flexbox: CreateMethodsFn = () => [
       asb: "baseline",
       asStretch: "stretch",
     },
-    "as"
+    "as",
   ),
 
   ...newMethodsForProp(
@@ -66,11 +66,27 @@ export const flexbox: CreateMethodsFn = () => [
     {
       aifs: "flex-start",
       aife: "flex-end",
+      ais: "start",
+      aie: "end",
       aic: "center",
       aib: "baseline",
-      ais: "stretch",
+      aiStretch: "stretch",
     },
-    "ai"
+    "ai",
+  ),
+
+  ...newMethodsForProp(
+    "placeSelf",
+    {
+      psa: "auto",
+      psc: "center",
+      pss: "start",
+      pse: "end",
+      psfs: "flex-start",
+      psfe: "flex-end",
+      psStretch: "stretch",
+    },
+    "ps",
   ),
 
   ...newMethodsForProp(
@@ -86,7 +102,7 @@ export const flexbox: CreateMethodsFn = () => [
       fb7: "14.285714%",
       fb0: "12.5%",
     },
-    "fb"
+    "fb",
   ),
 
   ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }),
@@ -102,6 +118,6 @@ export const flexbox: CreateMethodsFn = () => [
       fdc: "column",
       fdcr: "column-reverse",
     },
-    "fd"
+    "fd",
   ),
 ];

@@ -523,6 +523,14 @@ class CssBuilder<T extends Properties> {
   get aife() {
     return this.add("alignItems", "flex-end");
   }
+  /** Sets `alignItems: "start"`. */
+  get ais() {
+    return this.add("alignItems", "start");
+  }
+  /** Sets `alignItems: "end"`. */
+  get aie() {
+    return this.add("alignItems", "end");
+  }
   /** Sets `alignItems: "center"`. */
   get aic() {
     return this.add("alignItems", "center");
@@ -532,12 +540,44 @@ class CssBuilder<T extends Properties> {
     return this.add("alignItems", "baseline");
   }
   /** Sets `alignItems: "stretch"`. */
-  get ais() {
+  get aiStretch() {
     return this.add("alignItems", "stretch");
   }
   /** Sets `alignItems: value`. */
   ai(value: Properties["alignItems"]) {
     return this.add("alignItems", value);
+  }
+  /** Sets `placeSelf: "auto"`. */
+  get psa() {
+    return this.add("placeSelf", "auto");
+  }
+  /** Sets `placeSelf: "center"`. */
+  get psc() {
+    return this.add("placeSelf", "center");
+  }
+  /** Sets `placeSelf: "start"`. */
+  get pss() {
+    return this.add("placeSelf", "start");
+  }
+  /** Sets `placeSelf: "end"`. */
+  get pse() {
+    return this.add("placeSelf", "end");
+  }
+  /** Sets `placeSelf: "flex-start"`. */
+  get psfs() {
+    return this.add("placeSelf", "flex-start");
+  }
+  /** Sets `placeSelf: "flex-end"`. */
+  get psfe() {
+    return this.add("placeSelf", "flex-end");
+  }
+  /** Sets `placeSelf: "stretch"`. */
+  get psStretch() {
+    return this.add("placeSelf", "stretch");
+  }
+  /** Sets `placeSelf: value`. */
+  ps(value: Properties["placeSelf"]) {
+    return this.add("placeSelf", value);
   }
   /** Sets `flexBasis: "100%"`. */
   get fb1() {
