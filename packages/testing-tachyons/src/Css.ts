@@ -411,6 +411,26 @@ class CssBuilder<T extends Properties> {
   jc(value: Properties["justifyContent"]) {
     return this.add("justifyContent", value);
   }
+  /** Sets `justifySelf: "auto"`. */
+  get jsa() {
+    return this.add("justifySelf", "auto");
+  }
+  /** Sets `justifySelf: "center"`. */
+  get jsc() {
+    return this.add("justifySelf", "center");
+  }
+  /** Sets `justifySelf: "start"`. */
+  get jss() {
+    return this.add("justifySelf", "start");
+  }
+  /** Sets `justifySelf: "end"`. */
+  get jse() {
+    return this.add("justifySelf", "end");
+  }
+  /** Sets `justifySelf: value`. */
+  js(value: Properties["justifySelf"]) {
+    return this.add("justifySelf", value);
+  }
   /** Sets `justifyItems: "flex-start"`. */
   get jifs() {
     return this.add("justifyItems", "flex-start");
@@ -526,6 +546,42 @@ class CssBuilder<T extends Properties> {
   /** Sets `placeSelf: value`. */
   ps(value: Properties["placeSelf"]) {
     return this.add("placeSelf", value);
+  }
+  /** Sets `placeContent: "center"`. */
+  get pcc() {
+    return this.add("placeContent", "center");
+  }
+  /** Sets `placeContent: "start"`. */
+  get pcs() {
+    return this.add("placeContent", "start");
+  }
+  /** Sets `placeContent: "end"`. */
+  get pce() {
+    return this.add("placeContent", "end");
+  }
+  /** Sets `placeContent: "space-between"`. */
+  get pcsb() {
+    return this.add("placeContent", "space-between");
+  }
+  /** Sets `placeContent: "space-around"`. */
+  get pcsa() {
+    return this.add("placeContent", "space-around");
+  }
+  /** Sets `placeContent: "space-evenly"`. */
+  get pcse() {
+    return this.add("placeContent", "space-evenly");
+  }
+  /** Sets `placeContent: "baseline"`. */
+  get pcb() {
+    return this.add("placeContent", "baseline");
+  }
+  /** Sets `placeContent: "stretch"`. */
+  get pcStretch() {
+    return this.add("placeContent", "stretch");
+  }
+  /** Sets `placeContent: value`. */
+  pc(value: Properties["placeContent"]) {
+    return this.add("placeContent", value);
   }
   /** Sets `flexBasis: "100%"`. */
   get fb1() {

@@ -37,6 +37,17 @@ export const flexbox: CreateMethodsFn = () => [
   ),
 
   ...newMethodsForProp(
+    "justifySelf",
+    {
+      jsa: "auto",
+      jsc: "center",
+      jss: "start",
+      jse: "end",
+    },
+    "js",
+  ),
+
+  ...newMethodsForProp(
     "justifyItems",
     {
       jifs: "flex-start",
@@ -87,6 +98,21 @@ export const flexbox: CreateMethodsFn = () => [
       psStretch: "stretch",
     },
     "ps",
+  ),
+
+  ...newMethodsForProp(
+    "placeContent",
+    {
+      pcc: "center",
+      pcs: "start",
+      pce: "end",
+      pcsb: "space-between",
+      pcsa: "space-around",
+      pcse: "space-evenly",
+      pcb: "baseline",
+      pcStretch: "stretch",
+    },
+    "pc",
   ),
 
   ...newMethodsForProp(
