@@ -1,3 +1,10 @@
+# [1.123.0](https://github.com/homebound-team/truss/compare/v1.122.1...v1.123.0) (2023-03-03)
+
+
+### Features
+
+* Add place-self. ([#101](https://github.com/homebound-team/truss/issues/101)) ([19081a9](https://github.com/homebound-team/truss/commit/19081a9ae89e3e68dc11ab7a3e27811804f96d6a))
+
 ## [1.122.1](https://github.com/homebound-team/truss/compare/v1.122.0...v1.122.1) (2023-01-11)
 
 
