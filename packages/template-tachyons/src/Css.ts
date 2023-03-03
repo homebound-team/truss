@@ -463,6 +463,26 @@ class CssBuilder<T extends Properties> {
   jc(value: Properties["justifyContent"]) {
     return this.add("justifyContent", value);
   }
+  /** Sets `justifySelf: "auto"`. */
+  get jsa() {
+    return this.add("justifySelf", "auto");
+  }
+  /** Sets `justifySelf: "center"`. */
+  get jsc() {
+    return this.add("justifySelf", "center");
+  }
+  /** Sets `justifySelf: "start"`. */
+  get jss() {
+    return this.add("justifySelf", "start");
+  }
+  /** Sets `justifySelf: "end"`. */
+  get jse() {
+    return this.add("justifySelf", "end");
+  }
+  /** Sets `justifySelf: value`. */
+  js(value: Properties["justifySelf"]) {
+    return this.add("justifySelf", value);
+  }
   /** Sets `justifyItems: "flex-start"`. */
   get jifs() {
     return this.add("justifyItems", "flex-start");
@@ -523,6 +543,14 @@ class CssBuilder<T extends Properties> {
   get aife() {
     return this.add("alignItems", "flex-end");
   }
+  /** Sets `alignItems: "start"`. */
+  get ais() {
+    return this.add("alignItems", "start");
+  }
+  /** Sets `alignItems: "end"`. */
+  get aie() {
+    return this.add("alignItems", "end");
+  }
   /** Sets `alignItems: "center"`. */
   get aic() {
     return this.add("alignItems", "center");
@@ -532,12 +560,80 @@ class CssBuilder<T extends Properties> {
     return this.add("alignItems", "baseline");
   }
   /** Sets `alignItems: "stretch"`. */
-  get ais() {
+  get aiStretch() {
     return this.add("alignItems", "stretch");
   }
   /** Sets `alignItems: value`. */
   ai(value: Properties["alignItems"]) {
     return this.add("alignItems", value);
+  }
+  /** Sets `placeSelf: "auto"`. */
+  get psa() {
+    return this.add("placeSelf", "auto");
+  }
+  /** Sets `placeSelf: "center"`. */
+  get psc() {
+    return this.add("placeSelf", "center");
+  }
+  /** Sets `placeSelf: "start"`. */
+  get pss() {
+    return this.add("placeSelf", "start");
+  }
+  /** Sets `placeSelf: "end"`. */
+  get pse() {
+    return this.add("placeSelf", "end");
+  }
+  /** Sets `placeSelf: "flex-start"`. */
+  get psfs() {
+    return this.add("placeSelf", "flex-start");
+  }
+  /** Sets `placeSelf: "flex-end"`. */
+  get psfe() {
+    return this.add("placeSelf", "flex-end");
+  }
+  /** Sets `placeSelf: "stretch"`. */
+  get psStretch() {
+    return this.add("placeSelf", "stretch");
+  }
+  /** Sets `placeSelf: value`. */
+  ps(value: Properties["placeSelf"]) {
+    return this.add("placeSelf", value);
+  }
+  /** Sets `placeContent: "center"`. */
+  get pcc() {
+    return this.add("placeContent", "center");
+  }
+  /** Sets `placeContent: "start"`. */
+  get pcs() {
+    return this.add("placeContent", "start");
+  }
+  /** Sets `placeContent: "end"`. */
+  get pce() {
+    return this.add("placeContent", "end");
+  }
+  /** Sets `placeContent: "space-between"`. */
+  get pcsb() {
+    return this.add("placeContent", "space-between");
+  }
+  /** Sets `placeContent: "space-around"`. */
+  get pcsa() {
+    return this.add("placeContent", "space-around");
+  }
+  /** Sets `placeContent: "space-evenly"`. */
+  get pcse() {
+    return this.add("placeContent", "space-evenly");
+  }
+  /** Sets `placeContent: "baseline"`. */
+  get pcb() {
+    return this.add("placeContent", "baseline");
+  }
+  /** Sets `placeContent: "stretch"`. */
+  get pcStretch() {
+    return this.add("placeContent", "stretch");
+  }
+  /** Sets `placeContent: value`. */
+  pc(value: Properties["placeContent"]) {
+    return this.add("placeContent", value);
   }
   /** Sets `flexBasis: "100%"`. */
   get fb1() {
