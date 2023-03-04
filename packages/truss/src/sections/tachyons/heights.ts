@@ -18,6 +18,9 @@ export const height: CreateMethodsFn = (config) => [
       vh50: "50vh",
       vh75: "75vh",
       vh100: "100vh",
+      hfc: "fit-content",
+      hmaxc: "max-content",
+      hminc: "min-content",
     },
     // Skip `h` here b/c it's created by newIncrementMethods below
     null,
