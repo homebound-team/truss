@@ -1,3 +1,10 @@
+# [1.124.0](https://github.com/homebound-team/truss/compare/v1.123.0...v1.124.0) (2023-03-04)
+
+
+### Features
+
+* Add width/height max/min/fit-content abbreviations. ([#102](https://github.com/homebound-team/truss/issues/102)) ([c99a56b](https://github.com/homebound-team/truss/commit/c99a56b494b1ffcc6f5b3476f7926ccb600336a7))
+
 # [1.123.0](https://github.com/homebound-team/truss/compare/v1.122.1...v1.123.0) (2023-03-03)
 
 
