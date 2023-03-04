@@ -9,6 +9,9 @@ export const width: CreateMethodsFn = (config) => [
       w50: "50%",
       w75: "75%",
       w100: "100%",
+      wfc: "fit-content",
+      wmaxc: "max-content",
+      wminc: "min-content",
     },
     // Skip `w` here b/c it's created by newIncrementMethods below
     null,

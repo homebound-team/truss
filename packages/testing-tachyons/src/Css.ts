@@ -907,6 +907,18 @@ class CssBuilder<T extends Properties> {
   get vh100() {
     return this.add("height", "100vh");
   }
+  /** Sets `height: "fit-content"`. */
+  get hfc() {
+    return this.add("height", "fit-content");
+  }
+  /** Sets `height: "max-content"`. */
+  get hmaxc() {
+    return this.add("height", "max-content");
+  }
+  /** Sets `height: "min-content"`. */
+  get hminc() {
+    return this.add("height", "min-content");
+  }
   /** Sets `minHeight: 0`. */
   get mh0() {
     return this.add("minHeight", 0);
@@ -1910,6 +1922,18 @@ class CssBuilder<T extends Properties> {
   /** Sets `width: "100%"`. */
   get w100() {
     return this.add("width", "100%");
+  }
+  /** Sets `width: "fit-content"`. */
+  get wfc() {
+    return this.add("width", "fit-content");
+  }
+  /** Sets `width: "max-content"`. */
+  get wmaxc() {
+    return this.add("width", "max-content");
+  }
+  /** Sets `width: "min-content"`. */
+  get wminc() {
+    return this.add("width", "min-content");
   }
   /** Sets `minWidth: 0`. */
   get mw0() {
