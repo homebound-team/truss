@@ -1,3 +1,10 @@
+# [1.125.0](https://github.com/homebound-team/truss/compare/v1.124.0...v1.125.0) (2023-03-08)
+
+
+### Features
+
+* Support grid-auto-columns and grid-auto-rows ([#103](https://github.com/homebound-team/truss/issues/103)) ([1519d4c](https://github.com/homebound-team/truss/commit/1519d4c6152532a6d5dce543da60b5b4f37e49e4))
+
 # [1.124.0](https://github.com/homebound-team/truss/compare/v1.123.0...v1.124.0) (2023-03-04)
 
 
