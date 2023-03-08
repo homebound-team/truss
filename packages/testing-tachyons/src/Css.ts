@@ -757,6 +757,14 @@ class CssBuilder<T extends Properties> {
   gc(value: Properties["gridColumn"]) {
     return this.add("gridColumn", value);
   }
+  /** Sets `gridAutoRows: value`. */
+  gar(value: Properties["gridAutoRows"]) {
+    return this.add("gridAutoRows", value);
+  }
+  /** Sets `gridAutoColumns: value`. */
+  gac(value: Properties["gridAutoColumns"]) {
+    return this.add("gridAutoColumns", value);
+  }
   /** Sets `gap: "0px"`. */
   get gap0() {
     return this.add("gap", "0px");
