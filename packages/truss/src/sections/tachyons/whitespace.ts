@@ -6,4 +6,11 @@ export const whitespace: CreateMethodsFn = () =>
     nowrap: "nowrap",
     pre: "pre",
     wsNormal: "normal",
+    // Keep our old abbrevations + new more abbreviated ones
+    wsp: "pre",
+    wsn: "normal",
+    wsnw: "nowrap",
+    wsbs: "break-spaces",
+    wspw: "pre-wrap",
+    wspl: "pre-line",
   });
