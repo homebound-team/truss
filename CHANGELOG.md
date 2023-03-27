@@ -1,3 +1,10 @@
+## [1.126.1](https://github.com/homebound-team/truss/compare/v1.126.0...v1.126.1) (2023-03-27)
+
+
+### Bug Fixes
+
+* Actually codegen. ([1704cfa](https://github.com/homebound-team/truss/commit/1704cfa6943f87b0cf687f050a25d1e0d935d0bf))
+
 # [1.126.0](https://github.com/homebound-team/truss/compare/v1.125.0...v1.126.0) (2023-03-27)
 
 
