@@ -1,3 +1,10 @@
+# [1.126.0](https://github.com/homebound-team/truss/compare/v1.125.0...v1.126.0) (2023-03-27)
+
+
+### Features
+
+* Add whiteSpace: breakspaces. ([#104](https://github.com/homebound-team/truss/issues/104)) ([793251d](https://github.com/homebound-team/truss/commit/793251dea330763f03268fb580b0116f5c8b8570))
+
 # [1.125.0](https://github.com/homebound-team/truss/compare/v1.124.0...v1.125.0) (2023-03-08)
 
 
