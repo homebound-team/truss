@@ -2203,6 +2203,30 @@ class CssBuilder<T extends Properties> {
   get wsNormal() {
     return this.add("whiteSpace", "normal");
   }
+  /** Sets `whiteSpace: "pre"`. */
+  get wsp() {
+    return this.add("whiteSpace", "pre");
+  }
+  /** Sets `whiteSpace: "normal"`. */
+  get wsn() {
+    return this.add("whiteSpace", "normal");
+  }
+  /** Sets `whiteSpace: "nowrap"`. */
+  get wsnw() {
+    return this.add("whiteSpace", "nowrap");
+  }
+  /** Sets `whiteSpace: "break-spaces"`. */
+  get wsbs() {
+    return this.add("whiteSpace", "break-spaces");
+  }
+  /** Sets `whiteSpace: "pre-wrap"`. */
+  get wspw() {
+    return this.add("whiteSpace", "pre-wrap");
+  }
+  /** Sets `whiteSpace: "pre-line"`. */
+  get wspl() {
+    return this.add("whiteSpace", "pre-line");
+  }
   /** Sets `whiteSpace: value`. */
   whiteSpace(value: Properties["whiteSpace"]) {
     return this.add("whiteSpace", value);
