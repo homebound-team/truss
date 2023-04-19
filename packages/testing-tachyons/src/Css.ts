@@ -583,6 +583,42 @@ class CssBuilder<T extends Properties> {
   pc(value: Properties["placeContent"]) {
     return this.add("placeContent", value);
   }
+  /** Sets `placeItems: "center"`. */
+  get pic() {
+    return this.add("placeItems", "center");
+  }
+  /** Sets `placeItems: "start"`. */
+  get pis() {
+    return this.add("placeItems", "start");
+  }
+  /** Sets `placeItems: "end"`. */
+  get pie() {
+    return this.add("placeItems", "end");
+  }
+  /** Sets `placeItems: "space-between"`. */
+  get pisb() {
+    return this.add("placeItems", "space-between");
+  }
+  /** Sets `placeItems: "space-around"`. */
+  get pisa() {
+    return this.add("placeItems", "space-around");
+  }
+  /** Sets `placeItems: "space-evenly"`. */
+  get pise() {
+    return this.add("placeItems", "space-evenly");
+  }
+  /** Sets `placeItems: "baseline"`. */
+  get pib() {
+    return this.add("placeItems", "baseline");
+  }
+  /** Sets `placeItems: "stretch"`. */
+  get piStretch() {
+    return this.add("placeItems", "stretch");
+  }
+  /** Sets `placeItems: value`. */
+  pi(value: Properties["placeItems"]) {
+    return this.add("placeItems", value);
+  }
   /** Sets `flexBasis: "100%"`. */
   get fb1() {
     return this.add("flexBasis", "100%");

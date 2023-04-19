@@ -635,6 +635,42 @@ class CssBuilder<T extends Properties> {
   pc(value: Properties["placeContent"]) {
     return this.add("placeContent", value);
   }
+  /** Sets `placeItems: "center"`. */
+  get pic() {
+    return this.add("placeItems", "center");
+  }
+  /** Sets `placeItems: "start"`. */
+  get pis() {
+    return this.add("placeItems", "start");
+  }
+  /** Sets `placeItems: "end"`. */
+  get pie() {
+    return this.add("placeItems", "end");
+  }
+  /** Sets `placeItems: "space-between"`. */
+  get pisb() {
+    return this.add("placeItems", "space-between");
+  }
+  /** Sets `placeItems: "space-around"`. */
+  get pisa() {
+    return this.add("placeItems", "space-around");
+  }
+  /** Sets `placeItems: "space-evenly"`. */
+  get pise() {
+    return this.add("placeItems", "space-evenly");
+  }
+  /** Sets `placeItems: "baseline"`. */
+  get pib() {
+    return this.add("placeItems", "baseline");
+  }
+  /** Sets `placeItems: "stretch"`. */
+  get piStretch() {
+    return this.add("placeItems", "stretch");
+  }
+  /** Sets `placeItems: value`. */
+  pi(value: Properties["placeItems"]) {
+    return this.add("placeItems", value);
+  }
   /** Sets `flexBasis: "100%"`. */
   get fb1() {
     return this.add("flexBasis", "100%");
@@ -1096,45 +1132,51 @@ class CssBuilder<T extends Properties> {
   // lineClamp
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 1; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
   get lineClamp1() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 1).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitLineClamp", 1)
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis");
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 2; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
   get lineClamp2() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 2).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitLineClamp", 2)
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis");
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 3; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
   get lineClamp3() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 3).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitLineClamp", 3)
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis");
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 4; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
   get lineClamp4() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 4).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitLineClamp", 4)
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis");
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 5; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
   get lineClamp5() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 5).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitLineClamp", 5)
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis");
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 6; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
   get lineClamp6() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 6).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitLineClamp", 6)
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis");
   }
   /** Sets `WebkitLineClamp: "unset"`. */
   get lineClampNone() {
@@ -1378,7 +1420,7 @@ class CssBuilder<T extends Properties> {
   }
   /** Sets `marginTop: "6px"`. */
   get mt1() {
-    return this.add("marginTop", "6px");
+    return tthis.add("marginTop", "6px");
   }
   /** Sets `marginTop: "12px"`. */
   get mt2() {
@@ -1646,66 +1688,66 @@ class CssBuilder<T extends Properties> {
   }
   /** Sets `marginTop: "12px"; marginBottom: "12px"; marginRight: "12px"; marginLeft: "12px"`. */
   get m2() {
-    return this.add("marginTop", "12px").add("marginBottom", "12px").add("marginRight", "12px").add(
-      "marginLeft",
-      "12px",
-    );
+    return this.add("marginTop", "12px")
+      .add("marginBottom", "12px")
+      .add("marginRight", "12px")
+      .add("marginLeft", "12px");
   }
   /** Sets `marginTop: "18px"; marginBottom: "18px"; marginRight: "18px"; marginLeft: "18px"`. */
   get m3() {
-    return this.add("marginTop", "18px").add("marginBottom", "18px").add("marginRight", "18px").add(
-      "marginLeft",
-      "18px",
-    );
+    return this.add("marginTop", "18px")
+      .add("marginBottom", "18px")
+      .add("marginRight", "18px")
+      .add("marginLeft", "18px");
   }
   /** Sets `marginTop: "24px"; marginBottom: "24px"; marginRight: "24px"; marginLeft: "24px"`. */
   get m4() {
-    return this.add("marginTop", "24px").add("marginBottom", "24px").add("marginRight", "24px").add(
-      "marginLeft",
-      "24px",
-    );
+    return this.add("marginTop", "24px")
+      .add("marginBottom", "24px")
+      .add("marginRight", "24px")
+      .add("marginLeft", "24px");
   }
   /** Sets `marginTop: "30px"; marginBottom: "30px"; marginRight: "30px"; marginLeft: "30px"`. */
   get m5() {
-    return this.add("marginTop", "30px").add("marginBottom", "30px").add("marginRight", "30px").add(
-      "marginLeft",
-      "30px",
-    );
+    return this.add("marginTop", "30px")
+      .add("marginBottom", "30px")
+      .add("marginRight", "30px")
+      .add("marginLeft", "30px");
   }
   /** Sets `marginTop: "36px"; marginBottom: "36px"; marginRight: "36px"; marginLeft: "36px"`. */
   get m6() {
-    return this.add("marginTop", "36px").add("marginBottom", "36px").add("marginRight", "36px").add(
-      "marginLeft",
-      "36px",
-    );
+    return this.add("marginTop", "36px")
+      .add("marginBottom", "36px")
+      .add("marginRight", "36px")
+      .add("marginLeft", "36px");
   }
   /** Sets `marginTop: "42px"; marginBottom: "42px"; marginRight: "42px"; marginLeft: "42px"`. */
   get m7() {
-    return this.add("marginTop", "42px").add("marginBottom", "42px").add("marginRight", "42px").add(
-      "marginLeft",
-      "42px",
-    );
+    return this.add("marginTop", "42px")
+      .add("marginBottom", "42px")
+      .add("marginRight", "42px")
+      .add("marginLeft", "42px");
   }
   /** Sets `marginTop: "auto"; marginBottom: "auto"; marginRight: "auto"; marginLeft: "auto"`. */
   get ma() {
-    return this.add("marginTop", "auto").add("marginBottom", "auto").add("marginRight", "auto").add(
-      "marginLeft",
-      "auto",
-    );
+    return this.add("marginTop", "auto")
+      .add("marginBottom", "auto")
+      .add("marginRight", "auto")
+      .add("marginLeft", "auto");
   }
   /** Sets `marginTop: "v"; marginBottom: "v"; marginRight: "v"; marginLeft: "v"`. */
   m(v: number | string) {
-    return this.add("marginTop", maybeInc(v)).add("marginBottom", maybeInc(v)).add("marginRight", maybeInc(v)).add(
-      "marginLeft",
-      maybeInc(v),
-    );
+    return this.add("marginTop", maybeInc(v))
+      .add("marginBottom", maybeInc(v))
+      .add("marginRight", maybeInc(v))
+      .add("marginLeft", maybeInc(v));
   }
   /** Sets `marginTop: px; marginBottom: px; marginRight: px; marginLeft: px`. */
   mPx(px: number) {
-    return this.add("marginTop", `${px}px`).add("marginBottom", `${px}px`).add("marginRight", `${px}px`).add(
-      "marginLeft",
-      `${px}px`,
-    );
+    return this.add("marginTop", `${px}px`)
+      .add("marginBottom", `${px}px`)
+      .add("marginRight", `${px}px`)
+      .add("marginLeft", `${px}px`);
   }
   /** Sets `paddingTop: "0px"`. */
   get pt0() {
@@ -1949,73 +1991,73 @@ class CssBuilder<T extends Properties> {
   }
   /** Sets `paddingTop: "0px"; paddingBottom: "0px"; paddingRight: "0px"; paddingLeft: "0px"`. */
   get p0() {
-    return this.add("paddingTop", "0px").add("paddingBottom", "0px").add("paddingRight", "0px").add(
-      "paddingLeft",
-      "0px",
-    );
+    return this.add("paddingTop", "0px")
+      .add("paddingBottom", "0px")
+      .add("paddingRight", "0px")
+      .add("paddingLeft", "0px");
   }
   /** Sets `paddingTop: "6px"; paddingBottom: "6px"; paddingRight: "6px"; paddingLeft: "6px"`. */
   get p1() {
-    return this.add("paddingTop", "6px").add("paddingBottom", "6px").add("paddingRight", "6px").add(
-      "paddingLeft",
-      "6px",
-    );
+    return this.add("paddingTop", "6px")
+      .add("paddingBottom", "6px")
+      .add("paddingRight", "6px")
+      .add("paddingLeft", "6px");
   }
   /** Sets `paddingTop: "12px"; paddingBottom: "12px"; paddingRight: "12px"; paddingLeft: "12px"`. */
   get p2() {
-    return this.add("paddingTop", "12px").add("paddingBottom", "12px").add("paddingRight", "12px").add(
-      "paddingLeft",
-      "12px",
-    );
+    return this.add("paddingTop", "12px")
+      .add("paddingBottom", "12px")
+      .add("paddingRight", "12px")
+      .add("paddingLeft", "12px");
   }
   /** Sets `paddingTop: "18px"; paddingBottom: "18px"; paddingRight: "18px"; paddingLeft: "18px"`. */
   get p3() {
-    return this.add("paddingTop", "18px").add("paddingBottom", "18px").add("paddingRight", "18px").add(
-      "paddingLeft",
-      "18px",
-    );
+    return this.add("paddingTop", "18px")
+      .add("paddingBottom", "18px")
+      .add("paddingRight", "18px")
+      .add("paddingLeft", "18px");
   }
   /** Sets `paddingTop: "24px"; paddingBottom: "24px"; paddingRight: "24px"; paddingLeft: "24px"`. */
   get p4() {
-    return this.add("paddingTop", "24px").add("paddingBottom", "24px").add("paddingRight", "24px").add(
-      "paddingLeft",
-      "24px",
-    );
+    return this.add("paddingTop", "24px")
+      .add("paddingBottom", "24px")
+      .add("paddingRight", "24px")
+      .add("paddingLeft", "24px");
   }
   /** Sets `paddingTop: "30px"; paddingBottom: "30px"; paddingRight: "30px"; paddingLeft: "30px"`. */
   get p5() {
-    return this.add("paddingTop", "30px").add("paddingBottom", "30px").add("paddingRight", "30px").add(
-      "paddingLeft",
-      "30px",
-    );
+    return this.add("paddingTop", "30px")
+      .add("paddingBottom", "30px")
+      .add("paddingRight", "30px")
+      .add("paddingLeft", "30px");
   }
   /** Sets `paddingTop: "36px"; paddingBottom: "36px"; paddingRight: "36px"; paddingLeft: "36px"`. */
   get p6() {
-    return this.add("paddingTop", "36px").add("paddingBottom", "36px").add("paddingRight", "36px").add(
-      "paddingLeft",
-      "36px",
-    );
+    return this.add("paddingTop", "36px")
+      .add("paddingBottom", "36px")
+      .add("paddingRight", "36px")
+      .add("paddingLeft", "36px");
   }
   /** Sets `paddingTop: "42px"; paddingBottom: "42px"; paddingRight: "42px"; paddingLeft: "42px"`. */
   get p7() {
-    return this.add("paddingTop", "42px").add("paddingBottom", "42px").add("paddingRight", "42px").add(
-      "paddingLeft",
-      "42px",
-    );
+    return this.add("paddingTop", "42px")
+      .add("paddingBottom", "42px")
+      .add("paddingRight", "42px")
+      .add("paddingLeft", "42px");
   }
   /** Sets `paddingTop: "v"; paddingBottom: "v"; paddingRight: "v"; paddingLeft: "v"`. */
   p(v: number | string) {
-    return this.add("paddingTop", maybeInc(v)).add("paddingBottom", maybeInc(v)).add("paddingRight", maybeInc(v)).add(
-      "paddingLeft",
-      maybeInc(v),
-    );
+    return this.add("paddingTop", maybeInc(v))
+      .add("paddingBottom", maybeInc(v))
+      .add("paddingRight", maybeInc(v))
+      .add("paddingLeft", maybeInc(v));
   }
   /** Sets `paddingTop: px; paddingBottom: px; paddingRight: px; paddingLeft: px`. */
   pPx(px: number) {
-    return this.add("paddingTop", `${px}px`).add("paddingBottom", `${px}px`).add("paddingRight", `${px}px`).add(
-      "paddingLeft",
-      `${px}px`,
-    );
+    return this.add("paddingTop", `${px}px`)
+      .add("paddingBottom", `${px}px`)
+      .add("paddingRight", `${px}px`)
+      .add("paddingLeft", `${px}px`);
   }
 
   // textAlign
@@ -2543,10 +2585,12 @@ class CssBuilder<T extends Properties> {
 
 /** Emotion treats the same rules, ordered differently as different classes, but naively they can be the same. */
 function sortObject<T extends object>(obj: T): T {
-  return Object.keys(obj).sort().reduce((acc, key) => {
-    acc[key as keyof T] = obj[key as keyof T];
-    return acc;
-  }, ({} as any) as T) as T;
+  return Object.keys(obj)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key as keyof T] = obj[key as keyof T];
+      return acc;
+    }, {} as any as T) as T;
 }
 
 /** Conditionally adds `important!` to everything. */
