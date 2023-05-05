@@ -118,6 +118,10 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: ":hover" });
   }
   
+  get scrollbarHidden() {
+    return this.addIn("&::-webkit-scrollbar", { display: "none"}).add("scrollbarWidth", "none");
+  }
+  
   ${breakpointIfs}
 
   get else() {
