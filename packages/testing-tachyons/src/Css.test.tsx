@@ -278,6 +278,24 @@ describe("Css", () => {
     `);
   });
 
+  it("can use data attributes", () => {
+    // Maybe Css.black.ifDataActive.blue.$ ?
+    // Maybe Css.black.ifData("active", "true").blue.$
+    // Maybe Css.black.if("data-active", "true").blue.$ <-- trying this one
+    // Maybe Css.black.if("data-active='true'").blue.$
+    expect(Css.black.if("data-active", "true").blue.if("data-active", false).primary.$).toMatchInlineSnapshot(`
+      {
+        "[data-active='false']": {
+          "color": "var(--primary)",
+        },
+        "[data-active='true']": {
+          "color": "#526675",
+        },
+        "color": "#353535",
+      }
+    `);
+  });
+
   it("can use sqPx", () => {
     expect(Css.sqPx(24).$).toMatchInlineSnapshot(`
       {

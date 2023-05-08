@@ -2150,11 +2150,14 @@ class CssBuilder<T extends Properties> {
 
   if(bp: Breakpoint): CssBuilder<T>;
   if(cond: boolean): CssBuilder<T>;
-  if(arg: boolean | Breakpoint): CssBuilder<T> {
-    if (typeof arg === "boolean") {
+  if(attr: string, value: boolean | string): CssBuilder<T>;
+  if(arg: boolean | Breakpoint | string, value?: boolean | string): CssBuilder<T> {
+    if (value !== undefined) {
+      return this.newCss({ selector: `[${arg}='${value}']` });
+    } else if (typeof arg === "boolean") {
       return this.newCss({ enabled: arg });
     } else {
-      return this.newCss({ selector: Breakpoints[arg] });
+      return this.newCss({ selector: Breakpoints[arg as Breakpoint] });
     }
   }
 
