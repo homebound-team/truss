@@ -1,3 +1,10 @@
+# [1.127.0](https://github.com/homebound-team/truss/compare/v1.126.1...v1.127.0) (2023-05-08)
+
+
+### Features
+
+* Better support for data attributes ([#106](https://github.com/homebound-team/truss/issues/106)) ([bf7c0b2](https://github.com/homebound-team/truss/commit/bf7c0b25575034145a261f897bfcc647135670ce))
+
 ## [1.126.1](https://github.com/homebound-team/truss/compare/v1.126.0...v1.126.1) (2023-03-27)
 
 
