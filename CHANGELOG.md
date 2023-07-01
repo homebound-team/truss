@@ -1,3 +1,10 @@
+## [1.128.1](https://github.com/homebound-team/truss/compare/v1.128.0...v1.128.1) (2023-07-01)
+
+
+### Bug Fixes
+
+* Export newPxMethod. Fixes [#100](https://github.com/homebound-team/truss/issues/100). ([#108](https://github.com/homebound-team/truss/issues/108)) ([4dc329c](https://github.com/homebound-team/truss/commit/4dc329c1746017ba650a52a659736d5f40091028))
+
 # [1.128.0](https://github.com/homebound-team/truss/compare/v1.127.0...v1.128.0) (2023-07-01)
 
 
