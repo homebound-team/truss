@@ -1,3 +1,10 @@
+# [1.128.0](https://github.com/homebound-team/truss/compare/v1.127.0...v1.128.0) (2023-07-01)
+
+
+### Features
+
+* Add placeItems abbreviations. ([#107](https://github.com/homebound-team/truss/issues/107)) ([9ab948b](https://github.com/homebound-team/truss/commit/9ab948b2347618be9c7977de2ce210490336b10a))
+
 # [1.127.0](https://github.com/homebound-team/truss/compare/v1.126.1...v1.127.0) (2023-05-08)
 
 

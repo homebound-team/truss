@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss-testing-tachyons-fela",
-  "version": "1.127.0",
+  "version": "1.128.0",
   "private": true,
   "scripts": {
     "test": "jest"
