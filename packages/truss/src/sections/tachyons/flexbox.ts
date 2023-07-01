@@ -116,6 +116,21 @@ export const flexbox: CreateMethodsFn = () => [
   ),
 
   ...newMethodsForProp(
+    "placeItems",
+    {
+      pic: "center",
+      pis: "start",
+      pie: "end",
+      pisb: "space-between",
+      pisa: "space-around",
+      pise: "space-evenly",
+      pib: "baseline",
+      piStretch: "stretch",
+    },
+    "pi",
+  ),
+
+  ...newMethodsForProp(
     "flexBasis",
     // https://github.com/tack-hammer/tailwind-plugin-flex-basis#usage
     {
