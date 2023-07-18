@@ -1,3 +1,10 @@
+# [1.129.0](https://github.com/homebound-team/truss/compare/v1.128.1...v1.129.0) (2023-07-18)
+
+
+### Features
+
+* Add support for container queries ([#111](https://github.com/homebound-team/truss/issues/111)) ([2218354](https://github.com/homebound-team/truss/commit/221835425eedc2b2348d7fea58b20c6e40fe46cd))
+
 ## [1.128.1](https://github.com/homebound-team/truss/compare/v1.128.0...v1.128.1) (2023-07-01)
 
 
