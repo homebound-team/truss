@@ -925,7 +925,7 @@ __metadata:
     "@types/jest": ^29.2.1
     "@types/node": ^18.11.9
     change-case: ^4.1.2
-    csstype: ^3.1.1
+    csstype: ^3.1.2
     jest: ^29.2.2
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
@@ -3634,6 +3634,13 @@ __metadata:
   version: 3.1.1
   resolution: "csstype@npm:3.1.1"
   checksum: 1f7b4f5fdd955b7444b18ebdddf3f5c699159f13e9cf8ac9027ae4a60ae226aef9bbb14a6e12ca7dba3358b007cee6354b116e720262867c398de6c955ea451d
+  languageName: node
+  linkType: hard
+
+"csstype@npm:^3.1.2":
+  version: 3.1.2
+  resolution: "csstype@npm:3.1.2"
+  checksum: e1a52e6c25c1314d6beef5168da704ab29c5186b877c07d822bd0806717d9a265e8493a2e35ca7e68d0f5d472d43fac1cdce70fd79fd0853dff81f3028d857b5
   languageName: node
   linkType: hard
 

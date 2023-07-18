@@ -31,6 +31,7 @@ import { whitespace } from "src/sections/tachyons/whitespace";
 import { width } from "src/sections/tachyons/widths";
 import { wordBreak } from "src/sections/tachyons/wordBreak";
 import { zIndex } from "src/sections/tachyons/zIndex";
+import { container } from "src/sections/tachyons/container";
 
 export const defaultSections = {
   border,
@@ -39,6 +40,7 @@ export const defaultSections = {
   borderStyle,
   borderWidth,
   boxShadow,
+  container,
   coordinates,
   cursor,
   display,
