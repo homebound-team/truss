@@ -164,6 +164,28 @@ class CssBuilder<T extends Properties> {
     return this.add("boxShadow", "none");
   }
 
+  // container
+  /** Sets `containerType: "size"`. */
+  get cts() {
+    return this.add("containerType", "size");
+  }
+  /** Sets `containerType: "inline-size"`. */
+  get ctis() {
+    return this.add("containerType", "inline-size");
+  }
+  /** Sets `containerType: "normal"`. */
+  get ctn() {
+    return this.add("containerType", "normal");
+  }
+  /** Sets `containerType: value`. */
+  ct(value: Properties["containerType"]) {
+    return this.add("containerType", value);
+  }
+  /** Sets `containerName: value`. */
+  cn(value: Properties["containerName"]) {
+    return this.add("containerName", value);
+  }
+
   // coordinates
   /** Sets `top: "0px"`. */
   get top0() {
@@ -2502,6 +2524,10 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: ":hover" });
   }
 
+  ifContainer(props: ContainerProps) {
+    return this.newCss({ selector: Container(props) });
+  }
+
   get ifPrint() {
     return this.newCss({ selector: "@media print" });
   }
@@ -2643,4 +2669,24 @@ export enum Breakpoints {
   mdAndDown = "@media screen and (max-width:959px)",
   lg = "@media screen and (min-width:960px)",
   mdOrLg = "@media screen and (min-width:600px)",
+}
+
+/**
+ * Utility to help write `@container` queries
+ *
+ * @param name - The name of the container.
+ * @param lt - The maximum width of the container inclusive.
+ * @param gt - The minimum width of the container exclusive.
+ */
+type ContainerProps = { name?: string } & ({ lt: number } | { gt: number } | { lt: number; gt: number });
+export function Container(props: ContainerProps) {
+  const { name = "" } = props;
+  const lt = "lt" in props ? props.lt : undefined;
+  const gt = "gt" in props ? props.gt : undefined;
+
+  const ltQuery = lt !== undefined ? `(max-width: ${lt}px)` : "";
+  const gtQuery = gt !== undefined ? `(min-width: ${gt + 1}px)` : "";
+  const query = [ltQuery, gtQuery].filter(Boolean).join(" and ");
+
+  return `@container ${name} ${query}`;
 }
