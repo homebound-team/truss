@@ -7,6 +7,7 @@ import { newAliasesMethods } from "src/methods";
 import { defaultSections } from "src/sections/tachyons";
 import { quote } from "src/utils";
 import { pascalCase } from "change-case";
+import { reactNativeSections } from "src/sections/tachyons-rn";
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
@@ -34,8 +35,12 @@ function generateCssBuilder(config: Config): Code {
 
   // Combine our out-of-the-box utility methods with any custom ones
   const sections: Record<string, string[]> = {
-    // We only ship with tachyons methods currently
-    ...(defaultMethods === "tachyons" ? generateMethods(config, defaultSections) : {}),
+    // We only ship with tachyons & tachyons-rn methods currently
+    ...(defaultMethods === "tachyons"
+      ? generateMethods(config, defaultSections)
+      : defaultMethods === "tachyons-rn"
+      ? generateMethods(config, reactNativeSections)
+      : {}),
     ...(customSections ? generateMethods(config, customSections) : {}),
     ...(aliases && { aliases: newAliasesMethods(aliases) }),
   };

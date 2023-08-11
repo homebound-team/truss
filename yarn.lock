@@ -904,6 +904,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@homebound/truss-testing-tachyons-rn@workspace:packages/testing-tachyons-rn":
+  version: 0.0.0-use.local
+  resolution: "@homebound/truss-testing-tachyons-rn@workspace:packages/testing-tachyons-rn"
+  dependencies:
+    "@homebound/truss": "workspace:*"
+    "@homebound/tsconfig": ^1.0.3
+    "@types/jest": ^29.2.1
+    jest: ^29.2.2
+    ts-jest: ^29.0.3
+    typescript: ^4.8.4
+  languageName: unknown
+  linkType: soft
+
 "@homebound/truss-testing-tachyons@workspace:*, @homebound/truss-testing-tachyons@workspace:packages/testing-tachyons":
   version: 0.0.0-use.local
   resolution: "@homebound/truss-testing-tachyons@workspace:packages/testing-tachyons"
