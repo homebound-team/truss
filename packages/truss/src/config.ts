@@ -57,10 +57,10 @@ export interface Config {
   /**
    * Which default methods to include.
    *
-   * Currently, we support either `tachyons` or `none`. Could eventually support
-   * `tachyons-rn` or `tailwinds` / `tailwinds-rn` as additional options.
+   * Currently, we support either `tachyons`, `tachyons-rn`, or `none`.
+   * Could eventually support `tailwinds` / `tailwinds-rn` as additional options.
    */
-  defaultMethods?: "tachyons" | "none";
+  defaultMethods?: "tachyons" | "none" | "tachyons-rn";
 
   /**
    * A map of "section" to list of rules to create application-specific

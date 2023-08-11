@@ -12,6 +12,7 @@
     "packages/truss",
     "packages/template-tachyons",
     "packages/testing-tachyons",
+    "packages/testing-tachyons-rn",
     "packages/testing-tachyons-emotion",
     "packages/testing-tachyons-fela",
     "packages/testing-tachyons-mui"
