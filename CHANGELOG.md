@@ -1,3 +1,10 @@
+# [1.131.0](https://github.com/homebound-team/truss/compare/v1.130.0...v1.131.0) (2023-08-16)
+
+
+### Features
+
+* Add mwfc. ([#114](https://github.com/homebound-team/truss/issues/114)) ([49c90de](https://github.com/homebound-team/truss/commit/49c90de23267e7cf12565727dbd1a2e5015ee4e7))
+
 # [1.130.0](https://github.com/homebound-team/truss/compare/v1.129.0...v1.130.0) (2023-08-11)
 
 
