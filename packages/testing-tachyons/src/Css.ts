@@ -2090,11 +2090,11 @@ class CssBuilder<T extends Properties> {
     return this.add("maxWidth", "fit-content");
   }
   /** Sets `maxWidth: "min-content"`. */
-  get maxwmin() {
+  get maxwminc() {
     return this.add("maxWidth", "min-content");
   }
   /** Sets `maxWidth: "max-content"`. */
-  get maxwmax() {
+  get maxwmaxc() {
     return this.add("maxWidth", "max-content");
   }
   /** Sets `maxWidth: value`. */
