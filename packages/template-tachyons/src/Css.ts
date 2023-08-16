@@ -2339,6 +2339,18 @@ class CssBuilder<T extends Properties> {
   get mw100() {
     return this.add("minWidth", "100%");
   }
+  /** Sets `minWidth: "fit-content"`. */
+  get mwfc() {
+    return this.add("minWidth", "fit-content");
+  }
+  /** Sets `minWidth: "min-content"`. */
+  get mwminc() {
+    return this.add("minWidth", "min-content");
+  }
+  /** Sets `minWidth: "max-content"`. */
+  get mwmaxc() {
+    return this.add("minWidth", "max-content");
+  }
   /** Sets `minWidth: value`. */
   mw(value: Properties["minWidth"]) {
     return this.add("minWidth", value);
@@ -2366,6 +2378,18 @@ class CssBuilder<T extends Properties> {
   /** Sets `maxWidth: "100%"`. */
   get maxw100() {
     return this.add("maxWidth", "100%");
+  }
+  /** Sets `maxWidth: "fit-content"`. */
+  get maxwfc() {
+    return this.add("maxWidth", "fit-content");
+  }
+  /** Sets `maxWidth: "min-content"`. */
+  get maxwminc() {
+    return this.add("maxWidth", "min-content");
+  }
+  /** Sets `maxWidth: "max-content"`. */
+  get maxwmaxc() {
+    return this.add("maxWidth", "max-content");
   }
   /** Sets `maxWidth: value`. */
   maxw(value: Properties["maxWidth"]) {
