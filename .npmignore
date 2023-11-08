@@ -1,0 +1,11 @@
+/.circleci
+/.github
+/.yarn
+/.nvmrc
+/.prettierrc.js
+/.yarnrc.yml
+/jest.config.js
+/release.config.js
+
+tsconfig.json
+node_modules
