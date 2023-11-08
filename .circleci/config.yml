@@ -28,7 +28,7 @@ jobs:
     steps:
       - checkout
       - node/install-packages:
-          pkg-manager: yarn
+          pkg-manager: yarn-berry
       - run: yarn build
       - run: yarn test
 
@@ -39,6 +39,6 @@ jobs:
     steps:
       - checkout
       - node/install-packages:
-          pkg-manager: yarn
+          pkg-manager: yarn-berry
       - run: yarn build
       - run: yarn semantic-release
