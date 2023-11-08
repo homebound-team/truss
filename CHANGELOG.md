@@ -1,3 +1,10 @@
+## [1.131.1](https://github.com/homebound-team/truss/compare/v1.131.0...v1.131.1) (2023-11-08)
+
+
+### Bug Fixes
+
+* CircleCI yarn cache [sc-42645] ([#117](https://github.com/homebound-team/truss/issues/117)) ([975f68f](https://github.com/homebound-team/truss/commit/975f68fa402de5bc1d2b9fcfac24e101dc74e269))
+
 # [1.131.0](https://github.com/homebound-team/truss/compare/v1.130.0...v1.131.0) (2023-08-16)
 
 
