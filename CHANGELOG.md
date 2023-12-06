@@ -1,3 +1,10 @@
+# [1.132.0](https://github.com/homebound-team/truss/compare/v1.131.1...v1.132.0) (2023-12-06)
+
+
+### Features
+
+* Add flex-wrap styles ([#118](https://github.com/homebound-team/truss/issues/118)) ([698070c](https://github.com/homebound-team/truss/commit/698070c3a77a38a7720f4f3604bc2f51978e4fb9))
+
 ## [1.131.1](https://github.com/homebound-team/truss/compare/v1.131.0...v1.131.1) (2023-11-08)
 
 
