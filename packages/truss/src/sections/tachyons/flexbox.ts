@@ -161,4 +161,14 @@ export const flexbox: CreateMethodsFn = () => [
     },
     "fd",
   ),
+
+  ...newMethodsForProp(
+    "flexWrap",
+    {
+      fww: "wrap",
+      fwr: "wrap-reverse",
+      fwnw: "nowrap",
+    },
+    "flexWrap",
+  ),
 ];

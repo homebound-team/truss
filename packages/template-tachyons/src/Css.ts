@@ -785,6 +785,22 @@ class CssBuilder<T extends Properties> {
   fd(value: Properties["flexDirection"]) {
     return this.add("flexDirection", value);
   }
+  /** Sets `flexWrap: "wrap"`. */
+  get fww() {
+    return this.add("flexWrap", "wrap");
+  }
+  /** Sets `flexWrap: "wrap-reverse"`. */
+  get fwr() {
+    return this.add("flexWrap", "wrap-reverse");
+  }
+  /** Sets `flexWrap: "nowrap"`. */
+  get fwnw() {
+    return this.add("flexWrap", "nowrap");
+  }
+  /** Sets `flexWrap: value`. */
+  flexWrap(value: Properties["flexWrap"]) {
+    return this.add("flexWrap", value);
+  }
 
   // float
   /** Sets `float: "left"`. */

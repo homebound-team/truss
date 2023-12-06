@@ -29,7 +29,7 @@
     "prettier": "^2.7.1",
     "semantic-release": "^19.0.5",
     "ts-node": "^10.9.1",
-    "ttypescript": "^1.5.13",
+    "ttypescript": "^1.5.15",
     "typescript": "^4.8.4",
     "typescript-transform-paths": "^3.4.4"
   },
