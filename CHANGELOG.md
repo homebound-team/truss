@@ -1,3 +1,10 @@
+# [1.133.0](https://github.com/homebound-team/truss/compare/v1.132.0...v1.133.0) (2024-03-05)
+
+
+### Features
+
+* Add order and opacity shorthand styles ([#119](https://github.com/homebound-team/truss/issues/119)) ([c5e5d2c](https://github.com/homebound-team/truss/commit/c5e5d2cf25eb7229feb0e05d1926c33ab4802f90))
+
 # [1.132.0](https://github.com/homebound-team/truss/compare/v1.131.1...v1.132.0) (2023-12-06)
 
 
