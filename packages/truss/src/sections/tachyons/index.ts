@@ -32,6 +32,7 @@ import { width } from "src/sections/tachyons/widths";
 import { wordBreak } from "src/sections/tachyons/wordBreak";
 import { zIndex } from "src/sections/tachyons/zIndex";
 import { container } from "src/sections/tachyons/container";
+import { opacity } from "src/sections/tachyons/opacity";
 
 export const defaultSections = {
   border,
@@ -51,6 +52,7 @@ export const defaultSections = {
   height,
   lineClamp,
   objectFit,
+  opacity,
   outline,
   overflow,
   position,

@@ -749,6 +749,10 @@ class CssBuilder<T extends Properties> {
   flexWrap(value: Properties["flexWrap"]) {
     return this.add("flexWrap", value);
   }
+  /** Sets `order: value`. */
+  order(value: Properties["order"]) {
+    return this.add("order", value);
+  }
 
   // float
   /** Sets `float: "left"`. */
@@ -1139,6 +1143,32 @@ class CssBuilder<T extends Properties> {
   /** Sets `objectFit: value`. */
   objectFit(value: Properties["objectFit"]) {
     return this.add("objectFit", value);
+  }
+
+  // opacity
+  /** Sets `opacity: "0"`. */
+  get o0() {
+    return this.add("opacity", "0");
+  }
+  /** Sets `opacity: "0.25"`. */
+  get o25() {
+    return this.add("opacity", "0.25");
+  }
+  /** Sets `opacity: "0.5"`. */
+  get o50() {
+    return this.add("opacity", "0.5");
+  }
+  /** Sets `opacity: "0.75"`. */
+  get o75() {
+    return this.add("opacity", "0.75");
+  }
+  /** Sets `opacity: "1"`. */
+  get o100() {
+    return this.add("opacity", "1");
+  }
+  /** Sets `opacity: value`. */
+  o(value: Properties["opacity"]) {
+    return this.add("opacity", value);
   }
 
   // outline

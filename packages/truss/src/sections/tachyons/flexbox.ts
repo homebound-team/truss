@@ -1,5 +1,5 @@
 import { CreateMethodsFn } from "src/config";
-import { newMethodsForProp } from "src/methods";
+import { newMethodsForProp, newParamMethod } from "src/methods";
 
 // We originally used the tachyons mappings:
 // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
@@ -171,4 +171,6 @@ export const flexbox: CreateMethodsFn = () => [
     },
     "flexWrap",
   ),
+
+  newParamMethod("order", "order"),
 ];
