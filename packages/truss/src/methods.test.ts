@@ -1,5 +1,6 @@
+import { Properties } from "csstype";
 import { Config } from "src/config";
-import { newIncrementMethods } from "src/methods";
+import { newIncrementMethods, newMethod, newMethodsForProp, newParamMethod } from "src/methods";
 
 describe("methods", () => {
   const config: Config = {
@@ -69,6 +70,66 @@ describe("methods", () => {
          m(v: number | string) { return this.add("marginTop", maybeInc(v)).add("marginRight", maybeInc(v)).add("marginBottom", maybeInc(v)).add("marginLeft", maybeInc(v)); }",
           "/** Sets \`marginTop: px; marginRight: px; marginBottom: px; marginLeft: px\`. */
          mPx(px: number) { return this.add("marginTop", \`\${px}px\`).add("marginRight", \`\${px}px\`).add("marginBottom", \`\${px}px\`).add("marginLeft", \`\${px}px\`); }",
+        ]
+      `);
+    });
+  });
+
+  describe("newParamMethod", () => {
+    it("creates a new method with a parameter", () => {
+      // Given a new method with a parameter
+      const result = newParamMethod("bgColor", "backgroundColor");
+      // Then it should output the expected method
+      expect(result).toMatchInlineSnapshot(`
+        "/** Sets \`backgroundColor: value\`. */
+         bgColor(value: Properties["backgroundColor"]) { return this.add("backgroundColor", value); }"
+      `);
+    });
+
+    it("creates a new method with a parameter and additional properties", () => {
+      // Given a new method with a parameter and additional properties
+      const result = newParamMethod("bgColor", "backgroundColor", { display: "block" });
+      // Then it should output the expected method
+      expect(result).toMatchInlineSnapshot(`
+        "/** Sets \`backgroundColor: value\`. */
+         bgColor(value: Properties["backgroundColor"]) { return this.add("backgroundColor", value).add("display", "block"); }"
+      `);
+    });
+  });
+
+  describe("newMethodsForProp", () => {
+    it("creates a new method for prop", () => {
+      // Given a new method for "lineClamp" prop with different definitions
+      const baseProperties: Properties = { overflow: "hidden", textOverflow: "ellipsis" };
+      const def: (lineClamp: Properties["WebkitLineClamp"]) => Properties = (lineClamp) => ({
+        WebkitLineClamp: lineClamp,
+        ...baseProperties,
+      });
+      // When we create the new methods
+      const result = newMethodsForProp("lineClamp", { lineClamp1: def(1), lineClampNone: def("unset") });
+      // Then it should output the expected methods
+      expect(result).toMatchInlineSnapshot(`
+        [
+          "/** Sets \`WebkitLineClamp: 1; overflow: "hidden"; textOverflow: "ellipsis"\`. */
+         get lineClamp1() { return this.add("WebkitLineClamp", 1).add("overflow", "hidden").add("textOverflow", "ellipsis"); }",
+          "/** Sets \`WebkitLineClamp: "unset"; overflow: "hidden"; textOverflow: "ellipsis"\`. */
+         get lineClampNone() { return this.add("WebkitLineClamp", "unset").add("overflow", "hidden").add("textOverflow", "ellipsis"); }",
+          "/** Sets \`lineClamp: value\`. */
+         lineClamp(value: Properties["lineClamp"]) { return this.add("lineClamp", value); }",
+        ]
+      `);
+    });
+
+    it("creates method extra base definitions", () => {
+      // Given some base properties
+      const baseProperties: Properties = { overflow: "hidden", textOverflow: "ellipsis" };
+      // When we call newMethodsForProp with the base properties for "lineClamp"
+      const result = newMethodsForProp("WebkitLineClamp", {}, "lineClamp", false, baseProperties);
+      // Then it should output a lineClamp function with the base properties
+      expect(result).toMatchInlineSnapshot(`
+        [
+          "/** Sets \`WebkitLineClamp: value\`. */
+         lineClamp(value: Properties["WebkitLineClamp"]) { return this.add("WebkitLineClamp", value).add("overflow", "hidden").add("textOverflow", "ellipsis"); }",
         ]
       `);
     });
