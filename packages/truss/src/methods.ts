@@ -16,12 +16,12 @@ export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
 /**
  * Given a single abbreviation (i.e. `mt`) and a property name (i.e. `marginTop`), returns the
  * TypeScript code for a `mt` utility method that accepts a user-provided value of the prop to set.
- * Use `extraDefs` for additional properties to set.
+ * Use `extraProperties` for additional properties to set.
  *
  * I.e. `Css.mt(someValue).$`
  */
-export function newParamMethod(abbr: UtilityName, prop: keyof Properties, extraDefs: Properties = {}): UtilityMethod {
-  const additionalDefs = Object.entries(extraDefs).map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`).join("");
+export function newParamMethod(abbr: UtilityName, prop: keyof Properties, extraProperties: Properties = {}): UtilityMethod {
+  const additionalDefs = Object.entries(extraProperties).map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`).join("");
   return `${comment({ [prop]: "value" })} ${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value)${additionalDefs}; }`;
 }
 
@@ -37,7 +37,7 @@ export function newParamMethod(abbr: UtilityName, prop: keyof Properties, extraD
  * to `null`.
  *
  * @param prop the CSS property we're setting, i.e. `marginTop`
- * @param defs a map of abbreviation name --> value
+ * @param defs a map of abbreviation name --> value (a property value or an object of properties to set)
  * @param baseName the base name to use, i.e. `mt`
  * @param includePx generate an extra `${baseName}Px` method that calls the base method with a converted px value
  * @param baseDefs additional properties to set for the base method
@@ -47,12 +47,15 @@ export function newMethodsForProp<P extends Prop>(
   defs: Record<UtilityName, Properties[P] | Properties>,
   baseName: string | null = prop,
   includePx: boolean = false,
-  baseDefs?: Omit<Properties, P>,
+  valueMethodExtraProperties?: Omit<Properties, P>,
 ): UtilityMethod[] {
   return [
-    ...Object.entries(defs).map(([abbr, value]) => newMethod(abbr, typeof value === "object" ? value : { [prop]: value })),
+    ...Object.entries(defs).map(([abbr, value]) => newMethod(abbr,
+      // If the value is an object, use it as the full defs, otherwise, use it as the prop value
+      typeof value === "object" ? value : { [prop]: value }
+    )),
     // Conditionally add a method that directly accepts a value for prop
-    ...(baseName !== null ? [newParamMethod(baseName, prop, baseDefs)] : []),
+    ...(baseName !== null ? [newParamMethod(baseName, prop, valueMethodExtraProperties)] : []),
     ...(baseName !== null && includePx ? [newPxMethod(baseName, prop)] : []),
   ];
 }
