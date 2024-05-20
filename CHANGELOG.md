@@ -1,3 +1,10 @@
+# [1.134.0](https://github.com/homebound-team/truss/compare/v1.133.0...v1.134.0) (2024-05-20)
+
+
+### Features
+
+* support additional properties to utility method ([#120](https://github.com/homebound-team/truss/issues/120)) ([a92172d](https://github.com/homebound-team/truss/commit/a92172d6ea16a2c6be30d855b8e64592e6381a76))
+
 # [1.133.0](https://github.com/homebound-team/truss/compare/v1.132.0...v1.133.0) (2024-03-05)
 
 
