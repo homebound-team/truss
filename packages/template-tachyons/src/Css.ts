@@ -1172,51 +1172,58 @@ class CssBuilder<T extends Properties> {
   }
 
   // lineClamp
-  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 1; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 1`. */
   get lineClamp1() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 1).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
+      "textOverflow",
+      "ellipsis",
+    ).add("WebkitLineClamp", 1);
   }
-  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 2; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 2`. */
   get lineClamp2() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 2).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
+      "textOverflow",
+      "ellipsis",
+    ).add("WebkitLineClamp", 2);
   }
-  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 3; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 3`. */
   get lineClamp3() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 3).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
+      "textOverflow",
+      "ellipsis",
+    ).add("WebkitLineClamp", 3);
   }
-  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 4; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 4`. */
   get lineClamp4() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 4).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
+      "textOverflow",
+      "ellipsis",
+    ).add("WebkitLineClamp", 4);
   }
-  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 5; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 5`. */
   get lineClamp5() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 5).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
+      "textOverflow",
+      "ellipsis",
+    ).add("WebkitLineClamp", 5);
   }
-  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitLineClamp: 6; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"`. */
+  /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 6`. */
   get lineClamp6() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitLineClamp", 6).add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
+      "textOverflow",
+      "ellipsis",
+    ).add("WebkitLineClamp", 6);
   }
   /** Sets `WebkitLineClamp: "unset"`. */
   get lineClampNone() {
     return this.add("WebkitLineClamp", "unset");
+  }
+  /** Sets `WebkitLineClamp: value`. */
+  lineClamp(value: Properties["WebkitLineClamp"]) {
+    return this.add("WebkitLineClamp", value).add("overflow", "hidden").add("display", "-webkit-box").add(
+      "WebkitBoxOrient",
+      "vertical",
+    ).add("textOverflow", "ellipsis");
   }
 
   // objectFit
