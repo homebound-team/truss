@@ -1,3 +1,10 @@
+# [1.135.0](https://github.com/homebound-team/truss/compare/v1.134.0...v1.135.0) (2024-05-31)
+
+
+### Features
+
+* Double down on abbreviation style. ([#121](https://github.com/homebound-team/truss/issues/121)) ([6b28580](https://github.com/homebound-team/truss/commit/6b28580ee0aae3afb4b443e20650236e33307abd))
+
 # [1.134.0](https://github.com/homebound-team/truss/compare/v1.133.0...v1.134.0) (2024-05-20)
 
 
