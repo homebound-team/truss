@@ -5,22 +5,22 @@ import { newMethodsForProp } from "src/methods";
 export const overflow: CreateMethodsFn = () => {
   return [
     ...newMethodsForProp("overflow", {
-      ofv: "visible",
-      ofh: "hidden",
-      ofs: "scroll",
-      ofa: "auto",
+      ov: "visible",
+      oh: "hidden",
+      os: "scroll",
+      oa: "auto",
     }),
     ...newMethodsForProp("overflowY", {
-      ofyv: "visible",
-      ofyh: "hidden",
-      ofys: "scroll",
-      ofya: "auto",
+      oyv: "visible",
+      oyh: "hidden",
+      oys: "scroll",
+      oya: "auto",
     }),
     ...newMethodsForProp("overflowX", {
-      ofxv: "visible",
-      ofxh: "hidden",
-      ofxs: "scroll",
-      ofxa: "auto",
+      oxv: "visible",
+      oxh: "hidden",
+      oxs: "scroll",
+      oxa: "auto",
     }),
   ];
 };

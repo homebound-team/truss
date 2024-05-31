@@ -146,8 +146,6 @@ export const flexbox: CreateMethodsFn = () => [
     "fb",
   ),
 
-  ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }),
-
   ...newMethodsForProp("flexGrow", { fg0: 0, fg1: 1 }),
   ...newMethodsForProp("flexShrink", { fs0: 0, fs1: 1 }),
 
