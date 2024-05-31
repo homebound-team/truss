@@ -5,10 +5,10 @@ export const verticalAlign: CreateMethodsFn = () =>
   newMethodsForProp(
     "verticalAlign",
     {
-      vBase: "baseline",
-      vMid: "middle",
-      vTop: "top",
-      vBottom: "bottom",
+      vaBl: "baseline",
+      vam: "middle",
+      vat: "top",
+      vaBm: "bottom",
     },
-    "va"
+    "va",
   );
