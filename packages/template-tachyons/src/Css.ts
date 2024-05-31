@@ -56,31 +56,31 @@ class CssBuilder<T extends Properties> {
 
   // borderColor
   /** Sets `borderColor: "#353535"`. */
-  get bBlack() {
+  get bcBlack() {
     return this.add("borderColor", "#353535");
   }
   /** Sets `borderColor: "#888888"`. */
-  get bMidGray() {
+  get bcMidGray() {
     return this.add("borderColor", "#888888");
   }
   /** Sets `borderColor: "#cecece"`. */
-  get bLightGray() {
+  get bcLightGray() {
     return this.add("borderColor", "#cecece");
   }
   /** Sets `borderColor: "#fcfcfa"`. */
-  get bWhite() {
+  get bcWhite() {
     return this.add("borderColor", "#fcfcfa");
   }
   /** Sets `borderColor: "#526675"`. */
-  get bBlue() {
+  get bcBlue() {
     return this.add("borderColor", "#526675");
   }
   /** Sets `borderColor: "rgba(82, 102, 117, 0.3)"`. */
-  get bBlueFaded() {
+  get bcBlueFaded() {
     return this.add("borderColor", "rgba(82, 102, 117, 0.3)");
   }
   /** Sets `borderColor: "rgba(0, 0, 0, 0)"`. */
-  get bHollow() {
+  get bcHollow() {
     return this.add("borderColor", "rgba(0, 0, 0, 0)");
   }
   /** Sets `borderColor: value`. */
@@ -132,11 +132,11 @@ class CssBuilder<T extends Properties> {
     return this.add("borderStyle", "dotted");
   }
   /** Sets `borderStyle: "none"`. */
-  get bsNone() {
+  get bsn() {
     return this.add("borderStyle", "none");
   }
   /** Sets `borderStyle: "solid"`. */
-  get bsSolid() {
+  get bss() {
     return this.add("borderStyle", "solid");
   }
   /** Sets `borderStyle: value`. */
@@ -729,18 +729,6 @@ class CssBuilder<T extends Properties> {
   fb(value: Properties["flexBasis"]) {
     return this.add("flexBasis", value);
   }
-  /** Sets `flex: "auto"`. */
-  get flexAuto() {
-    return this.add("flex", "auto");
-  }
-  /** Sets `flex: "none"`. */
-  get flexNone() {
-    return this.add("flex", "none");
-  }
-  /** Sets `flex: value`. */
-  flex(value: Properties["flex"]) {
-    return this.add("flex", value);
-  }
   /** Sets `flexGrow: 0`. */
   get fg0() {
     return this.add("flexGrow", 0);
@@ -822,11 +810,11 @@ class CssBuilder<T extends Properties> {
 
   // fontWeight
   /** Sets `fontWeight: "normal"`. */
-  get normal() {
+  get fwn() {
     return this.add("fontWeight", "normal");
   }
   /** Sets `fontWeight: "bold"`. */
-  get b() {
+  get fwb() {
     return this.add("fontWeight", "bold");
   }
   /** Sets `fontWeight: 100`. */
@@ -1298,19 +1286,19 @@ class CssBuilder<T extends Properties> {
 
   // overflow
   /** Sets `overflow: "visible"`. */
-  get overflowVisible() {
+  get ov() {
     return this.add("overflow", "visible");
   }
   /** Sets `overflow: "hidden"`. */
-  get overflowHidden() {
+  get oh() {
     return this.add("overflow", "hidden");
   }
   /** Sets `overflow: "scroll"`. */
-  get overflowScroll() {
+  get os() {
     return this.add("overflow", "scroll");
   }
   /** Sets `overflow: "auto"`. */
-  get overflowAuto() {
+  get oa() {
     return this.add("overflow", "auto");
   }
   /** Sets `overflow: value`. */
@@ -1318,19 +1306,19 @@ class CssBuilder<T extends Properties> {
     return this.add("overflow", value);
   }
   /** Sets `overflowY: "visible"`. */
-  get overflowYVisible() {
+  get oyv() {
     return this.add("overflowY", "visible");
   }
   /** Sets `overflowY: "hidden"`. */
-  get overflowYHidden() {
+  get oyh() {
     return this.add("overflowY", "hidden");
   }
   /** Sets `overflowY: "scroll"`. */
-  get overflowYScroll() {
+  get oys() {
     return this.add("overflowY", "scroll");
   }
   /** Sets `overflowY: "auto"`. */
-  get overflowYAuto() {
+  get oya() {
     return this.add("overflowY", "auto");
   }
   /** Sets `overflowY: value`. */
@@ -1338,19 +1326,19 @@ class CssBuilder<T extends Properties> {
     return this.add("overflowY", value);
   }
   /** Sets `overflowX: "visible"`. */
-  get overflowXVisible() {
+  get oxv() {
     return this.add("overflowX", "visible");
   }
   /** Sets `overflowX: "hidden"`. */
-  get overflowXHidden() {
+  get oxh() {
     return this.add("overflowX", "hidden");
   }
   /** Sets `overflowX: "scroll"`. */
-  get overflowXScroll() {
+  get oxs() {
     return this.add("overflowX", "scroll");
   }
   /** Sets `overflowX: "auto"`. */
-  get overflowXAuto() {
+  get oxa() {
     return this.add("overflowX", "auto");
   }
   /** Sets `overflowX: value`. */
@@ -2131,19 +2119,19 @@ class CssBuilder<T extends Properties> {
 
   // textAlign
   /** Sets `textAlign: "left"`. */
-  get tl() {
+  get tal() {
     return this.add("textAlign", "left");
   }
   /** Sets `textAlign: "center"`. */
-  get tc() {
+  get tac() {
     return this.add("textAlign", "center");
   }
   /** Sets `textAlign: "right"`. */
-  get tr() {
+  get tar() {
     return this.add("textAlign", "right");
   }
   /** Sets `textAlign: "justify"`. */
-  get tj() {
+  get taj() {
     return this.add("textAlign", "justify");
   }
   /** Sets `textAlign: value`. */
@@ -2153,15 +2141,15 @@ class CssBuilder<T extends Properties> {
 
   // textDecoration
   /** Sets `textDecoration: "none"`. */
-  get noUnderline() {
+  get tdn() {
     return this.add("textDecoration", "none");
   }
   /** Sets `textDecoration: "line-through"`. */
-  get strike() {
+  get tdlt() {
     return this.add("textDecoration", "line-through");
   }
   /** Sets `textDecoration: "underline"`. */
-  get underline() {
+  get tdu() {
     return this.add("textDecoration", "underline");
   }
   /** Sets `textDecoration: value`. */
@@ -2245,19 +2233,19 @@ class CssBuilder<T extends Properties> {
 
   // userSelect
   /** Sets `userSelect: "none"`. */
-  get selectNone() {
+  get usn() {
     return this.add("userSelect", "none");
   }
   /** Sets `userSelect: "text"`. */
-  get selectText() {
+  get ust() {
     return this.add("userSelect", "text");
   }
   /** Sets `userSelect: "all"`. */
-  get selectAll() {
+  get usAll() {
     return this.add("userSelect", "all");
   }
   /** Sets `userSelect: "auto"`. */
-  get selectAuto() {
+  get usAuto() {
     return this.add("userSelect", "auto");
   }
   /** Sets `userSelect: value`. */
@@ -2267,19 +2255,19 @@ class CssBuilder<T extends Properties> {
 
   // verticalAlign
   /** Sets `verticalAlign: "baseline"`. */
-  get vBase() {
+  get vaBaseline() {
     return this.add("verticalAlign", "baseline");
   }
   /** Sets `verticalAlign: "middle"`. */
-  get vMid() {
+  get vam() {
     return this.add("verticalAlign", "middle");
   }
   /** Sets `verticalAlign: "top"`. */
-  get vTop() {
+  get vat() {
     return this.add("verticalAlign", "top");
   }
   /** Sets `verticalAlign: "bottom"`. */
-  get vBottom() {
+  get vaBottom() {
     return this.add("verticalAlign", "bottom");
   }
   /** Sets `verticalAlign: value`. */
@@ -2289,11 +2277,11 @@ class CssBuilder<T extends Properties> {
 
   // visibility
   /** Sets `visibility: "visible"`. */
-  get visible() {
+  get vv() {
     return this.add("visibility", "visible");
   }
   /** Sets `visibility: "hidden"`. */
-  get invisible() {
+  get vh() {
     return this.add("visibility", "hidden");
   }
   /** Sets `visibility: value`. */
@@ -2302,18 +2290,6 @@ class CssBuilder<T extends Properties> {
   }
 
   // whitespace
-  /** Sets `whiteSpace: "nowrap"`. */
-  get nowrap() {
-    return this.add("whiteSpace", "nowrap");
-  }
-  /** Sets `whiteSpace: "pre"`. */
-  get pre() {
-    return this.add("whiteSpace", "pre");
-  }
-  /** Sets `whiteSpace: "normal"`. */
-  get wsNormal() {
-    return this.add("whiteSpace", "normal");
-  }
   /** Sets `whiteSpace: "pre"`. */
   get wsp() {
     return this.add("whiteSpace", "pre");
@@ -2499,19 +2475,19 @@ class CssBuilder<T extends Properties> {
 
   // wordBreak
   /** Sets `wordBreak: "normal"`. */
-  get breakNormal() {
+  get wbn() {
     return this.add("wordBreak", "normal");
   }
   /** Sets `wordBreak: "break-all"`. */
-  get breakAll() {
+  get wbba() {
     return this.add("wordBreak", "break-all");
   }
   /** Sets `wordBreak: "keep-all"`. */
-  get breakKeepAll() {
+  get wbka() {
     return this.add("wordBreak", "keep-all");
   }
   /** Sets `wordBreak: "break-word"`. */
-  get breakWord() {
+  get wbbw() {
     return this.add("wordBreak", "break-word");
   }
   /** Sets `wordBreak: value`. */

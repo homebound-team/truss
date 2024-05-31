@@ -6,10 +6,10 @@ export const textAlign: CreateMethodsFn = () =>
   newMethodsForProp(
     "textAlign",
     {
-      tl: "left",
-      tc: "center",
-      tr: "right",
-      tj: "justify",
+      tal: "left",
+      tac: "center",
+      tar: "right",
+      taj: "justify",
     },
     "ta"
   );

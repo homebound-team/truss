@@ -3,10 +3,6 @@ import { CreateMethodsFn } from "src/config";
 
 export const whitespace: CreateMethodsFn = () =>
   newMethodsForProp("whiteSpace", {
-    nowrap: "nowrap",
-    pre: "pre",
-    wsNormal: "normal",
-    // Keep our old abbrevations + new more abbreviated ones
     wsp: "pre",
     wsn: "normal",
     wsnw: "nowrap",

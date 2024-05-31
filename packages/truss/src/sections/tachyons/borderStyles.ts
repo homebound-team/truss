@@ -9,8 +9,8 @@ export const borderStyle: CreateMethodsFn = () =>
     {
       bsDashed: "dashed",
       bsDotted: "dotted",
-      bsNone: "none",
-      bsSolid: "solid",
+      bsn: "none",
+      bss: "solid",
     },
-    "bs"
+    "bs",
   );
