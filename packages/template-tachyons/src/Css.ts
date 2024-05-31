@@ -160,7 +160,7 @@ class CssBuilder<T extends Properties> {
 
   // boxShadow
   /** Sets `boxShadow: "none"`. */
-  get bsn() {
+  get shadowNone() {
     return this.add("boxShadow", "none");
   }
 
