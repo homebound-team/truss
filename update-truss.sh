@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MAPPINGS_FILE="update-truss-diff.txt"
+MAPPINGS_FILE="$(dirname "$0")/update-truss-diff.txt"
 
 # Read the mappings file line by line
 while IFS= read -r OLD_STRING && IFS= read -r NEW_STRING; do
