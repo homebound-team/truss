@@ -1,3 +1,10 @@
+# [1.136.0](https://github.com/homebound-team/truss/compare/v1.135.0...v1.136.0) (2024-06-18)
+
+
+### Features
+
+* Add fs/fsPx for fontSize. ([#122](https://github.com/homebound-team/truss/issues/122)) ([a4b541e](https://github.com/homebound-team/truss/commit/a4b541e16ff3cc8627c7ee091dfbddc16b7ff4d4))
+
 # [1.135.0](https://github.com/homebound-team/truss/compare/v1.134.0...v1.135.0) (2024-05-31)
 
 
