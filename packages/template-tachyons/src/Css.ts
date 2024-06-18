@@ -2200,6 +2200,14 @@ class CssBuilder<T extends Properties> {
   get tiny() {
     return this.add("fontWeight", 400).add("fontSize", "10px").add("lineHeight", "14px");
   }
+  /** Sets `fontSize: value`. */
+  fs(value: Properties["fontSize"]) {
+    return this.add("fontSize", value);
+  }
+  /** Sets `fontSize: px`. */
+  fsPx(px: number) {
+    return this.fs(`${px}px`);
+  }
 
   // typography
   /** Sets `maxWidth: "30em"`. */

@@ -1906,6 +1906,14 @@ class CssBuilder<T extends Properties> {
   get f10() {
     return this.add("fontSize", "10px").add("fontWeight", 500);
   }
+  /** Sets `fontSize: value`. */
+  fs(value: Properties["fontSize"]) {
+    return this.add("fontSize", value);
+  }
+  /** Sets `fontSize: px`. */
+  fsPx(px: number) {
+    return this.fs(`${px}px`);
+  }
 
   // typography
   /** Sets `maxWidth: "30em"`. */
