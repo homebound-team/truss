@@ -1932,9 +1932,21 @@ class CssBuilder<T extends Properties> {
   get truncate() {
     return this.add("whiteSpace", "nowrap").add("overflow", "hidden").add("textOverflow", "ellipsis");
   }
+  /** Sets `fontSize: value`. */
+  fs(value: Properties["fontSize"]) {
+    return this.add("fontSize", value);
+  }
+  /** Sets `fontSize: px`. */
+  fsPx(px: number) {
+    return this.fs(`${px}px`);
+  }
   /** Sets `lineHeight: value`. */
   lh(value: Properties["lineHeight"]) {
     return this.add("lineHeight", value);
+  }
+  /** Sets `lineHeight: px`. */
+  lhPx(px: number) {
+    return this.lh(`${px}px`);
   }
 
   // userSelect
