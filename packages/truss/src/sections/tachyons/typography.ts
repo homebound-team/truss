@@ -1,4 +1,4 @@
-import { newMethod, newParamMethod } from "src/methods";
+import { newMethod, newMethodsForProp, newParamMethod } from "src/methods";
 import { CreateMethodsFn } from "src/config";
 
 // See typeScale for the FontConfig.fonts handling
@@ -18,5 +18,8 @@ export const typography: CreateMethodsFn = () => [
     overflow: "hidden",
     textOverflow: "ellipsis",
   }),
-  newParamMethod("lh", "lineHeight"),
+  // Include `fs(...)` & `fsPx(...)` for one-off font-sizes. We technically also have
+  // `fs0` and `fs1` for `flexShrink`, but this seems fine.
+  ...newMethodsForProp("fontSize", {}, "fs", true),
+  ...newMethodsForProp("lineHeight", {}, "lh", true),
 ];

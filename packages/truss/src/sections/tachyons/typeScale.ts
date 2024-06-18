@@ -9,7 +9,4 @@ export const typeScale: CreateMethodsFn = ({ fonts }) => [
     }
     return newMethod(abbr, defs);
   }),
-  // Include `fs(...)` & `fsPx(...)` for one-off font-sizes. We technically also have
-  // `fs0` and `fs1` for `flexShrink`, but this seems fine.
-  ...newMethodsForProp("fontSize", {}, "fs", true),
 ];
