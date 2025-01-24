@@ -1,6 +1,6 @@
 {
   "name": "@homebound/fast-css-prop",
-  "version": "1.136.0",
+  "version": "1.137.0",
   "main": "build/index.js",
   "exports": {
     ".": "./build/cssProp.js",

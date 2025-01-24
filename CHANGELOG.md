@@ -1,3 +1,10 @@
+# [1.137.0](https://github.com/homebound-team/truss/compare/v1.136.0...v1.137.0) (2025-01-24)
+
+
+### Features
+
+* Proof of concept non-component-based css prop. ([#84](https://github.com/homebound-team/truss/issues/84)) ([35f420e](https://github.com/homebound-team/truss/commit/35f420eefc558a5dde29db160e4e95dca9cdee87))
+
 # [1.136.0](https://github.com/homebound-team/truss/compare/v1.135.0...v1.136.0) (2024-06-18)
 
 
