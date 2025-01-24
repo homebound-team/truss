@@ -1,3 +1,10 @@
+## [1.137.2](https://github.com/homebound-team/truss/compare/v1.137.1...v1.137.2) (2025-01-24)
+
+
+### Bug Fixes
+
+* Maybe fix key handling. ([#124](https://github.com/homebound-team/truss/issues/124)) ([11525ad](https://github.com/homebound-team/truss/commit/11525adc8fc475b2065354e3d8be5c6e88b964e7))
+
 ## [1.137.1](https://github.com/homebound-team/truss/compare/v1.137.0...v1.137.1) (2025-01-24)
 
 
