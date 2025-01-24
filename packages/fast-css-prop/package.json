@@ -2,10 +2,6 @@
   "name": "@homebound/fast-css-prop",
   "version": "1.136.0",
   "main": "build/index.js",
-  "bin": "cli.js",
-  "scripts": {
-    "test": "jest"
-  },
   "exports": {
     ".": "./build/cssProp.js",
     "./jsx-runtime": "./jsx-runtime.js",
