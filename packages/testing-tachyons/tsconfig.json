@@ -1,7 +1,7 @@
 {
   "extends": "@homebound/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "module": "ES2022",
+    "module": "commonjs",
     "target": "es5",
     "sourceMap": true,
     "outDir": "build/",
