@@ -3,19 +3,21 @@
   "version": "1.136.0",
   "license": "ISC",
   "scripts": {
-    "build": "ttsc --build",
+    "build": "tspc --build",
     "test": "yarn workspaces foreach run test",
     "semantic-release": "semantic-release",
     "codegen": "yarn workspaces foreach run codegen"
   },
   "workspaces": [
+    "packages/fast-css-prop",
     "packages/truss",
     "packages/template-tachyons",
     "packages/testing-tachyons",
     "packages/testing-tachyons-rn",
     "packages/testing-tachyons-emotion",
     "packages/testing-tachyons-fela",
-    "packages/testing-tachyons-mui"
+    "packages/testing-tachyons-mui",
+    "packages/app-tachyons-fela-prop"
   ],
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.1",
@@ -26,12 +28,12 @@
     "@semantic-release/npm": "^9.0.1",
     "@semantic-release/release-notes-generator": "^10.0.3",
     "@types/node": "~20.8.8",
-    "prettier": "^2.7.1",
+    "prettier": "^2.8.8",
     "semantic-release": "^19.0.5",
-    "ts-node": "^10.9.1",
-    "ttypescript": "^1.5.15",
-    "typescript": "^4.8.4",
-    "typescript-transform-paths": "^3.4.4"
+    "ts-node": "^10.9.2",
+    "ts-patch": "^3.3.0",
+    "typescript": "^5.7.3",
+    "typescript-transform-paths": "^3.5.3"
   },
   "packageManager": "yarn@3.2.0",
   "repository": {

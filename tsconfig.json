@@ -1,5 +1,6 @@
 {
   "references": [
+    { "path": "./packages/fast-css-prop" },
     { "path": "./packages/truss" },
     { "path": "./packages/template-tachyons" },
     { "path": "./packages/testing-tachyons" },
