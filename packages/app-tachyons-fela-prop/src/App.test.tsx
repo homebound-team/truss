@@ -6,9 +6,32 @@ import "@testing-library/jest-dom/vitest";
 
 describe("App", () => {
   test("renders hello world", () => {
-    render(<App />);
-
+    const r = render(<App />);
     expect(screen.getByText(/Vite1/)).toBeInTheDocument();
+    expect(r.baseElement).toMatchInlineSnapshot(`
+      <body>
+        <div>
+          <div>
+            <h1
+              class="a b"
+            >
+              Vite1
+            </h1>
+            <h1
+              style="color: rgb(53, 53, 53);"
+            >
+              Vite2
+            </h1>
+            <div>
+              <button>
+                count is 
+                0
+              </button>
+            </div>
+          </div>
+        </div>
+      </body>
+    `);
   });
 
   test("clicking button increments counter", async () => {
