@@ -12,8 +12,7 @@
     "@homebound/truss-testing-tachyons": "workspace:*",
     "fela": "^12.2.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-fela": "^12.2.1"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
