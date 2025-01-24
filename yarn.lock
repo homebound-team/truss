@@ -728,6 +728,7 @@ __metadata:
   dependencies:
     "@homebound/tsconfig": ^1.0.3
     fela: ^12.2.1
+    fela-dom: ^12.2.1
     typescript: ^5.7.3
   languageName: unknown
   linkType: soft

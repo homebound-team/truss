@@ -9,7 +9,8 @@
   },
   "license": "ISC",
   "dependencies": {
-    "fela": "^12.2.1"
+    "fela": "^12.2.1",
+    "fela-dom": "^12.2.1"
   },
   "devDependencies": {
     "@homebound/tsconfig": "^1.0.3",
