@@ -10,17 +10,17 @@
     "@homebound/truss-testing-tachyons": "workspace:*",
     "@mui/material": "^5.10.12",
     "@mui/styles": "^5.10.10",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@homebound/tsconfig": "^1.0.3",
     "@testing-library/react": "^13.4.0",
     "@types/jest": "^29.2.1",
-    "jest": "^29.2.2",
-    "jest-environment-jsdom": "^29.2.2",
-    "ts-jest": "^29.0.3",
-    "typescript": "^4.8.4"
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
   },
   "jest": {
     "preset": "ts-jest",
