@@ -1,3 +1,10 @@
+## [1.137.1](https://github.com/homebound-team/truss/compare/v1.137.0...v1.137.1) (2025-01-24)
+
+
+### Bug Fixes
+
+* Export the Fragment and jsxs, add fela-dom dependency. ([#123](https://github.com/homebound-team/truss/issues/123)) ([d6ab758](https://github.com/homebound-team/truss/commit/d6ab758d070c8e7f1445147dd72b17d9b4040ed4))
+
 # [1.137.0](https://github.com/homebound-team/truss/compare/v1.136.0...v1.137.0) (2025-01-24)
 
 
