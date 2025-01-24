@@ -3,6 +3,6 @@ import { maybeExpandCssProp } from "./build/cssProp.js";
 
 export { Fragment };
 
-export function jsxDEV(type, props, ...children) {
-  return _jsxDEV(type, maybeExpandCssProp(props), ...children);
+export function jsxDEV(type, props, key, isStaticChildren, source, self) {
+  return _jsxDEV(type, maybeExpandCssProp(props), key, isStaticChildren, source, self);
 }
