@@ -30,6 +30,7 @@ export function maybeExpandCssProp(props: any = {}) {
     const { css, className, ...otherProps } = props;
     if (css) {
       // Use fela/emotion to convert `{ color: "blue" }` --> `a`
+      // css._className = "black";
       const cn = renderer.renderRule(() => css, {});
       // Wrinkles with skipping the wrapper FelaComponent/EmotionCssPropInternal are:
       // 1) Technically we should get renderer from `useContext` instead of a global variable :shrug:

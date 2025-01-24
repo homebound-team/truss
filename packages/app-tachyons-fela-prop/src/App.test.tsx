@@ -1,8 +1,12 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { App } from "./App";
 import "@testing-library/jest-dom/vitest";
+
+if (process.env.JB_IDE_PORT) {
+  vi.setConfig({ testTimeout: 100_000 });
+}
 
 describe("App", () => {
   test("renders hello world", () => {
