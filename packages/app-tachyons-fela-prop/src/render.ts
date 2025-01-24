@@ -6,6 +6,11 @@ const renderer = createRenderer();
 // Auto-inject any CSS it creates into the DOM
 render(renderer);
 
+const existingGenerateClassName = renderer.generateClassName.bind(renderer);
+renderer.generateClassName = (property: string, value: string, pseudo: string, media: string, support: string) => {
+  return existingGenerateClassName(property, value, pseudo, media, support);
+};
+
 /**
  * Wraps React's JSX runtime (i.e. `createElement`) with `css` prop support.
  *
