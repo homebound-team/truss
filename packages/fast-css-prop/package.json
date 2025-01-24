@@ -1,0 +1,22 @@
+{
+  "name": "@homebound/fast-css-prop",
+  "version": "1.136.0",
+  "main": "build/index.js",
+  "bin": "cli.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "exports": {
+    ".": "./build/cssProp.js",
+    "./jsx-runtime": "./jsx-runtime.js",
+    "./jsx-dev-runtime": "./jsx-dev-runtime.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "fela": "^12.2.1"
+  },
+  "devDependencies": {
+    "@homebound/tsconfig": "^1.0.3",
+    "typescript": "^5.7.3"
+  }
+}

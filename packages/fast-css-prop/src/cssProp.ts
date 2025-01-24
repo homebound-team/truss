@@ -1,17 +1,23 @@
 import { createRenderer } from "fela";
 import { render } from "fela-dom";
-import { names } from "@homebound/truss-testing-tachyons";
+// import { names } from "@homebound/truss-testing-tachyons";
 
 // Create a renderer
 const renderer = createRenderer();
 // Auto-inject any CSS it creates into the DOM
 render(renderer);
 
-const existingGenerateClassName = renderer.generateClassName.bind(renderer);
-renderer.generateClassName = (property: string, value: string, pseudo: string, media: string, support: string) => {
-  const ref = property + value + pseudo + media + support;
-  return names[ref] ?? existingGenerateClassName(property, value, pseudo, media, support);
-};
+// const existingGenerateClassName = (renderer as any).generateClassName.bind(renderer);
+// (renderer as any).generateClassName = (
+//   property: string,
+//   value: string,
+//   pseudo: string,
+//   media: string,
+//   support: string,
+// ) => {
+//   const ref = property + value + pseudo + media + support;
+//   return names[ref] ?? existingGenerateClassName(property, value, pseudo, media, support);
+// };
 
 /**
  * Wraps React's JSX runtime (i.e. `createElement`) with `css` prop support.

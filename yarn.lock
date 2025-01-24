@@ -722,6 +722,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@homebound/fast-css-prop@workspace:*, @homebound/fast-css-prop@workspace:packages/fast-css-prop":
+  version: 0.0.0-use.local
+  resolution: "@homebound/fast-css-prop@workspace:packages/fast-css-prop"
+  dependencies:
+    "@homebound/tsconfig": ^1.0.3
+    fela: ^12.2.1
+    typescript: ^5.7.3
+  bin:
+    fast-css-prop: cli.js
+  languageName: unknown
+  linkType: soft
+
 "@homebound/truss-template-tachyons@workspace:packages/template-tachyons":
   version: 0.0.0-use.local
   resolution: "@homebound/truss-template-tachyons@workspace:packages/template-tachyons"
@@ -2736,6 +2748,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "app-tachyons-fela-prop@workspace:packages/app-tachyons-fela-prop"
   dependencies:
+    "@homebound/fast-css-prop": "workspace:*"
     "@homebound/truss-testing-tachyons": "workspace:*"
     "@testing-library/dom": ^10.4.0
     "@testing-library/jest-dom": ^6.6.3
@@ -2744,7 +2757,6 @@ __metadata:
     "@types/react": ^18.0.24
     "@types/react-dom": ^18.0.8
     "@vitejs/plugin-react-swc": ^3.7.2
-    fela: ^12.2.1
     react: ^19.0.0
     react-dom: ^19.0.0
     typescript: ^5.7.3

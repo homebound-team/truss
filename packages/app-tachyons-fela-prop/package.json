@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@homebound/fast-css-prop": "workspace:*",
     "@homebound/truss-testing-tachyons": "workspace:*",
-    "fela": "^12.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

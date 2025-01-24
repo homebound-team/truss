@@ -9,6 +9,7 @@
     "codegen": "yarn workspaces foreach run codegen"
   },
   "workspaces": [
+    "packages/fast-css-prop",
     "packages/truss",
     "packages/template-tachyons",
     "packages/testing-tachyons",

@@ -17,7 +17,7 @@ describe("App", () => {
         <div>
           <div>
             <h1
-              class="black top1"
+              class="a b"
             >
               Vite1
             </h1>
