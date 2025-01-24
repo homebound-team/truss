@@ -5,8 +5,8 @@ export const fontWeight: CreateMethodsFn = () =>
   newMethodsForProp(
     "fontWeight",
     {
-      normal: "normal",
-      b: "bold",
+      fwn: "normal",
+      fwb: "bold",
       fw1: 100,
       fw2: 200,
       fw3: 300,
@@ -17,5 +17,5 @@ export const fontWeight: CreateMethodsFn = () =>
       fw8: 800,
       fw9: 900,
     },
-    "fw"
+    "fw",
   );

@@ -1,5 +1,5 @@
 import { CreateMethodsFn } from "src/config";
-import { newMethodsForProp } from "src/methods";
+import { newMethodsForProp, newParamMethod } from "src/methods";
 
 // We originally used the tachyons mappings:
 // https://github.com/tachyons-css/tachyons/blob/master/src/_flexbox.css#L17
@@ -21,7 +21,7 @@ export const flexbox: CreateMethodsFn = () => [
       f4: "4",
       f5: "5",
     },
-    "f"
+    "f",
   ),
   ...newMethodsForProp(
     "justifyContent",
@@ -33,7 +33,18 @@ export const flexbox: CreateMethodsFn = () => [
       jcsa: "space-around",
       jcse: "space-evenly",
     },
-    "jc"
+    "jc",
+  ),
+
+  ...newMethodsForProp(
+    "justifySelf",
+    {
+      jsa: "auto",
+      jsc: "center",
+      jss: "start",
+      jse: "end",
+    },
+    "js",
   ),
 
   ...newMethodsForProp(
@@ -46,7 +57,7 @@ export const flexbox: CreateMethodsFn = () => [
       jisa: "space-around",
       jise: "space-evenly",
     },
-    "ji"
+    "ji",
   ),
 
   ...newMethodsForProp(
@@ -58,7 +69,7 @@ export const flexbox: CreateMethodsFn = () => [
       asb: "baseline",
       asStretch: "stretch",
     },
-    "as"
+    "as",
   ),
 
   ...newMethodsForProp(
@@ -66,11 +77,57 @@ export const flexbox: CreateMethodsFn = () => [
     {
       aifs: "flex-start",
       aife: "flex-end",
+      ais: "start",
+      aie: "end",
       aic: "center",
       aib: "baseline",
-      ais: "stretch",
+      aiStretch: "stretch",
     },
-    "ai"
+    "ai",
+  ),
+
+  ...newMethodsForProp(
+    "placeSelf",
+    {
+      psa: "auto",
+      psc: "center",
+      pss: "start",
+      pse: "end",
+      psfs: "flex-start",
+      psfe: "flex-end",
+      psStretch: "stretch",
+    },
+    "ps",
+  ),
+
+  ...newMethodsForProp(
+    "placeContent",
+    {
+      pcc: "center",
+      pcs: "start",
+      pce: "end",
+      pcsb: "space-between",
+      pcsa: "space-around",
+      pcse: "space-evenly",
+      pcb: "baseline",
+      pcStretch: "stretch",
+    },
+    "pc",
+  ),
+
+  ...newMethodsForProp(
+    "placeItems",
+    {
+      pic: "center",
+      pis: "start",
+      pie: "end",
+      pisb: "space-between",
+      pisa: "space-around",
+      pise: "space-evenly",
+      pib: "baseline",
+      piStretch: "stretch",
+    },
+    "pi",
   ),
 
   ...newMethodsForProp(
@@ -86,10 +143,8 @@ export const flexbox: CreateMethodsFn = () => [
       fb7: "14.285714%",
       fb0: "12.5%",
     },
-    "fb"
+    "fb",
   ),
-
-  ...newMethodsForProp("flex", { flexAuto: "auto", flexNone: "none" }),
 
   ...newMethodsForProp("flexGrow", { fg0: 0, fg1: 1 }),
   ...newMethodsForProp("flexShrink", { fs0: 0, fs1: 1 }),
@@ -102,6 +157,18 @@ export const flexbox: CreateMethodsFn = () => [
       fdc: "column",
       fdcr: "column-reverse",
     },
-    "fd"
+    "fd",
   ),
+
+  ...newMethodsForProp(
+    "flexWrap",
+    {
+      fww: "wrap",
+      fwr: "wrap-reverse",
+      fwnw: "nowrap",
+    },
+    "flexWrap",
+  ),
+
+  newParamMethod("order", "order"),
 ];

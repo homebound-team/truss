@@ -7,8 +7,9 @@ export type { IncConfig } from "src/methods";
 export {
   newAliasesMethods,
   newMethod,
+  newPxMethod,
   newMethodsForProp,
-  newIncrementDelegateMethods,
+  newCoreIncrementMethods,
   newIncrementMethods,
   newParamMethod,
   newSetCssVariablesMethod,

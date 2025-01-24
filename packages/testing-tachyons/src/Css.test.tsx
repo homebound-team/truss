@@ -1,5 +1,5 @@
 import React from "react";
-import {Css, Margin, Only, Palette, px, sm, Xss} from "./Css";
+import { Css, Margin, Only, Palette, px, Xss } from "./Css";
 
 describe("Css", () => {
   it("can add mb", () => {
@@ -93,7 +93,20 @@ describe("Css", () => {
   });
 
   it("can use generated breakpoints with if dsl", () => {
-    expect(Css.pb2.white.if(sm).pb3.black.$).toMatchInlineSnapshot(`
+    expect(Css.pb2.white.ifSm.pb3.black.$).toMatchInlineSnapshot(`
+      {
+        "@media screen and (max-width:599px)": {
+          "color": "#353535",
+          "paddingBottom": "24px",
+        },
+        "color": "#fcfcfa",
+        "paddingBottom": "16px",
+      }
+    `);
+  });
+
+  it("can use generated breakpoints with if dsl string", () => {
+    expect(Css.pb2.white.if("sm").pb3.black.$).toMatchInlineSnapshot(`
       {
         "@media screen and (max-width:599px)": {
           "color": "#353535",
@@ -110,10 +123,58 @@ describe("Css", () => {
     Css.black.if("rawstring").$;
   });
 
-  it("cannot 'else' when using `if(bp)`", () => {
-    expect(() => Css.if(sm).black.else.white.$).toThrow(
-      "else is not supported"
-    );
+  it("can use 'else' when using `ifSm`", () => {
+    expect(Css.ifSm.black.else.white.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (max-width:599px)": {
+          "color": "#fcfcfa",
+        },
+        "@media screen and (max-width:599px)": {
+          "color": "#353535",
+        },
+      }
+    `);
+  });
+
+  it("can use 'else' when using `ifMdAndUp`", () => {
+    expect(Css.ifMdAndUp.black.else.white.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (min-width:600px)": {
+          "color": "#fcfcfa",
+        },
+        "@media screen and (min-width:600px)": {
+          "color": "#353535",
+        },
+      }
+    `);
+  });
+
+  it("cannot use 'else' twice when using `ifMdAndUp`", () => {
+    expect(() => Css.ifMdAndUp.black.else.white.else.blue.$).toThrowError("else was already called");
+  });
+
+  it.skip("can use 'else' twice for conditional then breakpoint use 'else' twice when using `ifMdAndUp`", () => {
+    expect(Css.if(true).ifSm.black.else.blue.else.midGray.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (max-width:599px)": {
+          "color": "#526675",
+        },
+        "@media screen and (max-width:599px)": {
+          "color": "#353535",
+        },
+      }
+    `);
+    expect(Css.if(false).ifSm.black.else.blue.else.midGray.$).toMatchInlineSnapshot(`
+      {
+        "@media not screen and (max-width:599px)": {
+          "color": "#888888",
+        },
+      }
+    `);
+  });
+
+  it("skips breakpoint code if conditional is disabled", () => {
+    expect(Css.if(false).ifMdAndUp.black.$).toMatchInlineSnapshot(`{}`);
   });
 
   it("can render with px conversion", () => {
@@ -133,12 +194,12 @@ describe("Css", () => {
   });
 
   it("can set css variables", () => {
-    expect(Css.setVars.$).toMatchInlineSnapshot(`
+    expect(Css.darkMode.$).toMatchInlineSnapshot(`
       {
         "--primary": "#000000",
       }
     `);
-    expect(Css.var.$).toMatchInlineSnapshot(`
+    expect(Css.primary.$).toMatchInlineSnapshot(`
       {
         "color": "var(--primary)",
       }
@@ -154,8 +215,7 @@ describe("Css", () => {
   });
 
   it("can addIn with selectors", () => {
-    expect(Css.addIn("& > * + *", "marginBottom", "1px").$)
-      .toMatchInlineSnapshot(`
+    expect(Css.addIn("& > * + *", "marginBottom", "1px").$).toMatchInlineSnapshot(`
       {
         "& > * + *": {
           "marginBottom": "1px",
@@ -168,12 +228,79 @@ describe("Css", () => {
     expect(Css.addIn("& > * + *", undefined).$).toEqual({});
   });
 
+  it("skips addIn if conditional is disabled", () => {
+    expect(Css.if(false).addIn(">div", Css.mb1.$).$).toMatchInlineSnapshot(`{}`);
+    expect(Css.if(false).addIn(">div", Css.mb1.$).else.addIn(">div", Css.mb2.$).$).toMatchInlineSnapshot(`
+      {
+        ">div": {
+          "marginBottom": "16px",
+        },
+      }
+    `);
+    expect(Css.if(true).addIn(">div", Css.mb1.$).else.addIn(">div", Css.mb2.$).$).toMatchInlineSnapshot(`
+      {
+        ">div": {
+          "marginBottom": "8px",
+        },
+      }
+    `);
+  });
+
   it("doesn't incorrectly infer never", () => {
     // If the string literals of white and black snuck into the the type, then this becomes never, which won't spread
     const s = { ...Css.white.else.black.$ };
     expect(s).toMatchInlineSnapshot(`
       {
         "color": "#fcfcfa",
+      }
+    `);
+  });
+
+  it("can use breakpoints via ifs", () => {
+    expect(Css.black.ifMd.blue.$).toMatchInlineSnapshot(`
+      {
+        "@media screen and (min-width:600px) and (max-width:959px)": {
+          "color": "#526675",
+        },
+        "color": "#353535",
+      }
+    `);
+  });
+
+  it("can use hover", () => {
+    expect(Css.black.onHover.blue.$).toMatchInlineSnapshot(`
+      {
+        ":hover": {
+          "color": "#526675",
+        },
+        "color": "#353535",
+      }
+    `);
+  });
+
+  it("can use data attributes", () => {
+    // Maybe Css.black.ifDataActive.blue.$ ?
+    // Maybe Css.black.ifData("active", "true").blue.$
+    // Maybe Css.black.if("data-active", "true").blue.$ <-- trying this one
+    // Maybe Css.black.if("data-active='true'").blue.$
+    expect(Css.black.if("data-active", "true").blue.if("data-active", false).primary.$).toMatchInlineSnapshot(`
+      {
+        "[data-active='false']": {
+          "color": "var(--primary)",
+        },
+        "[data-active='true']": {
+          "color": "#526675",
+        },
+        "color": "#353535",
+      }
+    `);
+  });
+
+  it("can use sqPx", () => {
+    expect(Css.sqPx(24).$).toMatchInlineSnapshot(`
+      {
+        "height": "24px",
+        "width": "24px",
       }
     `);
   });

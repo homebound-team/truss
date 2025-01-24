@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { render } from "@testing-library/react";
-import { Css, Margin, Only, print, sm, Xss } from "@homebound/truss-testing-tachyons";
+import { Css, Margin, Only, Xss } from "@homebound/truss-testing-tachyons";
 
 describe("Css.emotion", () => {
   it("works on divs", () => {
@@ -178,25 +178,25 @@ describe("Css.emotion", () => {
   });
 
   it("can use generated breakpoints", () => {
-    const r = render(<div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$, [print]: Css.m0.$ }} />);
+    const r = render(<div css={Css.mb1.pb2.ifSm.pb3.ifPrint.m0.$} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
         margin-bottom: 8px;
         padding-bottom: 16px;
       }
 
-      @media screen and (max-width:599px) {
+      @media print {
         .emotion-0 {
-          padding-bottom: 24px;
+          margin-top: 0px;
+          margin-bottom: 0px;
+          margin-right: 0px;
+          margin-left: 0px;
         }
       }
 
-      @media print {
+      @media screen and (max-width:599px) {
         .emotion-0 {
-          margin-bottom: 0px;
-          margin-left: 0px;
-          margin-right: 0px;
-          margin-top: 0px;
+          padding-bottom: 24px;
         }
       }
 
@@ -209,7 +209,7 @@ describe("Css.emotion", () => {
   });
 
   it("can use generated breakpoints with emotion", () => {
-    const r = render(<div css={{ ...Css.mb1.pb2.$, [sm]: Css.pb3.$ }} />);
+    const r = render(<div css={Css.mb1.pb2.ifSm.pb3.$} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
         margin-bottom: 8px;
@@ -231,13 +231,34 @@ describe("Css.emotion", () => {
   });
 
   it("lineClamp outputs prefixes", () => {
+    // @ts-ignore Not sure why `Type '"revert-layer"' is not assignable to type BoxOrient` is happening
     const r = render(<div css={Css.lineClamp1.$} />);
     expect(r.container).toMatchInlineSnapshot(`
       .emotion-0 {
+        -webkit-box-orient: vertical;
         -webkit-line-clamp: 1;
         display: -webkit-box;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+
+      <div>
+        <div
+          class="emotion-0"
+        />
+      </div>
+    `);
+  });
+
+  it("can use onHover", () => {
+    const r = render(<div css={Css.mb1.onHover.mb2.$} />);
+    expect(r.container).toMatchInlineSnapshot(`
+      .emotion-0 {
+        margin-bottom: 8px;
+      }
+
+      .emotion-0:hover {
+        margin-bottom: 16px;
       }
 
       <div>

@@ -33,13 +33,14 @@ const sections = {
 
 // You can also define common application-specific aliases.
 const aliases: Aliases = {
-  bodyText: ["f14", "black"],
+  // bodyText: ["f14", "black"],
 };
 
 // Or just suffix random stuff at the bottom of the file.
 const extras = [`export type CustomType = number;`];
 
 export default defineConfig({
+  defaultMethods: "tachyons-rn",
   outputPath: "./src/Css.ts",
   palette,
   fonts,

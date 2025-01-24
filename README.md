@@ -16,15 +16,31 @@ Truss lets you:
 
 - Write `<div css={Css.mt1.black.$}>`, which Truss turns into `css={{ margin-top: 8px, color: "black" }}`, and then Emotion (or another CSS-in-JS library) turns into injected CSS classes.
 
-- Setup your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example code](https://github.com/homebound-team/truss/blob/main/integration-test/index.ts#L12) and the "Customization" section below)
+- Setup your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below)
 
 - Achieve both utility-class brevity and critical-CSS delivery.
 
 - Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
+And y
+- Use selectors as needed, i.e. `css={{ "&>div": Css.black.$ }}` or `Css.onHover.black.$`, using your CSS-in-JS library's selector support
+
+- Use Tachyons-based abbreviations for superior inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
+
+- Leverage strongly-typed styles with just vanilla TypeScript
+
+- Get immediate access to a built-in "cheat sheet", just control-click into abbreviations/methods to see what they do
 
 Also see the "Why This Approach?" section for more rationale.
 
-## Quick Intro
+## Quick Example
+
+Here's an example of production code using Truss:
+
+<p align="center" style="padding: 100px">
+  <img src="truss-example.png" width="800" />
+</p>
+
+## Quick How It Works
 
 Truss generates a `src/Css.ts` file in your local project; this file exports a `Css` const that you use like:
 
@@ -63,6 +79,8 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
 ## Installation
 
+Truss is "just a single `Css.ts` TypeScript file", so does not require any special configuration of your app's bundling/build pipeline, but we do create a `truss` command to easily generate the `Css.ts` file from your `truss-config.ts`:
+
 - `npm i --save-dev @homebound/truss`
 - Add a `truss` command to your `package.json`:
   ```json
@@ -78,6 +96,8 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
   - Re-run `npm run truss` anytime you change `truss-config.ts`
 - Start using `Css.mt1.etc.$` in your project's CSS-in-JS setup
 
+Note that for the `css={Css.blue.$}` syntax to work in JSX, you'll have to figure your CSS-in-JS library's React integration (i.e. for Emotion by setting the React `importSource`, see [their docs](https://emotion.sh/docs/css-prop)).
+
 We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
 - Your design system will likely be pretty stable, so the `Css.ts` output should rarely change.
@@ -86,12 +106,10 @@ We recommend checking the `src/Css.ts` file into your repository, with the ratio
 
 Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it.
 
-## Truss Command
+### Truss Command
 
 The truss command accepts an optional second argument which is the path to your
-configuration file. If omitted, it will look for `./truss-config.ts`. This is
-good if your truss configuration file is not at the root level or the file must
-use a different name.
+configuration file. If omitted, it will look for `./truss-config.ts`.
 
 ```json
 {
@@ -101,48 +119,91 @@ use a different name.
 }
 ```
 
-## Configuration
+### Configuration
 
-Truss's configuration is all done in the `truss-config.ts` files that are installed in your local project.
+Truss's configuration is done via a `truss-config.ts` file installed into your local project.
 
-See the comments in [that file](https://github.com/homebound-team/truss-project-files/blob/main/index.ts) for the available config options.
+See the comments in [that file](https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts) for the available config options. For example setting up your custom font abbreviations is set via a `FontConfig` hash:
+
+```
+// Defines the typeface abbreviations, the keys can be whatever you want
+const fonts: FontConfig = {
+  f10: "10px",
+  f12: "12px",
+  f14: "14px",
+  f24: "24px",
+  // Besides the "24px" shorthand, you can define weight+size+lineHeight tuples
+  tiny: { fontWeight: 400, fontSize: "10px", lineHeight: "14px" },
+};
+```
+
+Also see the [Customization](#customization) section for more advanced configuration options.
 
 ## Psuedo-Selectors and Media Queries
 
-Unlike Tachyons and Tailwinds, Truss's DSL does not have abbreviations/method names for psuedo-selectors and media queries.
+Unlike Tachyons and Tailwinds, Truss does not create duplicate/repetitive abbreviations/method names for psuedo-selectors and media queries (e.g. `md-blue` or `lg-red`).
 
-Instead of building these complications into the DSL, with Truss you use your CSS-in-JS framework-of-choice's existing psuedo-selector and media query support.
+Instead of building these complications into the DSL, Truss leverages your CSS-in-JS library's existing psuedo-selector and media query support.
 
-For example, using Emotion you would do hover-specific styling like:
+For example, Emotion allows you to pass selectors keys in a map, so you can add `:hover` styling like:
 
 ```tsx
-/** @jsxImportSource @emotion/react */
-
-function MyReactComponent(props: ...) {
+function MyReactComponent(props: {}) {
   return (
-    <div css={{...Css.mx2.black.$, "&:hover": Css.blue.$ }}>
-      content
+    <div
+      css={{
+        ...Css.mx2.black.$,
+        "&:hover": Css.blue.$,
+      }}
+    >
+      ...
     </div>
   );
 }
 ```
 
-And breakpoints like:
+Or, you can create the same output using Truss's `onHover` command, which adds `{ color: "blue" }` to the same `&:hover` key as in the previous example:
 
 ```tsx
-/** @jsxImportSource @emotion/react */
-import { Css, sm } from "src/Css";
+function MyReactComponent(props: {}) {
+  return <div css={Css.mx2.black.onHover.blue.$}>...</div>;
+}
+```
 
-function MyReactComponent(props: MyProps) {
-  return <div css={{ ...Css.mx2.black.$, [sm]: Css.mx1.$ }}>content</div>;
+You can also use media queries to create responsive breakpoints, again either using Emotion's "pass selectors as a key" syntax directly:
+
+```tsx
+import { Breakpoints } from "src/Css";
+
+function MyReactComponent(props: {}) {
+  return (
+    <div
+      css={{
+        ...Css.mx2.black.$,
+        [Breakpoints.sm]: Css.mx1.$,
+      }}
+    >
+      ...
+    </div>
+  );
 }
 ```
 
 Where `sm` is just a regular media query string, i.e. `@media (max-width: 420px)`, that you can either generate with Truss's `breakpoints` config setting or just write your own by hand.
 
-This leveraging of the existing framework's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
+Or you can use Truss's `ifSm`, `ifMd`, etc. breakpoint commands (which will be based on your application's specific breakpoints defined in `truss-config.ts`):
 
-## Common CSS-in-JS Frameworks
+```tsx
+import { Breakpoints } from "src/Css";
+
+function MyReactComponent(props: {}) {
+  return <div css={Css.mx2.black.ifSm.mx1.$}>...</div>;
+}
+```
+
+This leveraging of the existing library's selector support makes Truss's DSL shorter and simpler than Tachyons/Tailwinds, which have to repetively/pre-emptively mixin hover/media variations for each size into each abbreviation.
+
+## Supported CSS-in-JS Frameworks
 
 Truss generates a TypeScript/`Css.ts` DSL that, without any changes, can be used in MUI, Emotion, and Fela.
 
@@ -236,8 +297,8 @@ Also note that the XStyles/Xss feature is completely opt-in; you can use it if y
 
 Truss supports several levels of customization:
 
-1. Per-project fonts/colors/etc.
-2. Per-project rule additions or changes
+1. Per-project fonts/colors/etc. in `truss-config.ts`
+2. Per-project rule additions or changes in `truss-config.ts`
 3. Forking
 
 ### Per-Project Fonts/Colors/Etc
@@ -271,7 +332,7 @@ const breakpoints = { sm: 0, md: 600, lg: 960 };
 // ...rest of the config file...
 ```
 
-Projects should heavily customize these settings to match their project-specific design system, then run `npm run generate` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have utility methods added like:
+Projects should heavily customize these settings to match their project-specific design system, then run `npm run truss` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have utility methods added like:
 
 ```typescript
   get green() { return this.add("color", "green"); }
@@ -353,13 +414,19 @@ The benefits of this approach are:
 
 ## Why Tachyons Instead of Tailwinds?
 
-Truss's out-of-the-box abbreviations are based on Tachyons. The reasons for this are:
+tldr: Tachyon's abbreviations are shorter. :-)
 
-1. Historically we started using Tachyons and Tachyons-style abbreviations before Tailwinds had obviously won the utility CSS mindshare, and so we have both legacy code and also just personal preference established for the Tachyons abbreviations.
+For example, the CSS `justify-content: flex-start` in Tailwinds is `justify-start`, and in Truss is `jcfs` (i.e. the Justify Content Flex Start).
 
-2. The Tachyons abbreviations are generally more succint, and in our opinion if you're going to learn an esoteric way of writing CSS (e.g. learning what all of the abbreviations mean), you might as well go all the way and get the most brevity as possible, to achieve the best inline-ability.
+This is admittedly preference, but Truss's assertion is that **readability goes up when code sprawl goes down**, because you can visually fit more code into view at once.
 
-That said, it's possible to use Truss to generate Tailwinds-based abbreviations; see [this issue](https://github.com/homebound-team/truss/issues/65) if you're interested in helping contribute.
+And so Tachyons-style abbreviations, even if each abbreviation in isolation is more complex, when taken as a whole (looking at 10-20 lines of non-trivially-styled JSX) is arguably more readable.
+
+Granted, the more-succinct code is still doing "the same work" (setting the same CSS properties) as the longer code, but you are likely only paying attention to a small subset of code at any given time, so the currently-unimportant code/abbreviations will "fade into the background" more easily when they're shorter.
+
+(This is also not to say all names in a codebase should be meaningless chicken-scratch like `a`, `b`, `c`, etc., but when there are very strong/consistent conventions (like loop variables being called `i`, `j`, `k`), then leaning into succinctness can be appropriate.)
+
+All this said, it's very possible to teach Truss how to generate Tailwinds-based abbreviations, we just haven't done it yet; see [this issue](https://github.com/homebound-team/truss/issues/65) if you're interested in helping contribute.
 
 ## Themes
 

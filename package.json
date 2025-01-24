@@ -1,6 +1,6 @@
 {
   "name": "truss",
-  "version": "1.115.0",
+  "version": "1.136.0",
   "license": "ISC",
   "scripts": {
     "build": "ttsc --build",
@@ -12,6 +12,7 @@
     "packages/truss",
     "packages/template-tachyons",
     "packages/testing-tachyons",
+    "packages/testing-tachyons-rn",
     "packages/testing-tachyons-emotion",
     "packages/testing-tachyons-fela",
     "packages/testing-tachyons-mui",
@@ -25,7 +26,7 @@
     "@semantic-release/github": "^8.0.6",
     "@semantic-release/npm": "^9.0.1",
     "@semantic-release/release-notes-generator": "^10.0.3",
-    "@types/node": "^18.11.9",
+    "@types/node": "~20.8.8",
     "prettier": "^2.8.8",
     "semantic-release": "^19.0.5",
     "ts-node": "^10.9.2",

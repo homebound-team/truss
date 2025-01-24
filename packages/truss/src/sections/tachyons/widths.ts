@@ -9,8 +9,12 @@ export const width: CreateMethodsFn = (config) => [
       w50: "50%",
       w75: "75%",
       w100: "100%",
+      wfc: "fit-content",
+      wmaxc: "max-content",
+      wminc: "min-content",
     },
-    null
+    // Skip `w` here b/c it's created by newIncrementMethods below
+    null,
   ),
 
   ...newMethodsForProp(
@@ -21,9 +25,12 @@ export const width: CreateMethodsFn = (config) => [
       mw50: "50%",
       mw75: "75%",
       mw100: "100%",
+      mwfc: "fit-content",
+      mwminc: "min-content",
+      mwmaxc: "max-content",
     },
     "mw",
-    true
+    true,
   ),
 
   ...newMethodsForProp(
@@ -34,10 +41,13 @@ export const width: CreateMethodsFn = (config) => [
       maxw50: "50%",
       maxw75: "75%",
       maxw100: "100%",
+      maxwfc: "fit-content",
+      maxwminc: "min-content",
+      maxwmaxc: "max-content",
     },
     "maxw",
-    true
+    true,
   ),
 
-  ...newIncrementMethods(config, "w", "width"),
+  ...newIncrementMethods(config, "w", "width", { auto: true }),
 ];

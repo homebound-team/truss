@@ -1,11 +1,11 @@
 import { CreateMethodsFn } from "src/config";
-import { newIncrementMethods, newMethodsForProp } from "src/methods";
+import { comment, newIncrementMethods, newMethodsForProp } from "src/methods";
 
 export const height: CreateMethodsFn = (config) => [
   // https://github.com/tachyons-css/tachyons/blob/master/src/_heights.css
 
   // Technically h1 in tachyons is 1em and ours is 1 inc
-  ...newIncrementMethods(config, "h", "height"),
+  ...newIncrementMethods(config, "h", "height", { auto: true }),
 
   ...newMethodsForProp(
     "height",
@@ -18,8 +18,12 @@ export const height: CreateMethodsFn = (config) => [
       vh50: "50vh",
       vh75: "75vh",
       vh100: "100vh",
+      hfc: "fit-content",
+      hmaxc: "max-content",
+      hminc: "min-content",
     },
-    null
+    // Skip `h` here b/c it's created by newIncrementMethods below
+    null,
   ),
 
   ...newMethodsForProp(
@@ -32,9 +36,9 @@ export const height: CreateMethodsFn = (config) => [
       mh100: "100%",
       mvh100: "100vh",
     },
-    "mh"
+    "mh",
+    true,
   ),
-  `mhPx(px: number) { return this.add("minHeight", \`\${px}px\`); }`,
 
   ...newMethodsForProp(
     "maxHeight",
@@ -45,7 +49,11 @@ export const height: CreateMethodsFn = (config) => [
       maxh75: "75%",
       maxh100: "100%",
     },
-    "maxh"
+    "maxh",
+    true,
   ),
-  `maxhPx(px: number) { return this.add("maxHeight", \`\${px}px\`); }`,
+
+  // Sneak this into heights.ts even though it's for width & height
+  `${comment({ height: "px", width: "px" })}
+  sqPx(px: number) { return this.add("height", \`\${px}px\`).add("width", \`\${px}px\`); }`,
 ];

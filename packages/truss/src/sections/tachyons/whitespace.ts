@@ -3,7 +3,10 @@ import { CreateMethodsFn } from "src/config";
 
 export const whitespace: CreateMethodsFn = () =>
   newMethodsForProp("whiteSpace", {
-    nowrap: "nowrap",
-    pre: "pre",
-    wsNormal: "normal",
+    wsp: "pre",
+    wsn: "normal",
+    wsnw: "nowrap",
+    wsbs: "break-spaces",
+    wspw: "pre-wrap",
+    wspl: "pre-line",
   });

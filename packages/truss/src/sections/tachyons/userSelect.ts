@@ -6,10 +6,10 @@ export const userSelect: CreateMethodsFn = () =>
   newMethodsForProp(
     "userSelect",
     {
-      selectNone: "none",
-      selectText: "text",
-      selectAll: "all",
-      selectAuto: "auto",
+      usn: "none",
+      ust: "text",
+      usAll: "all",
+      usAuto: "auto",
     },
-    "select"
+    "select",
   );
