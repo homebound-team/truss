@@ -34,16 +34,13 @@ render(renderer);
  * potentially use that to access our Fiber/Context from this function, sans hook).
  */
 export function maybeExpandCssProp(props: any): any {
-  if (props) {
-    const { css, className, ...otherProps } = props;
-    if (css) {
-      // We expect css to be a truss-created object like `{ color: "#121212" }`
-      const classNames = renderer.renderRule(() => css, {});
-      return {
-        className: className ? classNames + " " + className : classNames,
-        ...otherProps,
-      };
-    }
+  const { css, className, ...otherProps } = props;
+  if (css) {
+    // We expect css to be a truss-created object like `{ color: "#121212" }`
+    const classNames = renderer.renderRule(() => css, {});
+    return {
+      className: className ? classNames + " " + className : classNames,
+      ...otherProps,
+    };
   }
-  return props;
 }
