@@ -23,7 +23,7 @@ workflows:
 jobs:
   build:
     docker:
-      - image: cimg/node:16.14.2
+      - image: cimg/node:current
     working_directory: ~/project
     steps:
       - checkout
@@ -34,7 +34,7 @@ jobs:
 
   publish:
     docker:
-      - image: cimg/node:16.14.2
+      - image: cimg/node:current
     working_directory: ~/project
     steps:
       - checkout

@@ -23,6 +23,9 @@
     "preset": "ts-jest",
     "testMatch": [
       "<rootDir>/src/*.test.(ts|tsx)"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(your-package-name)/)"
     ]
   }
 }
