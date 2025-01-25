@@ -2,9 +2,10 @@
   "name": "truss",
   "version": "1.137.2",
   "license": "ISC",
+  "private": true,
   "scripts": {
     "build": "tspc --build",
-    "test": "yarn workspaces foreach run test",
+    "test": "yarn workspaces foreach --all run test",
     "semantic-release": "semantic-release",
     "codegen": "yarn workspaces foreach run codegen"
   },
@@ -34,7 +35,7 @@
     "typescript": "^5.7.3",
     "typescript-transform-paths": "^3.5.3"
   },
-  "packageManager": "yarn@3.2.0",
+  "packageManager": "yarn@4.6.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/homebound-team/truss"

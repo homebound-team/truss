@@ -6,10 +6,11 @@ module.exports = {
     "@semantic-release/changelog",
     [
       "@semantic-release/exec",
-      { prepareCmd: "yarn workspaces foreach exec npm version --no-git-tag-version ${nextRelease.version}" },
+      {
+        prepareCmd: "yarn workspaces foreach -v --all version ${nextRelease.version}",
+        publishCmd: "yarn workspaces foreach -v --all --no-private npm publish --tolerate-republish",
+      },
     ],
-    ["@semantic-release/exec", { publishCmd: "yarn npm publish", execCwd: "packages/truss" }],
-    ["@semantic-release/exec", { publishCmd: "yarn npm publish", execCwd: "packages/fast-css-prop" }],
     "@semantic-release/github",
     ["@semantic-release/git", { assets: ["CHANGELOG.md", "package.json", "packages/*/package.json"] }],
   ],
