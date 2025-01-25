@@ -1,3 +1,10 @@
+## [1.137.4](https://github.com/homebound-team/truss/compare/v1.137.3...v1.137.4) (2025-01-25)
+
+
+### Bug Fixes
+
+* Set type=module. ([#129](https://github.com/homebound-team/truss/issues/129)) ([c783f52](https://github.com/homebound-team/truss/commit/c783f52a809cdc1cb84b56373c8eb47272184a34))
+
 ## [1.137.3](https://github.com/homebound-team/truss/compare/v1.137.2...v1.137.3) (2025-01-25)
 
 
