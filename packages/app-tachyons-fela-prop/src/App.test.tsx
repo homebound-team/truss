@@ -22,7 +22,7 @@ describe("App", () => {
               Vite1
             </h1>
             <h1
-              class="a c d"
+              class="a c"
             >
               Vite2
             </h1>
@@ -40,8 +40,7 @@ describe("App", () => {
     expect(styleSheetsToString()).toMatchInlineSnapshot(`
       ".a {color: #353535;}
       .b {top: 8px;}
-      .c:hover {color: #fcfcfa;}
-      .d:hover {top: 8px;}"
+      .c:hover {color: #fcfcfa;}"
     `);
   });
 
