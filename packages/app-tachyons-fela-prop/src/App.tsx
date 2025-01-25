@@ -9,7 +9,7 @@ export function App() {
       <h1
         css={{
           ...Css.black.$,
-          "&:hover": Css.white.top(count + 1).$,
+          "&:hover": Css.white.$,
         }}
       >
         Vite2
