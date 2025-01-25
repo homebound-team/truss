@@ -6,7 +6,6 @@
     { "path": "./packages/testing-tachyons" },
     { "path": "./packages/testing-tachyons-rn" },
     { "path": "./packages/testing-tachyons-emotion" },
-    { "path": "./packages/testing-tachyons-fela" },
     { "path": "./packages/testing-tachyons-mui" }
   ],
   "files": [],

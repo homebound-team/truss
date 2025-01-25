@@ -1,14 +1,15 @@
-import React from "react";
+import { Css } from "@homebound/truss-testing-tachyons";
 import { makeStyles } from "@mui/styles";
 import { render } from "@testing-library/react";
-import { Css } from "@homebound/truss-testing-tachyons";
+import React from "react";
+import { describe, expect, test } from "vitest";
 
 const useStyles = makeStyles({
   root: Css.black.$,
 });
 
 describe("Css.mui", () => {
-  it("works via makeStyles", () => {
+  test("works via makeStyles", () => {
     function FooComponent() {
       const styles = useStyles();
       return <div className={styles.root}>root</div>;

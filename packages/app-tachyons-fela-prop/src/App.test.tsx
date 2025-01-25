@@ -22,7 +22,7 @@ describe("App", () => {
               Vite1
             </h1>
             <h1
-              style="color: rgb(53, 53, 53);"
+              class="a c d"
             >
               Vite2
             </h1>
@@ -35,6 +35,13 @@ describe("App", () => {
           </div>
         </div>
       </body>
+    `);
+
+    expect(styleSheetsToString()).toMatchInlineSnapshot(`
+      ".a {color: #353535;}
+      .b {top: 8px;}
+      .c:hover {color: #fcfcfa;}
+      .d:hover {top: 8px;}"
     `);
   });
 
@@ -52,3 +59,16 @@ describe("App", () => {
 afterEach(() => {
   cleanup();
 });
+
+function styleSheetsToString(): string {
+  let result = "";
+  for (const sheet of document.styleSheets) {
+    if (sheet.cssRules) {
+      for (const rule of sheet.cssRules) {
+        result += `${rule.cssText}\n`;
+      }
+      result += "\n";
+    }
+  }
+  return result.trim();
+}
