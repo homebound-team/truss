@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "tspc --build",
-    "test": "yarn workspaces foreach run test",
+    "test": "yarn workspaces foreach --all run test",
     "semantic-release": "semantic-release",
     "codegen": "yarn workspaces foreach run codegen"
   },
