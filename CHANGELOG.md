@@ -1,3 +1,11 @@
+## [1.137.3](https://github.com/homebound-team/truss/compare/v1.137.2...v1.137.3) (2025-01-25)
+
+
+### Bug Fixes
+
+* Fix css types. ([#126](https://github.com/homebound-team/truss/issues/126)) ([27cdf84](https://github.com/homebound-team/truss/commit/27cdf847e8502e7772a108f7d343b3feed2b3d06))
+* Use hasOwn const. ([#127](https://github.com/homebound-team/truss/issues/127)) ([e9344ab](https://github.com/homebound-team/truss/commit/e9344ab80b1d63714eecb19fdc9906d77792dc50))
+
 ## [1.137.2](https://github.com/homebound-team/truss/compare/v1.137.1...v1.137.2) (2025-01-24)
 
 
