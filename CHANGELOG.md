@@ -1,3 +1,10 @@
+## [1.137.5](https://github.com/homebound-team/truss/compare/v1.137.4...v1.137.5) (2025-02-02)
+
+
+### Bug Fixes
+
+* Fix package.json cssProp export. ([#130](https://github.com/homebound-team/truss/issues/130)) ([7e53ee7](https://github.com/homebound-team/truss/commit/7e53ee7c3f7e853c923880463f3dcff6b077b6e2))
+
 ## [1.137.4](https://github.com/homebound-team/truss/compare/v1.137.3...v1.137.4) (2025-01-25)
 
 

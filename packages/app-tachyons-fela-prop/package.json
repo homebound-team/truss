@@ -1,7 +1,7 @@
 {
   "name": "app-tachyons-fela-prop",
   "private": true,
-  "version": "1.137.4",
+  "version": "1.137.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
