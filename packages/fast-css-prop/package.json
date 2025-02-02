@@ -4,8 +4,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./build/cssProps.js",
-      "types": "./build/cssProps.d.ts"
+      "import": "./build/cssProp.js",
+      "types": "./build/cssProp.d.ts"
     },
     "./jsx-runtime": {
       "import": "./build/jsx-runtime.js",
