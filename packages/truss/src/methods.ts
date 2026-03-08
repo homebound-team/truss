@@ -3,11 +3,50 @@ import { Properties } from "csstype";
 
 export type Prop = keyof Properties;
 
+// ── StyleX Collector ──────────────────────────────────────────────────
+// When stylex collection is enabled, each helper function pushes structured
+// metadata into this array as a side-effect. This lets the stylex code generator
+// reuse the existing section definitions without modifying any section files.
+
+export interface StylexEntry {
+  kind: "static" | "param" | "increment-param" | "px-delegate" | "alias" | "cssvar";
+  abbr: string;
+  /** For static: the CSS properties object, e.g. { display: "flex" } */
+  defs?: Record<string, unknown>;
+  /** For param/increment-param: the CSS property name(s) */
+  props?: string[];
+  /** For increment-param: whether to use maybeInc */
+  usesMaybeInc?: boolean;
+  /** For param methods: extra properties to set alongside the main prop */
+  extraDefs?: Record<string, unknown>;
+  /** For aliases: the list of chained abbreviations */
+  aliasTargets?: string[];
+}
+
+let _stylexCollector: StylexEntry[] | null = null;
+
+/** Start collecting StylexEntry metadata from method helpers. */
+export function startStylexCollection(): void {
+  _stylexCollector = [];
+}
+
+/** Stop collecting and return all accumulated entries. */
+export function stopStylexCollection(): StylexEntry[] {
+  const result = _stylexCollector!;
+  _stylexCollector = null;
+  return result;
+}
+
+function collect(entry: StylexEntry): void {
+  if (_stylexCollector) _stylexCollector.push(entry);
+}
+
 /**
  * Given a single abbreviation (i.e. `mt0`) and multiple `{ prop: value }` CSS values, returns
  * the TypeScript code for a `mt0` utility method that sets those values.
  */
 export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
+  collect({ kind: "static", abbr, defs: { ...defs } });
   return `${comment(defs)} get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
     .join("")}; }`;
@@ -20,9 +59,23 @@ export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
  *
  * I.e. `Css.mt(someValue).$`
  */
-export function newParamMethod(abbr: UtilityName, prop: keyof Properties, extraProperties: Properties = {}): UtilityMethod {
-  const additionalDefs = Object.entries(extraProperties).map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`).join("");
-  return `${comment({ [prop]: "value" })} ${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value)${additionalDefs}; }`;
+export function newParamMethod(
+  abbr: UtilityName,
+  prop: keyof Properties,
+  extraProperties: Properties = {},
+): UtilityMethod {
+  collect({
+    kind: "param",
+    abbr,
+    props: [prop],
+    extraDefs: Object.keys(extraProperties).length > 0 ? { ...extraProperties } : undefined,
+  });
+  const additionalDefs = Object.entries(extraProperties)
+    .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
+    .join("");
+  return `${comment({
+    [prop]: "value",
+  })} ${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value)${additionalDefs}; }`;
 }
 
 /**
@@ -50,10 +103,13 @@ export function newMethodsForProp<P extends Prop>(
   valueMethodExtraProperties?: Omit<Properties, P>,
 ): UtilityMethod[] {
   return [
-    ...Object.entries(defs).map(([abbr, value]) => newMethod(abbr,
-      // If the value is an object, use it as the full defs, otherwise, use it as the prop value
-      typeof value === "object" ? value : { [prop]: value }
-    )),
+    ...Object.entries(defs).map(([abbr, value]) =>
+      newMethod(
+        abbr,
+        // If the value is an object, use it as the full defs, otherwise, use it as the prop value
+        typeof value === "object" ? value : { [prop]: value },
+      ),
+    ),
     // Conditionally add a method that directly accepts a value for prop
     ...(baseName !== null ? [newParamMethod(baseName, prop, valueMethodExtraProperties)] : []),
     ...(baseName !== null && includePx ? [newPxMethod(baseName, prop)] : []),
@@ -66,6 +122,7 @@ export function newMethodsForProp<P extends Prop>(
  */
 export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
   return Object.entries(aliases).map(([abbr, values]) => {
+    collect({ kind: "alias", abbr, aliasTargets: values });
     return `get ${abbr}() { return this${values.map((v) => `.${v}`).join("")}; }`;
   });
 }
@@ -82,6 +139,7 @@ export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
  * TODO: Create a `Css.set(cssVars).$` method.
  */
 export function newSetCssVariablesMethod(abbr: UtilityName, defs: Record<string, string>): UtilityMethod {
+  collect({ kind: "cssvar", abbr, defs: { ...defs } });
   return `get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}" as any, "${value}")`)
     .join("")}; }`;
@@ -121,6 +179,15 @@ export function newIncrementMethods(
   const valueComment = comment(Object.fromEntries(props.map((p) => [p, "v"])));
   const pxComment = comment(Object.fromEntries(props.map((p) => [p, "px"])));
 
+  // Collect auto entry
+  if (opts.auto) {
+    collect({ kind: "static", abbr: `${abbr}a`, defs: Object.fromEntries(props.map((p) => [p, "auto"])) });
+  }
+  // Collect increment-param entry (uses maybeInc)
+  collect({ kind: "increment-param", abbr, props, usesMaybeInc: true });
+  // Collect px-delegate entry
+  collect({ kind: "px-delegate", abbr: `${abbr}Px`, props });
+
   return [
     ...delegateMethods,
     ...(opts.auto
@@ -142,12 +209,14 @@ export function newCoreIncrementMethods(config: Config, abbr: UtilityName, props
   return zeroTo(config.numberOfIncrements).map((i) => {
     const px = `${i * config.increment}px`;
     const defs = Object.fromEntries(props.map((p) => [p, px]));
+    collect({ kind: "static", abbr: `${abbr}${i}`, defs });
     const sets = props.map((p) => `add("${p}", "${px}")`).join(".");
     return `${comment(defs)} get ${abbr}${i}() { return this.${sets}; }`;
   });
 }
 
 export function newPxMethod(abbr: UtilityName, prop: Prop): UtilityMethod {
+  collect({ kind: "px-delegate", abbr: `${abbr}Px`, props: [prop] });
   return `${comment({ [prop]: "px" })} ${abbr}Px(px: number) { return this.${abbr}(\`\${px}px\`); }`;
 }
 

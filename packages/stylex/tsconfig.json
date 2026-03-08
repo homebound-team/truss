@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@homebound/truss-stylex",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "outDir": "build/",
+    "baseUrl": ".",
+    "paths": {
+      "@homebound/truss-stylex": ["./src/index.ts"],
+      "@homebound/truss-stylex/jsx-runtime": ["./src/jsx-runtime.ts"],
+      "@homebound/truss-stylex/jsx-dev-runtime": ["./src/jsx-dev-runtime.ts"]
+    }
+  },
+  "include": ["./src"]
+}

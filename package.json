@@ -17,7 +17,9 @@
     "packages/testing-tachyons-rn",
     "packages/testing-tachyons-emotion",
     "packages/testing-tachyons-mui",
-    "packages/app-tachyons-fela-prop"
+    "packages/app-tachyons-fela-prop",
+    "packages/stylex",
+    "packages/app-stylex"
   ],
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",

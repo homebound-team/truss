@@ -1,0 +1,33 @@
+{
+  "name": "app-stylex",
+  "private": true,
+  "version": "1.137.5",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@homebound/truss-stylex": "workspace:*",
+    "@stylexjs/stylex": "^0.18.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@stylexjs/unplugin": "^0.18.1",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react-swc": "^3.7.2",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.7.3",
+    "unplugin": "^2.3.11",
+    "vite": "^6.0.11",
+    "vitest": "^3.0.4"
+  }
+}

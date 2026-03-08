@@ -63,6 +63,16 @@ export interface Config {
   defaultMethods?: "tachyons" | "none" | "tachyons-rn";
 
   /**
+   * The target CSS runtime to generate for.
+   *
+   * - `"emotion"` (default): Generates a CssBuilder that accumulates a plain CSS Properties object,
+   *   compatible with Emotion, Fela, MUI, or any runtime that accepts `{ prop: value }` objects.
+   * - `"stylex"`: Generates a CssBuilder that accumulates StyleX style references and uses
+   *   `stylex.create()` for static extraction and `stylex.props()` for merging.
+   */
+  target?: "emotion" | "stylex";
+
+  /**
    * A map of "section" to list of rules to create application-specific
    * utility methods.
    *
