@@ -3,9 +3,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { Css, Palette, type CssProp } from "./Css";
 import "@testing-library/jest-dom/vitest";
 
-afterEach(() => {
-  cleanup();
-});
+afterEach(cleanup);
 
 /**
  * With `runtimeInjection: true` in the vitest config, the StyleX unplugin
@@ -14,66 +12,82 @@ afterEach(() => {
  * `getComputedStyle` can resolve class-based styles, and `toHaveStyle` works
  * for static (class-based) styles.
  *
- * Dynamic/parameterized styles (e.g. `mt(2)`) use CSS variables: the class sets
- * `margin-top: var(--x-marginTop)` and the inline style sets `--x-marginTop: 16px`.
- * jsdom cannot resolve `var()` references, so dynamic values must be tested by
- * checking the CSS variable on the element's inline style.
+ * Dynamic/parameterized styles (e.g. `Css.mt(n).$` with a variable) use CSS
+ * variables: the class sets `margin-top: var(--x-marginTop)` and the inline
+ * style sets `--x-marginTop: 16px`. jsdom cannot resolve `var()` references,
+ * so truly dynamic values must be tested by checking the CSS variable on the
+ * element's inline style.
+ *
+ * Note: When the argument to a dynamic method is a literal (e.g. `Css.mt(2).$`),
+ * StyleX evaluates it at compile time and produces a static class — no CSS
+ * variable is used. Use `toHaveStyle` for these cases.
  */
 
 describe("StyleX CssBuilder", () => {
   describe("basic static abbreviations", () => {
     test("Css.df applies display: flex", () => {
-      const el = renderWithCss(Css.df);
+      const r = render(<div css={Css.df.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ display: "flex" });
     });
 
     test("Css.db applies display: block", () => {
-      const el = renderWithCss(Css.db);
+      const r = render(<div css={Css.db.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ display: "block" });
     });
 
     test("Css.dn applies display: none", () => {
-      const el = renderWithCss(Css.dn);
+      const r = render(<div css={Css.dn.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ display: "none" });
     });
 
     test("Css.aic applies align-items: center", () => {
-      const el = renderWithCss(Css.aic);
+      const r = render(<div css={Css.aic.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ alignItems: "center" });
     });
 
     test("Css.jcc applies justify-content: center", () => {
-      const el = renderWithCss(Css.jcc);
+      const r = render(<div css={Css.jcc.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ justifyContent: "center" });
     });
 
     test("Css.fdc applies flex-direction: column", () => {
-      const el = renderWithCss(Css.fdc);
+      const r = render(<div css={Css.fdc.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ flexDirection: "column" });
     });
 
     test("Css.black applies color: #353535", () => {
-      const el = renderWithCss(Css.black);
+      const r = render(<div css={Css.black.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ color: "#353535" });
     });
 
     test("Css.white applies color: #fcfcfa", () => {
-      const el = renderWithCss(Css.white);
+      const r = render(<div css={Css.white.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ color: "#fcfcfa" });
     });
 
     test("Css.bgBlue applies background-color: #526675", () => {
-      const el = renderWithCss(Css.bgBlue);
+      const r = render(<div css={Css.bgBlue.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ backgroundColor: "#526675" });
     });
 
     test("Css.ba applies border-style: solid and border-width: 1px", () => {
-      const el = renderWithCss(Css.ba);
+      const r = render(<div css={Css.ba.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ borderStyle: "solid", borderWidth: "1px" });
     });
 
     test("Css.truncate sets white-space, overflow, and text-overflow", () => {
-      const el = renderWithCss(Css.truncate);
+      const r = render(<div css={Css.truncate.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
         whiteSpace: "nowrap",
         overflow: "hidden",
@@ -84,22 +98,26 @@ describe("StyleX CssBuilder", () => {
 
   describe("increment-based getters (static)", () => {
     test("Css.mt0 applies margin-top: 0", () => {
-      const el = renderWithCss(Css.mt0);
+      const r = render(<div css={Css.mt0.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ marginTop: "0" });
     });
 
     test("Css.mt1 applies margin-top: 8px", () => {
-      const el = renderWithCss(Css.mt1);
+      const r = render(<div css={Css.mt1.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ marginTop: "8px" });
     });
 
     test("Css.mt2 applies margin-top: 16px", () => {
-      const el = renderWithCss(Css.mt2);
+      const r = render(<div css={Css.mt2.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ marginTop: "16px" });
     });
 
     test("Css.p1 applies padding (expanded to longhands)", () => {
-      const el = renderWithCss(Css.p1);
+      const r = render(<div css={Css.p1.$} />);
+      const el = r.container.firstChild as HTMLElement;
       // StyleX expands padding shorthand into individual sides
       expect(el).toHaveStyle({
         paddingTop: "8px",
@@ -110,55 +128,71 @@ describe("StyleX CssBuilder", () => {
     });
 
     test("Css.mta applies margin-top: auto", () => {
-      const el = renderWithCss(Css.mta);
+      const r = render(<div css={Css.mta.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ marginTop: "auto" });
     });
 
     test("Css.gap1 applies gap: 8px", () => {
-      const el = renderWithCss(Css.gap1);
+      const r = render(<div css={Css.gap1.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ gap: "8px" });
     });
   });
 
   describe("parameterized methods (dynamic styles via CSS variables)", () => {
-    // Dynamic styles use CSS variables: the class sets e.g. `margin-top: var(--x-marginTop)`
-    // and the inline style sets `--x-marginTop: 16px`. jsdom cannot resolve var() references,
-    // so we verify the CSS variable value on the inline style.
+    // When the argument is a literal, StyleX inlines it at build time as a
+    // static class — so we test with toHaveStyle. When we pass a variable,
+    // StyleX uses CSS variables, so we test via inline style.
 
-    test("Css.mt(2) sets --x-marginTop to 16px", () => {
-      const el = renderWithCss(Css.mt(2));
+    test("Css.mt(2) applies margin-top: 16px (literal → static)", () => {
+      const r = render(<div css={Css.mt(2).$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ marginTop: "16px" });
+    });
+
+    test('Css.mt("10px") applies margin-top: 10px (literal → static)', () => {
+      const r = render(<div css={Css.mt("10px").$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ marginTop: "10px" });
+    });
+
+    test("Css.mtPx(12) applies margin-top: 12px (literal → static)", () => {
+      const r = render(<div css={Css.mtPx(12).$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ marginTop: "12px" });
+    });
+
+    test('Css.bc("red") applies border-color: red (literal → static)', () => {
+      const r = render(<div css={Css.bc("red").$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ borderColor: "red" });
+    });
+
+    test("Css.w(3) applies width: 24px (literal → static)", () => {
+      const r = render(<div css={Css.w(3).$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ width: "24px" });
+    });
+
+    test("Css.wPx(100) applies width: 100px (literal → static)", () => {
+      const r = render(<div css={Css.wPx(100).$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ width: "100px" });
+    });
+
+    test("Css.mt(n) with variable uses CSS variable", () => {
+      const n = 2;
+      const r = render(<div css={Css.mt(n).$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el.style.getPropertyValue("--x-marginTop")).toBe("16px");
-    });
-
-    test('Css.mt("10px") sets --x-marginTop to 10px', () => {
-      const el = renderWithCss(Css.mt("10px"));
-      expect(el.style.getPropertyValue("--x-marginTop")).toBe("10px");
-    });
-
-    test("Css.mtPx(12) sets --x-marginTop to 12px", () => {
-      const el = renderWithCss(Css.mtPx(12));
-      expect(el.style.getPropertyValue("--x-marginTop")).toBe("12px");
-    });
-
-    test('Css.bc("red") sets --x-borderColor to red', () => {
-      const el = renderWithCss(Css.bc("red"));
-      expect(el.style.getPropertyValue("--x-borderColor")).toBe("red");
-    });
-
-    test("Css.w(3) sets --x-width to 24px", () => {
-      const el = renderWithCss(Css.w(3));
-      expect(el.style.getPropertyValue("--x-width")).toBe("24px");
-    });
-
-    test("Css.wPx(100) sets --x-width to 100px", () => {
-      const el = renderWithCss(Css.wPx(100));
-      expect(el.style.getPropertyValue("--x-width")).toBe("100px");
     });
   });
 
   describe("composing multiple styles", () => {
     test("Css.df.aic.jcc composes flex layout", () => {
-      const el = renderWithCss(Css.df.aic.jcc);
+      const r = render(<div css={Css.df.aic.jcc.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
         display: "flex",
         alignItems: "center",
@@ -167,7 +201,8 @@ describe("StyleX CssBuilder", () => {
     });
 
     test("Css.df.fdc.gap1.p2 composes flex column with spacing", () => {
-      const el = renderWithCss(Css.df.fdc.gap1.p2);
+      const r = render(<div css={Css.df.fdc.gap1.p2.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
         display: "flex",
         flexDirection: "column",
@@ -180,18 +215,18 @@ describe("StyleX CssBuilder", () => {
     });
 
     test("mixing static and dynamic: Css.df.mt(2).black", () => {
-      const el = renderWithCss(Css.df.mt(2).black);
-      // Static parts via toHaveStyle
+      const r = render(<div css={Css.df.mt(2).black.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
         display: "flex",
         color: "#353535",
+        marginTop: "16px",
       });
-      // Dynamic part via CSS variable
-      expect(el.style.getPropertyValue("--x-marginTop")).toBe("16px");
     });
 
     test("Css.ba.bcBlack.br2.p1 composes border box", () => {
-      const el = renderWithCss(Css.ba.bcBlack.br2.p1);
+      const r = render(<div css={Css.ba.bcBlack.br2.p1.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
         borderStyle: "solid",
         borderWidth: "1px",
@@ -204,38 +239,46 @@ describe("StyleX CssBuilder", () => {
 
   describe("font / typeScale", () => {
     test("Css.f14 applies font-size: 14px", () => {
-      const el = renderWithCss(Css.f14);
+      const r = render(<div css={Css.f14.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ fontSize: "14px" });
     });
 
     test("Css.f24 applies font-size: 24px", () => {
-      const el = renderWithCss(Css.f24);
+      const r = render(<div css={Css.f24.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ fontSize: "24px" });
     });
   });
 
   describe("conditionals", () => {
     test("Css.if(true).df applies display: flex", () => {
-      const el = renderWithCss(Css.if(true).df);
+      const r = render(<div css={Css.if(true).df.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ display: "flex" });
     });
 
     test("Css.if(false).df does not apply display: flex", () => {
-      const el = renderWithCss(Css.if(false).df);
-      expect(el.className || "").toBe("");
+      const r = render(<div css={Css.if(false).df.$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el.className.trim()).toBe("");
     });
 
     test("if/else applies the correct branch", () => {
-      const elTrue = renderWithCss(Css.if(true).df.else.db);
+      const r1 = render(<div css={Css.if(true).df.else.db.$} />);
+      const elTrue = r1.container.firstChild as HTMLElement;
       expect(elTrue).toHaveStyle({ display: "flex" });
 
-      const elFalse = renderWithCss(Css.if(false).df.else.db);
+      const r2 = render(<div css={Css.if(false).df.else.db.$} />);
+      const elFalse = r2.container.firstChild as HTMLElement;
       expect(elFalse).toHaveStyle({ display: "block" });
     });
 
     test("conditional with dynamic style: Css.if(true).mt(2)", () => {
-      const el = renderWithCss(Css.if(true).mt(2));
-      expect(el.style.getPropertyValue("--x-marginTop")).toBe("16px");
+      const r = render(<div css={Css.if(true).mt(2).$} />);
+      const el = r.container.firstChild as HTMLElement;
+      // Literal argument → static class
+      expect(el).toHaveStyle({ marginTop: "16px" });
     });
 
     test("conditional false skips dynamic style", () => {
@@ -246,7 +289,8 @@ describe("StyleX CssBuilder", () => {
 
   describe("aliases", () => {
     test("Css.bodyText applies f14 + black", () => {
-      const el = renderWithCss(Css.bodyText);
+      const r = render(<div css={Css.bodyText.$} />);
+      const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
         fontSize: "14px",
         color: "#353535",
@@ -323,10 +367,18 @@ describe("StyleX CssBuilder", () => {
       expect(div).toHaveStyle({ display: "flex" });
     });
 
-    test("css prop applies dynamic styles", () => {
-      const r = render(<div css={Css.mt(2).$}>Test</div>);
+    test("css prop applies dynamic styles with variable", () => {
+      const n = 2;
+      const r = render(<div css={Css.mt(n).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
       expect(div.style.getPropertyValue("--x-marginTop")).toBe("16px");
+    });
+
+    test("css prop applies dynamic styles with literal", () => {
+      const r = render(<div css={Css.mt(2).$}>Test</div>);
+      const div = r.container.firstChild as HTMLElement;
+      // Literal arg is inlined at build time → static class
+      expect(div).toHaveStyle({ marginTop: "16px" });
     });
 
     test("css prop merges with existing inline style", () => {
@@ -340,10 +392,36 @@ describe("StyleX CssBuilder", () => {
       expect(div).toHaveStyle({ color: "rgb(255, 0, 0)" });
     });
   });
-});
 
-/** Helper: render an element using the css prop and return it. */
-function renderWithCss(builder: { $: CssProp }) {
-  const r = render(<div css={builder.$} />);
-  return r.container.firstChild as HTMLElement;
-}
+  describe("pseudo with overlapping base property", () => {
+    test("onHover on same property emits correct default and hover CSS rules", () => {
+      // Css.bgBlue.onHover.bgBlack.$ — both set backgroundColor.
+      // The plugin merges them into: backgroundColor: { default: "#526675", ":hover": "#353535" }
+      //
+      // jsdom's getComputedStyle doesn't correctly ignore :hover rules, so we
+      // verify the injected CSS rules directly instead of using toHaveStyle.
+      const r = render(<div css={Css.bgBlue.onHover.bgBlack.$}>Hover me</div>);
+      const el = r.container.firstChild as HTMLElement;
+      const classes = el.className.split(/\s+/);
+
+      // Collect all CSS rules that match this element's classes
+      const rules: string[] = [];
+      for (const sheet of document.styleSheets) {
+        for (const rule of sheet.cssRules) {
+          if (classes.some((c) => rule.cssText.includes(c))) {
+            rules.push(rule.cssText);
+          }
+        }
+      }
+
+      // Should have a default rule setting the base color
+      expect(rules.some((r) => r.includes("background-color") && r.includes("#526675") && !r.includes(":hover"))).toBe(
+        true,
+      );
+      // Should have a :hover rule setting the hover color
+      expect(rules.some((r) => r.includes("background-color") && r.includes("#353535") && r.includes(":hover"))).toBe(
+        true,
+      );
+    });
+  });
+});

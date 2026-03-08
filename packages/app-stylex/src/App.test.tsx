@@ -4,10 +4,6 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { App } from "./App";
 import "@testing-library/jest-dom/vitest";
 
-if (process.env.JB_IDE_PORT) {
-  vi.setConfig({ testTimeout: 100_000 });
-}
-
 afterEach(() => {
   cleanup();
 });
@@ -35,24 +31,35 @@ describe("App", () => {
     expect(body).toHaveStyle({ fontSize: "14px", color: "#353535" });
   });
 
-  test("border box has border, borderColor, padding, and radius", () => {
+  test("border box has border, padding, radius, cursor, and hover styles", () => {
     render(<App />);
     const box = screen.getByText("Border box with padding and radius");
     expect(box).toHaveStyle({
       borderStyle: "solid",
       borderWidth: "1px",
-      borderColor: "#353535",
       borderRadius: ".25rem",
+      cursor: "pointer",
     });
+    // borderColor has a merged hover rule (bcBlack default + bcBlue on hover).
+    // jsdom doesn't correctly ignore :hover pseudo rules in getComputedStyle,
+    // so verify via CSS rules instead.
+    const rules = getCssRulesForElement(box);
+    expect(rules.some((r) => r.includes("border-color") && r.includes("#353535") && !r.includes(":hover"))).toBe(true);
+    expect(rules.some((r) => r.includes("border-color") && r.includes("#526675") && r.includes(":hover"))).toBe(true);
   });
 
-  test("blue box has blue background and white text", () => {
+  test("blue box has white text, cursor, and hover styles", () => {
     render(<App />);
     const box = screen.getByText("Blue background with white text");
-    expect(box).toHaveStyle({
-      backgroundColor: "#526675",
-      color: "#fcfcfa",
-    });
+    expect(box).toHaveStyle({ color: "#fcfcfa", cursor: "pointer" });
+    // backgroundColor has a merged hover rule (bgBlue default + bgBlack on hover).
+    const rules = getCssRulesForElement(box);
+    expect(rules.some((r) => r.includes("background-color") && r.includes("#526675") && !r.includes(":hover"))).toBe(
+      true,
+    );
+    expect(rules.some((r) => r.includes("background-color") && r.includes("#353535") && r.includes(":hover"))).toBe(
+      true,
+    );
   });
 
   test("clicking button increments counter", async () => {
@@ -82,4 +89,27 @@ describe("App", () => {
     const span = screen.getByText("That's a lot!");
     expect(span).toHaveStyle({ color: "#526675" });
   });
+
+  test("marker card renders with data attribute and child has class", () => {
+    render(<App />);
+    const markerCard = screen.getByText("Hover this card").parentElement!;
+    const childSpan = screen.getByText(/I turn blue on parent hover/);
+    // Both marker card and child should have class names applied
+    expect(markerCard.className).toBeTruthy();
+    expect(childSpan.className).toBeTruthy();
+  });
 });
+
+/** Collect all CSS rules matching an element's class names. */
+function getCssRulesForElement(el: HTMLElement): string[] {
+  const classes = el.className.split(/\s+/);
+  const rules: string[] = [];
+  for (const sheet of document.styleSheets) {
+    for (const rule of sheet.cssRules) {
+      if (classes.some((c) => rule.cssText.includes(c))) {
+        rules.push(rule.cssText);
+      }
+    }
+  }
+  return rules;
+}

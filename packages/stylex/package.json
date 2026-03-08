@@ -8,42 +8,20 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     },
-    "./jsx-runtime": {
-      "import": "./src/jsx-runtime.ts",
-      "types": "./src/jsx-runtime.ts"
-    },
-    "./jsx-dev-runtime": {
-      "import": "./src/jsx-dev-runtime.ts",
-      "types": "./src/jsx-dev-runtime.ts"
+    "./plugin": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
     }
   },
   "scripts": {
-    "codegen": "node ../truss/cli.js truss-config.ts",
     "test": "vitest --run"
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.18.1",
-    "csstype": "^3.1.3"
+    "@stylexjs/stylex": "^0.18.1"
   },
   "devDependencies": {
-    "@homebound/truss": "workspace:*",
-    "@stylexjs/unplugin": "^0.18.1",
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react-swc": "^3.7.2",
-    "jsdom": "^26.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "typescript": "^5.7.3",
-    "unplugin": "^2.3.11",
     "vite": "^6.0.11",
     "vitest": "^3.0.4"
-  },
-  "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18"
   }
 }

@@ -4,7 +4,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "jsxImportSource": "@homebound/truss-stylex",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

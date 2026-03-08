@@ -34,5 +34,6 @@ export default defineConfig({
   increment,
   numberOfIncrements,
   aliases,
+  breakpoints: { sm: 0, md: 600, lg: 960 },
   target: "stylex",
 });
