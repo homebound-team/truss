@@ -23,6 +23,18 @@ export function trussPlugin(opts: TrussPluginOptions): Plugin {
   let mapping: TrussMapping;
   let projectRoot: string;
 
+  // Resolve lazily from Vite's final root so relative paths match user config.
+  const mappingPath = () => resolve(projectRoot || process.cwd(), opts.mapping);
+
+  // Some tooling can call `transform` before `buildStart`; this keeps behavior
+  // resilient without requiring hook ordering assumptions.
+  const ensureMapping = () => {
+    if (!mapping) {
+      mapping = loadMapping(mappingPath());
+    }
+    return mapping;
+  };
+
   return {
     name: "truss-stylex",
     enforce: "pre",
@@ -32,9 +44,7 @@ export function trussPlugin(opts: TrussPluginOptions): Plugin {
     },
 
     buildStart() {
-      const mappingPath = resolve(projectRoot || process.cwd(), opts.mapping);
-      const raw = readFileSync(mappingPath, "utf8");
-      mapping = JSON.parse(raw);
+      mapping = loadMapping(mappingPath());
     },
 
     transform(code, id) {
@@ -45,7 +55,7 @@ export function trussPlugin(opts: TrussPluginOptions): Plugin {
       // Skip node_modules
       if (id.includes("node_modules")) return null;
 
-      const result = transformTruss(code, id, mapping);
+      const result = transformTruss(code, id, ensureMapping());
       if (!result) return null;
       return { code: result.code, map: result.map };
     },

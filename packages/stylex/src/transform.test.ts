@@ -415,6 +415,73 @@ describe("transform", () => {
     );
   });
 
+  test("falls back to css__1 when css and css_ are already bindings", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const css = someOtherThing(); const css_ = anotherThing(); const s = Css.df.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css__1 = stylex.create({ df: { display: "flex" } });
+        const css = someOtherThing();
+        const css_ = anotherThing();
+        const s = [css__1.df];
+      `),
+    );
+  });
+
+  test("reuses existing stylex namespace import", () => {
+    expect(
+      n(
+        transform(
+          `import * as stylex from "@stylexjs/stylex"; import { Css } from "./Css"; const el = <div css={Css.df.$} />;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ df: { display: "flex" } });
+        const el = <div {...stylex.props(css.df)} />;
+      `),
+    );
+  });
+
+  test("reuses existing stylex namespace alias", () => {
+    expect(
+      n(transform(`import * as sx from "@stylexjs/stylex"; import { Css } from "./Css"; const s = Css.df.$;`)!),
+    ).toBe(
+      n(`
+        import * as sx from "@stylexjs/stylex";
+        const css = sx.create({ df: { display: "flex" } });
+        const s = [css.df];
+      `),
+    );
+  });
+
+  test("falls back for __maybeInc helper name collisions", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const __maybeInc = keepMe(); const x = getSomeValue(); const s = Css.mt(x).$;`,
+        )!,
+      ),
+    ).toBe(
+      n(
+        `
+        import * as stylex from "@stylexjs/stylex";
+        const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+        const css = stylex.create({ mt: v => ({ marginTop: v }) });
+        const __maybeInc = keepMe();
+        const x = getSomeValue();
+        const s = [css.mt(__maybeInc_1(x))];
+      `,
+      ),
+    );
+  });
+
   test("onHover on same property merges base+pseudo into single entry", () => {
     // Css.bgBlue.onHover.bgBlack.$ — both set `backgroundColor`
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.onHover.bgBlack.$;`)!)).toBe(
@@ -480,6 +547,19 @@ describe("transform", () => {
         import * as stylex from "@stylexjs/stylex";
         const __truss_marker_row = stylex.defineMarker();
         function C() { return <div {...stylex.props(__truss_marker_row)} />; }
+      `),
+    );
+  });
+
+  test("named marker declarations avoid top-level collisions", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const __truss_marker_row = 1; const s = Css.markerOf("row").$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const __truss_marker_row_1 = stylex.defineMarker();
+        const __truss_marker_row = 1;
+        const s = [__truss_marker_row_1];
       `),
     );
   });
@@ -643,6 +723,16 @@ describe("transform", () => {
         const el = <div {...stylex.props(css.df__sm)} />;
       `),
     );
+  });
+
+  test("unsupported patterns are rewritten to throwing expressions", () => {
+    const result = transform(`import { Css } from "./Css"; const s = Css.notReal.$;`)!;
+    expect(result.includes("Unsupported pattern: Unknown abbreviation")).toBe(true);
+  });
+
+  test("unsupported markerOf arg is rewritten to throwing expression", () => {
+    const result = transform(`import { Css } from "./Css"; const marker = "row"; const s = Css.markerOf(marker).$;`)!;
+    expect(result.includes("Unsupported pattern: markerOf() requires a string literal argument")).toBe(true);
   });
 });
 
