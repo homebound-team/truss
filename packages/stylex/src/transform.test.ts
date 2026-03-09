@@ -396,7 +396,7 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
+        import * as stylex from "@stylexjs/stylex"stylex.create({ mt: v => ({ marginTop: v }) });
         const css = stylex.create({ df: { display: "flex" } });
         const cls = getClass();
         const el = <div {...(__r => ({ ...__r, className: (cls + " " + (__r.className || "")).trim() }))(stylex.props(css.df))} />;

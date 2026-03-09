@@ -3,6 +3,10 @@ import type { TrussMapping, TrussMappingEntry, ResolvedSegment, MarkerSegment } 
 
 /**
  * A resolved chain that may contain conditional (if/else) sections.
+ *
+ * I.e. `ChainNode` from ast-utils.ts is just the raw AST chain from `Css` to `.$`, which may contain if/else
+ * nodes; this `ResolvedChain` is the post-processed result where each if/else has been split into separate segments.
+ *
  * The `parts` array contains unconditional segments and conditional groups.
  * The `markers` array contains marker directives (Css.marker.$, Css.markerOf("x").$).
  */

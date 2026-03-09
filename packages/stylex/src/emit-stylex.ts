@@ -2,8 +2,25 @@ import * as t from "@babel/types";
 import type { ResolvedChain } from "./resolve-chain";
 
 export interface CreateEntrySpec {
+  /**
+   * The property name in the generated `stylex.create({...})` object, built from
+   * the Truss abbreviation, optionally suffixed with the resolved value and/or pseudo,
+   * i.e. `"df"`, `"mt__16px"`, `"black__hover"`. Also used as the dedup key across the file.
+   */
   key: string;
+  /**
+   * Static CSS property-value map for this entry. Usually a single property,
+   * i.e. `{ display: "flex" }` for `"df"`, but shorthand abbreviations expand to multiple,
+   * i.e. `{ borderStyle: "solid", borderWidth: "1px" }` for `"ba"`.
+   */
   defs?: Record<string, unknown>;
+  /**
+   * For dynamic entries where the value is a runtime variable (not a literal),
+   * i.e. `{ props: ["marginTop"], pseudo: null }` for `Css.mt(x).$`,
+   * or `{ props: ["color"], pseudo: ":hover" }` for `Css.onHover.color(x).$`.
+   *
+   * Becomes `stylex.create({ mt: v => ({ marginTop: v }) })`
+   */
   dynamic?: { props: string[]; pseudo: string | null };
   /** If set, this entry uses stylex.when.ancestor() as the computed property key */
   ancestorPseudo?: { pseudo: string; marker?: string };
