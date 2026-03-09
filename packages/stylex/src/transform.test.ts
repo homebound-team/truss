@@ -539,27 +539,18 @@ describe("transform", () => {
     );
   });
 
-  test("Css.markerOf('row').$ emits named marker", () => {
+  test("Css.markerOf(row).$ passes marker variable through", () => {
     expect(
-      n(transform(`import { Css } from "./Css"; function C() { return <div css={Css.markerOf("row").$} />; }`)!),
+      n(
+        transform(
+          `import { Css } from "./Css"; const row = stylex.defineMarker(); function C() { return <div css={Css.markerOf(row).$} />; }`,
+        )!,
+      ),
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        const __truss_marker_row = stylex.defineMarker();
-        function C() { return <div {...stylex.props(__truss_marker_row)} />; }
-      `),
-    );
-  });
-
-  test("named marker declarations avoid top-level collisions", () => {
-    expect(
-      n(transform(`import { Css } from "./Css"; const __truss_marker_row = 1; const s = Css.markerOf("row").$;`)!),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const __truss_marker_row_1 = stylex.defineMarker();
-        const __truss_marker_row = 1;
-        const s = [__truss_marker_row_1];
+        const row = stylex.defineMarker();
+        function C() { return <div {...stylex.props(row)} />; }
       `),
     );
   });
@@ -576,14 +567,20 @@ describe("transform", () => {
     );
   });
 
-  test("Css.onHoverOf('row').blue.$ emits stylex.when.ancestor with named marker", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.onHoverOf("row").blue.$;`)!)).toBe(
+  test("Css.onHoverOf(row).blue.$ emits stylex.when.ancestor with user-defined marker", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const row = stylex.defineMarker(); const s = Css.onHoverOf(row).blue.$;`,
+        )!,
+      ),
+    ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        const __truss_marker_row = stylex.defineMarker();
         const css = stylex.create({
-          blue__ancestorHover_row: { color: { default: null, [stylex.when.ancestor(":hover", __truss_marker_row)]: "#526675" } }
+          blue__ancestorHover_row: { color: { default: null, [stylex.when.ancestor(":hover", row)]: "#526675" } }
         });
+        const row = stylex.defineMarker();
         const s = [css.blue__ancestorHover_row];
       `),
     );
@@ -601,23 +598,23 @@ describe("transform", () => {
     );
   });
 
-  test("marker and onHoverOf in same file share defineMarker", () => {
+  test("marker and onHoverOf in same file use same user-defined marker variable", () => {
     const code = `
       import { Css } from "./Css";
-      function Parent() { return <div css={Css.markerOf("card").df.$} />; }
-      function Child() { return <div css={Css.onHoverOf("card").blue.$} />; }
+      const card = stylex.defineMarker();
+      function Parent() { return <div css={Css.markerOf(card).df.$} />; }
+      function Child() { return <div css={Css.onHoverOf(card).blue.$} />; }
     `;
     const result = n(transform(code)!);
-    // Only one defineMarker call for "card"
     expect(result).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        const __truss_marker_card = stylex.defineMarker();
         const css = stylex.create({
           df: { display: "flex" },
-          blue__ancestorHover_card: { color: { default: null, [stylex.when.ancestor(":hover", __truss_marker_card)]: "#526675" } }
+          blue__ancestorHover_card: { color: { default: null, [stylex.when.ancestor(":hover", card)]: "#526675" } }
         });
-        function Parent() { return <div {...stylex.props(__truss_marker_card, css.df)} />; }
+        const card = stylex.defineMarker();
+        function Parent() { return <div {...stylex.props(card, css.df)} />; }
         function Child() { return <div {...stylex.props(css.blue__ancestorHover_card)} />; }
       `),
     );
@@ -730,9 +727,19 @@ describe("transform", () => {
     expect(result.includes("Unsupported pattern: Unknown abbreviation")).toBe(true);
   });
 
-  test("unsupported markerOf arg is rewritten to throwing expression", () => {
-    const result = transform(`import { Css } from "./Css"; const marker = "row"; const s = Css.markerOf(marker).$;`)!;
-    expect(result.includes("Unsupported pattern: markerOf() requires a string literal argument")).toBe(true);
+  test("markerOf accepts a variable argument", () => {
+    const result = n(
+      transform(
+        `import { Css } from "./Css"; const marker = stylex.defineMarker(); const s = Css.markerOf(marker).$;`,
+      )!,
+    );
+    expect(result).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const marker = stylex.defineMarker();
+        const s = [marker];
+      `),
+    );
   });
 });
 

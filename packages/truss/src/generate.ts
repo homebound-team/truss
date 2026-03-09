@@ -316,8 +316,12 @@ function generateStylexCssBuilder(config: Config): string {
   result.push(`// Target: stylex (build-time plugin)`);
   result.push(``);
   result.push(`import type { Properties as CSSTypeProperties } from "csstype";`);
+  result.push(`import * as stylex from "@stylexjs/stylex";`);
   result.push(``);
   result.push(`export type Properties = CSSTypeProperties<string | 0, string>;`);
+  result.push(``);
+  result.push(`/** A marker returned by \`stylex.defineMarker()\`, used with \`onHoverOf\`/\`markerOf\` etc. */`);
+  result.push(`export type Marker = ReturnType<typeof stylex.defineMarker>;`);
   result.push(``);
   result.push(`export type Typography = ${Object.keys(fonts).map(quote).join(" | ")};`);
   result.push(``);
@@ -368,16 +372,16 @@ function generateStylexCssBuilder(config: Config): string {
   // Marker support
   result.push(`  /** Marks this element as a default hover marker (for ancestor pseudo selectors). */`);
   result.push(`  get marker(): CssBuilder<T> { return this; }`);
-  result.push(`  /** Marks this element as a named marker (for ancestor pseudo selectors). */`);
-  result.push(`  markerOf(_name: string): CssBuilder<T> { return this; }`);
+  result.push(`  /** Marks this element with a user-defined marker (return value of stylex.defineMarker()). */`);
+  result.push(`  markerOf(_marker: Marker): CssBuilder<T> { return this; }`);
   result.push(``);
 
   // Ancestor pseudo methods
-  result.push(`  onHoverOf(_marker?: string) { return this.newCss({ selector: ":hover" }); }`);
-  result.push(`  onFocusOf(_marker?: string) { return this.newCss({ selector: ":focus" }); }`);
-  result.push(`  onFocusVisibleOf(_marker?: string) { return this.newCss({ selector: ":focus-visible" }); }`);
-  result.push(`  onActiveOf(_marker?: string) { return this.newCss({ selector: ":active" }); }`);
-  result.push(`  onDisabledOf(_marker?: string) { return this.newCss({ selector: ":disabled" }); }`);
+  result.push(`  onHoverOf(_marker?: Marker) { return this.newCss({ selector: ":hover" }); }`);
+  result.push(`  onFocusOf(_marker?: Marker) { return this.newCss({ selector: ":focus" }); }`);
+  result.push(`  onFocusVisibleOf(_marker?: Marker) { return this.newCss({ selector: ":focus-visible" }); }`);
+  result.push(`  onActiveOf(_marker?: Marker) { return this.newCss({ selector: ":active" }); }`);
+  result.push(`  onDisabledOf(_marker?: Marker) { return this.newCss({ selector: ":disabled" }); }`);
   result.push(``);
 
   // Breakpoint getters

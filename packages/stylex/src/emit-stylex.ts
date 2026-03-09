@@ -23,13 +23,12 @@ export interface CreateEntrySpec {
    */
   dynamic?: { props: string[]; pseudo: string | null };
   /** If set, this entry uses stylex.when.ancestor() as the computed property key */
-  ancestorPseudo?: { pseudo: string; marker?: string };
+  ancestorPseudo?: { pseudo: string; markerNode?: any };
 }
 
 export interface CollectedCreateData {
   createEntries: Map<string, CreateEntrySpec>;
   needsMaybeInc: boolean;
-  namedMarkers: Set<string>;
 }
 
 /**
@@ -40,7 +39,6 @@ export interface CollectedCreateData {
  */
 export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData {
   const createEntries = new Map<string, CreateEntrySpec>();
-  const namedMarkers = new Set<string>();
   let needsMaybeInc = false;
 
   for (const chain of chains) {
@@ -69,21 +67,11 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
         if (seg.incremented && seg.dynamicProps) {
           needsMaybeInc = true;
         }
-
-        if (seg.ancestorPseudo?.marker) {
-          namedMarkers.add(seg.ancestorPseudo.marker);
-        }
-      }
-    }
-
-    for (const marker of chain.markers) {
-      if (marker.name) {
-        namedMarkers.add(marker.name);
       }
     }
   }
 
-  return { createEntries, needsMaybeInc, namedMarkers };
+  return { createEntries, needsMaybeInc };
 }
 
 /**
@@ -95,7 +83,6 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
 export function buildCreateProperties(
   createEntries: Map<string, CreateEntrySpec>,
   stylexNamespaceName: string,
-  markerVarForName: (name: string) => string,
 ): t.ObjectProperty[] {
   const createProperties: t.ObjectProperty[] = [];
 
@@ -133,8 +120,8 @@ export function buildCreateProperties(
         // `when.ancestor(...)` must remain a computed key expression so StyleX
         // can generate marker-aware selectors.
         const whenCallArgs: t.Expression[] = [t.stringLiteral(ap.pseudo)];
-        if (ap.marker) {
-          whenCallArgs.push(t.identifier(markerVarForName(ap.marker)));
+        if (ap.markerNode) {
+          whenCallArgs.push(ap.markerNode);
         }
 
         const whenCall = t.callExpression(
@@ -191,29 +178,6 @@ export function buildMaybeIncDeclaration(helperName: string, increment: number):
   return t.variableDeclaration("const", [
     t.variableDeclarator(t.identifier(helperName), t.arrowFunctionExpression([incParam], body)),
   ]);
-}
-
-/**
- * Build declarations for named markers (`stylex.defineMarker()`).
- */
-export function buildMarkerDeclarations(
-  markerNames: Iterable<string>,
-  stylexNamespaceName: string,
-  markerVarForName: (name: string) => string,
-): t.VariableDeclaration[] {
-  const declarations: t.VariableDeclaration[] = [];
-
-  for (const markerName of markerNames) {
-    const defineCall = t.callExpression(
-      t.memberExpression(t.identifier(stylexNamespaceName), t.identifier("defineMarker")),
-      [],
-    );
-    declarations.push(
-      t.variableDeclaration("const", [t.variableDeclarator(t.identifier(markerVarForName(markerName)), defineCall)]),
-    );
-  }
-
-  return declarations;
 }
 
 /** Build `const <createVarName> = <stylexNs>.create({...})`. */

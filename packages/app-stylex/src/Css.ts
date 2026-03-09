@@ -3,8 +3,12 @@
 // Target: stylex (build-time plugin)
 
 import type { Properties as CSSTypeProperties } from "csstype";
+import * as stylex from "@stylexjs/stylex";
 
 export type Properties = CSSTypeProperties<string | 0, string>;
+
+/** A marker returned by `stylex.defineMarker()`, used with `onHoverOf`/`markerOf` etc. */
+export type Marker = ReturnType<typeof stylex.defineMarker>;
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
@@ -1159,14 +1163,14 @@ class CssBuilder<T extends Properties> {
 
   /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
   get marker(): CssBuilder<T> { return this; }
-  /** Marks this element as a named marker (for ancestor pseudo selectors). */
-  markerOf(_name: string): CssBuilder<T> { return this; }
+  /** Marks this element with a user-defined marker (return value of stylex.defineMarker()). */
+  markerOf(_marker: Marker): CssBuilder<T> { return this; }
 
-  onHoverOf(_marker?: string) { return this.newCss({ selector: ":hover" }); }
-  onFocusOf(_marker?: string) { return this.newCss({ selector: ":focus" }); }
-  onFocusVisibleOf(_marker?: string) { return this.newCss({ selector: ":focus-visible" }); }
-  onActiveOf(_marker?: string) { return this.newCss({ selector: ":active" }); }
-  onDisabledOf(_marker?: string) { return this.newCss({ selector: ":disabled" }); }
+  onHoverOf(_marker?: Marker) { return this.newCss({ selector: ":hover" }); }
+  onFocusOf(_marker?: Marker) { return this.newCss({ selector: ":focus" }); }
+  onFocusVisibleOf(_marker?: Marker) { return this.newCss({ selector: ":focus-visible" }); }
+  onActiveOf(_marker?: Marker) { return this.newCss({ selector: ":active" }); }
+  onDisabledOf(_marker?: Marker) { return this.newCss({ selector: ":disabled" }); }
 
   get ifPrint() { return this.newCss({ selector: "@media print" }); }
   get ifSm() { return this.newCss({ selector: "@media screen and (max-width:599px)" }); }

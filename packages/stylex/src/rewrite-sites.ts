@@ -18,7 +18,6 @@ export interface RewriteSitesOptions {
   createVarName: string;
   stylexNamespaceName: string;
   maybeIncHelperName: string | null;
-  markerVarForName: (name: string) => string;
 }
 
 /**
@@ -138,8 +137,8 @@ function buildPropsArgsFromChain(
   const args: (t.Expression | t.SpreadElement)[] = [];
 
   for (const marker of chain.markers) {
-    if (marker.name) {
-      args.push(t.identifier(options.markerVarForName(marker.name)));
+    if (marker.markerNode) {
+      args.push(marker.markerNode);
     } else {
       args.push(
         t.callExpression(

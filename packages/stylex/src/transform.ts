@@ -7,7 +7,6 @@ import { resolveFullChain, UnsupportedPatternError } from "./resolve-chain";
 import {
   collectTopLevelBindings,
   reservePreferredName,
-  markerVariableBaseName,
   findCssImportBinding,
   removeCssImport,
   findStylexNamespaceImport,
@@ -19,7 +18,6 @@ import {
   collectCreateData,
   buildCreateProperties,
   buildMaybeIncDeclaration,
-  buildMarkerDeclarations,
   buildCreateDeclaration,
 } from "./emit-stylex";
 import { rewriteExpressionSites, type ExpressionSite } from "./rewrite-sites";
@@ -93,7 +91,7 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   if (sites.length === 0) return null;
 
   // Step 3: Collect stylex.create entries and helper needs
-  const { createEntries, needsMaybeInc, namedMarkers } = collectCreateData(sites.map((s) => s.resolvedChain));
+  const { createEntries, needsMaybeInc } = collectCreateData(sites.map((s) => s.resolvedChain));
 
   // Reserve local names we might inject at the top level
   // We do this up front so helper/style variable names are deterministic and
@@ -104,16 +102,7 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   const createVarName = reservePreferredName(usedTopLevelNames, "css", "css_");
   const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
 
-  const markerVarNames = new Map<string, string>();
-  for (const markerName of namedMarkers) {
-    markerVarNames.set(markerName, reservePreferredName(usedTopLevelNames, markerVariableBaseName(markerName)));
-  }
-
-  // Fallback name is only used for defensive robustness; every named marker
-  // should have a reserved entry above.
-  const markerVarForName = (name: string): string => markerVarNames.get(name) ?? markerVariableBaseName(name);
-
-  const createProperties = buildCreateProperties(createEntries, stylexNamespaceName, markerVarForName);
+  const createProperties = buildCreateProperties(createEntries, stylexNamespaceName);
 
   // Step 4: Rewrite Css sites in-place
   rewriteExpressionSites({
@@ -122,7 +111,6 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
     createVarName,
     stylexNamespaceName,
     maybeIncHelperName,
-    markerVarForName,
   });
 
   // Step 5: Remove Css import now that all usages were rewritten
@@ -138,7 +126,6 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   if (maybeIncHelperName) {
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName, mapping.increment));
   }
-  declarationsToInsert.push(...buildMarkerDeclarations(namedMarkers, stylexNamespaceName, markerVarForName));
   if (createProperties.length > 0) {
     declarationsToInsert.push(buildCreateDeclaration(createVarName, stylexNamespaceName, createProperties));
   }

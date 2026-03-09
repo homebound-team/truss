@@ -27,7 +27,7 @@ export interface ResolvedSegment {
    * selector info. When set, uses `stylex.when.ancestor(pseudo, marker?)`
    * as the computed property key instead of a plain pseudo string.
    */
-  ancestorPseudo?: { pseudo: string; marker?: string };
+  ancestorPseudo?: { pseudo: string; markerNode?: any };
   /** For dynamic entries: the CSS prop names */
   dynamicProps?: string[];
   /** For dynamic entries: whether the value uses maybeInc */
@@ -40,12 +40,12 @@ export interface ResolvedSegment {
 
 /**
  * A "marker" segment — not a CSS style, but a directive to attach
- * `stylex.defaultMarker()` or a named `stylex.defineMarker()` to the element.
+ * `stylex.defaultMarker()` or a user-defined marker to the element.
  */
 export interface MarkerSegment {
   type: "marker";
-  /** If set, a named marker (uses stylex.defineMarker). Otherwise, default marker. */
-  name?: string;
+  /** If set, the AST node of the user-provided marker variable (return value of stylex.defineMarker()). Otherwise, default marker. */
+  markerNode?: any;
 }
 
 /** A fully analyzed Css expression site in the source file. */

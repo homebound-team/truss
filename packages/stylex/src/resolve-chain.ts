@@ -34,10 +34,10 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
     if (node.type === "getter" && node.name === "marker") {
       markers.push({ type: "marker" });
     } else if (node.type === "call" && node.name === "markerOf") {
-      if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
-        throw new UnsupportedPatternError("markerOf() requires a string literal argument");
+      if (node.args.length !== 1) {
+        throw new UnsupportedPatternError("markerOf() requires exactly one argument (a marker variable)");
       }
-      markers.push({ type: "marker", name: (node.args[0] as any).value });
+      markers.push({ type: "marker", markerNode: node.args[0] });
     } else {
       filteredChain.push(node);
     }
@@ -107,7 +107,7 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 export function resolveChain(chain: ChainNode[], mapping: TrussMapping): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
   let currentPseudo: string | null = null;
-  let currentAncestorPseudo: { pseudo: string; marker?: string } | null = null;
+  let currentAncestorPseudo: { pseudo: string; markerNode?: any } | null = null;
 
   for (const node of chain) {
     if (node.type === "getter") {
@@ -137,20 +137,17 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
     } else if (node.type === "call") {
       const abbr = node.name;
 
-      // Ancestor pseudo calls: onHoverOf(), onHoverOf("row"), etc.
+      // Ancestor pseudo calls: onHoverOf(), onHoverOf(marker), etc.
       if (isAncestorPseudoMethod(abbr)) {
         const pseudo = ancestorPseudoSelector(abbr);
-        let markerName: string | undefined;
+        let markerNode: any | undefined;
         if (node.args.length === 1) {
-          if (node.args[0].type !== "StringLiteral") {
-            throw new UnsupportedPatternError(`${abbr}() requires a string literal argument`);
-          }
-          markerName = (node.args[0] as any).value;
+          markerNode = node.args[0];
         } else if (node.args.length > 1) {
           throw new UnsupportedPatternError(`${abbr}() takes at most one argument`);
         }
         currentPseudo = null;
-        currentAncestorPseudo = { pseudo, marker: markerName };
+        currentAncestorPseudo = { pseudo, markerNode };
         continue;
       }
 
@@ -190,7 +187,7 @@ function resolveEntry(
   entry: TrussMappingEntry,
   mapping: TrussMapping,
   pseudo: string | null,
-  ancestorPseudo?: { pseudo: string; marker?: string } | null,
+  ancestorPseudo?: { pseudo: string; markerNode?: any } | null,
 ): ResolvedSegment[] {
   switch (entry.kind) {
     case "static": {
@@ -356,11 +353,14 @@ function pseudoSelector(name: string): string {
 /**
  * Generate the stylex.create key suffix for ancestor pseudo segments.
  * e.g. { pseudo: ":hover" } → "ancestorHover"
- * e.g. { pseudo: ":hover", marker: "row" } → "ancestorHover_row"
+ * e.g. { pseudo: ":hover", markerNode: Identifier("row") } → "ancestorHover_row"
  */
-function ancestorPseudoKeyName(ap: { pseudo: string; marker?: string }): string {
+function ancestorPseudoKeyName(ap: { pseudo: string; markerNode?: any }): string {
   const base = `ancestor${pseudoName(ap.pseudo).charAt(0).toUpperCase()}${pseudoName(ap.pseudo).slice(1)}`;
-  return ap.marker ? `${base}_${ap.marker}` : base;
+  if (!ap.markerNode) return base;
+  // Use the identifier name for readable keys; fall back to a generic suffix for complex expressions
+  const suffix = ap.markerNode.type === "Identifier" ? ap.markerNode.name : "marker";
+  return `${base}_${suffix}`;
 }
 
 /**

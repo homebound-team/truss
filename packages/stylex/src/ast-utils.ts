@@ -135,17 +135,6 @@ export function reservePreferredName(used: Set<string>, preferred: string, secon
 }
 
 /**
- * Generate a marker declaration base name from user-provided marker text.
- *
- * Marker names are normalized because they can contain characters that are not
- * legal in JavaScript identifiers.
- */
-export function markerVariableBaseName(markerName: string): string {
-  const safe = markerName.replace(/[^a-zA-Z0-9_$]/g, "_");
-  return `__truss_marker_${safe}`;
-}
-
-/**
  * Find the local binding name for `Css` from import declarations.
  */
 export function findCssImportBinding(ast: t.File): string | null {
