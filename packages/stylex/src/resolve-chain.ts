@@ -137,6 +137,13 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
     } else if (node.type === "call") {
       const abbr = node.name;
 
+      // Container query call: ifContainer({ gt, lt, name? })
+      if (abbr === "ifContainer") {
+        currentPseudo = containerSelectorFromCall(node);
+        currentAncestorPseudo = null;
+        continue;
+      }
+
       // Ancestor pseudo calls: onHoverOf(), onHoverOf(marker), etc.
       if (isAncestorPseudoMethod(abbr)) {
         const pseudo = ancestorPseudoSelector(abbr);
@@ -468,6 +475,7 @@ export function mergeOverlappingPseudos(segments: ResolvedSegment[]): ResolvedSe
  * Convert a pseudo/media selector into a short key suffix.
  * ":hover" → "hover", ":focus-visible" → "focus_visible"
  * "@media screen and (max-width:599px)" → "sm" (using breakpoints reverse map)
+ * "@container (min-width: 601px)" → "container_min_width_601px"
  */
 export function pseudoName(pseudo: string, breakpoints?: Record<string, string>): string {
   if (pseudo.startsWith("@media") && breakpoints) {
@@ -484,6 +492,15 @@ export function pseudoName(pseudo: string, breakpoints?: Record<string, string>)
       .replace(/_+/g, "_")
       .replace(/^_|_$/g, "");
   }
+
+  if (pseudo.startsWith("@container")) {
+    return pseudo
+      .replace(/^@container\s*/, "container ")
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+  }
+
   return pseudo.replace(/^:/, "").replace(/-/g, "_");
 }
 
@@ -530,6 +547,95 @@ function tryEvaluatePxLiteral(node: t.Expression | t.SpreadElement): string | nu
     return `${node.value}px`;
   }
   return null;
+}
+
+/** Resolve ifContainer({ gt, lt, name? }) to a StyleX pseudo key. */
+function containerSelectorFromCall(node: CallChainNode): string {
+  if (node.args.length !== 1) {
+    throw new UnsupportedPatternError(`ifContainer() expects exactly 1 argument, got ${node.args.length}`);
+  }
+
+  const arg = node.args[0];
+  if (!arg || arg.type !== "ObjectExpression") {
+    throw new UnsupportedPatternError("ifContainer() expects an object literal argument");
+  }
+
+  let lt: number | undefined;
+  let gt: number | undefined;
+  let name: string | undefined;
+
+  for (const prop of arg.properties) {
+    if (prop.type === "SpreadElement") {
+      throw new UnsupportedPatternError("ifContainer() does not support spread properties");
+    }
+    if (prop.type !== "ObjectProperty" || prop.computed) {
+      throw new UnsupportedPatternError("ifContainer() expects plain object properties");
+    }
+
+    const key = objectPropertyName(prop.key);
+    if (!key) {
+      throw new UnsupportedPatternError("ifContainer() only supports identifier/string keys");
+    }
+
+    const valueNode = prop.value as t.Expression | t.SpreadElement;
+
+    if (key === "lt") {
+      lt = numericLiteralValue(valueNode, "ifContainer().lt must be a numeric literal");
+      continue;
+    }
+    if (key === "gt") {
+      gt = numericLiteralValue(valueNode, "ifContainer().gt must be a numeric literal");
+      continue;
+    }
+    if (key === "name") {
+      name = stringLiteralValue(valueNode, "ifContainer().name must be a string literal");
+      continue;
+    }
+
+    throw new UnsupportedPatternError(`ifContainer() does not support property "${key}"`);
+  }
+
+  if (lt === undefined && gt === undefined) {
+    throw new UnsupportedPatternError('ifContainer() requires at least one of "lt" or "gt"');
+  }
+
+  const parts: string[] = [];
+  if (gt !== undefined) {
+    parts.push(`(min-width: ${gt + 1}px)`);
+  }
+  if (lt !== undefined) {
+    parts.push(`(max-width: ${lt}px)`);
+  }
+
+  const query = parts.join(" and ");
+  const namePrefix = name ? `${name} ` : "";
+  return `@container ${namePrefix}${query}`;
+}
+
+function objectPropertyName(node: t.Expression | t.Identifier | t.PrivateName): string | null {
+  if (node.type === "Identifier") return node.name;
+  if (node.type === "StringLiteral") return node.value;
+  return null;
+}
+
+function numericLiteralValue(node: t.Expression | t.SpreadElement, errorMessage: string): number {
+  if (node.type === "NumericLiteral") {
+    return node.value;
+  }
+  if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
+    return -node.argument.value;
+  }
+  throw new UnsupportedPatternError(errorMessage);
+}
+
+function stringLiteralValue(node: t.Expression | t.SpreadElement, errorMessage: string): string {
+  if (node.type === "StringLiteral") {
+    return node.value;
+  }
+  if (node.type === "TemplateLiteral" && node.expressions.length === 0 && node.quasis.length === 1) {
+    return node.quasis[0].value.cooked ?? "";
+  }
+  throw new UnsupportedPatternError(errorMessage);
 }
 
 // ── Chain node types (parsed from AST) ────────────────────────────────

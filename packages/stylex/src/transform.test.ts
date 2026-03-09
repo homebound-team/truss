@@ -270,6 +270,86 @@ describe("transform", () => {
     );
   });
 
+  test("container query pseudo: Css.ifContainer({ gt, lt }).gc('span 2').$", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.ifContainer({ gt: 600, lt: 960 }).gc("span 2").$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          gc__span_2__container_min_width_601px_and_max_width_960px: {
+            gridColumn: {
+              default: null,
+              "@container (min-width: 601px) and (max-width: 960px)": "span 2"
+            }
+          }
+        });
+        const s = [css.gc__span_2__container_min_width_601px_and_max_width_960px];
+      `),
+    );
+  });
+
+  test("container query merges overlapping property", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.black.ifContainer({ gt: 600, lt: 960 }).blue.$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          black_blue__container_min_width_601px_and_max_width_960px: {
+            color: {
+              default: "#353535",
+              "@container (min-width: 601px) and (max-width: 960px)": "#526675"
+            }
+          }
+        });
+        const s = [css.black_blue__container_min_width_601px_and_max_width_960px];
+      `),
+    );
+  });
+
+  test("container query with named container", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const s = Css.ifContainer({ name: "grid", gt: 600, lt: 960 }).blue.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          blue__container_grid_min_width_601px_and_max_width_960px: {
+            color: {
+              default: null,
+              "@container grid (min-width: 601px) and (max-width: 960px)": "#526675"
+            }
+          }
+        });
+        const s = [css.blue__container_grid_min_width_601px_and_max_width_960px];
+      `),
+    );
+  });
+
+  test("container query requires literal bounds", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const minWidth = getMinWidth(); const maxWidth = getMaxWidth(); const s = Css.ifContainer({ gt: minWidth, lt: maxWidth }).blue.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const minWidth = getMinWidth();
+        const maxWidth = getMaxWidth();
+        const s = (() => {
+          throw new Error("[truss] Unsupported pattern: ifContainer().gt must be a numeric literal");
+        })();
+      `),
+    );
+  });
+
   test("spread pattern: css={[...Css.df.$, ...xss]}", () => {
     expect(
       n(
