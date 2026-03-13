@@ -1,6 +1,7 @@
 import { Properties } from "csstype";
 import { Config } from "src/config";
 import { newIncrementMethods, newMethod, newMethodsForProp, newParamMethod } from "src/methods";
+import { describe, expect, it } from "vitest";
 
 describe("methods", () => {
   const config: Config = {

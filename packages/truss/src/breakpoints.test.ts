@@ -1,4 +1,5 @@
 import { makeBreakpoints } from "src/breakpoints";
+import { describe, expect, it } from "vitest";
 
 describe("breakpoints", () => {
   it("works with one breakpoint", () => {

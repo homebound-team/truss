@@ -4,7 +4,7 @@
   "main": "build/index.js",
   "bin": "cli.js",
   "scripts": {
-    "test": "jest"
+    "test": "vitest --run"
   },
   "license": "ISC",
   "dependencies": {
@@ -15,19 +15,8 @@
   },
   "devDependencies": {
     "@homebound/tsconfig": "^1.1.1",
-    "@types/jest": "^29.2.1",
     "@types/node": "^18.11.9",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "typescript": "^5.9.3"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testMatch": [
-      "<rootDir>/src/*.test.(ts|tsx)"
-    ],
-    "moduleNameMapper": {
-      "^src(.*)": "<rootDir>/src$1"
-    }
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   }
 }
