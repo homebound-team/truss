@@ -1,5 +1,5 @@
 import stylex from "@stylexjs/unplugin";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 import { trussPlugin } from "../stylex/src/index.ts";
 
