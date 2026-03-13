@@ -9,8 +9,8 @@
   "license": "ISC",
   "dependencies": {
     "@homebound/truss-testing-tachyons": "workspace:*",
-    "@mui/material": "^5.10.12",
-    "@mui/styles": "^5.10.10",
+    "@mui/material": "^5.18.0",
+    "@mui/styles": "^5.18.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -19,6 +19,6 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.0"
   }
 }
