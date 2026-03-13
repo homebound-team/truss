@@ -38,9 +38,9 @@ describe("App", () => {
     `);
 
     expect(styleSheetsToString()).toMatchInlineSnapshot(`
-      ".a {color: #353535;}
-      .b {top: 8px;}
-      .c:hover {color: #fcfcfa;}"
+      ".a { color: rgb(53, 53, 53); }
+      .b { top: 8px; }
+      .c:hover { color: rgb(252, 252, 250); }"
     `);
   });
 
