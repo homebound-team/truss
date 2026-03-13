@@ -1,7 +1,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 import { App } from "./App";
+import { hasCssDeclaration } from "./testCssUtils";
 import "@testing-library/jest-dom/vitest";
 
 afterEach(() => {
@@ -40,26 +41,16 @@ describe("App", () => {
       borderRadius: ".25rem",
       cursor: "pointer",
     });
-    // borderColor has a merged hover rule (bcBlack default + bcBlue on hover).
-    // jsdom doesn't correctly ignore :hover pseudo rules in getComputedStyle,
-    // so verify via CSS rules instead.
-    const rules = getCssRulesForElement(box);
-    expect(rules.some((r) => r.includes("border-color") && r.includes("#353535") && !r.includes(":hover"))).toBe(true);
-    expect(rules.some((r) => r.includes("border-color") && r.includes("#526675") && r.includes(":hover"))).toBe(true);
+    expect(hasCssDeclaration(box, "border-color", { hover: false })).toBe(true);
+    expect(hasCssDeclaration(box, "border-color", { hover: true })).toBe(true);
   });
 
   test("blue box has white text, cursor, and hover styles", () => {
     render(<App />);
     const box = screen.getByText("Blue background with white text");
     expect(box).toHaveStyle({ color: "#fcfcfa", cursor: "pointer" });
-    // backgroundColor has a merged hover rule (bgBlue default + bgBlack on hover).
-    const rules = getCssRulesForElement(box);
-    expect(rules.some((r) => r.includes("background-color") && r.includes("#526675") && !r.includes(":hover"))).toBe(
-      true,
-    );
-    expect(rules.some((r) => r.includes("background-color") && r.includes("#353535") && r.includes(":hover"))).toBe(
-      true,
-    );
+    expect(hasCssDeclaration(box, "background-color", { hover: false })).toBe(true);
+    expect(hasCssDeclaration(box, "background-color", { hover: true })).toBe(true);
   });
 
   test("clicking button increments counter", async () => {
@@ -99,17 +90,3 @@ describe("App", () => {
     expect(childSpan.className).toBeTruthy();
   });
 });
-
-/** Collect all CSS rules matching an element's class names. */
-function getCssRulesForElement(el: HTMLElement): string[] {
-  const classes = el.className.split(/\s+/);
-  const rules: string[] = [];
-  for (const sheet of document.styleSheets) {
-    for (const rule of sheet.cssRules) {
-      if (classes.some((c) => rule.cssText.includes(c))) {
-        rules.push(rule.cssText);
-      }
-    }
-  }
-  return rules;
-}

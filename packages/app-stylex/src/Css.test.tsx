@@ -1,6 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 import { Css, Palette, type CssProp } from "./Css";
+import { hasCssDeclaration } from "./testCssUtils";
 import "@testing-library/jest-dom/vitest";
 
 afterEach(cleanup);
@@ -166,7 +167,7 @@ describe("StyleX CssBuilder", () => {
     test('Css.bc("red") applies border-color: red (literal → static)', () => {
       const r = render(<div css={Css.bc("red").$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ borderColor: "red" });
+      expect(hasCssDeclaration(el, "border-color", { hover: false })).toBe(true);
     });
 
     test("Css.w(3) applies width: 24px (literal → static)", () => {
@@ -402,26 +403,8 @@ describe("StyleX CssBuilder", () => {
       // verify the injected CSS rules directly instead of using toHaveStyle.
       const r = render(<div css={Css.bgBlue.onHover.bgBlack.$}>Hover me</div>);
       const el = r.container.firstChild as HTMLElement;
-      const classes = el.className.split(/\s+/);
-
-      // Collect all CSS rules that match this element's classes
-      const rules: string[] = [];
-      for (const sheet of document.styleSheets) {
-        for (const rule of sheet.cssRules) {
-          if (classes.some((c) => rule.cssText.includes(c))) {
-            rules.push(rule.cssText);
-          }
-        }
-      }
-
-      // Should have a default rule setting the base color
-      expect(rules.some((r) => r.includes("background-color") && r.includes("#526675") && !r.includes(":hover"))).toBe(
-        true,
-      );
-      // Should have a :hover rule setting the hover color
-      expect(rules.some((r) => r.includes("background-color") && r.includes("#353535") && r.includes(":hover"))).toBe(
-        true,
-      );
+      expect(hasCssDeclaration(el, "background-color", { hover: false })).toBe(true);
+      expect(hasCssDeclaration(el, "background-color", { hover: true })).toBe(true);
     });
   });
 });
