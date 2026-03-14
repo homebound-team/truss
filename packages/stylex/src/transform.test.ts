@@ -821,6 +821,100 @@ describe("transform", () => {
       `),
     );
   });
+
+  // ── add() tests ─────────────────────────────────────────────────────
+
+  test("add with string literal value: Css.add('boxShadow', '0 0 0 1px blue').$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.add("boxShadow", "0 0 0 1px blue").$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          add_boxShadow__0_0_0_1px_blue: { boxShadow: "0 0 0 1px blue" }
+        });
+        const s = [css.add_boxShadow__0_0_0_1px_blue];
+      `),
+    );
+  });
+
+  test("add with numeric literal value: Css.add('animationDelay', '300ms').$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.add("animationDelay", "300ms").$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          add_animationDelay__300ms: { animationDelay: "300ms" }
+        });
+        const s = [css.add_animationDelay__300ms];
+      `),
+    );
+  });
+
+  test("add with variable value: Css.add('boxShadow', shadow).$", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const shadow = getShadow(); const s = Css.add("boxShadow", shadow).$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ add_boxShadow: v => ({ boxShadow: v }) });
+        const shadow = getShadow();
+        const s = [css.add_boxShadow(String(shadow))];
+      `),
+    );
+  });
+
+  test("add mixed with other chain segments: Css.df.add('wordBreak', 'break-word').black.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.df.add("wordBreak", "break-word").black.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          add_wordBreak__break_word: { wordBreak: "break-word" },
+          black: { color: "#353535" }
+        });
+        const s = [css.df, css.add_wordBreak__break_word, css.black];
+      `),
+    );
+  });
+
+  test("add with pseudo: Css.onHover.add('textDecoration', 'underline').$", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.onHover.add("textDecoration", "underline").$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          add_textDecoration__underline__hover: {
+            textDecoration: { default: null, ":hover": "underline" }
+          }
+        });
+        const s = [css.add_textDecoration__underline__hover];
+      `),
+    );
+  });
+
+  test("add with object overload errors", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.add({ wordBreak: "break-word" }).$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const s = (() => { throw new Error("[truss] Unsupported pattern: add() requires exactly 2 arguments (property name and value), got 1. The add({...}) object overload is not supported -- use add(\\"propName\\", value) instead"); })();
+      `),
+    );
+  });
+
+  test("add with non-string-literal property name errors", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const prop = "boxShadow"; const s = Css.add(prop, "value").$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const prop = "boxShadow";
+        const s = (() => { throw new Error("[truss] Unsupported pattern: add() first argument must be a string literal property name"); })();
+      `),
+    );
+  });
 });
 
 function transform(code: string): string | null {

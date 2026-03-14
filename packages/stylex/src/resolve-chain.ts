@@ -144,6 +144,13 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
         continue;
       }
 
+      // add(prop, value) — arbitrary CSS property
+      if (abbr === "add") {
+        const seg = resolveAddCall(node, mapping, currentPseudo);
+        segments.push(seg);
+        continue;
+      }
+
       // Ancestor pseudo calls: onHoverOf(), onHoverOf(marker), etc.
       if (isAncestorPseudoMethod(abbr)) {
         const pseudo = ancestorPseudoSelector(abbr);
@@ -320,6 +327,76 @@ function resolveDelegateCall(
       // Mark that this needs `${arg}px` wrapping (not maybeInc)
     };
   }
+}
+
+/**
+ * Resolve an `add(prop, value)` call — arbitrary CSS property with a string literal
+ * property name and either a literal or variable value.
+ *
+ * Only the two-argument `add("propName", value)` overload is supported.
+ * The object overload `add({ prop: value })` is not supported (StyleX requires
+ * static property names at build time).
+ */
+function resolveAddCall(node: CallChainNode, mapping: TrussMapping, pseudo: string | null): ResolvedSegment {
+  if (node.args.length !== 2) {
+    throw new UnsupportedPatternError(
+      `add() requires exactly 2 arguments (property name and value), got ${node.args.length}. ` +
+        `The add({...}) object overload is not supported -- use add("propName", value) instead`,
+    );
+  }
+
+  const propArg = node.args[0];
+  if (propArg.type !== "StringLiteral") {
+    throw new UnsupportedPatternError(`add() first argument must be a string literal property name`);
+  }
+  const propName: string = (propArg as any).value;
+
+  const valueArg = node.args[1];
+  // Try to evaluate the value as a literal
+  const literalValue = tryEvaluateAddLiteral(valueArg);
+
+  if (literalValue !== null) {
+    // Static: add("boxShadow", "0 0 0 1px blue") → { boxShadow: "0 0 0 1px blue" }
+    const keySuffix = literalValue
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+    const key = pseudo
+      ? `add_${propName}__${keySuffix}__${pseudoName(pseudo, mapping.breakpoints)}`
+      : `add_${propName}__${keySuffix}`;
+    const defs: Record<string, unknown> = { [propName]: literalValue };
+    return {
+      key,
+      defs: pseudo ? wrapDefsWithPseudo(defs, pseudo) : defs,
+      pseudo,
+      argResolved: literalValue,
+    };
+  } else {
+    // Dynamic: add("boxShadow", expr) → needs a parameterized stylex.create entry
+    const key = pseudo ? `add_${propName}__${pseudoName(pseudo, mapping.breakpoints)}` : `add_${propName}`;
+    return {
+      key,
+      defs: {},
+      pseudo,
+      dynamicProps: [propName],
+      incremented: false,
+      argNode: valueArg,
+    };
+  }
+}
+
+/** Try to evaluate a literal for add() — strings, numbers, and template literals with no expressions. */
+function tryEvaluateAddLiteral(node: t.Expression | t.SpreadElement): string | null {
+  if (node.type === "StringLiteral") {
+    return (node as any).value;
+  }
+  if (node.type === "NumericLiteral") {
+    return String((node as any).value);
+  }
+  if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
+    return String(-(node.argument as any).value);
+  }
+  return null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
