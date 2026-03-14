@@ -3,7 +3,7 @@ import _traverse from "@babel/traverse";
 import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
-import { resolveFullChain, UnsupportedPatternError } from "./resolve-chain";
+import { resolveFullChain } from "./resolve-chain";
 import {
   collectTopLevelBindings,
   reservePreferredName,
@@ -54,6 +54,8 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
 
   // Step 2: Collect all Css expression sites
   const sites: ExpressionSite[] = [];
+  /** Error messages with source location info, to be emitted as console.error calls. */
+  const errorMessages: Array<{ message: string; line: number | null }> = [];
 
   traverse(ast, {
     MemberExpression(path) {
@@ -68,22 +70,13 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
         return;
       }
 
-      try {
-        const resolvedChain = resolveFullChain(chain, mapping);
-        sites.push({
-          path,
-          resolvedChain,
-        });
-      } catch (err) {
-        if (err instanceof UnsupportedPatternError) {
-          sites.push({
-            path,
-            resolvedChain: { parts: [], markers: [] },
-            error: err.message,
-          });
-        } else {
-          throw err;
-        }
+      const resolvedChain = resolveFullChain(chain, mapping);
+      sites.push({ path, resolvedChain });
+
+      // Collect any errors from this chain with source location
+      const line = path.node.loc?.start.line ?? null;
+      for (const err of resolvedChain.errors) {
+        errorMessages.push({ message: err, line });
       }
     },
   });
@@ -128,6 +121,18 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   }
   if (createProperties.length > 0) {
     declarationsToInsert.push(buildCreateDeclaration(createVarName, stylexNamespaceName, createProperties));
+  }
+
+  // Step 8: Emit console.error calls for any unsupported patterns
+  for (const { message, line } of errorMessages) {
+    const location = line !== null ? `${filename}:${line}` : filename;
+    const logMessage = `${message} (${location})`;
+    const consoleError = t.expressionStatement(
+      t.callExpression(t.memberExpression(t.identifier("console"), t.identifier("error")), [
+        t.stringLiteral(logMessage),
+      ]),
+    );
+    declarationsToInsert.push(consoleError);
   }
 
   if (declarationsToInsert.length > 0) {

@@ -36,6 +36,12 @@ export interface ResolvedSegment {
   argNode?: any;
   /** Whether the arg was a literal we could evaluate */
   argResolved?: string;
+  /**
+   * If set, this segment represents an unsupported pattern that could not be resolved.
+   * The error message describes what went wrong. Valid segments in the same chain
+   * are preserved; only this segment is skipped in the output.
+   */
+  error?: string;
 }
 
 /**

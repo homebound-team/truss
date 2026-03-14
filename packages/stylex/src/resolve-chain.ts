@@ -14,6 +14,8 @@ export interface ResolvedChain {
   parts: ResolvedChainPart[];
   /** Marker directives to attach to the element (not CSS styles). */
   markers: MarkerSegment[];
+  /** Error messages from unsupported patterns found in this chain. */
+  errors: string[];
 }
 
 export type ResolvedChainPart =
@@ -29,15 +31,18 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 
   // Pre-scan for marker nodes and strip them from the chain
   const filteredChain: ChainNode[] = [];
+  /** Errors found during marker scanning — attached to the chain result */
+  const scanErrors: string[] = [];
   for (let j = 0; j < chain.length; j++) {
     const node = chain[j];
     if (node.type === "getter" && node.name === "marker") {
       markers.push({ type: "marker" });
     } else if (node.type === "call" && node.name === "markerOf") {
       if (node.args.length !== 1) {
-        throw new UnsupportedPatternError("markerOf() requires exactly one argument (a marker variable)");
+        scanErrors.push("[truss] Unsupported pattern: markerOf() requires exactly one argument (a marker variable)");
+      } else {
+        markers.push({ type: "marker", markerNode: node.args[0] });
       }
-      markers.push({ type: "marker", markerNode: node.args[0] });
     } else {
       filteredChain.push(node);
     }
@@ -94,7 +99,18 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
     parts.push({ type: "unconditional", segments: mergeOverlappingPseudos(resolveChain(currentNodes, mapping)) });
   }
 
-  return { parts, markers };
+  // Collect error messages from all resolved segments
+  const segmentErrors: string[] = [];
+  for (const part of parts) {
+    const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
+    for (const seg of segs) {
+      if (seg.error) {
+        segmentErrors.push(seg.error);
+      }
+    }
+  }
+
+  return { parts, markers, errors: [...scanErrors, ...segmentErrors] };
 }
 
 /**
@@ -110,84 +126,95 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
   let currentAncestorPseudo: { pseudo: string; markerNode?: any } | null = null;
 
   for (const node of chain) {
-    if (node.type === "getter") {
-      const abbr = node.name;
+    try {
+      if (node.type === "getter") {
+        const abbr = node.name;
 
-      // Pseudo-class getters: onHover, onFocus, etc.
-      if (isPseudoMethod(abbr)) {
-        currentPseudo = pseudoSelector(abbr);
-        currentAncestorPseudo = null;
-        continue;
-      }
-
-      // Breakpoint getters: ifSm, ifMd, ifLg, etc.
-      if (mapping.breakpoints && abbr in mapping.breakpoints) {
-        currentPseudo = mapping.breakpoints[abbr];
-        currentAncestorPseudo = null;
-        continue;
-      }
-
-      const entry = mapping.abbreviations[abbr];
-      if (!entry) {
-        throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
-      }
-
-      const resolved = resolveEntry(abbr, entry, mapping, currentPseudo, currentAncestorPseudo);
-      segments.push(...resolved);
-    } else if (node.type === "call") {
-      const abbr = node.name;
-
-      // Container query call: ifContainer({ gt, lt, name? })
-      if (abbr === "ifContainer") {
-        currentPseudo = containerSelectorFromCall(node);
-        currentAncestorPseudo = null;
-        continue;
-      }
-
-      // add(prop, value) — arbitrary CSS property
-      if (abbr === "add") {
-        const seg = resolveAddCall(node, mapping, currentPseudo);
-        segments.push(seg);
-        continue;
-      }
-
-      // Ancestor pseudo calls: onHoverOf(), onHoverOf(marker), etc.
-      if (isAncestorPseudoMethod(abbr)) {
-        const pseudo = ancestorPseudoSelector(abbr);
-        let markerNode: any | undefined;
-        if (node.args.length === 1) {
-          markerNode = node.args[0];
-        } else if (node.args.length > 1) {
-          throw new UnsupportedPatternError(`${abbr}() takes at most one argument`);
+        // Pseudo-class getters: onHover, onFocus, etc.
+        if (isPseudoMethod(abbr)) {
+          currentPseudo = pseudoSelector(abbr);
+          currentAncestorPseudo = null;
+          continue;
         }
-        currentPseudo = null;
-        currentAncestorPseudo = { pseudo, markerNode };
-        continue;
-      }
 
-      // Simple pseudo-class calls (backward compat — pseudos are now getters)
-      if (isPseudoMethod(abbr)) {
-        currentPseudo = pseudoSelector(abbr);
-        currentAncestorPseudo = null;
-        if (node.args.length > 0) {
-          throw new UnsupportedPatternError(`${abbr}() does not take arguments — use ${abbr}Of() for ancestor pseudos`);
+        // Breakpoint getters: ifSm, ifMd, ifLg, etc.
+        if (mapping.breakpoints && abbr in mapping.breakpoints) {
+          currentPseudo = mapping.breakpoints[abbr];
+          currentAncestorPseudo = null;
+          continue;
         }
-        continue;
-      }
 
-      const entry = mapping.abbreviations[abbr];
-      if (!entry) {
-        throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
-      }
+        const entry = mapping.abbreviations[abbr];
+        if (!entry) {
+          throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
+        }
 
-      if (entry.kind === "dynamic") {
-        const seg = resolveDynamicCall(abbr, entry, node, mapping, currentPseudo);
-        segments.push(seg);
-      } else if (entry.kind === "delegate") {
-        const seg = resolveDelegateCall(abbr, entry, node, mapping, currentPseudo);
-        segments.push(seg);
+        const resolved = resolveEntry(abbr, entry, mapping, currentPseudo, currentAncestorPseudo);
+        segments.push(...resolved);
+      } else if (node.type === "call") {
+        const abbr = node.name;
+
+        // Container query call: ifContainer({ gt, lt, name? })
+        if (abbr === "ifContainer") {
+          currentPseudo = containerSelectorFromCall(node);
+          currentAncestorPseudo = null;
+          continue;
+        }
+
+        // add(prop, value) — arbitrary CSS property
+        if (abbr === "add") {
+          const seg = resolveAddCall(node, mapping, currentPseudo);
+          segments.push(seg);
+          continue;
+        }
+
+        // Ancestor pseudo calls: onHoverOf(), onHoverOf(marker), etc.
+        if (isAncestorPseudoMethod(abbr)) {
+          const pseudo = ancestorPseudoSelector(abbr);
+          let markerNode: any | undefined;
+          if (node.args.length === 1) {
+            markerNode = node.args[0];
+          } else if (node.args.length > 1) {
+            throw new UnsupportedPatternError(`${abbr}() takes at most one argument`);
+          }
+          currentPseudo = null;
+          currentAncestorPseudo = { pseudo, markerNode };
+          continue;
+        }
+
+        // Simple pseudo-class calls (backward compat — pseudos are now getters)
+        if (isPseudoMethod(abbr)) {
+          currentPseudo = pseudoSelector(abbr);
+          currentAncestorPseudo = null;
+          if (node.args.length > 0) {
+            throw new UnsupportedPatternError(
+              `${abbr}() does not take arguments -- use ${abbr}Of() for ancestor pseudos`,
+            );
+          }
+          continue;
+        }
+
+        const entry = mapping.abbreviations[abbr];
+        if (!entry) {
+          throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
+        }
+
+        if (entry.kind === "dynamic") {
+          const seg = resolveDynamicCall(abbr, entry, node, mapping, currentPseudo);
+          segments.push(seg);
+        } else if (entry.kind === "delegate") {
+          const seg = resolveDelegateCall(abbr, entry, node, mapping, currentPseudo);
+          segments.push(seg);
+        } else {
+          throw new UnsupportedPatternError(`Abbreviation "${abbr}" is ${entry.kind}, cannot be called as a function`);
+        }
+      }
+    } catch (err) {
+      if (err instanceof UnsupportedPatternError) {
+        // Record the error as a segment so the rest of the chain continues processing
+        segments.push({ key: "__error", defs: {}, pseudo: null, error: err.message });
       } else {
-        throw new UnsupportedPatternError(`Abbreviation "${abbr}" is ${entry.kind}, cannot be called as a function`);
+        throw err;
       }
     }
   }

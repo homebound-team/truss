@@ -46,6 +46,9 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
       const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
 
       for (const seg of segs) {
+        // Skip error segments — they have no CSS data to emit
+        if (seg.error) continue;
+
         if (seg.dynamicProps) {
           if (!createEntries.has(seg.key)) {
             // Keyed dedupe guarantees a stable single entry for repeated usage.

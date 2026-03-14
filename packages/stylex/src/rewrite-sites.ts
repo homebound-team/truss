@@ -9,7 +9,6 @@ const traverse = (typeof _traverse === "function" ? _traverse : (_traverse as an
 export interface ExpressionSite {
   path: any; // NodePath<t.MemberExpression>
   resolvedChain: ResolvedChain;
-  error?: string;
 }
 
 export interface RewriteSitesOptions {
@@ -29,19 +28,6 @@ export interface RewriteSitesOptions {
  */
 export function rewriteExpressionSites(options: RewriteSitesOptions): void {
   for (const site of options.sites) {
-    if (site.error) {
-      // Preserve the fail-fast behavior at runtime for unsupported patterns.
-      const throwExpr = t.callExpression(
-        t.arrowFunctionExpression(
-          [],
-          t.blockStatement([t.throwStatement(t.newExpression(t.identifier("Error"), [t.stringLiteral(site.error)]))]),
-        ),
-        [],
-      );
-      site.path.replaceWith(throwExpr);
-      continue;
-    }
-
     const propsArgs = buildPropsArgsFromChain(site.resolvedChain, options);
     const cssAttrPath = getCssAttributePath(site.path);
 
@@ -179,6 +165,9 @@ function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOption
   const args: t.Expression[] = [];
 
   for (const seg of segments) {
+    // Skip error segments — they are logged via console.error at the top of the file
+    if (seg.error) continue;
+
     const ref = t.memberExpression(t.identifier(options.createVarName), t.identifier(seg.key));
 
     if (seg.dynamicProps && seg.argNode) {

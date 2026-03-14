@@ -331,7 +331,7 @@ describe("transform", () => {
     );
   });
 
-  test("container query requires literal bounds", () => {
+  test("container query requires literal bounds: emits console.error and preserves valid segments", () => {
     expect(
       n(
         transform(
@@ -341,11 +341,11 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ blue: { color: "#526675" } });
+        console.error("[truss] Unsupported pattern: ifContainer().gt must be a numeric literal (test.tsx:1)");
         const minWidth = getMinWidth();
         const maxWidth = getMaxWidth();
-        const s = (() => {
-          throw new Error("[truss] Unsupported pattern: ifContainer().gt must be a numeric literal");
-        })();
+        const s = [css.blue];
       `),
     );
   });
@@ -802,9 +802,14 @@ describe("transform", () => {
     );
   });
 
-  test("unsupported patterns are rewritten to throwing expressions", () => {
-    const result = transform(`import { Css } from "./Css"; const s = Css.notReal.$;`)!;
-    expect(result.includes("Unsupported pattern: Unknown abbreviation")).toBe(true);
+  test("unsupported patterns emit console.error and produce empty array", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.notReal.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        console.error("[truss] Unsupported pattern: Unknown abbreviation \\"notReal\\" (test.tsx:1)");
+        const s = [];
+      `),
+    );
   });
 
   test("markerOf accepts a variable argument", () => {
@@ -895,23 +900,42 @@ describe("transform", () => {
     );
   });
 
-  test("add with object overload errors", () => {
+  test("add with object overload emits console.error", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add({ wordBreak: "break-word" }).$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        const s = (() => { throw new Error("[truss] Unsupported pattern: add() requires exactly 2 arguments (property name and value), got 1. The add({...}) object overload is not supported -- use add(\\"propName\\", value) instead"); })();
+        console.error("[truss] Unsupported pattern: add() requires exactly 2 arguments (property name and value), got 1. The add({...}) object overload is not supported -- use add(\\"propName\\", value) instead (test.tsx:1)");
+        const s = [];
       `),
     );
   });
 
-  test("add with non-string-literal property name errors", () => {
+  test("error preserves valid segments: Css.black.add(foo, 'value').df.$", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const foo = getProp(); const s = Css.black.add(foo, "value").df.$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          black: { color: "#353535" },
+          df: { display: "flex" }
+        });
+        console.error("[truss] Unsupported pattern: add() first argument must be a string literal property name (test.tsx:1)");
+        const foo = getProp();
+        const s = [css.black, css.df];
+      `),
+    );
+  });
+
+  test("add with non-string-literal property name emits console.error", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const prop = "boxShadow"; const s = Css.add(prop, "value").$;`)!),
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        console.error("[truss] Unsupported pattern: add() first argument must be a string literal property name (test.tsx:1)");
         const prop = "boxShadow";
-        const s = (() => { throw new Error("[truss] Unsupported pattern: add() first argument must be a string literal property name"); })();
+        const s = [];
       `),
     );
   });
