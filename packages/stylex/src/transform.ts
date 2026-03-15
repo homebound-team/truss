@@ -114,11 +114,19 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
     insertStylexNamespaceImport(ast, stylexNamespaceName);
   }
 
-  // Step 7: Insert helper declarations after imports
+  // Step 7: Hoist marker declarations that are referenced in stylex.create entries.
+  // stylex.create uses computed keys like `[stylex.when.ancestor(":hover", row)]`
+  // which reference marker variables — these must be declared before stylex.create.
+  const markerVarNames = collectReferencedMarkerNames(createEntries);
+  const hoistedMarkerDecls = hoistMarkerDeclarations(ast, markerVarNames);
+
+  // Step 8: Insert helper declarations after imports
   const declarationsToInsert: t.Statement[] = [];
   if (maybeIncHelperName) {
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName, mapping.increment));
   }
+  // Hoisted marker declarations go before stylex.create so they're in scope
+  declarationsToInsert.push(...hoistedMarkerDecls);
   if (createProperties.length > 0) {
     declarationsToInsert.push(buildCreateDeclaration(createVarName, stylexNamespaceName, createProperties));
   }
@@ -146,4 +154,68 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   });
 
   return { code: output.code, map: output.map };
+}
+
+/**
+ * Collect the names of marker variables referenced in `whenPseudo.markerNode`
+ * across all stylex.create entries. These need to be hoisted above stylex.create.
+ */
+function collectReferencedMarkerNames(createEntries: Map<string, { whenPseudo?: { markerNode?: any } }>): Set<string> {
+  const names = new Set<string>();
+  for (const [, entry] of createEntries) {
+    if (entry.whenPseudo?.markerNode && entry.whenPseudo.markerNode.type === "Identifier") {
+      names.add(entry.whenPseudo.markerNode.name);
+    }
+  }
+  return names;
+}
+
+/**
+ * Find top-level variable declarations for the given names, remove them from
+ * their original position in the AST, and return them for reinsertion above
+ * the stylex.create call.
+ *
+ * This handles `const row = stylex.defineMarker()` being declared after code
+ * that uses it in a Css.when() chain — the stylex.create computed key
+ * `[stylex.when.ancestor(":hover", row)]` needs `row` to be in scope.
+ */
+function hoistMarkerDeclarations(ast: t.File, names: Set<string>): t.Statement[] {
+  if (names.size === 0) return [];
+  const hoisted: t.Statement[] = [];
+  const remaining = new Set(names);
+
+  for (let i = ast.program.body.length - 1; i >= 0; i--) {
+    if (remaining.size === 0) break;
+    const node = ast.program.body[i];
+
+    if (!t.isVariableDeclaration(node)) continue;
+
+    // Check if any declarator in this statement matches a marker name
+    const matchingDeclarators: t.VariableDeclarator[] = [];
+    const otherDeclarators: t.VariableDeclarator[] = [];
+    for (const decl of node.declarations) {
+      if (t.isIdentifier(decl.id) && remaining.has(decl.id.name)) {
+        matchingDeclarators.push(decl);
+        remaining.delete(decl.id.name);
+      } else {
+        otherDeclarators.push(decl);
+      }
+    }
+
+    if (matchingDeclarators.length === 0) continue;
+
+    if (otherDeclarators.length === 0) {
+      // Entire statement is marker declarations — remove it
+      ast.program.body.splice(i, 1);
+      hoisted.push(node);
+    } else {
+      // Split: keep non-marker declarators in place, hoist the marker ones
+      node.declarations = otherDeclarators;
+      hoisted.push(t.variableDeclaration(node.kind, matchingDeclarators));
+    }
+  }
+
+  // Reverse so they appear in original source order
+  hoisted.reverse();
+  return hoisted;
 }

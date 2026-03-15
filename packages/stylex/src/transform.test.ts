@@ -646,11 +646,11 @@ describe("transform", () => {
     expect(result).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        const card = stylex.defineMarker();
         const css = stylex.create({
           df: { display: "flex" },
           blue__ancestorHover_card: { color: { default: null, [stylex.when.ancestor(":hover", card)]: "#526675" } }
         });
-        const card = stylex.defineMarker();
         function Parent() { return <div {...stylex.props(card, css.df)} />; }
         function Child() { return <div {...stylex.props(css.blue__ancestorHover_card)} />; }
       `),
@@ -681,10 +681,10 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        const row = stylex.defineMarker();
         const css = stylex.create({
           blue__ancestorHover_row: { color: { default: null, [stylex.when.ancestor(":hover", row)]: "#526675" } }
         });
-        const row = stylex.defineMarker();
         const s = [css.blue__ancestorHover_row];
       `),
     );
@@ -724,10 +724,10 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        const m = stylex.defineMarker();
         const css = stylex.create({
           blue__anySiblingHover_m: { color: { default: null, [stylex.when.anySibling(":hover", m)]: "#526675" } }
         });
-        const m = stylex.defineMarker();
         const s = [css.blue__anySiblingHover_m];
       `),
     );
