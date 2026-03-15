@@ -107,12 +107,12 @@ Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it.
 
 ### StyleX (compile-in-app libraries)
 
-If you use `target: "stylex"`, Truss generates both `Css.ts` and `Css.json`.
+If you use `target: "stylex"`, Truss generates both `Css.ts` and `Css.json`:
 
-- `Css.ts` gives your typed `Css.*.$` DSL.
-- `Css.json` is consumed by the Truss Vite plugin at build time.
+- `Css.ts` is the typed `Css.*.$` DSL to use in your component code,
+- `Css.json` is a metadata file consumed by the Truss Vite plugin at build time.
 
-This enables a compile-in-app model where component libraries can ship untransformed `Css.*.$` usage and the consuming app compiles it.
+These dual outputs enables a compile-in-app model where component libraries can ship untransformed `Css.*.$` usage and the consuming app compiles both the library's `Css` styles + application's `Css` styles into a single unified output.
 
 Install the StyleX build dependencies in the app:
 
@@ -121,64 +121,65 @@ npm install @stylexjs/stylex
 npm install --save-dev @stylexjs/unplugin @homebound/truss-stylex
 ```
 
-1. In each **library** package that defines Truss styles, set `target: "stylex"` and run codegen.
+1. In the **library** package (i.e. your shared, company-wide component library) that defines your Truss styles/design system tokens, set `target: "stylex"` and run codegen.
 
-```ts
-// truss-config.ts
-export default defineConfig({
-  outputPath: "./src/Css.ts",
-  target: "stylex",
-  // optional: defaults to ./src/Css.json based on outputPath
-  mappingOutputPath: "./src/Css.json",
-  // ...palette/fonts/increment/etc
-});
-```
+    ```ts
+    // truss-config.ts
+    export default defineConfig({
+      outputPath: "./src/Css.ts",
+      target: "stylex",
+      // optional: defaults to ./src/Css.json based on outputPath
+      mappingOutputPath: "./src/Css.json",
+      // ...palette/fonts/increment/etc
+    });
+    ```
+   
+   Notes:
 
-2. Publish each library's `Css` module and generated `Css.json` (for example in `dist/`), along with library files that contain `Css.*.$` usage.
-   - Application code can import library styles directly, e.g. `import { Css } from "@company/library"`.
-   - The application does **not** need to run Truss codegen unless it has its own local Truss config/`Css.ts`.
-   - Do **not** run `trussPlugin(...)` in the library build; leave `Css.*.$` untransformed for consuming apps.
+   - Do **not** run `trussPlugin(...)` in the library build; leave `Css.*.$` untransformed, as they'll be rewritten by each downstream applications' build.
+   - If the library runs Vitest, use `trussPlugin(...)` there (tests only):
 
-   If the library runs Vitest, use `trussPlugin(...)` there (tests only):
+        ```ts
+        // vitest.config.ts (library package)
+        import { defineConfig } from "vitest/config";
+        import stylex from "@stylexjs/unplugin";
+        import { trussPlugin } from "@homebound/truss-stylex";
 
-```ts
-// vitest.config.ts (library package)
-import { defineConfig } from "vitest/config";
-import stylex from "@stylexjs/unplugin";
-import { trussPlugin } from "@homebound/truss-stylex";
+        export default defineConfig({
+          plugins: [trussPlugin({ mapping: "./src/Css.json" }), stylex.vite({ runtimeInjection: true })],
+          test: {
+            environment: "jsdom",
+          },
+        });
+        ```
 
-export default defineConfig({
-  plugins: [trussPlugin({ mapping: "./src/Css.json" }), stylex.vite({ runtimeInjection: true })],
-  test: {
-    environment: "jsdom",
-  },
-});
-```
+2. Publish the design system library's `Css` module and generated `Css.json` (for example in `dist/`), along with library files that contain `Css.*.$` usage, to npm/other repository. Then:
+   - Application code can import the design system styles directly, e.g. `import { Css } from "@company/library"`.
+   - The application does **not** need to run its own Truss codegen step
+   - In the application's Vite config, run Truss plugin before StyleX, and configure both plugins with the same external package list:
 
-3. In the application Vite config, run Truss plugin before StyleX, and configure both plugins with the same external package list:
+        ```ts
+        import { defineConfig } from "vite";
+        import react from "@vitejs/plugin-react";
+        import stylex from "@stylexjs/unplugin";
+        import { trussPlugin } from "@homebound/truss-stylex";
 
-```ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import stylex from "@stylexjs/unplugin";
-import { trussPlugin } from "@homebound/truss-stylex";
+        // Any upstream libraries (if any) that are using our `Css.*.$` syntax
+        // and so need to be compiled by the Truss plugin
+        const externalPackages = ["@company/library"];
 
-const externalPackages = ["@company/library"];
-
-export default defineConfig({
-  plugins: [
-    trussPlugin({
-      mapping: "./node_modules/@company/library/dist/Css.json",
-      externalPackages,
-    }),
-    stylex.vite({
-      externalPackages,
-      useCSSLayers: true,
-    }),
-    react(),
-  ],
-});
-```
+        export default defineConfig({
+          plugins: [
+            trussPlugin({
+              // If you don't have a design library, just pass ./src/Css.json
+              mapping: "./node_modules/@company/library/dist/Css.json",
+              externalPackages,
+            }),
+            stylex.vite({ externalPackages, useCSSLayers: true, }),
+            react(),
+          ],
+        });
+        ```
 
 Notes:
 
