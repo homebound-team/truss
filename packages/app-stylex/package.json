@@ -1,5 +1,5 @@
 {
-  "name": "app-tachyons-fela-prop",
+  "name": "app-stylex",
   "private": true,
   "version": "1.137.5",
   "type": "module",
@@ -7,15 +7,19 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest --run"
+    "test": "vitest --run",
+    "codegen": "node ../truss/cli.js truss-config.ts"
   },
   "dependencies": {
-    "@homebound/fast-css-prop": "workspace:*",
-    "@homebound/truss-testing-tachyons": "workspace:*",
+    "@homebound/truss-stylex": "workspace:*",
+    "@stylexjs/stylex": "^0.18.1",
+    "csstype": "^3.2.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@homebound/truss": "workspace:*",
+    "@stylexjs/unplugin": "^0.18.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -25,6 +29,7 @@
     "@vitejs/plugin-react": "^6.0.0",
     "jsdom": "^28.1.0",
     "typescript": "^5.9.3",
+    "unplugin": "^3.0.0",
     "vite": "^8.0.0",
     "vitest": "^4.1.0"
   }

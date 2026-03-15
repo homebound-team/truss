@@ -9,14 +9,26 @@ register({ transpileOnly: true, compilerOptions: { module: "commonjs" } });
 const filename = process.argv[2] ?? "./truss-config.ts";
 // Get the config from the root project directory
 const configPath = require("path").join(process.cwd(), filename);
-const config = require(configPath).default;
 
-const { generate } = require("./build/index.js");
-generate(config)
-  .then((done) => {
-    console.log(`Generated ${config.outputPath}`);
-  })
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+// Use dynamic import() to support both CJS and ESM packages
+async function main() {
+  let config;
+  try {
+    config = require(configPath).default;
+  } catch (err) {
+    if (err.code === "ERR_REQUIRE_ESM") {
+      config = (await import(configPath)).default;
+    } else {
+      throw err;
+    }
+  }
+
+  const { generate } = require("./build/index.js");
+  await generate(config);
+  console.log(`Generated ${config.outputPath}`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

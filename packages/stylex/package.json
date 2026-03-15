@@ -1,0 +1,27 @@
+{
+  "name": "@homebound/truss-stylex",
+  "private": true,
+  "version": "1.137.5",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./plugin": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@stylexjs/stylex": "^0.18.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.0"
+  }
+}

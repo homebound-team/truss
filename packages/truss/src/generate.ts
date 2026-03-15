@@ -3,11 +3,13 @@ import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
 import { makeBreakpoints } from "src/breakpoints";
 import { Config, SectionName, Sections, UtilityMethod } from "src/config";
-import { newAliasesMethods } from "src/methods";
+import { newAliasesMethods, startStylexCollection, stopStylexCollection, StylexEntry } from "src/methods";
 import { defaultSections } from "src/sections/tachyons";
 import { quote } from "src/utils";
 import { pascalCase } from "change-case";
 import { reactNativeSections } from "src/sections/tachyons-rn";
+
+const CssProperties = imp("Properties@csstype");
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
@@ -15,37 +17,24 @@ export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
 };
 
 export async function generate(config: Config): Promise<void> {
-  const { outputPath } = config;
-  const output = generateCssBuilder(config).toString();
-  await fs.writeFile(outputPath, output);
+  const { outputPath, target = "emotion" } = config;
+  if (target === "stylex") {
+    const { sections, entries } = collectStylexGenerationData(config);
+    // For stylex target: generate an emotion-style CssBuilder (for types/IDE) + a mapping JSON
+    const cssOutput = generateStylexCssBuilder(config, sections).toString();
+    await fs.writeFile(outputPath, cssOutput);
+    const mappingPath = config.mappingOutputPath || outputPath.replace(/\.ts$/, ".json");
+    const mapping = generateTrussMapping(config, entries);
+    await fs.writeFile(mappingPath, condensedJson(mapping) + "\n");
+  } else {
+    const output = generateCssBuilder(config).toString();
+    await fs.writeFile(outputPath, output);
+  }
 }
 
 function generateCssBuilder(config: Config): Code {
-  const {
-    aliases,
-    fonts,
-    increment,
-    extras,
-    typeAliases,
-    breakpoints = {},
-    palette,
-    defaultMethods = "tachyons",
-    sections: customSections,
-  } = config;
-
-  // Combine our out-of-the-box utility methods with any custom ones
-  const sections: Record<string, string[]> = {
-    // We only ship with tachyons & tachyons-rn methods currently
-    ...(defaultMethods === "tachyons"
-      ? generateMethods(config, defaultSections)
-      : defaultMethods === "tachyons-rn"
-      ? generateMethods(config, reactNativeSections)
-      : {}),
-    ...(customSections ? generateMethods(config, customSections) : {}),
-    ...(aliases && { aliases: newAliasesMethods(aliases) }),
-  };
-
-  const Properties = imp("Properties@csstype");
+  const { fonts, increment, extras, typeAliases, breakpoints = {}, palette } = config;
+  const sections = generateSections(config);
 
   const lines = Object.entries(sections)
     .map(([name, value]) => [`// ${name}`, ...value, ""])
@@ -106,7 +95,7 @@ function generateCssBuilder(config: Config): Code {
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
-export type ${def("Properties")} = ${Properties}<string | 0, string>;
+export type ${def("Properties")} = ${CssProperties}<string | 0, string>;
 
 ${typographyType}
 
@@ -253,4 +242,293 @@ ${extras || ""}
 /** Invokes all of the `MethodFns` to create actual `UtilityMethod`s. */
 function generateMethods(config: Config, methodFns: Sections): Record<SectionName, UtilityMethod[]> {
   return Object.fromEntries(Object.entries(methodFns).map(([name, fn]) => [name, fn(config)]));
+}
+
+/** Returns all utility sections configured for this project. */
+function generateSections(config: Config): Record<string, UtilityMethod[]> {
+  const { aliases, defaultMethods = "tachyons", sections: customSections } = config;
+  return {
+    ...(defaultMethods === "tachyons"
+      ? generateMethods(config, defaultSections)
+      : defaultMethods === "tachyons-rn"
+        ? generateMethods(config, reactNativeSections)
+        : {}),
+    ...(customSections ? generateMethods(config, customSections) : {}),
+    ...(aliases && { aliases: newAliasesMethods(aliases) }),
+  };
+}
+
+/** Runs section generation once with collection enabled for stylex outputs. */
+function collectStylexGenerationData(config: Config): {
+  sections: Record<string, UtilityMethod[]>;
+  entries: StylexEntry[];
+} {
+  startStylexCollection();
+  try {
+    const sections = generateSections(config);
+    const entries = stopStylexCollection();
+    return { sections, entries };
+  } catch (error) {
+    stopStylexCollection();
+    throw error;
+  }
+}
+
+// ── StyleX Code Generator ─────────────────────────────────────────────
+
+/**
+ * For the "stylex" target, we generate an emotion-style CssBuilder (for IDE autocomplete
+ * and type checking) but with `CssProp` typed to be compatible with StyleX refs.
+ *
+ * The actual StyleX transformation happens at build time via the truss Vite plugin,
+ * which reads the companion `Css.json` to understand what each abbreviation
+ * produces, and rewrites `Css.*.$` into file-local `stylex.create()` + `stylex.props()` calls.
+ */
+function generateStylexCssBuilder(config: Config, sections: Record<string, UtilityMethod[]>): Code {
+  const { fonts, increment, extras, palette, breakpoints = {} } = config;
+
+  const lines = Object.entries(sections)
+    .map(([name, value]) => [`// ${name}`, ...value, ""])
+    .flat();
+
+  const genBreakpointsMap = makeBreakpoints(breakpoints);
+
+  const breakpointIfs = Object.entries(genBreakpointsMap).map(([name, value]) => {
+    return code`
+      get if${pascalCase(name)}() {
+        return this.newCss({ selector: ${quote(value)} });
+      }`;
+  });
+
+  const typographyType = code`
+    export type ${def("Typography")} = ${Object.keys(fonts).map(quote).join(" | ")};
+  `;
+
+  return code`
+// This file is auto-generated by truss: https://github.com/homebound-team/truss.
+// See your project's \`truss-config.ts\` to make configuration changes (fonts, increments, etc).
+// Target: stylex (build-time plugin)
+
+import * as stylex from "@stylexjs/stylex";
+
+export type ${def("Properties")} = ${CssProperties}<string | 0, string>;
+
+/** A marker returned by \`stylex.defineMarker()\`, used with \`onHoverOf\`/\`markerOf\` etc. */
+export type Marker = ReturnType<typeof stylex.defineMarker>;
+
+${typographyType}
+
+/** The type accepted by the \`css\` JSX prop. Opaque - the build-time plugin resolves this. */
+export type CssProp = any[];
+
+// Augment React types so JSX elements accept the \`css\` prop
+declare module "react" {
+  interface HTMLAttributes<T> {
+    css?: CssProp;
+  }
+  interface SVGAttributes<T> {
+    css?: CssProp;
+  }
+}
+
+type Opts<T> = {
+  rules: T;
+  enabled: boolean;
+  selector: string | undefined;
+};
+
+class CssBuilder<T extends Properties> {
+  constructor(private opts: Opts<T>) {}
+
+  ${lines.join("\n  ").replace(/ +\n/g, "\n")}
+
+  get $(): CssProp {
+    return this.rules as any;
+  }
+
+  get onHover() {
+    return this.newCss({ selector: ":hover" });
+  }
+  get onFocus() {
+    return this.newCss({ selector: ":focus" });
+  }
+  get onFocusVisible() {
+    return this.newCss({ selector: ":focus-visible" });
+  }
+  get onActive() {
+    return this.newCss({ selector: ":active" });
+  }
+  get onDisabled() {
+    return this.newCss({ selector: ":disabled" });
+  }
+
+  /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
+  get marker(): CssBuilder<T> {
+    return this;
+  }
+
+  /** Marks this element with a user-defined marker (return value of stylex.defineMarker()). */
+  markerOf(_marker: Marker): CssBuilder<T> {
+    return this;
+  }
+
+  onHoverOf(_marker?: Marker) {
+    return this.newCss({ selector: ":hover" });
+  }
+  onFocusOf(_marker?: Marker) {
+    return this.newCss({ selector: ":focus" });
+  }
+  onFocusVisibleOf(_marker?: Marker) {
+    return this.newCss({ selector: ":focus-visible" });
+  }
+  onActiveOf(_marker?: Marker) {
+    return this.newCss({ selector: ":active" });
+  }
+  onDisabledOf(_marker?: Marker) {
+    return this.newCss({ selector: ":disabled" });
+  }
+
+  ${breakpointIfs}
+
+  if(cond: boolean): CssBuilder<T> {
+    return new CssBuilder({ ...this.opts, enabled: cond });
+  }
+
+  get else(): CssBuilder<T> {
+    return new CssBuilder({ ...this.opts, enabled: !this.enabled });
+  }
+
+  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }> {
+    if (!this.enabled) return this;
+    const newRules = { [propOrProperties]: value };
+    const rules = this.selector
+      ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
+      : { ...this.rules, ...newRules };
+    return this.newCss({ rules });
+  }
+
+  private get rules(): T {
+    return this.opts.rules;
+  }
+  private get enabled(): boolean {
+    return this.opts.enabled;
+  }
+  private get selector(): string | undefined {
+    return this.opts.selector;
+  }
+  private newCss(opts: Partial<Opts<T>>): CssBuilder<T> {
+    return new CssBuilder({ ...this.opts, ...opts });
+  }
+}
+
+/** Converts \`inc\` into pixels value with a \`px\` suffix. */
+export function maybeInc(inc: number | string): string {
+  return typeof inc === "string" ? inc : \`\${inc * ${increment}}px\`;
+}
+
+export enum Palette {
+  ${Object.entries(palette).map(([name, value]) => {
+    return `${name} = "${value}",`;
+  })}
+}
+
+/** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
+export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined });
+
+${extras || ""}
+  `;
+}
+
+// ── Truss Mapping Generator ──────────────────────────────────────────
+
+/** The shape of the Css.json mapping file consumed by the Vite plugin. */
+export interface TrussMapping {
+  increment: number;
+  breakpoints?: Record<string, string>;
+  abbreviations: Record<string, TrussMappingEntry>;
+}
+
+export type TrussMappingEntry =
+  | { kind: "static"; defs: Record<string, unknown> }
+  | { kind: "dynamic"; props: string[]; incremented: boolean }
+  | { kind: "delegate"; target: string }
+  | { kind: "alias"; chain: string[] };
+
+/**
+ * Generates the truss mapping JSON that the Vite plugin uses to resolve
+ * Css abbreviation chains into CSS properties at build time.
+ */
+function generateTrussMapping(config: Config, entries: StylexEntry[]): TrussMapping {
+  const { breakpoints = {} } = config;
+
+  const abbreviations: Record<string, TrussMappingEntry> = {};
+
+  for (const entry of entries) {
+    switch (entry.kind) {
+      case "static":
+      case "cssvar":
+        abbreviations[entry.abbr] = { kind: "static", defs: entry.defs || {} };
+        break;
+      case "param":
+        abbreviations[entry.abbr] = {
+          kind: "dynamic",
+          props: entry.props || [],
+          incremented: false,
+        };
+        break;
+      case "increment-param":
+        abbreviations[entry.abbr] = {
+          kind: "dynamic",
+          props: entry.props || [],
+          incremented: true,
+        };
+        break;
+      case "px-delegate":
+        // The target is the abbreviation without the Px suffix
+        abbreviations[entry.abbr] = {
+          kind: "delegate",
+          target: entry.abbr.replace(/Px$/, ""),
+        };
+        break;
+      case "alias":
+        abbreviations[entry.abbr] = {
+          kind: "alias",
+          chain: entry.aliasTargets || [],
+        };
+        break;
+    }
+  }
+
+  // Generate breakpoint mapping: { ifSm: "@media ...", ifMd: "@media ...", ... }
+  const genBreakpointsMap = makeBreakpoints(breakpoints);
+  const breakpointEntries: Record<string, string> = {};
+  for (const [name, mediaQuery] of Object.entries(genBreakpointsMap)) {
+    breakpointEntries[`if${pascalCase(name)}`] = mediaQuery;
+  }
+
+  return {
+    increment: config.increment,
+    ...(Object.keys(breakpointEntries).length > 0 ? { breakpoints: breakpointEntries } : {}),
+    abbreviations,
+  };
+}
+
+/** Produce compact JSON with one line per abbreviation entry. */
+function condensedJson(mapping: TrussMapping): string {
+  const lines: string[] = [];
+  lines.push("{");
+  lines.push(`  "increment": ${mapping.increment},`);
+  if (mapping.breakpoints && Object.keys(mapping.breakpoints).length > 0) {
+    lines.push(`  "breakpoints": ${JSON.stringify(mapping.breakpoints)},`);
+  }
+  lines.push(`  "abbreviations": {`);
+  const entries = Object.entries(mapping.abbreviations);
+  for (let i = 0; i < entries.length; i++) {
+    const [key, value] = entries[i];
+    const comma = i < entries.length - 1 ? "," : "";
+    lines.push(`    ${JSON.stringify(key)}: ${JSON.stringify(value)}${comma}`);
+  }
+  lines.push("  }");
+  lines.push("}");
+  return lines.join("\n");
 }
