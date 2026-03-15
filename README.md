@@ -21,7 +21,6 @@ Truss lets you:
 - Achieve both utility-class brevity and critical-CSS delivery.
 
 - Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
-And y
 - Use selectors as needed, i.e. `css={{ "&>div": Css.black.$ }}` or `Css.onHover.black.$`, using your CSS-in-JS library's selector support
 
 - Use Tachyons-based abbreviations for superior inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
@@ -79,7 +78,7 @@ See the "Common CSS-in-JS Frameworks" section below for Fela and MUI examples.
 
 ## Installation
 
-Truss is "just a single `Css.ts` TypeScript file", so does not require any special configuration of your app's bundling/build pipeline, but we do create a `truss` command to easily generate the `Css.ts` file from your `truss-config.ts`:
+For the default Truss target (`"emotion"`), Truss is "just a single `Css.ts` TypeScript file" and does not require special bundler configuration. We do create a `truss` command to easily generate `Css.ts` from your `truss-config.ts`:
 
 - `npm i --save-dev @homebound/truss`
 - Add a `truss` command to your `package.json`:
@@ -105,6 +104,88 @@ We recommend checking the `src/Css.ts` file into your repository, with the ratio
 - It's the simplest "just works" setup for new contributors.
 
 Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it.
+
+### StyleX (compile-in-app libraries)
+
+If you use `target: "stylex"`, Truss generates both `Css.ts` and `Css.json`.
+
+- `Css.ts` gives your typed `Css.*.$` DSL.
+- `Css.json` is consumed by the Truss Vite plugin at build time.
+
+This enables a compile-in-app model where component libraries can ship untransformed `Css.*.$` usage and the consuming app compiles it.
+
+Install the StyleX build dependencies in the app:
+
+```bash
+npm install @stylexjs/stylex
+npm install --save-dev @stylexjs/unplugin @homebound/truss-stylex
+```
+
+1. In each **library** package that defines Truss styles, set `target: "stylex"` and run codegen.
+
+```ts
+// truss-config.ts
+export default defineConfig({
+  outputPath: "./src/Css.ts",
+  target: "stylex",
+  // optional: defaults to ./src/Css.json based on outputPath
+  mappingOutputPath: "./src/Css.json",
+  // ...palette/fonts/increment/etc
+});
+```
+
+2. Publish each library's `Css` module and generated `Css.json` (for example in `dist/`), along with library files that contain `Css.*.$` usage.
+   - Application code can import library styles directly, e.g. `import { Css } from "@company/library"`.
+   - The application does **not** need to run Truss codegen unless it has its own local Truss config/`Css.ts`.
+   - Do **not** run `trussPlugin(...)` in the library build; leave `Css.*.$` untransformed for consuming apps.
+
+   If the library runs Vitest, use `trussPlugin(...)` there (tests only):
+
+```ts
+// vitest.config.ts (library package)
+import { defineConfig } from "vitest/config";
+import stylex from "@stylexjs/unplugin";
+import { trussPlugin } from "@homebound/truss-stylex";
+
+export default defineConfig({
+  plugins: [trussPlugin({ mapping: "./src/Css.json" }), stylex.vite({ runtimeInjection: true })],
+  test: {
+    environment: "jsdom",
+  },
+});
+```
+
+3. In the application Vite config, run Truss plugin before StyleX, and configure both plugins with the same external package list:
+
+```ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import stylex from "@stylexjs/unplugin";
+import { trussPlugin } from "@homebound/truss-stylex";
+
+const externalPackages = ["@company/library"];
+
+export default defineConfig({
+  plugins: [
+    trussPlugin({
+      mapping: "./node_modules/@company/library/dist/Css.json",
+      externalPackages,
+    }),
+    stylex.vite({
+      externalPackages,
+      useCSSLayers: true,
+    }),
+    react(),
+  ],
+});
+```
+
+Notes:
+
+- Keep `trussPlugin(...)` before `stylex.vite(...)`, and both before `react()`.
+- `mapping` is required and should point to the single `Css.json` you want to compile against.
+- `externalPackages` should match in both plugins.
+- `useCSSLayers` controls precedence with existing app CSS (`false` if StyleX should win over existing custom styles; otherwise `true`).
 
 ### Truss Command
 
