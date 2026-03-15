@@ -1,6 +1,6 @@
 {
   "increment": 8,
-  "breakpoints": {"ifPrint":"@media print","ifSm":"@media screen and (max-width:599px)","ifMd":"@media screen and (min-width:600px) and (max-width:959px)","ifSmOrMd":"@media screen and (max-width:959px)","ifMdAndUp":"@media screen and (min-width:600px)","ifMdAndDown":"@media screen and (max-width:959px)","ifLg":"@media screen and (min-width:960px)","ifMdOrLg":"@media screen and (min-width:600px)"},
+  "breakpoints": {"ifPrint":"@media print","ifSm":"@media (max-width: 599px)","ifMd":"@media (min-width: 600px) and (max-width: 959px)","ifSmOrMd":"@media (max-width: 959px)","ifMdAndUp":"@media (min-width: 600px)","ifMdAndDown":"@media (max-width: 959px)","ifLg":"@media (min-width: 960px)","ifMdOrLg":"@media (min-width: 600px)"},
   "abbreviations": {
     "ba": {"kind":"static","defs":{"borderStyle":"solid","borderWidth":"1px"}},
     "bt": {"kind":"static","defs":{"borderTopStyle":"solid","borderTopWidth":"1px"}},

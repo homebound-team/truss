@@ -33,8 +33,11 @@ export function App() {
         </div>
       </div>
 
-      <div css={Css.black.ifMdAndDown.white.onHover.blue.$}>TEST TEST</div>
-      <div css={Css.black.ifLg.white.$}>TEST TEST</div>
+      {/* Media query example */}
+      <div css={Css.mt2.df.gap1.$}>
+        <div css={Css.black.ifLg.white.$}>SMALL</div>
+        <div css={Css.black.ifMdAndDown.white.$}>LARGE</div>
+      </div>
     </div>
   );
 }

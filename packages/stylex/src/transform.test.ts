@@ -760,32 +760,26 @@ describe("transform", () => {
 
   // ── Breakpoint / media query tests ──────────────────────────────────
 
-  test("if(mediaQuery) as pseudo: Css.if('@media screen and (max-width:599px)').df.$", () => {
-    expect(
-      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (max-width:599px)").df.$;`)!),
-    ).toBe(
+  test("if(mediaQuery) as pseudo: Css.if('@media (max-width: 599px)').df.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (max-width: 599px)").df.$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          df__sm: { display: { default: null, "@media screen and (max-width:599px)": "flex" } }
+          df__sm: { display: { default: null, "@media (max-width: 599px)": "flex" } }
         });
         const s = [css.df__sm];
       `),
     );
   });
 
-  test("if(mediaQuery) merges with base: Css.bgBlue.if('@media screen and (max-width:599px)').bgBlack.$", () => {
+  test("if(mediaQuery) merges with base: Css.bgBlue.if('@media (max-width: 599px)').bgBlack.$", () => {
     expect(
-      n(
-        transform(
-          `import { Css } from "./Css"; const s = Css.bgBlue.if("@media screen and (max-width:599px)").bgBlack.$;`,
-        )!,
-      ),
+      n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.if("@media (max-width: 599px)").bgBlack.$;`)!),
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          bgBlue_bgBlack__sm: { backgroundColor: { default: "#526675", "@media screen and (max-width:599px)": "#353535" } }
+          bgBlue_bgBlack__sm: { backgroundColor: { default: "#526675", "@media (max-width: 599px)": "#353535" } }
         });
         const s = [css.bgBlue_bgBlack__sm];
       `),
@@ -794,13 +788,11 @@ describe("transform", () => {
 
   test("if(Breakpoints.sm) works like if('@media...')", () => {
     // Breakpoints.sm resolves to the string literal at call site; the plugin sees a string literal
-    expect(
-      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (min-width:960px)").df.$;`)!),
-    ).toBe(
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (min-width: 960px)").df.$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          df__lg: { display: { default: null, "@media screen and (min-width:960px)": "flex" } }
+          df__lg: { display: { default: null, "@media (min-width: 960px)": "flex" } }
         });
         const s = [css.df__lg];
       `),
@@ -815,7 +807,7 @@ describe("transform", () => {
           blue__sm_hover: {
             color: {
               default: null,
-              ":hover": { default: null, "@media screen and (max-width:599px)": "#526675" }
+              ":hover": { default: null, "@media (max-width: 599px)": "#526675" }
             }
           }
         });
@@ -834,7 +826,7 @@ describe("transform", () => {
           black_blue__sm_hover: {
             color: {
               default: "#353535",
-              ":hover": { default: null, "@media screen and (max-width:599px)": "#526675" }
+              ":hover": { default: null, "@media (max-width: 599px)": "#526675" }
             }
           }
         });
@@ -853,8 +845,8 @@ describe("transform", () => {
           black_white__sm_blue__sm_hover: {
             color: {
               default: "#353535",
-              "@media screen and (max-width:599px)": "#fcfcfa",
-              ":hover": { default: null, "@media screen and (max-width:599px)": "#526675" }
+              "@media (max-width: 599px)": "#fcfcfa",
+              ":hover": { default: null, "@media (max-width: 599px)": "#526675" }
             }
           }
         });
@@ -868,7 +860,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          df__sm: { display: { default: null, "@media screen and (max-width:599px)": "flex" } }
+          df__sm: { display: { default: null, "@media (max-width: 599px)": "flex" } }
         });
         const s = [css.df__sm];
       `),
@@ -881,7 +873,7 @@ describe("transform", () => {
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
           df: { display: "flex" },
-          blue__md: { color: { default: null, "@media screen and (min-width:600px) and (max-width:959px)": "#526675" } }
+          blue__md: { color: { default: null, "@media (min-width: 600px) and (max-width: 959px)": "#526675" } }
         });
         const s = [css.df, css.blue__md];
       `),
@@ -893,7 +885,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          bgBlue_bgBlack__sm: { backgroundColor: { default: "#526675", "@media screen and (max-width:599px)": "#353535" } }
+          bgBlue_bgBlack__sm: { backgroundColor: { default: "#526675", "@media (max-width: 599px)": "#353535" } }
         });
         const s = [css.bgBlue_bgBlack__sm];
       `),
@@ -905,7 +897,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          df__lg: { display: { default: null, "@media screen and (min-width:960px)": "flex" } }
+          df__lg: { display: { default: null, "@media (min-width: 960px)": "flex" } }
         });
         const s = [css.df__lg];
       `),
@@ -917,7 +909,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          blue__smOrMd: { color: { default: null, "@media screen and (max-width:959px)": "#526675" } }
+          blue__smOrMd: { color: { default: null, "@media (max-width: 959px)": "#526675" } }
         });
         const s = [css.blue__smOrMd];
       `),
@@ -929,7 +921,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          mt__16px__sm: { marginTop: { default: null, "@media screen and (max-width:599px)": "16px" } }
+          mt__16px__sm: { marginTop: { default: null, "@media (max-width: 599px)": "16px" } }
         });
         const s = [css.mt__16px__sm];
       `),
@@ -942,8 +934,8 @@ describe("transform", () => {
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
           ba__sm: {
-            borderStyle: { default: null, "@media screen and (max-width:599px)": "solid" },
-            borderWidth: { default: null, "@media screen and (max-width:599px)": "1px" }
+            borderStyle: { default: null, "@media (max-width: 599px)": "solid" },
+            borderWidth: { default: null, "@media (max-width: 599px)": "1px" }
           }
         });
         const s = [css.ba__sm];
@@ -956,7 +948,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          df__sm: { display: { default: null, "@media screen and (max-width:599px)": "flex" } }
+          df__sm: { display: { default: null, "@media (max-width: 599px)": "flex" } }
         });
         const el = <div {...stylex.props(css.df__sm)} />;
       `),
