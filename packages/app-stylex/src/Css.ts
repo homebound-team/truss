@@ -2343,8 +2343,15 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: "@media screen and (min-width:600px)" });
   }
 
-  if(cond: boolean): CssBuilder<T> {
-    return new CssBuilder({ ...this.opts, enabled: cond });
+  /** Conditionally apply styles when `cond` is true. */
+  if(cond: boolean): CssBuilder<T>;
+  /** Apply styles within a media query (e.g. `Breakpoints.sm` or a raw `@media` string). */
+  if(mediaQuery: string): CssBuilder<T>;
+  if(condOrMediaQuery: boolean | string): CssBuilder<T> {
+    if (typeof condOrMediaQuery === "boolean") {
+      return new CssBuilder({ ...this.opts, enabled: condOrMediaQuery });
+    }
+    return this.newCss({ selector: condOrMediaQuery });
   }
 
   get else(): CssBuilder<T> {
@@ -2392,3 +2399,15 @@ export enum Palette {
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined });
+
+export type Breakpoint = "print" | "sm" | "md" | "smOrMd" | "mdAndUp" | "mdAndDown" | "lg" | "mdOrLg";
+export enum Breakpoints {
+  print = "@media print",
+  sm = "@media screen and (max-width:599px)",
+  md = "@media screen and (min-width:600px) and (max-width:959px)",
+  smOrMd = "@media screen and (max-width:959px)",
+  mdAndUp = "@media screen and (min-width:600px)",
+  mdAndDown = "@media screen and (max-width:959px)",
+  lg = "@media screen and (min-width:960px)",
+  mdOrLg = "@media screen and (min-width:600px)",
+}

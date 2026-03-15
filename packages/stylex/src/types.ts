@@ -20,8 +20,10 @@ export interface ResolvedSegment {
   key: string;
   /** The CSS property defs for this segment */
   defs: Record<string, unknown>;
-  /** If inside a pseudo context, the pseudo selector (e.g. ":hover") */
-  pseudo: string | null;
+  /** If inside a media query context (e.g. "@media screen and (max-width:599px)") */
+  mediaQuery?: string | null;
+  /** If inside a pseudo-class context (e.g. ":hover", ":focus") */
+  pseudoClass?: string | null;
   /**
    * If inside a `stylex.when.*` context (e.g. onHoverOf, when("descendant", ...)),
    * the relationship + pseudo selector info. When set, uses

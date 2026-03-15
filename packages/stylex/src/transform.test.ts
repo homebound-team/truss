@@ -760,6 +760,109 @@ describe("transform", () => {
 
   // ── Breakpoint / media query tests ──────────────────────────────────
 
+  test("if(mediaQuery) as pseudo: Css.if('@media screen and (max-width:599px)').df.$", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (max-width:599px)").df.$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df__sm: { display: { default: null, "@media screen and (max-width:599px)": "flex" } }
+        });
+        const s = [css.df__sm];
+      `),
+    );
+  });
+
+  test("if(mediaQuery) merges with base: Css.bgBlue.if('@media screen and (max-width:599px)').bgBlack.$", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const s = Css.bgBlue.if("@media screen and (max-width:599px)").bgBlack.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          bgBlue_bgBlack__sm: { backgroundColor: { default: "#526675", "@media screen and (max-width:599px)": "#353535" } }
+        });
+        const s = [css.bgBlue_bgBlack__sm];
+      `),
+    );
+  });
+
+  test("if(Breakpoints.sm) works like if('@media...')", () => {
+    // Breakpoints.sm resolves to the string literal at call site; the plugin sees a string literal
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (min-width:960px)").df.$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df__lg: { display: { default: null, "@media screen and (min-width:960px)": "flex" } }
+        });
+        const s = [css.df__lg];
+      `),
+    );
+  });
+
+  test("breakpoint + pseudo combination: Css.ifSm.onHover.blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.onHover.blue.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          blue__sm_hover: {
+            color: {
+              default: null,
+              ":hover": { default: null, "@media screen and (max-width:599px)": "#526675" }
+            }
+          }
+        });
+        const s = [css.blue__sm_hover];
+      `),
+    );
+  });
+
+  test("base + breakpoint + pseudo: Css.black.ifSm.onHover.blue.$", () => {
+    // black (base color) + ifSm.onHover.blue (hover color within small screen)
+    // Both set `color` so they merge: base default + nested media-in-pseudo for hover
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.black.ifSm.onHover.blue.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          black_blue__sm_hover: {
+            color: {
+              default: "#353535",
+              ":hover": { default: null, "@media screen and (max-width:599px)": "#526675" }
+            }
+          }
+        });
+        const s = [css.black_blue__sm_hover];
+      `),
+    );
+  });
+
+  test("base + breakpoint color + breakpoint+pseudo color: Css.black.ifSm.white.onHover.blue.$", () => {
+    // black (default color), ifSm.white (color on small), ifSm.onHover.blue (hover color on small)
+    // All three set `color` → merged into one entry with stacked conditions
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.black.ifSm.white.onHover.blue.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          black_white__sm_blue__sm_hover: {
+            color: {
+              default: "#353535",
+              "@media screen and (max-width:599px)": "#fcfcfa",
+              ":hover": { default: null, "@media screen and (max-width:599px)": "#526675" }
+            }
+          }
+        });
+        const s = [css.black_white__sm_blue__sm_hover];
+      `),
+    );
+  });
+
   test("breakpoint only: Css.ifSm.df.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.df.$;`)!)).toBe(
       n(`

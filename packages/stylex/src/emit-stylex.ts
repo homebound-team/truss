@@ -21,7 +21,7 @@ export interface CreateEntrySpec {
    *
    * Becomes `stylex.create({ mt: v => ({ marginTop: v }) })`
    */
-  dynamic?: { props: string[]; pseudo: string | null };
+  dynamic?: { props: string[]; mediaQuery?: string | null; pseudoClass?: string | null };
   /** If set, this entry uses stylex.when.<relationship>() as the computed property key */
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
 }
@@ -54,7 +54,7 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
             // Keyed dedupe guarantees a stable single entry for repeated usage.
             createEntries.set(seg.key, {
               key: seg.key,
-              dynamic: { props: seg.dynamicProps, pseudo: seg.pseudo },
+              dynamic: { props: seg.dynamicProps, mediaQuery: seg.mediaQuery, pseudoClass: seg.pseudoClass },
             });
           }
         } else {
@@ -95,13 +95,32 @@ export function buildCreateProperties(
       const bodyProps: t.ObjectProperty[] = [];
 
       for (const prop of entry.dynamic.props) {
-        if (entry.dynamic.pseudo) {
+        const { mediaQuery, pseudoClass } = entry.dynamic;
+        if (pseudoClass && mediaQuery) {
+          // Stacked: { default: null, ":hover": { default: null, "@media...": v } }
           bodyProps.push(
             t.objectProperty(
               toPropertyKey(prop),
               t.objectExpression([
                 t.objectProperty(t.identifier("default"), t.nullLiteral()),
-                t.objectProperty(t.stringLiteral(entry.dynamic.pseudo), paramId),
+                t.objectProperty(
+                  t.stringLiteral(pseudoClass),
+                  t.objectExpression([
+                    t.objectProperty(t.identifier("default"), t.nullLiteral()),
+                    t.objectProperty(t.stringLiteral(mediaQuery), paramId),
+                  ]),
+                ),
+              ]),
+            ),
+          );
+        } else if (pseudoClass || mediaQuery) {
+          const condition = (pseudoClass || mediaQuery)!;
+          bodyProps.push(
+            t.objectProperty(
+              toPropertyKey(prop),
+              t.objectExpression([
+                t.objectProperty(t.identifier("default"), t.nullLiteral()),
+                t.objectProperty(t.stringLiteral(condition), paramId),
               ]),
             ),
           );

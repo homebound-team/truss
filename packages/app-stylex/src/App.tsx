@@ -32,6 +32,9 @@ export function App() {
           <span css={Css.when("ancestor", ":hover").blue.$}> — I turn blue on parent hover</span>
         </div>
       </div>
+
+      <div css={Css.black.ifMdAndDown.white.onHover.blue.$}>TEST TEST</div>
+      <div css={Css.black.ifLg.white.$}>TEST TEST</div>
     </div>
   );
 }

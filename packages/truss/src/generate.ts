@@ -300,6 +300,13 @@ function generateStylexCssBuilder(config: Config, sections: Record<string, Utili
       }`;
   });
 
+  const breakpointCode = [
+    `export type Breakpoint = ${Object.keys(genBreakpointsMap).map(quote).join(" | ")};`,
+    `export enum Breakpoints {`,
+    ...Object.entries(genBreakpointsMap).map(([name, value]) => `  ${name} = "${value}",`),
+    `}`,
+  ];
+
   const typographyType = code`
     export type ${def("Typography")} = ${Object.keys(fonts).map(quote).join(" | ")};
   `;
@@ -396,8 +403,15 @@ class CssBuilder<T extends Properties> {
 
   ${breakpointIfs}
 
-  if(cond: boolean): CssBuilder<T> {
-    return new CssBuilder({ ...this.opts, enabled: cond });
+  /** Conditionally apply styles when \`cond\` is true. */
+  if(cond: boolean): CssBuilder<T>;
+  /** Apply styles within a media query (e.g. \`Breakpoints.sm\` or a raw \`@media\` string). */
+  if(mediaQuery: string): CssBuilder<T>;
+  if(condOrMediaQuery: boolean | string): CssBuilder<T> {
+    if (typeof condOrMediaQuery === "boolean") {
+      return new CssBuilder({ ...this.opts, enabled: condOrMediaQuery });
+    }
+    return this.newCss({ selector: condOrMediaQuery });
   }
 
   get else(): CssBuilder<T> {
@@ -440,6 +454,8 @@ export enum Palette {
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined });
+
+${breakpointCode}
 
 ${extras || ""}
   `;
