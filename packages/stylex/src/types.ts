@@ -23,11 +23,11 @@ export interface ResolvedSegment {
   /** If inside a pseudo context, the pseudo selector (e.g. ":hover") */
   pseudo: string | null;
   /**
-   * If inside an ancestor pseudo context (e.g. onHoverOf), the ancestor
-   * selector info. When set, uses `stylex.when.ancestor(pseudo, marker?)`
-   * as the computed property key instead of a plain pseudo string.
+   * If inside a `stylex.when.*` context (e.g. onHoverOf, when("descendant", ...)),
+   * the relationship + pseudo selector info. When set, uses
+   * `stylex.when.<relationship>(pseudo, marker?)` as the computed property key.
    */
-  ancestorPseudo?: { pseudo: string; markerNode?: any };
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
   /** For dynamic entries: the CSS prop names */
   dynamicProps?: string[];
   /** For dynamic entries: whether the value uses maybeInc */

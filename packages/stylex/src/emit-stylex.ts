@@ -22,8 +22,8 @@ export interface CreateEntrySpec {
    * Becomes `stylex.create({ mt: v => ({ marginTop: v }) })`
    */
   dynamic?: { props: string[]; pseudo: string | null };
-  /** If set, this entry uses stylex.when.ancestor() as the computed property key */
-  ancestorPseudo?: { pseudo: string; markerNode?: any };
+  /** If set, this entry uses stylex.when.<relationship>() as the computed property key */
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
 }
 
 export interface CollectedCreateData {
@@ -62,7 +62,7 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
             createEntries.set(seg.key, {
               key: seg.key,
               defs: seg.defs,
-              ancestorPseudo: seg.ancestorPseudo,
+              whenPseudo: seg.whenPseudo,
             });
           }
         }
@@ -115,8 +115,8 @@ export function buildCreateProperties(
       continue;
     }
 
-    if (entry.ancestorPseudo && entry.defs) {
-      const ap = entry.ancestorPseudo;
+    if (entry.whenPseudo && entry.defs) {
+      const ap = entry.whenPseudo;
       const props: t.ObjectProperty[] = [];
 
       for (const [prop, value] of Object.entries(entry.defs)) {
@@ -127,10 +127,11 @@ export function buildCreateProperties(
           whenCallArgs.push(ap.markerNode);
         }
 
+        const relationship = ap.relationship ?? "ancestor";
         const whenCall = t.callExpression(
           t.memberExpression(
             t.memberExpression(t.identifier(stylexNamespaceName), t.identifier("when")),
-            t.identifier("ancestor"),
+            t.identifier(relationship),
           ),
           whenCallArgs,
         );

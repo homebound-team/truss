@@ -8,7 +8,7 @@ import * as stylex from "@stylexjs/stylex";
 
 export type Properties = Properties1<string | 0, string>;
 
-/** A marker returned by `stylex.defineMarker()`, used with `onHoverOf`/`markerOf` etc. */
+/** A marker returned by `stylex.defineMarker()`, used with `when`/`markerOf` etc. */
 export type Marker = ReturnType<typeof stylex.defineMarker>;
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
@@ -2289,20 +2289,33 @@ class CssBuilder<T extends Properties> {
     return this;
   }
 
-  onHoverOf(_marker?: Marker) {
-    return this.newCss({ selector: ":hover" });
+  /**
+   * Styles after this `when` are applied based on a relationship + pseudo selector.
+   *
+   * `when("ancestor", ":hover")` — react to ancestor hover
+   * `when("descendant", ":focus")` — react to descendant focus
+   * `when("siblingAfter", ":hover")` — react to a following sibling's hover
+   */
+  when(
+    relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter",
+    pseudo: string,
+  ): CssBuilder<T>;
+  /**
+   * Styles after this `when` are applied based on a relationship-to-marker + pseudo selector.
+   *
+   * `when("ancestor", marker, ":hover")` — react to a specific ancestor's hover
+   */
+  when(
+    relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter",
+    marker: Marker,
+    pseudo: string,
+  ): CssBuilder<T>;
+  when(_relationship: string, _pseudoOrMarker: string | Marker, _pseudo?: string): CssBuilder<T> {
+    return this;
   }
-  onFocusOf(_marker?: Marker) {
-    return this.newCss({ selector: ":focus" });
-  }
-  onFocusVisibleOf(_marker?: Marker) {
-    return this.newCss({ selector: ":focus-visible" });
-  }
-  onActiveOf(_marker?: Marker) {
-    return this.newCss({ selector: ":active" });
-  }
-  onDisabledOf(_marker?: Marker) {
-    return this.newCss({ selector: ":disabled" });
+
+  ifContainer(_props: { name?: string; lt?: number; gt?: number }) {
+    return this;
   }
 
   get ifPrint() {
@@ -2342,7 +2355,7 @@ class CssBuilder<T extends Properties> {
     if (!this.enabled) {
       return this;
     }
-    const newRules = { [propOrProperties]: value };
+    const newRules = { [prop]: value };
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
       : { ...this.rules, ...newRules };

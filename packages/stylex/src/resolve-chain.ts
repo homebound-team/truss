@@ -123,7 +123,7 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 export function resolveChain(chain: ChainNode[], mapping: TrussMapping): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
   let currentPseudo: string | null = null;
-  let currentAncestorPseudo: { pseudo: string; markerNode?: any } | null = null;
+  let currentWhenPseudo: { pseudo: string; markerNode?: any; relationship?: string } | null = null;
 
   for (const node of chain) {
     try {
@@ -133,14 +133,14 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
         // Pseudo-class getters: onHover, onFocus, etc.
         if (isPseudoMethod(abbr)) {
           currentPseudo = pseudoSelector(abbr);
-          currentAncestorPseudo = null;
+          currentWhenPseudo = null;
           continue;
         }
 
         // Breakpoint getters: ifSm, ifMd, ifLg, etc.
         if (mapping.breakpoints && abbr in mapping.breakpoints) {
           currentPseudo = mapping.breakpoints[abbr];
-          currentAncestorPseudo = null;
+          currentWhenPseudo = null;
           continue;
         }
 
@@ -149,7 +149,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
         }
 
-        const resolved = resolveEntry(abbr, entry, mapping, currentPseudo, currentAncestorPseudo);
+        const resolved = resolveEntry(abbr, entry, mapping, currentPseudo, currentWhenPseudo);
         segments.push(...resolved);
       } else if (node.type === "call") {
         const abbr = node.name;
@@ -157,7 +157,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
         // Container query call: ifContainer({ gt, lt, name? })
         if (abbr === "ifContainer") {
           currentPseudo = containerSelectorFromCall(node);
-          currentAncestorPseudo = null;
+          currentWhenPseudo = null;
           continue;
         }
 
@@ -168,27 +168,21 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           continue;
         }
 
-        // Ancestor pseudo calls: onHoverOf(), onHoverOf(marker), etc.
-        if (isAncestorPseudoMethod(abbr)) {
-          const pseudo = ancestorPseudoSelector(abbr);
-          let markerNode: any | undefined;
-          if (node.args.length === 1) {
-            markerNode = node.args[0];
-          } else if (node.args.length > 1) {
-            throw new UnsupportedPatternError(`${abbr}() takes at most one argument`);
-          }
+        // Generic when(relationship, pseudo) or when(relationship, marker, pseudo)
+        if (abbr === "when") {
+          const resolved = resolveWhenCall(node);
           currentPseudo = null;
-          currentAncestorPseudo = { pseudo, markerNode };
+          currentWhenPseudo = resolved;
           continue;
         }
 
         // Simple pseudo-class calls (backward compat — pseudos are now getters)
         if (isPseudoMethod(abbr)) {
           currentPseudo = pseudoSelector(abbr);
-          currentAncestorPseudo = null;
+          currentWhenPseudo = null;
           if (node.args.length > 0) {
             throw new UnsupportedPatternError(
-              `${abbr}() does not take arguments -- use ${abbr}Of() for ancestor pseudos`,
+              `${abbr}() does not take arguments -- use when("ancestor", ":hover") for relationship pseudos`,
             );
           }
           continue;
@@ -228,15 +222,15 @@ function resolveEntry(
   entry: TrussMappingEntry,
   mapping: TrussMapping,
   pseudo: string | null,
-  ancestorPseudo?: { pseudo: string; markerNode?: any } | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment[] {
   switch (entry.kind) {
     case "static": {
-      if (ancestorPseudo) {
-        const suffix = ancestorPseudoKeyName(ancestorPseudo);
+      if (whenPseudo) {
+        const suffix = whenPseudoKeyName(whenPseudo);
         const key = `${abbr}__${suffix}`;
-        // Store raw defs — the transform will wrap with stylex.when.ancestor() computed key
-        return [{ key, defs: entry.defs, pseudo: null, ancestorPseudo }];
+        // Store raw defs — the transform will wrap with stylex.when.<rel>() computed key
+        return [{ key, defs: entry.defs, pseudo: null, whenPseudo }];
       }
       const key = pseudo ? `${abbr}__${pseudoName(pseudo, mapping.breakpoints)}` : abbr;
       const defs = pseudo ? wrapDefsWithPseudo(entry.defs, pseudo) : entry.defs;
@@ -250,7 +244,7 @@ function resolveEntry(
         if (!subEntry) {
           throw new UnsupportedPatternError(`Alias "${abbr}" references unknown abbreviation "${chainAbbr}"`);
         }
-        result.push(...resolveEntry(chainAbbr, subEntry, mapping, pseudo, ancestorPseudo));
+        result.push(...resolveEntry(chainAbbr, subEntry, mapping, pseudo, whenPseudo));
       }
       return result;
     }
@@ -426,6 +420,50 @@ function tryEvaluateAddLiteral(node: t.Expression | t.SpreadElement): string | n
   return null;
 }
 
+const WHEN_RELATIONSHIPS = new Set(["ancestor", "descendant", "anySibling", "siblingBefore", "siblingAfter"]);
+
+/**
+ * Resolve a `when(relationship, pseudo)` or `when(relationship, marker, pseudo)` call.
+ *
+ * - 2 args: `when("ancestor", ":hover")` — both must be string literals
+ * - 3 args: `when("ancestor", marker, ":hover")` — 1st and 3rd must be string literals, 2nd is a marker variable
+ */
+function resolveWhenCall(node: CallChainNode): { pseudo: string; markerNode?: any; relationship: string } {
+  if (node.args.length < 2 || node.args.length > 3) {
+    throw new UnsupportedPatternError(
+      `when() expects 2 or 3 arguments (relationship, [marker], pseudo), got ${node.args.length}`,
+    );
+  }
+
+  const relationshipArg = node.args[0];
+  if (relationshipArg.type !== "StringLiteral") {
+    throw new UnsupportedPatternError(`when() first argument must be a string literal relationship`);
+  }
+  const relationship: string = (relationshipArg as any).value;
+  if (!WHEN_RELATIONSHIPS.has(relationship)) {
+    throw new UnsupportedPatternError(
+      `when() relationship must be one of: ${[...WHEN_RELATIONSHIPS].join(", ")} -- got "${relationship}"`,
+    );
+  }
+
+  if (node.args.length === 2) {
+    // when("ancestor", ":hover")
+    const pseudoArg = node.args[1];
+    if (pseudoArg.type !== "StringLiteral") {
+      throw new UnsupportedPatternError(`when() pseudo selector must be a string literal`);
+    }
+    return { pseudo: (pseudoArg as any).value, relationship };
+  } else {
+    // when("ancestor", marker, ":hover")
+    const markerNode = node.args[1];
+    const pseudoArg = node.args[2];
+    if (pseudoArg.type !== "StringLiteral") {
+      throw new UnsupportedPatternError(`when() pseudo selector (3rd argument) must be a string literal`);
+    }
+    return { pseudo: (pseudoArg as any).value, markerNode, relationship };
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────
 
 const PSEUDO_METHODS: Record<string, string> = {
@@ -436,25 +474,8 @@ const PSEUDO_METHODS: Record<string, string> = {
   onDisabled: ":disabled",
 };
 
-/** Ancestor pseudo methods: onHoverOf(), onFocusOf(), etc. */
-const ANCESTOR_PSEUDO_METHODS: Record<string, string> = {
-  onHoverOf: ":hover",
-  onFocusOf: ":focus",
-  onFocusVisibleOf: ":focus-visible",
-  onActiveOf: ":active",
-  onDisabledOf: ":disabled",
-};
-
 function isPseudoMethod(name: string): boolean {
   return name in PSEUDO_METHODS;
-}
-
-function isAncestorPseudoMethod(name: string): boolean {
-  return name in ANCESTOR_PSEUDO_METHODS;
-}
-
-function ancestorPseudoSelector(name: string): string {
-  return ANCESTOR_PSEUDO_METHODS[name];
 }
 
 function pseudoSelector(name: string): string {
@@ -462,12 +483,15 @@ function pseudoSelector(name: string): string {
 }
 
 /**
- * Generate the stylex.create key suffix for ancestor pseudo segments.
+ * Generate the stylex.create key suffix for when/ancestor pseudo segments.
  * e.g. { pseudo: ":hover" } → "ancestorHover"
+ * e.g. { pseudo: ":hover", relationship: "descendant" } → "descendantHover"
  * e.g. { pseudo: ":hover", markerNode: Identifier("row") } → "ancestorHover_row"
  */
-function ancestorPseudoKeyName(ap: { pseudo: string; markerNode?: any }): string {
-  const base = `ancestor${pseudoName(ap.pseudo).charAt(0).toUpperCase()}${pseudoName(ap.pseudo).slice(1)}`;
+function whenPseudoKeyName(ap: { pseudo: string; markerNode?: any; relationship?: string }): string {
+  const rel = ap.relationship ?? "ancestor";
+  const pn = pseudoName(ap.pseudo);
+  const base = `${rel}${pn.charAt(0).toUpperCase()}${pn.slice(1)}`;
   if (!ap.markerNode) return base;
   // Use the identifier name for readable keys; fall back to a generic suffix for complex expressions
   const suffix = ap.markerNode.type === "Identifier" ? ap.markerNode.name : "marker";

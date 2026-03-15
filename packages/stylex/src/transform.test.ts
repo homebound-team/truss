@@ -635,8 +635,32 @@ describe("transform", () => {
     );
   });
 
-  test("Css.onHoverOf().blue.$ emits stylex.when.ancestor with default marker", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.onHoverOf().blue.$;`)!)).toBe(
+  test("marker and when('ancestor') in same file use same user-defined marker variable", () => {
+    const code = `
+      import { Css } from "./Css";
+      const card = stylex.defineMarker();
+      function Parent() { return <div css={Css.markerOf(card).df.$} />; }
+      function Child() { return <div css={Css.when("ancestor", card, ":hover").blue.$} />; }
+    `;
+    const result = n(transform(code)!);
+    expect(result).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          blue__ancestorHover_card: { color: { default: null, [stylex.when.ancestor(":hover", card)]: "#526675" } }
+        });
+        const card = stylex.defineMarker();
+        function Parent() { return <div {...stylex.props(card, css.df)} />; }
+        function Child() { return <div {...stylex.props(css.blue__ancestorHover_card)} />; }
+      `),
+    );
+  });
+
+  // ── when() generic API tests ─────────────────────────────────────────
+
+  test("Css.when('ancestor', ':hover').blue.$ — same as onHoverOf()", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
@@ -647,11 +671,11 @@ describe("transform", () => {
     );
   });
 
-  test("Css.onHoverOf(row).blue.$ emits stylex.when.ancestor with user-defined marker", () => {
+  test("Css.when('ancestor', marker, ':hover').blue.$ — with marker", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; const row = stylex.defineMarker(); const s = Css.onHoverOf(row).blue.$;`,
+          `import { Css } from "./Css"; const row = stylex.defineMarker(); const s = Css.when("ancestor", row, ":hover").blue.$;`,
         )!,
       ),
     ).toBe(
@@ -666,36 +690,70 @@ describe("transform", () => {
     );
   });
 
-  test("Css.onFocusOf().blue.$ emits stylex.when.ancestor(':focus')", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.onFocusOf().blue.$;`)!)).toBe(
+  test("Css.when('descendant', ':focus').blue.$ — descendant relationship", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          blue__ancestorFocus: { color: { default: null, [stylex.when.ancestor(":focus")]: "#526675" } }
+          blue__descendantFocus: { color: { default: null, [stylex.when.descendant(":focus")]: "#526675" } }
         });
-        const s = [css.blue__ancestorFocus];
+        const s = [css.blue__descendantFocus];
       `),
     );
   });
 
-  test("marker and onHoverOf in same file use same user-defined marker variable", () => {
-    const code = `
-      import { Css } from "./Css";
-      const card = stylex.defineMarker();
-      function Parent() { return <div css={Css.markerOf(card).df.$} />; }
-      function Child() { return <div css={Css.onHoverOf(card).blue.$} />; }
-    `;
-    const result = n(transform(code)!);
-    expect(result).toBe(
+  test("Css.when('siblingAfter', ':hover').blue.$ — siblingAfter relationship", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({
-          df: { display: "flex" },
-          blue__ancestorHover_card: { color: { default: null, [stylex.when.ancestor(":hover", card)]: "#526675" } }
+          blue__siblingAfterHover: { color: { default: null, [stylex.when.siblingAfter(":hover")]: "#526675" } }
         });
-        const card = stylex.defineMarker();
-        function Parent() { return <div {...stylex.props(card, css.df)} />; }
-        function Child() { return <div {...stylex.props(css.blue__ancestorHover_card)} />; }
+        const s = [css.blue__siblingAfterHover];
+      `),
+    );
+  });
+
+  test("Css.when('anySibling', marker, ':hover').blue.$ — anySibling with marker", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const m = stylex.defineMarker(); const s = Css.when("anySibling", m, ":hover").blue.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          blue__anySiblingHover_m: { color: { default: null, [stylex.when.anySibling(":hover", m)]: "#526675" } }
+        });
+        const m = stylex.defineMarker();
+        const s = [css.blue__anySiblingHover_m];
+      `),
+    );
+  });
+
+  test("Css.when with invalid relationship emits console.error", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("parent", ":hover").blue.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ blue: { color: "#526675" } });
+        console.error("[truss] Unsupported pattern: when() relationship must be one of: ancestor, descendant, anySibling, siblingBefore, siblingAfter -- got \\"parent\\" (test.tsx:1)");
+        const s = [css.blue];
+      `),
+    );
+  });
+
+  test("Css.when with non-literal relationship emits console.error", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const rel = "ancestor"; const s = Css.when(rel, ":hover").blue.$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ blue: { color: "#526675" } });
+        console.error("[truss] Unsupported pattern: when() first argument must be a string literal relationship (test.tsx:1)");
+        const rel = "ancestor";
+        const s = [css.blue];
       `),
     );
   });
