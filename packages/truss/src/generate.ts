@@ -9,6 +9,8 @@ import { quote } from "src/utils";
 import { pascalCase } from "change-case";
 import { reactNativeSections } from "src/sections/tachyons-rn";
 
+const CssProperties = imp("Properties@csstype");
+
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
   Padding: ["padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
@@ -17,11 +19,12 @@ export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
 export async function generate(config: Config): Promise<void> {
   const { outputPath, target = "emotion" } = config;
   if (target === "stylex") {
+    const { sections, entries } = collectStylexGenerationData(config);
     // For stylex target: generate an emotion-style CssBuilder (for types/IDE) + a mapping JSON
-    const cssOutput = generateStylexCssBuilder(config);
+    const cssOutput = generateStylexCssBuilder(config, sections).toString();
     await fs.writeFile(outputPath, cssOutput);
     const mappingPath = config.mappingOutputPath || outputPath.replace(/\.ts$/, ".json");
-    const mapping = generateTrussMapping(config);
+    const mapping = generateTrussMapping(config, entries);
     await fs.writeFile(mappingPath, condensedJson(mapping) + "\n");
   } else {
     const output = generateCssBuilder(config).toString();
@@ -30,31 +33,8 @@ export async function generate(config: Config): Promise<void> {
 }
 
 function generateCssBuilder(config: Config): Code {
-  const {
-    aliases,
-    fonts,
-    increment,
-    extras,
-    typeAliases,
-    breakpoints = {},
-    palette,
-    defaultMethods = "tachyons",
-    sections: customSections,
-  } = config;
-
-  // Combine our out-of-the-box utility methods with any custom ones
-  const sections: Record<string, string[]> = {
-    // We only ship with tachyons & tachyons-rn methods currently
-    ...(defaultMethods === "tachyons"
-      ? generateMethods(config, defaultSections)
-      : defaultMethods === "tachyons-rn"
-      ? generateMethods(config, reactNativeSections)
-      : {}),
-    ...(customSections ? generateMethods(config, customSections) : {}),
-    ...(aliases && { aliases: newAliasesMethods(aliases) }),
-  };
-
-  const Properties = imp("Properties@csstype");
+  const { fonts, increment, extras, typeAliases, breakpoints = {}, palette } = config;
+  const sections = generateSections(config);
 
   const lines = Object.entries(sections)
     .map(([name, value]) => [`// ${name}`, ...value, ""])
@@ -115,7 +95,7 @@ function generateCssBuilder(config: Config): Code {
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
-export type ${def("Properties")} = ${Properties}<string | 0, string>;
+export type ${def("Properties")} = ${CssProperties}<string | 0, string>;
 
 ${typographyType}
 
@@ -264,6 +244,36 @@ function generateMethods(config: Config, methodFns: Sections): Record<SectionNam
   return Object.fromEntries(Object.entries(methodFns).map(([name, fn]) => [name, fn(config)]));
 }
 
+/** Returns all utility sections configured for this project. */
+function generateSections(config: Config): Record<string, UtilityMethod[]> {
+  const { aliases, defaultMethods = "tachyons", sections: customSections } = config;
+  return {
+    ...(defaultMethods === "tachyons"
+      ? generateMethods(config, defaultSections)
+      : defaultMethods === "tachyons-rn"
+        ? generateMethods(config, reactNativeSections)
+        : {}),
+    ...(customSections ? generateMethods(config, customSections) : {}),
+    ...(aliases && { aliases: newAliasesMethods(aliases) }),
+  };
+}
+
+/** Runs section generation once with collection enabled for stylex outputs. */
+function collectStylexGenerationData(config: Config): {
+  sections: Record<string, UtilityMethod[]>;
+  entries: StylexEntry[];
+} {
+  startStylexCollection();
+  try {
+    const sections = generateSections(config);
+    const entries = stopStylexCollection();
+    return { sections, entries };
+  } catch (error) {
+    stopStylexCollection();
+    throw error;
+  }
+}
+
 // ── StyleX Code Generator ─────────────────────────────────────────────
 
 /**
@@ -274,179 +284,159 @@ function generateMethods(config: Config, methodFns: Sections): Record<SectionNam
  * which reads the companion `Css.json` to understand what each abbreviation
  * produces, and rewrites `Css.*.$` into file-local `stylex.create()` + `stylex.props()` calls.
  */
-function generateStylexCssBuilder(config: Config): string {
-  const {
-    aliases,
-    fonts,
-    increment,
-    extras,
-    palette,
-    breakpoints = {},
-    defaultMethods = "tachyons",
-    sections: customSections,
-  } = config;
-
-  // Run sections with the collector to get all abbreviations (we use the collector
-  // to generate the CssBuilder methods, same as the emotion target).
-  startStylexCollection();
-
-  const sectionFns: Record<string, (c: Config) => string[]> = {
-    ...(defaultMethods === "tachyons" ? defaultSections : defaultMethods === "tachyons-rn" ? reactNativeSections : {}),
-    ...(customSections || {}),
-  };
-
-  // Execute all sections to both generate emotion-style method strings AND collect entries
-  const sections: Record<string, string[]> = {};
-  for (const [name, fn] of Object.entries(sectionFns)) {
-    sections[name] = fn(config);
-  }
-  if (aliases) {
-    sections["aliases"] = newAliasesMethods(aliases);
-  }
-
-  stopStylexCollection(); // discard entries — mapping generation does its own collection
+function generateStylexCssBuilder(config: Config, sections: Record<string, UtilityMethod[]>): Code {
+  const { fonts, increment, extras, palette, breakpoints = {} } = config;
 
   const lines = Object.entries(sections)
-    .map(([name, value]) => [`  // ${name}`, ...value.map((v) => `  ${v}`), ""])
+    .map(([name, value]) => [`// ${name}`, ...value, ""])
     .flat();
 
-  const result: string[] = [];
-  result.push(`// This file is auto-generated by truss: https://github.com/homebound-team/truss.`);
-  result.push(`// See your project's \`truss-config.ts\` to make configuration changes (fonts, increments, etc).`);
-  result.push(`// Target: stylex (build-time plugin)`);
-  result.push(``);
-  result.push(`import type { Properties as CSSTypeProperties } from "csstype";`);
-  result.push(`import * as stylex from "@stylexjs/stylex";`);
-  result.push(``);
-  result.push(`export type Properties = CSSTypeProperties<string | 0, string>;`);
-  result.push(``);
-  result.push(`/** A marker returned by \`stylex.defineMarker()\`, used with \`onHoverOf\`/\`markerOf\` etc. */`);
-  result.push(`export type Marker = ReturnType<typeof stylex.defineMarker>;`);
-  result.push(``);
-  result.push(`export type Typography = ${Object.keys(fonts).map(quote).join(" | ")};`);
-  result.push(``);
-
-  // CssProp — an opaque type. At build time the plugin replaces all Css usage,
-  // so CssProp values are always stylex style ref arrays in practice.
-  result.push(`/** The type accepted by the \`css\` JSX prop. Opaque — the build-time plugin resolves this. */`);
-  result.push(`export type CssProp = any[];`);
-  result.push(``);
-
-  // React module augmentation — adds `css` prop to all HTML/SVG elements
-  result.push(`// Augment React types so JSX elements accept the \`css\` prop`);
-  result.push(`declare module "react" {`);
-  result.push(`  interface HTMLAttributes<T> { css?: CssProp; }`);
-  result.push(`  interface SVGAttributes<T> { css?: CssProp; }`);
-  result.push(`}`);
-  result.push(``);
-
-  // CssBuilder — emotion-style, accumulates a plain Properties object
-  result.push(`type Opts<T> = { rules: T; enabled: boolean; selector: string | undefined };`);
-  result.push(``);
-  result.push(`class CssBuilder<T extends Properties> {`);
-  result.push(`  constructor(private opts: Opts<T>) {}`);
-  result.push(``);
-  result.push(`  private get rules(): T { return this.opts.rules; }`);
-  result.push(`  private get enabled(): boolean { return this.opts.enabled; }`);
-  result.push(`  private get selector(): string | undefined { return this.opts.selector; }`);
-  result.push(`  private newCss(opts: Partial<Opts<T>>): CssBuilder<T> {`);
-  result.push(`    return new CssBuilder({ ...this.opts, ...opts });`);
-  result.push(`  }`);
-  result.push(``);
-
-  // Generated utility methods (same as emotion target)
-  result.push(...lines);
-
-  // $ getter — returns CssProp (cast from the rules object)
-  result.push(`  get $(): CssProp { return this.rules as any; }`);
-  result.push(``);
-
-  // Pseudo-class getters
-  result.push(`  get onHover() { return this.newCss({ selector: ":hover" }); }`);
-  result.push(`  get onFocus() { return this.newCss({ selector: ":focus" }); }`);
-  result.push(`  get onFocusVisible() { return this.newCss({ selector: ":focus-visible" }); }`);
-  result.push(`  get onActive() { return this.newCss({ selector: ":active" }); }`);
-  result.push(`  get onDisabled() { return this.newCss({ selector: ":disabled" }); }`);
-  result.push(``);
-
-  // Marker support
-  result.push(`  /** Marks this element as a default hover marker (for ancestor pseudo selectors). */`);
-  result.push(`  get marker(): CssBuilder<T> { return this; }`);
-  result.push(`  /** Marks this element with a user-defined marker (return value of stylex.defineMarker()). */`);
-  result.push(`  markerOf(_marker: Marker): CssBuilder<T> { return this; }`);
-  result.push(``);
-
-  // Ancestor pseudo methods
-  result.push(`  onHoverOf(_marker?: Marker) { return this.newCss({ selector: ":hover" }); }`);
-  result.push(`  onFocusOf(_marker?: Marker) { return this.newCss({ selector: ":focus" }); }`);
-  result.push(`  onFocusVisibleOf(_marker?: Marker) { return this.newCss({ selector: ":focus-visible" }); }`);
-  result.push(`  onActiveOf(_marker?: Marker) { return this.newCss({ selector: ":active" }); }`);
-  result.push(`  onDisabledOf(_marker?: Marker) { return this.newCss({ selector: ":disabled" }); }`);
-  result.push(``);
-
-  // Breakpoint getters
   const genBreakpointsMap = makeBreakpoints(breakpoints);
-  for (const [name, mediaQuery] of Object.entries(genBreakpointsMap)) {
-    const getterName = `if${pascalCase(name)}`;
-    result.push(`  get ${getterName}() { return this.newCss({ selector: ${quote(mediaQuery)} }); }`);
+
+  const breakpointIfs = Object.entries(genBreakpointsMap).map(([name, value]) => {
+    return code`
+      get if${pascalCase(name)}() {
+        return this.newCss({ selector: ${quote(value)} });
+      }`;
+  });
+
+  const typographyType = code`
+    export type ${def("Typography")} = ${Object.keys(fonts).map(quote).join(" | ")};
+  `;
+
+  return code`
+// This file is auto-generated by truss: https://github.com/homebound-team/truss.
+// See your project's \`truss-config.ts\` to make configuration changes (fonts, increments, etc).
+// Target: stylex (build-time plugin)
+
+import * as stylex from "@stylexjs/stylex";
+
+export type ${def("Properties")} = ${CssProperties}<string | 0, string>;
+
+/** A marker returned by \`stylex.defineMarker()\`, used with \`onHoverOf\`/\`markerOf\` etc. */
+export type Marker = ReturnType<typeof stylex.defineMarker>;
+
+${typographyType}
+
+/** The type accepted by the \`css\` JSX prop. Opaque - the build-time plugin resolves this. */
+export type CssProp = any[];
+
+// Augment React types so JSX elements accept the \`css\` prop
+declare module "react" {
+  interface HTMLAttributes<T> {
+    css?: CssProp;
   }
-  result.push(``);
-
-  // Conditional support
-  result.push(`  if(cond: boolean): CssBuilder<T> {`);
-  result.push(`    return new CssBuilder({ ...this.opts, enabled: cond });`);
-  result.push(`  }`);
-  result.push(``);
-  result.push(`  get else(): CssBuilder<T> {`);
-  result.push(`    return new CssBuilder({ ...this.opts, enabled: !this.enabled });`);
-  result.push(`  }`);
-  result.push(``);
-
-  // add method (needed by the generated utility methods)
-  result.push(
-    `  add<K extends keyof Properties>(propOrProperties: K | Properties, value?: Properties[K]): CssBuilder<any> {`,
-  );
-  result.push(`    if (!this.enabled) return this;`);
-  result.push(
-    `    const newRules = typeof propOrProperties === "string" ? { [propOrProperties]: value } : propOrProperties;`,
-  );
-  result.push(`    const rules = this.selector`);
-  result.push(`      ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }`);
-  result.push(`      : { ...this.rules, ...newRules };`);
-  result.push(`    return this.newCss({ rules: rules as any });`);
-  result.push(`  }`);
-  result.push(`}`);
-  result.push(``);
-
-  // Helpers
-  result.push(`/** Converts \`inc\` into pixels value with a \`px\` suffix. */`);
-  result.push(`export function maybeInc(inc: number | string): string {`);
-  result.push(`  return typeof inc === "string" ? inc : \`\${inc * ${increment}}px\`;`);
-  result.push(`}`);
-  result.push(``);
-
-  // Palette enum
-  result.push(`export enum Palette {`);
-  for (const [name, value] of Object.entries(palette)) {
-    result.push(`  ${name} = "${value}",`);
+  interface SVGAttributes<T> {
+    css?: CssProp;
   }
-  result.push(`}`);
-  result.push(``);
+}
 
-  // Css singleton
-  result.push(`/** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */`);
-  result.push(`export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined });`);
-  result.push(``);
+type Opts<T> = {
+  rules: T;
+  enabled: boolean;
+  selector: string | undefined;
+};
 
-  // Extras
-  if (extras) {
-    for (const extra of extras) {
-      result.push(String(extra));
-    }
-    result.push(``);
+class CssBuilder<T extends Properties> {
+  constructor(private opts: Opts<T>) {}
+
+  ${lines.join("\n  ").replace(/ +\n/g, "\n")}
+
+  get $(): CssProp {
+    return this.rules as any;
   }
 
-  return result.join("\n");
+  get onHover() {
+    return this.newCss({ selector: ":hover" });
+  }
+  get onFocus() {
+    return this.newCss({ selector: ":focus" });
+  }
+  get onFocusVisible() {
+    return this.newCss({ selector: ":focus-visible" });
+  }
+  get onActive() {
+    return this.newCss({ selector: ":active" });
+  }
+  get onDisabled() {
+    return this.newCss({ selector: ":disabled" });
+  }
+
+  /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
+  get marker(): CssBuilder<T> {
+    return this;
+  }
+
+  /** Marks this element with a user-defined marker (return value of stylex.defineMarker()). */
+  markerOf(_marker: Marker): CssBuilder<T> {
+    return this;
+  }
+
+  onHoverOf(_marker?: Marker) {
+    return this.newCss({ selector: ":hover" });
+  }
+  onFocusOf(_marker?: Marker) {
+    return this.newCss({ selector: ":focus" });
+  }
+  onFocusVisibleOf(_marker?: Marker) {
+    return this.newCss({ selector: ":focus-visible" });
+  }
+  onActiveOf(_marker?: Marker) {
+    return this.newCss({ selector: ":active" });
+  }
+  onDisabledOf(_marker?: Marker) {
+    return this.newCss({ selector: ":disabled" });
+  }
+
+  ${breakpointIfs}
+
+  if(cond: boolean): CssBuilder<T> {
+    return new CssBuilder({ ...this.opts, enabled: cond });
+  }
+
+  get else(): CssBuilder<T> {
+    return new CssBuilder({ ...this.opts, enabled: !this.enabled });
+  }
+
+  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }> {
+    if (!this.enabled) return this;
+    const newRules = { [propOrProperties]: value };
+    const rules = this.selector
+      ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
+      : { ...this.rules, ...newRules };
+    return this.newCss({ rules });
+  }
+
+  private get rules(): T {
+    return this.opts.rules;
+  }
+  private get enabled(): boolean {
+    return this.opts.enabled;
+  }
+  private get selector(): string | undefined {
+    return this.opts.selector;
+  }
+  private newCss(opts: Partial<Opts<T>>): CssBuilder<T> {
+    return new CssBuilder({ ...this.opts, ...opts });
+  }
+}
+
+/** Converts \`inc\` into pixels value with a \`px\` suffix. */
+export function maybeInc(inc: number | string): string {
+  return typeof inc === "string" ? inc : \`\${inc * ${increment}}px\`;
+}
+
+export enum Palette {
+  ${Object.entries(palette).map(([name, value]) => {
+    return `${name} = "${value}",`;
+  })}
+}
+
+/** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
+export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined });
+
+${extras || ""}
+  `;
 }
 
 // ── Truss Mapping Generator ──────────────────────────────────────────
@@ -468,24 +458,8 @@ export type TrussMappingEntry =
  * Generates the truss mapping JSON that the Vite plugin uses to resolve
  * Css abbreviation chains into CSS properties at build time.
  */
-function generateTrussMapping(config: Config): TrussMapping {
-  const { aliases, breakpoints = {}, defaultMethods = "tachyons", sections: customSections } = config;
-
-  startStylexCollection();
-
-  const sectionFns: Record<string, (c: Config) => string[]> = {
-    ...(defaultMethods === "tachyons" ? defaultSections : defaultMethods === "tachyons-rn" ? reactNativeSections : {}),
-    ...(customSections || {}),
-  };
-
-  for (const [, fn] of Object.entries(sectionFns)) {
-    fn(config);
-  }
-  if (aliases) {
-    newAliasesMethods(aliases);
-  }
-
-  const entries = stopStylexCollection();
+function generateTrussMapping(config: Config, entries: StylexEntry[]): TrussMapping {
+  const { breakpoints = {} } = config;
 
   const abbreviations: Record<string, TrussMappingEntry> = {};
 
