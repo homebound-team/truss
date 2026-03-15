@@ -140,6 +140,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
   // e.g. Css.ifSm.onHover.blue.$ → both mediaQuery and pseudoClass are set
   let currentMediaQuery: string | null = null;
   let currentPseudoClass: string | null = null;
+  let currentPseudoElement: string | null = null;
   let currentWhenPseudo: { pseudo: string; markerNode?: any; relationship?: string } | null = null;
 
   for (const node of chain) {
@@ -173,7 +174,15 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
         }
 
-        const resolved = resolveEntry(abbr, entry, mapping, currentMediaQuery, currentPseudoClass, currentWhenPseudo);
+        const resolved = resolveEntry(
+          abbr,
+          entry,
+          mapping,
+          currentMediaQuery,
+          currentPseudoClass,
+          currentPseudoElement,
+          currentWhenPseudo,
+        );
         segments.push(...resolved);
       } else if (node.type === "call") {
         const abbr = node.name;
@@ -187,8 +196,19 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
 
         // add(prop, value) — arbitrary CSS property
         if (abbr === "add") {
-          const seg = resolveAddCall(node, mapping, currentMediaQuery, currentPseudoClass);
+          const seg = resolveAddCall(node, mapping, currentMediaQuery, currentPseudoClass, currentPseudoElement);
           segments.push(seg);
+          continue;
+        }
+
+        // Pseudo-element: element("::placeholder") etc.
+        if (abbr === "element") {
+          if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
+            throw new UnsupportedPatternError(
+              `element() requires exactly one string literal argument (e.g. "::placeholder")`,
+            );
+          }
+          currentPseudoElement = (node.args[0] as any).value;
           continue;
         }
 
@@ -219,10 +239,26 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
         }
 
         if (entry.kind === "dynamic") {
-          const seg = resolveDynamicCall(abbr, entry, node, mapping, currentMediaQuery, currentPseudoClass);
+          const seg = resolveDynamicCall(
+            abbr,
+            entry,
+            node,
+            mapping,
+            currentMediaQuery,
+            currentPseudoClass,
+            currentPseudoElement,
+          );
           segments.push(seg);
         } else if (entry.kind === "delegate") {
-          const seg = resolveDelegateCall(abbr, entry, node, mapping, currentMediaQuery, currentPseudoClass);
+          const seg = resolveDelegateCall(
+            abbr,
+            entry,
+            node,
+            mapping,
+            currentMediaQuery,
+            currentPseudoClass,
+            currentPseudoElement,
+          );
           segments.push(seg);
         } else {
           throw new UnsupportedPatternError(`Abbreviation "${abbr}" is ${entry.kind}, cannot be called as a function`);
@@ -240,13 +276,15 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
   return segments;
 }
 
-/** Build the stylex.create key suffix from mediaQuery and/or pseudoClass. */
+/** Build the stylex.create key suffix from mediaQuery, pseudoClass, and/or pseudoElement. */
 function conditionKeySuffix(
   mediaQuery: string | null,
   pseudoClass: string | null,
+  pseudoElement: string | null,
   breakpoints?: Record<string, string>,
 ): string {
   const parts: string[] = [];
+  if (pseudoElement) parts.push(pseudoName(pseudoElement));
   if (mediaQuery) parts.push(pseudoName(mediaQuery, breakpoints));
   if (pseudoClass) parts.push(pseudoName(pseudoClass));
   return parts.join("_");
@@ -285,6 +323,7 @@ function resolveEntry(
   mapping: TrussMapping,
   mediaQuery: string | null,
   pseudoClass: string | null,
+  pseudoElement: string | null,
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment[] {
   switch (entry.kind) {
@@ -294,10 +333,12 @@ function resolveEntry(
         const key = `${abbr}__${suffix}`;
         return [{ key, defs: entry.defs, whenPseudo }];
       }
-      const suffix = conditionKeySuffix(mediaQuery, pseudoClass, mapping.breakpoints);
+      const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
       const key = suffix ? `${abbr}__${suffix}` : abbr;
-      const defs = wrapDefsWithConditions(entry.defs, mediaQuery, pseudoClass);
-      return [{ key, defs, mediaQuery, pseudoClass }];
+      const defs = pseudoElement
+        ? { [pseudoElement]: wrapDefsWithConditions(entry.defs, mediaQuery, pseudoClass) }
+        : wrapDefsWithConditions(entry.defs, mediaQuery, pseudoClass);
+      return [{ key, defs, mediaQuery, pseudoClass, pseudoElement }];
     }
     case "alias": {
       const result: ResolvedSegment[] = [];
@@ -306,7 +347,7 @@ function resolveEntry(
         if (!subEntry) {
           throw new UnsupportedPatternError(`Alias "${abbr}" references unknown abbreviation "${chainAbbr}"`);
         }
-        result.push(...resolveEntry(chainAbbr, subEntry, mapping, mediaQuery, pseudoClass, whenPseudo));
+        result.push(...resolveEntry(chainAbbr, subEntry, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo));
       }
       return result;
     }
@@ -326,6 +367,7 @@ function resolveDynamicCall(
   mapping: TrussMapping,
   mediaQuery: string | null,
   pseudoClass: string | null,
+  pseudoElement: string | null,
 ): ResolvedSegment {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
@@ -333,7 +375,7 @@ function resolveDynamicCall(
 
   const argAst = node.args[0];
   const literalValue = tryEvaluateLiteral(argAst, entry.incremented, mapping.increment);
-  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, mapping.breakpoints);
+  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
 
   if (literalValue !== null) {
     const keySuffix = literalValue.replace(/[^a-zA-Z0-9]/g, "_");
@@ -342,11 +384,13 @@ function resolveDynamicCall(
     for (const prop of entry.props) {
       defs[prop] = literalValue;
     }
+    const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
       key,
-      defs: wrapDefsWithConditions(defs, mediaQuery, pseudoClass),
+      defs: pseudoElement ? { [pseudoElement]: wrappedDefs } : wrappedDefs,
       mediaQuery,
       pseudoClass,
+      pseudoElement,
       argResolved: literalValue,
     };
   } else {
@@ -371,6 +415,7 @@ function resolveDelegateCall(
   mapping: TrussMapping,
   mediaQuery: string | null,
   pseudoClass: string | null,
+  pseudoElement: string | null,
 ): ResolvedSegment {
   const targetEntry = mapping.abbreviations[entry.target];
   if (!targetEntry || targetEntry.kind !== "dynamic") {
@@ -383,7 +428,7 @@ function resolveDelegateCall(
 
   const argAst = node.args[0];
   const literalValue = tryEvaluatePxLiteral(argAst);
-  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, mapping.breakpoints);
+  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
 
   if (literalValue !== null) {
     const keySuffix = literalValue.replace(/[^a-zA-Z0-9]/g, "_");
@@ -392,11 +437,13 @@ function resolveDelegateCall(
     for (const prop of targetEntry.props) {
       defs[prop] = literalValue;
     }
+    const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
       key,
-      defs: wrapDefsWithConditions(defs, mediaQuery, pseudoClass),
+      defs: pseudoElement ? { [pseudoElement]: wrappedDefs } : wrappedDefs,
       mediaQuery,
       pseudoClass,
+      pseudoElement,
       argResolved: literalValue,
     };
   } else {
@@ -406,6 +453,7 @@ function resolveDelegateCall(
       defs: {},
       mediaQuery,
       pseudoClass,
+      pseudoElement,
       dynamicProps: targetEntry.props,
       incremented: false,
       argNode: argAst,
@@ -425,6 +473,7 @@ function resolveAddCall(
   mapping: TrussMapping,
   mediaQuery: string | null,
   pseudoClass: string | null,
+  pseudoElement: string | null,
 ): ResolvedSegment {
   if (node.args.length !== 2) {
     throw new UnsupportedPatternError(
@@ -443,7 +492,7 @@ function resolveAddCall(
   // Try to evaluate the value as a literal
   const literalValue = tryEvaluateAddLiteral(valueArg);
 
-  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, mapping.breakpoints);
+  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
 
   if (literalValue !== null) {
     const keySuffix = literalValue
@@ -452,11 +501,13 @@ function resolveAddCall(
       .replace(/^_|_$/g, "");
     const key = suffix ? `add_${propName}__${keySuffix}__${suffix}` : `add_${propName}__${keySuffix}`;
     const defs: Record<string, unknown> = { [propName]: literalValue };
+    const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
       key,
-      defs: wrapDefsWithConditions(defs, mediaQuery, pseudoClass),
+      defs: pseudoElement ? { [pseudoElement]: wrappedDefs } : wrappedDefs,
       mediaQuery,
       pseudoClass,
+      pseudoElement,
       argResolved: literalValue,
     };
   } else {
@@ -466,6 +517,7 @@ function resolveAddCall(
       defs: {},
       mediaQuery,
       pseudoClass,
+      pseudoElement,
       dynamicProps: [propName],
       incremented: false,
       argNode: valueArg,
@@ -745,7 +797,7 @@ export function pseudoName(pseudo: string, breakpoints?: Record<string, string>)
       .replace(/^_|_$/g, "");
   }
 
-  return pseudo.replace(/^:/, "").replace(/-/g, "_");
+  return pseudo.replace(/^:+/, "").replace(/-/g, "_");
 }
 
 /**

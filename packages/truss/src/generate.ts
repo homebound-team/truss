@@ -401,6 +401,11 @@ class CssBuilder<T extends Properties> {
     return this;
   }
 
+  /** Apply styles within a pseudo-element (e.g. \`"::placeholder"\`, \`"::selection"\`). */
+  element(_pseudoElement: string): CssBuilder<T> {
+    return this;
+  }
+
   ${breakpointIfs}
 
   /** Conditionally apply styles when \`cond\` is true. */

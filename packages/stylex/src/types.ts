@@ -24,6 +24,8 @@ export interface ResolvedSegment {
   mediaQuery?: string | null;
   /** If inside a pseudo-class context (e.g. ":hover", ":focus") */
   pseudoClass?: string | null;
+  /** If inside a pseudo-element context (e.g. "::placeholder", "::selection") — becomes a top-level key in the stylex.create namespace */
+  pseudoElement?: string | null;
   /**
    * If inside a `stylex.when.*` context (e.g. onHoverOf, when("descendant", ...)),
    * the relationship + pseudo selector info. When set, uses

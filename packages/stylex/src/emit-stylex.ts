@@ -21,7 +21,7 @@ export interface CreateEntrySpec {
    *
    * Becomes `stylex.create({ mt: v => ({ marginTop: v }) })`
    */
-  dynamic?: { props: string[]; mediaQuery?: string | null; pseudoClass?: string | null };
+  dynamic?: { props: string[]; mediaQuery?: string | null; pseudoClass?: string | null; pseudoElement?: string | null };
   /** If set, this entry uses stylex.when.<relationship>() as the computed property key */
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
 }
@@ -54,7 +54,12 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
             // Keyed dedupe guarantees a stable single entry for repeated usage.
             createEntries.set(seg.key, {
               key: seg.key,
-              dynamic: { props: seg.dynamicProps, mediaQuery: seg.mediaQuery, pseudoClass: seg.pseudoClass },
+              dynamic: {
+                props: seg.dynamicProps,
+                mediaQuery: seg.mediaQuery,
+                pseudoClass: seg.pseudoClass,
+                pseudoElement: seg.pseudoElement,
+              },
             });
           }
         } else {
@@ -129,7 +134,12 @@ export function buildCreateProperties(
         }
       }
 
-      const arrowFn = t.arrowFunctionExpression([paramId], t.objectExpression(bodyProps));
+      let bodyExpr: t.Expression = t.objectExpression(bodyProps);
+      if (entry.dynamic.pseudoElement) {
+        // Wrap: { '::placeholder': { ...bodyProps } }
+        bodyExpr = t.objectExpression([t.objectProperty(t.stringLiteral(entry.dynamic.pseudoElement), bodyExpr)]);
+      }
+      const arrowFn = t.arrowFunctionExpression([paramId], bodyExpr);
       createProperties.push(t.objectProperty(toPropertyKey(entry.key), arrowFn));
       continue;
     }

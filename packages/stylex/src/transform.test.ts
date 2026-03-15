@@ -955,6 +955,73 @@ describe("transform", () => {
     );
   });
 
+  // ── Pseudo-element tests ─────────────────────────────────────────────
+
+  test("element('::placeholder').blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").blue.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          blue__placeholder: { "::placeholder": { color: "#526675" } }
+        });
+        const s = [css.blue__placeholder];
+      `),
+    );
+  });
+
+  test("element('::selection') with static styles", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::selection").bgBlue.white.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          bgBlue__selection: { "::selection": { backgroundColor: "#526675" } },
+          white__selection: { "::selection": { color: "#fcfcfa" } }
+        });
+        const s = [css.bgBlue__selection, css.white__selection];
+      `),
+    );
+  });
+
+  test("element with dynamic literal: element('::placeholder').bc('red').$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").bc("red").$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          bc__red__placeholder: { "::placeholder": { borderColor: "red" } }
+        });
+        const s = [css.bc__red__placeholder];
+      `),
+    );
+  });
+
+  test("element + onHover: Css.element('::placeholder').onHover.blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").onHover.blue.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          blue__placeholder_hover: {
+            "::placeholder": { color: { default: null, ":hover": "#526675" } }
+          }
+        });
+        const s = [css.blue__placeholder_hover];
+      `),
+    );
+  });
+
+  test("element with non-literal argument errors", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const pe = "::placeholder"; const s = Css.element(pe).blue.$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ blue: { color: "#526675" } });
+        console.error("[truss] Unsupported pattern: element() requires exactly one string literal argument (e.g. \\"::placeholder\\") (test.tsx:1)");
+        const pe = "::placeholder";
+        const s = [css.blue];
+      `),
+    );
+  });
+
   test("unsupported patterns emit console.error and produce empty array", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.notReal.$;`)!)).toBe(
       n(`
