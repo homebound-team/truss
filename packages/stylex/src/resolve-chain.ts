@@ -24,6 +24,44 @@ export type ResolvedChainPart =
 
 /**
  * High-level chain resolver that handles if/else by splitting into parts.
+ *
+ * ## Chain semantics
+ *
+ * A `Css.*.$` chain is read left-to-right. Each segment is either a style
+ * abbreviation (getter or call) or a modifier that changes the context for
+ * subsequent styles. The modifiers and their precedence:
+ *
+ * - **`if(bool)`** / **`else`** — Boolean conditional. Splits the chain into
+ *   then/else branches at the AST level. Subsequent styles go into the active
+ *   branch. A new `if` starts a new conditional.
+ *
+ * - **`if(mediaQuery)`** — String overload. Sets the media query context
+ *   (same as `ifSm`, `ifMd` etc.) for subsequent styles. Does NOT create
+ *   a boolean branch.
+ *
+ * - **`ifSm`**, **`ifMd`**, **`ifLg`**, etc. — Breakpoint getters. Set the
+ *   media query context. Stacks with pseudo-classes: `ifSm.onHover.blue.$`
+ *   produces `{ color: { default: null, ":hover": { default: null, "@media...": value } } }`.
+ *
+ * - **`onHover`**, **`onFocus`**, etc. — Pseudo-class getters. Set the
+ *   pseudo-class context. Stacks with media queries (see above). A new
+ *   pseudo-class replaces the previous one.
+ *
+ * - **`element("::placeholder")`** — Pseudo-element. Sets the pseudo-element
+ *   context. Wraps subsequent defs in a top-level namespace key:
+ *   `{ "::placeholder": { color: value } }`. Stacks with pseudo-classes
+ *   and media queries inside the pseudo-element.
+ *
+ * - **`when("ancestor", ":hover")`** — StyleX `when` API. Resets both media
+ *   query and pseudo-class contexts. Uses `stylex.when.<relationship>()`
+ *   computed keys.
+ *
+ * - **`ifContainer({ gt, lt })`** — Container query. Sets the media query
+ *   context to an `@container` query string.
+ *
+ * Contexts accumulate left-to-right until explicitly replaced. A media query
+ * set by `ifSm` persists through `onHover` (they stack). A new `if(bool)`
+ * resets all contexts for its branches.
  */
 export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): ResolvedChain {
   const parts: ResolvedChainPart[] = [];
