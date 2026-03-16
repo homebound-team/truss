@@ -21,7 +21,13 @@ export interface CreateEntrySpec {
    *
    * Becomes `stylex.create({ mt: v => ({ marginTop: v }) })`
    */
-  dynamic?: { props: string[]; mediaQuery?: string | null; pseudoClass?: string | null; pseudoElement?: string | null };
+  dynamic?: {
+    props: string[];
+    extraDefs?: Record<string, unknown>;
+    mediaQuery?: string | null;
+    pseudoClass?: string | null;
+    pseudoElement?: string | null;
+  };
   /** If set, this entry uses stylex.when.<relationship>() as the computed property key */
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
 }
@@ -56,6 +62,7 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
               key: seg.key,
               dynamic: {
                 props: seg.dynamicProps,
+                extraDefs: seg.dynamicExtraDefs,
                 mediaQuery: seg.mediaQuery,
                 pseudoClass: seg.pseudoClass,
                 pseudoElement: seg.pseudoElement,
@@ -98,9 +105,9 @@ export function buildCreateProperties(
     if (entry.dynamic) {
       const paramId = t.identifier("v");
       const bodyProps: t.ObjectProperty[] = [];
+      const { mediaQuery, pseudoClass } = entry.dynamic;
 
       for (const prop of entry.dynamic.props) {
-        const { mediaQuery, pseudoClass } = entry.dynamic;
         if (pseudoClass && mediaQuery) {
           // Stacked: { default: null, ":hover": { default: null, "@media...": v } }
           bodyProps.push(
@@ -131,6 +138,41 @@ export function buildCreateProperties(
           );
         } else {
           bodyProps.push(t.objectProperty(toPropertyKey(prop), paramId));
+        }
+      }
+
+      if (entry.dynamic.extraDefs) {
+        for (const [prop, value] of Object.entries(entry.dynamic.extraDefs)) {
+          if (pseudoClass && mediaQuery) {
+            bodyProps.push(
+              t.objectProperty(
+                toPropertyKey(prop),
+                t.objectExpression([
+                  t.objectProperty(t.identifier("default"), t.nullLiteral()),
+                  t.objectProperty(
+                    t.stringLiteral(pseudoClass),
+                    t.objectExpression([
+                      t.objectProperty(t.identifier("default"), t.nullLiteral()),
+                      t.objectProperty(t.stringLiteral(mediaQuery), valueToAst(value)),
+                    ]),
+                  ),
+                ]),
+              ),
+            );
+          } else if (pseudoClass || mediaQuery) {
+            const condition = (pseudoClass || mediaQuery)!;
+            bodyProps.push(
+              t.objectProperty(
+                toPropertyKey(prop),
+                t.objectExpression([
+                  t.objectProperty(t.identifier("default"), t.nullLiteral()),
+                  t.objectProperty(t.stringLiteral(condition), valueToAst(value)),
+                ]),
+              ),
+            );
+          } else {
+            bodyProps.push(t.objectProperty(toPropertyKey(prop), valueToAst(value)));
+          }
         }
       }
 

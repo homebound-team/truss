@@ -5,10 +5,19 @@ export interface TrussMapping {
   abbreviations: Record<string, TrussMappingEntry>;
 }
 
+/**
+ * A single abbreviation entry from `Css.json`.
+ *
+ * Each `kind` describes how the transformer should resolve that abbreviation.
+ */
 export type TrussMappingEntry =
+  /** I.e. `{ "kind": "static", "defs": { "display": "flex" } }` for `Css.df.$`. */
   | { kind: "static"; defs: Record<string, unknown> }
-  | { kind: "dynamic"; props: string[]; incremented: boolean }
+  /** I.e. `{ "kind": "dynamic", "props": ["marginTop"], "incremented": true }` for `Css.mt(v).$`. */
+  | { kind: "dynamic"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
+  /** I.e. `{ "kind": "delegate", "target": "mt" }` for `Css.mtPx(v).$`. */
   | { kind: "delegate"; target: string }
+  /** I.e. `{ "kind": "alias", "chain": ["f14", "black"] }` for `Css.bodyText.$`. */
   | { kind: "alias"; chain: string[] };
 
 /**
@@ -36,6 +45,8 @@ export interface ResolvedSegment {
   dynamicProps?: string[];
   /** For dynamic entries: whether the value uses maybeInc */
   incremented?: boolean;
+  /** For dynamic entries: additional static defs applied alongside the dynamic value */
+  dynamicExtraDefs?: Record<string, unknown>;
   /** For dynamic entries: the AST node of the argument */
   argNode?: any;
   /** Whether the arg was a literal we could evaluate */

@@ -258,7 +258,7 @@
     "lineClamp5": {"kind":"static","defs":{"overflow":"hidden","display":"-webkit-box","WebkitBoxOrient":"vertical","textOverflow":"ellipsis","WebkitLineClamp":5}},
     "lineClamp6": {"kind":"static","defs":{"overflow":"hidden","display":"-webkit-box","WebkitBoxOrient":"vertical","textOverflow":"ellipsis","WebkitLineClamp":6}},
     "lineClampNone": {"kind":"static","defs":{"WebkitLineClamp":"unset"}},
-    "lineClamp": {"kind":"dynamic","props":["WebkitLineClamp"],"incremented":false},
+    "lineClamp": {"kind":"dynamic","props":["WebkitLineClamp"],"incremented":false,"extraDefs":{"overflow":"hidden","display":"-webkit-box","WebkitBoxOrient":"vertical","textOverflow":"ellipsis"}},
     "objectContain": {"kind":"static","defs":{"objectFit":"contain"}},
     "objectCover": {"kind":"static","defs":{"objectFit":"cover"}},
     "objectFill": {"kind":"static","defs":{"objectFit":"fill"}},

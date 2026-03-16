@@ -400,7 +400,7 @@ function resolveEntry(
 /** Resolve a dynamic (parameterized) call like mt(2) or mt(x). */
 function resolveDynamicCall(
   abbr: string,
-  entry: { kind: "dynamic"; props: string[]; incremented: boolean },
+  entry: { kind: "dynamic"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> },
   node: CallChainNode,
   mapping: TrussMapping,
   mediaQuery: string | null,
@@ -422,6 +422,9 @@ function resolveDynamicCall(
     for (const prop of entry.props) {
       defs[prop] = literalValue;
     }
+    if (entry.extraDefs) {
+      Object.assign(defs, entry.extraDefs);
+    }
     const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
       key,
@@ -440,6 +443,7 @@ function resolveDynamicCall(
       pseudoClass,
       dynamicProps: entry.props,
       incremented: entry.incremented,
+      dynamicExtraDefs: entry.extraDefs,
       argNode: argAst,
     };
   }
@@ -475,6 +479,9 @@ function resolveDelegateCall(
     for (const prop of targetEntry.props) {
       defs[prop] = literalValue;
     }
+    if (targetEntry.extraDefs) {
+      Object.assign(defs, targetEntry.extraDefs);
+    }
     const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
       key,
@@ -494,6 +501,7 @@ function resolveDelegateCall(
       pseudoElement,
       dynamicProps: targetEntry.props,
       incremented: false,
+      dynamicExtraDefs: targetEntry.extraDefs,
       argNode: argAst,
     };
   }

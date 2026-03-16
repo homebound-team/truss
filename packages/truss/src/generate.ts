@@ -477,7 +477,7 @@ export interface TrussMapping {
 
 export type TrussMappingEntry =
   | { kind: "static"; defs: Record<string, unknown> }
-  | { kind: "dynamic"; props: string[]; incremented: boolean }
+  | { kind: "dynamic"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
   | { kind: "delegate"; target: string }
   | { kind: "alias"; chain: string[] };
 
@@ -501,6 +501,7 @@ function generateTrussMapping(config: Config, entries: StylexEntry[]): TrussMapp
           kind: "dynamic",
           props: entry.props || [],
           incremented: false,
+          extraDefs: entry.extraDefs,
         };
         break;
       case "increment-param":
@@ -508,6 +509,7 @@ function generateTrussMapping(config: Config, entries: StylexEntry[]): TrussMapp
           kind: "dynamic",
           props: entry.props || [],
           incremented: true,
+          extraDefs: entry.extraDefs,
         };
         break;
       case "px-delegate":

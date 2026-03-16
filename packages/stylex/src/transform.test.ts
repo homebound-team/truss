@@ -124,6 +124,45 @@ describe("transform", () => {
     );
   });
 
+  test("dynamic method keeps extra defs: Css.lineClamp(lines).$", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const lines = getLineCount(); const s = Css.lineClamp(lines).$;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          lineClamp: v => ({
+            WebkitLineClamp: v,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            textOverflow: "ellipsis"
+          })
+        });
+        const lines = getLineCount();
+        const s = [css.lineClamp(String(lines))];
+      `),
+    );
+  });
+
+  test("dynamic literal keeps extra defs: Css.lineClamp('3').$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.lineClamp("3").$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          lineClamp__3: {
+            WebkitLineClamp: "3",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            textOverflow: "ellipsis"
+          }
+        });
+        const s = [css.lineClamp__3];
+      `),
+    );
+  });
+
   test("multiple expressions dedup entries", () => {
     expect(
       n(
