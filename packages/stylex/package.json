@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss-stylex",
-  "private": true,
+  "private": false,
   "version": "1.137.5",
   "type": "module",
   "exports": {

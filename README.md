@@ -112,7 +112,7 @@ If you use `target: "stylex"`, Truss generates both `Css.ts` and `Css.json`:
 - `Css.ts` is the typed `Css.*.$` DSL to use in your component code,
 - `Css.json` is a metadata file consumed by the Truss Vite plugin at build time.
 
-These dual outputs enables a compile-in-app model where component libraries can ship untransformed `Css.*.$` usage and the consuming app compiles both the library's `Css` styles + application's `Css` styles into a single unified output.
+These dual outputs enable a compile-in-app model where component libraries can ship untransformed `Css.*.$` usage and the consuming app compiles both the library's `Css` styles + application's `Css` styles into a single unified output.
 
 Install the StyleX build dependencies in the app:
 
