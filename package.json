@@ -10,14 +10,10 @@
     "codegen": "yarn workspaces foreach run codegen"
   },
   "workspaces": [
-    "packages/fast-css-prop",
     "packages/truss",
     "packages/template-tachyons",
     "packages/testing-tachyons",
     "packages/testing-tachyons-rn",
-    "packages/testing-tachyons-emotion",
-    "packages/testing-tachyons-mui",
-    "packages/app-tachyons-fela-prop",
     "packages/app-stylex"
   ],
   "devDependencies": {
