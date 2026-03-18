@@ -82,7 +82,7 @@ function MyNativeComponent() {
 
 ## Installation
 
-For v2 web usage, configure Truss with `target: "stylex"` and use the `truss` command to generate `Css.ts` (+ `Css.json`) from your `truss-config.ts`:
+For v2 web usage, StyleX is the default target, so you can use the `truss` command to generate `Css.ts` (+ `Css.json`) from your `truss-config.ts`:
 
 - `npm i --save-dev @homebound/truss`
 - Add a `truss` command to your `package.json`:
@@ -105,11 +105,13 @@ We recommend checking the `src/Css.ts` file into your repository, with the ratio
 - When it does change, it can be nice to see the diff-d output in the PR for others to review.
 - It's the simplest "just works" setup for new contributors.
 
-Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it, and then just remember to run `npm rum truss` in new working copies.
+Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it, and then just remember to run `npm run truss` in new working copies.
+
+If you are targeting React Native/mobile runtime objects instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
 
 ### StyleX (compile-in-app libraries)
 
-If you use `target: "stylex"`, Truss generates both `Css.ts` and `Css.json`:
+By default (`target: "stylex"`), Truss generates both `Css.ts` and `Css.json`:
 
 - `Css.ts` is the typed `Css.*.$` DSL to use in your component code,
 - `Css.json` is a metadata file consumed by the Truss Vite plugin at build time.

@@ -1,6 +1,6 @@
 # Migrating to StyleX-backed Truss
 
-This guide covers migrating from the emotion/fela-backed truss (`target: "emotion"`) to the new StyleX-backed truss (`target: "stylex"`). The new target uses a build-time Vite plugin that transforms `Css.*.$` chains into file-local `stylex.create()` + `stylex.props()` calls.
+This guide covers migrating from the legacy runtime truss target (`target: "emotion"` in v1, renamed to `target: "react-native"` in v2) to the StyleX-backed target (`target: "stylex"`, now the default). The StyleX target uses a build-time Vite plugin that transforms `Css.*.$` chains into file-local `stylex.create()` + `stylex.props()` calls.
 
 ## What changes
 
@@ -411,7 +411,7 @@ The custom JSX runtime (`jsxImportSource: "@homebound/fast-css-prop"`) is no lon
 
 ## Setup checklist
 
-1. Update `truss-config.ts` to use `target: "stylex"`
+1. Update `truss-config.ts` to use the StyleX target (`target: "stylex"`, or omit `target` to use the default)
 2. Run `yarn codegen` to regenerate `Css.ts` + `Css.json`
 3. Add the Vite plugin chain:
 

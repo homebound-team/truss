@@ -40,6 +40,7 @@ const aliases: Aliases = {
 const extras = [`export type CustomType = number;`];
 
 export default defineConfig({
+  target: "react-native",
   outputPath: "./src/Css.ts",
   palette,
   fonts,
