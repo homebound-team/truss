@@ -65,13 +65,13 @@ export interface Config {
   /**
    * The target CSS runtime to generate for.
    *
-   * - `"emotion"` (default): Generates a CssBuilder that accumulates a plain CSS Properties object,
-   *   compatible with Emotion, Fela, MUI, or any runtime that accepts `{ prop: value }` objects.
-   * - `"stylex"`: Generates an emotion-style CssBuilder (for IDE autocomplete + types) plus a
+   * - `"stylex"` (default): Generates a StyleX-friendly CssBuilder (for IDE autocomplete + types) plus a
    *   `Css.json` mapping file consumed by the truss Vite plugin, which transforms
    *   `Css.*.$` expressions into file-local `stylex.create()` + `stylex.props()` calls at build time.
+   * - `"react-native"`: Generates a runtime CssBuilder that accumulates plain style objects,
+   *   intended for React Native usage.
    */
-  target?: "emotion" | "stylex";
+  target?: "react-native" | "stylex";
 
   /**
    * The output path for the truss mapping file (only used when target is "stylex").

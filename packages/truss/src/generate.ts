@@ -17,19 +17,26 @@ export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
 };
 
 export async function generate(config: Config): Promise<void> {
-  const { outputPath, target = "emotion" } = config;
+  const { outputPath } = config;
+  const target: string = config.target ?? "stylex";
   if (target === "stylex") {
     const { sections, entries } = collectStylexGenerationData(config);
-    // For stylex target: generate an emotion-style CssBuilder (for types/IDE) + a mapping JSON
+    // For stylex target: generate a stylex-friendly CssBuilder (for types/IDE) + a mapping JSON
     const cssOutput = generateStylexCssBuilder(config, sections).toString();
     await fs.writeFile(outputPath, cssOutput);
     const mappingPath = config.mappingOutputPath || outputPath.replace(/\.ts$/, ".json");
     const mapping = generateTrussMapping(config, entries);
     await fs.writeFile(mappingPath, condensedJson(mapping) + "\n");
-  } else {
+    return;
+  }
+
+  if (target === "react-native") {
     const output = generateCssBuilder(config).toString();
     await fs.writeFile(outputPath, output);
+    return;
   }
+
+  throw new Error(`Unsupported truss target "${target}". Use "stylex" (default) or "react-native".`);
 }
 
 function generateCssBuilder(config: Config): Code {
@@ -182,7 +189,7 @@ class CssBuilder<T extends Properties> {
   }
 }
 
-/** Emotion treats the same rules, ordered differently as different classes, but naively they can be the same. */
+/** Sort keys so equivalent rule objects have deterministic shape. */
 function sortObject<T extends object>(obj: T): T {
   return Object.keys(obj)
     .sort()
@@ -277,7 +284,7 @@ function collectStylexGenerationData(config: Config): {
 // ── StyleX Code Generator ─────────────────────────────────────────────
 
 /**
- * For the "stylex" target, we generate an emotion-style CssBuilder (for IDE autocomplete
+ * For the "stylex" target, we generate a stylex-friendly CssBuilder (for IDE autocomplete
  * and type checking) but with `CssProp` typed to be compatible with StyleX refs.
  *
  * The actual StyleX transformation happens at build time via the truss Vite plugin,
