@@ -1,34 +1,38 @@
 #!/usr/bin/env node
 
-// Hook up ts-node so we can require a TypeScript file
-const { register } = require("ts-node");
-// Pass `module: commonjs` to handle vite projects that use `module: esnext`
+import { createRequire } from "node:module";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { register } from "ts-node";
+import { generate } from "./build/index.js";
+
+const require = createRequire(import.meta.url);
+
+// Hook up ts-node so we can require a TypeScript file.
+// Pass `module: commonjs` to handle vite projects that use `module: esnext`.
 register({ transpileOnly: true, compilerOptions: { module: "commonjs" } });
 
-// Maybe get the custom filename (or path to filename)
 const filename = process.argv[2] ?? "./truss-config.ts";
-// Get the config from the root project directory
-const configPath = require("path").join(process.cwd(), filename);
-
-// Use dynamic import() to support both CJS and ESM packages
-async function main() {
-  let config;
-  try {
-    config = require(configPath).default;
-  } catch (err) {
-    if (err.code === "ERR_REQUIRE_ESM") {
-      config = (await import(configPath)).default;
-    } else {
-      throw err;
-    }
-  }
-
-  const { generate } = require("./build/index.js");
-  await generate(config);
-  console.log(`Generated ${config.outputPath}`);
-}
+const configPath = join(process.cwd(), filename);
 
 main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+async function main() {
+  const config = await loadConfig(configPath);
+  await generate(config);
+  console.log(`Generated ${config.outputPath}`);
+}
+
+async function loadConfig(configPath) {
+  try {
+    return require(configPath).default;
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "ERR_REQUIRE_ESM") {
+      return (await import(pathToFileURL(configPath).href)).default;
+    }
+    throw err;
+  }
+}

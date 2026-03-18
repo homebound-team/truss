@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import stylex from "@stylexjs/unplugin";
-import { trussPlugin } from "../stylex/src/index.ts";
+import { trussPlugin } from "@homebound/truss/plugin";
 
 // Compile-in-app setup:
 // Add libraries that ship untransformed `Css.*.$` usage.

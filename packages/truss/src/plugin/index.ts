@@ -1,4 +1,3 @@
-import type { Plugin } from "vite";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import type { TrussMapping } from "./types";
@@ -11,6 +10,14 @@ export interface TrussPluginOptions {
   externalPackages?: string[];
 }
 
+export interface TrussVitePlugin {
+  name: string;
+  enforce?: "pre" | "post";
+  configResolved?: (config: { root: string }) => void;
+  buildStart?: () => void;
+  transform?: (code: string, id: string) => { code: string; map: any } | null;
+}
+
 /**
  * Vite plugin that transforms `Css.*.$` expressions from truss's CssBuilder DSL
  * into file-local `stylex.create()` + `stylex.props()` calls.
@@ -18,7 +25,7 @@ export interface TrussPluginOptions {
  * Must be placed BEFORE the StyleX unplugin in the plugins array so that
  * StyleX's babel plugin can process the generated `stylex.create()` calls.
  */
-export function trussPlugin(opts: TrussPluginOptions): Plugin {
+export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let mapping: TrussMapping | null = null;
   let projectRoot: string;
   const externalPackages = opts.externalPackages ?? [];
@@ -40,7 +47,7 @@ export function trussPlugin(opts: TrussPluginOptions): Plugin {
     name: "truss-stylex",
     enforce: "pre",
 
-    configResolved(config) {
+    configResolved(config: { root: string }) {
       projectRoot = config.root;
     },
 
@@ -48,7 +55,7 @@ export function trussPlugin(opts: TrussPluginOptions): Plugin {
       ensureMapping();
     },
 
-    transform(code, id) {
+    transform(code: string, id: string) {
       // Only process JS/TS/JSX/TSX files
       if (!/\.[cm]?[jt]sx?(\?|$)/.test(id)) return null;
       // Fast bail: skip files that don't reference Css

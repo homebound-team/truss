@@ -3,7 +3,7 @@ import { transformTruss } from "./transform";
 import { loadMapping } from "./index";
 import { resolve } from "path";
 
-const mapping = loadMapping(resolve(__dirname, "../../app-stylex/src/Css.json"));
+const mapping = loadMapping(resolve(__dirname, "../../../app-stylex/src/Css.json"));
 
 describe("transform", () => {
   test("returns null for files without Css import", () => {

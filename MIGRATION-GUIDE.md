@@ -416,7 +416,7 @@ The custom JSX runtime (`jsxImportSource: "@homebound/fast-css-prop"`) is no lon
 3. Add the Vite plugin chain:
 
    ```ts
-   import { trussPlugin } from "@homebound/truss-stylex";
+   import { trussPlugin } from "@homebound/truss/plugin";
    import stylexPlugin from "@stylexjs/vite-plugin";
    import react from "@vitejs/plugin-react";
 

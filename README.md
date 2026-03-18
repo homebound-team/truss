@@ -118,68 +118,67 @@ Install the StyleX build dependencies in the app:
 
 ```bash
 npm install @stylexjs/stylex
-npm install --save-dev @stylexjs/unplugin @homebound/truss-stylex
+npm install --save-dev @stylexjs/unplugin @homebound/truss
 ```
 
 1. In the **library** package (i.e. your shared, company-wide component library) that defines your Truss styles/design system tokens, set `target: "stylex"` and run codegen.
 
-    ```ts
-    // truss-config.ts
-    export default defineConfig({
-      outputPath: "./src/Css.ts",
-      target: "stylex",
-      // optional: defaults to ./src/Css.json based on outputPath
-      mappingOutputPath: "./src/Css.json",
-      // ...palette/fonts/increment/etc
-    });
-    ```
-   
-   Notes:
+   ```ts
+   // truss-config.ts
+   export default defineConfig({
+     outputPath: "./src/Css.ts",
+     target: "stylex",
+     // optional: defaults to ./src/Css.json based on outputPath
+     mappingOutputPath: "./src/Css.json",
+     // ...palette/fonts/increment/etc
+   });
+   ```
 
+   Notes:
    - Do **not** run `trussPlugin(...)` in the library build; leave `Css.*.$` untransformed, as they'll be rewritten by each downstream applications' build.
    - If the library runs Vitest, use `trussPlugin(...)` there (tests only):
 
-        ```ts
-        // vitest.config.ts (library package)
-        import { defineConfig } from "vitest/config";
-        import stylex from "@stylexjs/unplugin";
-        import { trussPlugin } from "@homebound/truss-stylex";
+     ```ts
+     // vitest.config.ts (library package)
+     import { defineConfig } from "vitest/config";
+     import stylex from "@stylexjs/unplugin";
+     import { trussPlugin } from "@homebound/truss/plugin";
 
-        export default defineConfig({
-          plugins: [trussPlugin({ mapping: "./src/Css.json" }), stylex.vite({ runtimeInjection: true })],
-          test: {
-            environment: "jsdom",
-          },
-        });
-        ```
+     export default defineConfig({
+       plugins: [trussPlugin({ mapping: "./src/Css.json" }), stylex.vite({ runtimeInjection: true })],
+       test: {
+         environment: "jsdom",
+       },
+     });
+     ```
 
 2. Publish the design system library's `Css` module and generated `Css.json` (for example in `dist/`), along with library files that contain `Css.*.$` usage, to npm/other repository. Then:
    - Application code can import the design system styles directly, e.g. `import { Css } from "@company/library"`.
    - The application does **not** need to run its own Truss codegen step
    - In the application's Vite config, run Truss plugin before StyleX, and configure both plugins with the same external package list:
 
-        ```ts
-        import { defineConfig } from "vite";
-        import react from "@vitejs/plugin-react";
-        import stylex from "@stylexjs/unplugin";
-        import { trussPlugin } from "@homebound/truss-stylex";
+     ```ts
+     import { defineConfig } from "vite";
+     import react from "@vitejs/plugin-react";
+     import stylex from "@stylexjs/unplugin";
+     import { trussPlugin } from "@homebound/truss/plugin";
 
-        // Any upstream libraries (if any) that are using our `Css.*.$` syntax
-        // and so need to be compiled by the Truss plugin
-        const externalPackages = ["@company/library"];
+     // Any upstream libraries (if any) that are using our `Css.*.$` syntax
+     // and so need to be compiled by the Truss plugin
+     const externalPackages = ["@company/library"];
 
-        export default defineConfig({
-          plugins: [
-            trussPlugin({
-              // If you don't have a design library, just pass ./src/Css.json
-              mapping: "./node_modules/@company/library/dist/Css.json",
-              externalPackages,
-            }),
-            stylex.vite({ externalPackages, useCSSLayers: true, }),
-            react(),
-          ],
-        });
-        ```
+     export default defineConfig({
+       plugins: [
+         trussPlugin({
+           // If you don't have a design library, just pass ./src/Css.json
+           mapping: "./node_modules/@company/library/dist/Css.json",
+           externalPackages,
+         }),
+         stylex.vite({ externalPackages, useCSSLayers: true }),
+         react(),
+       ],
+     });
+     ```
 
 Notes:
 

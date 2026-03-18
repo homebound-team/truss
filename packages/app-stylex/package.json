@@ -4,14 +4,13 @@
   "version": "1.137.5",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "yarn workspace @homebound/truss run build && vite",
+    "build": "yarn workspace @homebound/truss run build && tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest --run",
+    "test": "yarn workspace @homebound/truss run build && vitest --run",
     "codegen": "node ../truss/cli.js truss-config.ts"
   },
   "dependencies": {
-    "@homebound/truss-stylex": "workspace:*",
     "@stylexjs/stylex": "^0.18.1",
     "csstype": "^3.2.3",
     "react": "^19.2.4",

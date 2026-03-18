@@ -4,7 +4,7 @@
   "license": "ISC",
   "private": true,
   "scripts": {
-    "build": "tspc --build",
+    "build": "tspc --build && yarn workspace @homebound/truss run build",
     "test": "yarn workspaces foreach --all run test",
     "semantic-release": "semantic-release",
     "codegen": "yarn workspaces foreach run codegen"
@@ -18,7 +18,6 @@
     "packages/testing-tachyons-emotion",
     "packages/testing-tachyons-mui",
     "packages/app-tachyons-fela-prop",
-    "packages/stylex",
     "packages/app-stylex"
   ],
   "devDependencies": {
