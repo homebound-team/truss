@@ -1,5 +1,6 @@
 import { parse } from "@babel/parser";
 import _traverse from "@babel/traverse";
+import type { NodePath } from "@babel/traverse";
 import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
@@ -22,13 +23,13 @@ import {
 } from "./emit-stylex";
 import { rewriteExpressionSites, type ExpressionSite } from "./rewrite-sites";
 
-// Handle CJS/ESM interop for babel packages
-const traverse = (typeof _traverse === "function" ? _traverse : (_traverse as any).default) as typeof _traverse;
-const generate = (typeof _generate === "function" ? _generate : (_generate as any).default) as typeof _generate;
+// Babel packages are CJS today; normalize default interop across loaders.
+const traverse = ((_traverse as unknown as { default?: typeof _traverse }).default ?? _traverse) as typeof _traverse;
+const generate = ((_generate as unknown as { default?: typeof _generate }).default ?? _generate) as typeof _generate;
 
 export interface TransformResult {
   code: string;
-  map?: any;
+  map?: unknown;
 }
 
 /**
@@ -58,7 +59,7 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   const errorMessages: Array<{ message: string; line: number | null }> = [];
 
   traverse(ast, {
-    MemberExpression(path) {
+    MemberExpression(path: NodePath<t.MemberExpression>) {
       if (!t.isIdentifier(path.node.property, { name: "$" })) return;
       if (path.node.computed) return;
 
@@ -160,7 +161,9 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
  * Collect the names of marker variables referenced in `whenPseudo.markerNode`
  * across all stylex.create entries. These need to be hoisted above stylex.create.
  */
-function collectReferencedMarkerNames(createEntries: Map<string, { whenPseudo?: { markerNode?: any } }>): Set<string> {
+function collectReferencedMarkerNames(
+  createEntries: Map<string, { whenPseudo?: { markerNode?: t.Node } }>,
+): Set<string> {
   const names = new Set<string>();
   for (const [, entry] of createEntries) {
     if (entry.whenPseudo?.markerNode && entry.whenPseudo.markerNode.type === "Identifier") {

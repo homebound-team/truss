@@ -1,9 +1,23 @@
 {
   "name": "@homebound/truss",
   "version": "1.137.5",
+  "type": "module",
   "main": "build/index.js",
   "bin": "cli.js",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.js",
+      "default": "./build/index.js"
+    },
+    "./plugin": {
+      "types": "./build/plugin/index.d.ts",
+      "import": "./build/plugin/index.js",
+      "default": "./build/plugin/index.js"
+    }
+  },
   "scripts": {
+    "build": "tsup --config tsup.config.ts",
     "test": "vitest --run"
   },
   "license": "ISC",
@@ -15,7 +29,10 @@
   },
   "devDependencies": {
     "@homebound/tsconfig": "^1.1.1",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
     "@types/node": "^25.5.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   }

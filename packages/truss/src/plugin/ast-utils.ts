@@ -64,7 +64,11 @@ export function collectTopLevelBindings(ast: t.File): Set<string> {
  * This handles destructuring (`const { a } = ...`, `const [x] = ...`) so we do
  * not accidentally generate a helper that shadows an existing binding.
  */
-function collectPatternBindings(pattern: t.LVal, used: Set<string>): void {
+function collectPatternBindings(pattern: t.LVal | t.VoidPattern, used: Set<string>): void {
+  if (t.isVoidPattern(pattern)) {
+    return;
+  }
+
   if (t.isIdentifier(pattern)) {
     used.add(pattern.name);
     return;

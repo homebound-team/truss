@@ -1,13 +1,14 @@
 import _traverse from "@babel/traverse";
+import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 import type { ResolvedSegment } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 
-// Handle CJS/ESM interop for babel packages
-const traverse = (typeof _traverse === "function" ? _traverse : (_traverse as any).default) as typeof _traverse;
+// Babel packages are CJS today; normalize default interop across loaders.
+const traverse = ((_traverse as unknown as { default?: typeof _traverse }).default ?? _traverse) as typeof _traverse;
 
 export interface ExpressionSite {
-  path: any; // NodePath<t.MemberExpression>
+  path: NodePath<t.MemberExpression>;
   resolvedChain: ResolvedChain;
 }
 
@@ -99,7 +100,7 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
  * Return the enclosing `css={...}` JSX attribute path for a transformed site,
  * or null when the site is in a non-`css` expression context.
  */
-function getCssAttributePath(path: any): any | null {
+function getCssAttributePath(path: NodePath<t.MemberExpression>): NodePath<t.JSXAttribute> | null {
   const parentPath = path.parentPath;
   if (!parentPath || !parentPath.isJSXExpressionContainer()) return null;
 
@@ -194,7 +195,7 @@ function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOption
  */
 function rewriteCssArrayExpressions(ast: t.File, stylexNamespaceName: string): void {
   traverse(ast, {
-    JSXAttribute(path) {
+    JSXAttribute(path: NodePath<t.JSXAttribute>) {
       if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
       const value = path.node.value;
       if (!t.isJSXExpressionContainer(value)) return;
