@@ -1,6 +1,5 @@
 import type { Aliases, FontConfig } from "@homebound/truss";
-import truss from "@homebound/truss";
-const { defineConfig } = truss;
+import { defineConfig } from "@homebound/truss";
 
 const increment = 8;
 const numberOfIncrements = 4;
