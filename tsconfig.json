@@ -1,12 +1,9 @@
 {
   "references": [
-    { "path": "./packages/fast-css-prop" },
     { "path": "./packages/truss" },
     { "path": "./packages/template-tachyons" },
     { "path": "./packages/testing-tachyons" },
-    { "path": "./packages/testing-tachyons-rn" },
-    { "path": "./packages/testing-tachyons-emotion" },
-    { "path": "./packages/testing-tachyons-mui" }
+    { "path": "./packages/testing-tachyons-rn" }
   ],
   "files": [],
   "include": [],
