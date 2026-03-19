@@ -1,7 +1,8 @@
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, existsSync } from "fs";
+import { resolve, dirname, isAbsolute } from "path";
 import type { TrussMapping } from "./types";
 import { transformTruss } from "./transform";
+import { transformCssTs } from "./transform-css";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
@@ -15,12 +16,21 @@ export interface TrussVitePlugin {
   enforce?: "pre" | "post";
   configResolved?: (config: { root: string }) => void;
   buildStart?: () => void;
+  resolveId?: (source: string, importer: string | undefined) => string | null;
+  load?: (id: string) => string | null;
   transform?: (code: string, id: string) => { code: string; map: any } | null;
 }
+
+/** Prefix for virtual CSS module IDs generated from .css.ts files. */
+const VIRTUAL_CSS_PREFIX = "\0truss-css:";
 
 /**
  * Vite plugin that transforms `Css.*.$` expressions from truss's CssBuilder DSL
  * into file-local `stylex.create()` + `stylex.props()` calls.
+ *
+ * Also supports `.css.ts` files: a `.css.ts` file with `export default { ".selector": Css.blue.$ }`
+ * is transformed into a virtual CSS module. Imports of `.css.ts` files are rewritten
+ * to load the generated CSS.
  *
  * Must be placed BEFORE the StyleX unplugin in the plugins array so that
  * StyleX's babel plugin can process the generated `stylex.create()` calls.
@@ -53,6 +63,37 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
     buildStart() {
       ensureMapping();
+    },
+
+    resolveId(source: string, importer: string | undefined) {
+      if (!source.endsWith(".css.ts")) return null;
+
+      // Resolve the .css.ts path relative to the importer
+      let absolutePath: string;
+      if (isAbsolute(source)) {
+        absolutePath = source;
+      } else if (importer) {
+        absolutePath = resolve(dirname(importer), source);
+      } else {
+        absolutePath = resolve(projectRoot || process.cwd(), source);
+      }
+
+      // Only handle it if the .css.ts file actually exists
+      if (!existsSync(absolutePath)) return null;
+
+      // Return a virtual CSS module ID that maps back to the source .css.ts file.
+      // Strip the trailing `.ts` so the ID ends in `.css` — this tells Vite to
+      // route the loaded content through its CSS pipeline.
+      return VIRTUAL_CSS_PREFIX + absolutePath.slice(0, -3);
+    },
+
+    load(id: string) {
+      if (!id.startsWith(VIRTUAL_CSS_PREFIX)) return null;
+
+      // Re-add `.ts` to recover the original source file path
+      const sourcePath = id.slice(VIRTUAL_CSS_PREFIX.length) + ".ts";
+      const sourceCode = readFileSync(sourcePath, "utf8");
+      return transformCssTs(sourceCode, sourcePath, ensureMapping());
     },
 
     transform(code: string, id: string) {
