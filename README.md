@@ -191,6 +191,58 @@ Notes:
 - `externalPackages` should match in both plugins.
 - `useCSSLayers` controls precedence with existing app CSS (`false` if StyleX should win over existing custom styles; otherwise `true`).
 
+### Arbitrary Selectors with `.css.ts` Files
+
+StyleX intentionally limits the selectors you can use (no descendant combinators, no `:nth-child`, etc.). When you need complex selectors that StyleX can't express, you can use a `.css.ts` file to write plain CSS while still using Truss's design tokens and abbreviations.
+
+Create a file with the `.css.ts` extension:
+
+```ts
+// DataGrid.css.ts
+import { Css } from "./Css";
+
+export default {
+  ".ag-row:nth-child(odd)": Css.bgWhite.$,
+  ".ag-header-cell > .ag-cell-label-container": Css.df.aic.gap1.$,
+  ".ag-cell:focus-visible": Css.bBlue.ba.$,
+};
+```
+
+Then import it from your component:
+
+```tsx
+// DataGrid.tsx
+import "./DataGrid.css.ts";
+```
+
+At build time, the Truss Vite plugin resolves each `Css.*.$` chain to its concrete CSS values and emits a plain CSS file. The example above produces:
+
+```css
+.ag-row:nth-child(odd) {
+  background-color: #fcfcfa;
+}
+
+.ag-header-cell > .ag-cell-label-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ag-cell:focus-visible {
+  border-color: #526675;
+  border-style: solid;
+  border-width: 1px;
+}
+```
+
+This gives you the best of both worlds: Truss's design-token consistency (colors, spacing increments) with full CSS selector power.
+
+**Limitations:**
+
+- Only static and literal-argument chains are supported (e.g. `Css.df.$`, `Css.mt(2).$`, `Css.mtPx(12).$`)
+- Runtime/variable arguments (`Css.mt(x).$`), conditionals (`Css.if(cond).df.$`), pseudo-class modifiers (`Css.onHover.blue.$`), and media query modifiers (`Css.ifSm.blue.$`) are not supported — write those directly in your selectors instead
+- Invalid chains produce an inline CSS comment (`/* [truss] unsupported: ... */`) rather than failing the build
+
 ### Truss Command
 
 The truss command accepts an optional second argument which is the path to your
