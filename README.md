@@ -201,7 +201,7 @@ Create a file with the `.css.ts` extension:
 // DataGrid.css.ts
 import { Css } from "./Css";
 
-export default {
+export const css = {
   ".ag-row:nth-child(odd)": Css.bgWhite.$,
   ".ag-header-cell > .ag-cell-label-container": Css.df.aic.gap1.$,
   ".ag-cell:focus-visible": Css.bBlue.ba.$,

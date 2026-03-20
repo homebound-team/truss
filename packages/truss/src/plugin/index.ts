@@ -3,6 +3,7 @@ import { resolve, dirname, isAbsolute } from "path";
 import type { TrussMapping } from "./types";
 import { transformTruss } from "./transform";
 import { transformCssTs } from "./transform-css";
+import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
@@ -23,14 +24,15 @@ export interface TrussVitePlugin {
 
 /** Prefix for virtual CSS module IDs generated from .css.ts files. */
 const VIRTUAL_CSS_PREFIX = "\0truss-css:";
+const CSS_TS_QUERY = "?truss-css";
 
 /**
  * Vite plugin that transforms `Css.*.$` expressions from truss's CssBuilder DSL
  * into file-local `stylex.create()` + `stylex.props()` calls.
  *
- * Also supports `.css.ts` files: a `.css.ts` file with `export default { ".selector": Css.blue.$ }`
- * is transformed into a virtual CSS module. Imports of `.css.ts` files are rewritten
- * to load the generated CSS.
+ * Also supports `.css.ts` files: a `.css.ts` file with
+ * `export const css = { ".selector": Css.blue.$ }` can keep other runtime exports,
+ * while imports are supplemented with a virtual CSS side-effect module.
  *
  * Must be placed BEFORE the StyleX unplugin in the plugins array so that
  * StyleX's babel plugin can process the generated `stylex.create()` calls.
@@ -66,17 +68,9 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     },
 
     resolveId(source: string, importer: string | undefined) {
-      if (!source.endsWith(".css.ts")) return null;
+      if (!source.endsWith(CSS_TS_QUERY)) return null;
 
-      // Resolve the .css.ts path relative to the importer
-      let absolutePath: string;
-      if (isAbsolute(source)) {
-        absolutePath = source;
-      } else if (importer) {
-        absolutePath = resolve(dirname(importer), source);
-      } else {
-        absolutePath = resolve(projectRoot || process.cwd(), source);
-      }
+      const absolutePath = resolveImportPath(source.slice(0, -CSS_TS_QUERY.length), importer, projectRoot);
 
       // Only handle it if the .css.ts file actually exists
       if (!existsSync(absolutePath)) return null;
@@ -99,19 +93,52 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     transform(code: string, id: string) {
       // Only process JS/TS/JSX/TSX files
       if (!/\.[cm]?[jt]sx?(\?|$)/.test(id)) return null;
-      // Fast bail: skip files that don't reference Css
-      if (!code.includes("Css")) return null;
+
+      const rewrittenImports = rewriteCssTsImports(code, id);
+      const rewrittenCode = rewrittenImports.code;
+      const hasCssDsl = rewrittenCode.includes("Css");
+      if (!hasCssDsl && !rewrittenImports.changed) return null;
 
       const fileId = stripQueryAndHash(id);
       if (isNodeModulesFile(fileId) && !isWhitelistedExternalPackageFile(fileId, externalPackages)) {
         return null;
       }
 
-      const result = transformTruss(code, id, ensureMapping());
-      if (!result) return null;
+      if (fileId.endsWith(".css.ts")) {
+        // Keep `.css.ts` modules as normal TS so named exports like class-name
+        // constants still work at runtime; only return code when we injected the
+        // companion `?truss-css` side-effect import.
+        return rewrittenImports.changed ? { code: rewrittenCode, map: null } : null;
+      }
+
+      if (!hasCssDsl) {
+        // Some non-`.css.ts` modules only need the import rewrite and do not have
+        // any `Css.*.$` expressions for the main Truss transform to process.
+        return { code: rewrittenCode, map: null };
+      }
+
+      // For regular JS/TS modules that still use the DSL, run the full Truss
+      // transform after the import rewrite so both behaviors compose.
+      const result = transformTruss(rewrittenCode, id, ensureMapping());
+      if (!result) {
+        if (!rewrittenImports.changed) return null;
+        return { code: rewrittenCode, map: null };
+      }
       return { code: result.code, map: result.map };
     },
   };
+}
+
+function resolveImportPath(source: string, importer: string | undefined, projectRoot: string | undefined): string {
+  if (isAbsolute(source)) {
+    return source;
+  }
+
+  if (importer) {
+    return resolve(dirname(importer), source);
+  }
+
+  return resolve(projectRoot || process.cwd(), source);
 }
 
 /** Strip Vite query/hash suffixes from an id. */
