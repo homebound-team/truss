@@ -514,7 +514,7 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
 
   if (t.isCallExpression(expr)) {
     const returnExpr = getCallStyleArrayLikeExpression(expr, path);
-    return !!(returnExpr && isStyleArrayLike(returnExpr, path, seen)); // I.e. `getStyles()`
+    return returnExpr ? isStyleArrayLike(returnExpr, path, seen) : true; // I.e. `getStyles()` or imported `getFromAnotherFile()`
   }
 
   if (t.isMemberExpression(expr)) {

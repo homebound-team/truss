@@ -943,6 +943,30 @@ describe("transform", () => {
     );
   });
 
+  test("external call expression in css prop is assumed style-array-like", () => {
+    expect(
+      n(
+        transform(`
+          import { getFromAnotherFile } from "./other";
+          import { Css } from "./Css";
+
+          function Example({ param, content }) {
+            return <div css={getFromAnotherFile(param)}><span css={Css.blue.$}>{content}</span></div>;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import { getFromAnotherFile } from "./other";
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ blue: { color: "#526675" } });
+        function Example({ param, content }) {
+          return <div {...stylex.props(...getFromAnotherFile(param))}><span {...stylex.props(css.blue)}>{content}</span></div>;
+        }
+      `),
+    );
+  });
+
   test("skipped css prop rewrite emits console.error with reason and location", () => {
     expect(
       n(
@@ -958,7 +982,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({ df: { display: "flex" } });
-        console.error("[truss] Unsupported pattern: Could not rewrite css prop: spread argument is not style-array-like (cssProp) (test.tsx:6)");
+        console.error("[truss] Unsupported pattern: Could not rewrite css prop: object contains a non-spread property ({...cssProp,foo:true}) (test.tsx:6)");
         const base = [css.df];
         const cssProp = getCssProp();
         const el = <div css={{ ...cssProp, foo: true }} />;
