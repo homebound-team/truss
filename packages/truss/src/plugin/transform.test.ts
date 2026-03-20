@@ -576,6 +576,38 @@ describe("transform", () => {
     );
   });
 
+  test("css prop object with only intermediate style-array spreads is lowered", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; function MyComponent({ disabled, someConst }) { const styles = { wrapper: { ...Css.df.aic.ba.$, ...(disabled ? Css.black.$ : {}) }, hover: Css.bgBlue.$ }; return <div className={someConst} css={{ ...styles.wrapper, ...(disabled ? styles.hover : {}) }}>Hello</div>; }`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        function __mergeProps(explicitClassName, ...styles) {
+          const sx = stylex.props(...styles);
+          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
+        }
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          ba: { borderStyle: "solid", borderWidth: "1px" },
+          black: { color: "#353535" },
+          bgBlue: { backgroundColor: "#526675" }
+        });
+        function MyComponent({ disabled, someConst }) {
+          const styles = {
+            wrapper: [css.df, css.aic, css.ba, ...(disabled ? [css.black] : [])],
+            hover: [css.bgBlue]
+          };
+          return <div {...__mergeProps(someConst, ...styles.wrapper, ...(disabled ? styles.hover : []))}>Hello</div>;
+        }
+      `),
+    );
+  });
+
   test("style-array object member in css prop is lowered to stylex.props", () => {
     expect(
       n(
@@ -707,8 +739,12 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div className="existing" css={Css.df.$} />;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        function __mergeProps(explicitClassName, ...styles) {
+          const sx = stylex.props(...styles);
+          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
+        }
         const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...(__r => ({ ...__r, className: ("existing" + " " + (__r.className || "")).trim() }))(stylex.props(css.df))} />;
+        const el = <div {...__mergeProps("existing", css.df)} />;
       `),
     );
   });
@@ -723,9 +759,13 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        function __mergeProps(explicitClassName, ...styles) {
+          const sx = stylex.props(...styles);
+          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
+        }
         const css = stylex.create({ df: { display: "flex" } });
         const cls = getClass();
-        const el = <div {...(__r => ({ ...__r, className: (cls + " " + (__r.className || "")).trim() }))(stylex.props(css.df))} />;
+        const el = <div {...__mergeProps(cls, css.df)} />;
       `),
     );
   });

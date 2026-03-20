@@ -18,6 +18,8 @@ export interface RewriteSitesOptions {
   createVarName: string;
   stylexNamespaceName: string;
   maybeIncHelperName: string | null;
+  mergePropsHelperName: string;
+  needsMergePropsHelper: { current: boolean };
   runtimeLookupNames: Map<string, string>;
 }
 
@@ -38,55 +40,11 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
         t.memberExpression(t.identifier(options.stylexNamespaceName), t.identifier("props")),
         propsArgs,
       );
-
-      const openingElement = cssAttrPath.parentPath;
-      let existingClassNameExpr: t.Expression | null = null;
-
-      if (openingElement && openingElement.isJSXOpeningElement()) {
-        const attrs = openingElement.node.attributes;
-        for (let i = 0; i < attrs.length; i++) {
-          const attr = attrs[i];
-          if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name, { name: "className" })) {
-            if (t.isStringLiteral(attr.value)) {
-              existingClassNameExpr = attr.value;
-            } else if (t.isJSXExpressionContainer(attr.value) && t.isExpression(attr.value.expression)) {
-              existingClassNameExpr = attr.value.expression;
-            }
-            attrs.splice(i, 1);
-            break;
-          }
-        }
-      }
-
-      let spreadExpr: t.Expression;
-      if (existingClassNameExpr) {
-        const rId = t.identifier("__r");
-        // Keep existing className values while appending StyleX-generated className.
-        // We do this in a tiny IIFE so the generated expression remains a single
-        // JSX spread without introducing extra statements.
-        const mergedClassName = t.callExpression(
-          t.memberExpression(
-            t.binaryExpression(
-              "+",
-              t.binaryExpression("+", existingClassNameExpr, t.stringLiteral(" ")),
-              t.logicalExpression("||", t.memberExpression(rId, t.identifier("className")), t.stringLiteral("")),
-            ),
-            t.identifier("trim"),
-          ),
-          [],
-        );
-        spreadExpr = t.callExpression(
-          t.arrowFunctionExpression(
-            [rId],
-            t.objectExpression([t.spreadElement(rId), t.objectProperty(t.identifier("className"), mergedClassName)]),
-          ),
-          [propsCall],
-        );
-      } else {
-        spreadExpr = propsCall;
-      }
-
-      cssAttrPath.replaceWith(t.jsxSpreadAttribute(spreadExpr));
+      cssAttrPath.replaceWith(
+        t.jsxSpreadAttribute(
+          buildCssSpreadExpression(cssAttrPath, propsCall, options.mergePropsHelperName, options.needsMergePropsHelper),
+        ),
+      );
       continue;
     }
 
@@ -96,7 +54,12 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
   rewriteStyleObjectExpressions(options.ast);
 
   // Second pass: lower any style-array-like `css={...}` expression to `stylex.props(...)`.
-  rewriteCssAttributeExpressions(options.ast, options.stylexNamespaceName);
+  rewriteCssAttributeExpressions(
+    options.ast,
+    options.stylexNamespaceName,
+    options.mergePropsHelperName,
+    options.needsMergePropsHelper,
+  );
 }
 
 /**
@@ -214,7 +177,12 @@ function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOption
 /**
  * Rewrite style-array-like `css={...}` expressions to `...stylex.props(...)`.
  */
-function rewriteCssAttributeExpressions(ast: t.File, stylexNamespaceName: string): void {
+function rewriteCssAttributeExpressions(
+  ast: t.File,
+  stylexNamespaceName: string,
+  mergePropsHelperName: string,
+  needsMergePropsHelper: { current: boolean },
+): void {
   traverse(ast, {
     JSXAttribute(path: NodePath<t.JSXAttribute>) {
       if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
@@ -230,9 +198,49 @@ function rewriteCssAttributeExpressions(ast: t.File, stylexNamespaceName: string
         t.memberExpression(t.identifier(stylexNamespaceName), t.identifier("props")),
         propsArgs,
       );
-      path.replaceWith(t.jsxSpreadAttribute(propsCall));
+      path.replaceWith(
+        t.jsxSpreadAttribute(buildCssSpreadExpression(path, propsCall, mergePropsHelperName, needsMergePropsHelper)),
+      );
     },
   });
+}
+
+/** Merge existing `className` attr into a rewritten `stylex.props(...)` spread. */
+function buildCssSpreadExpression(
+  path: NodePath<t.JSXAttribute>,
+  propsCall: t.CallExpression,
+  mergePropsHelperName: string,
+  needsMergePropsHelper: { current: boolean },
+): t.Expression {
+  const existingClassNameExpr = removeExistingClassNameAttribute(path);
+  if (!existingClassNameExpr) return propsCall;
+
+  needsMergePropsHelper.current = true;
+  return t.callExpression(t.identifier(mergePropsHelperName), [existingClassNameExpr, ...propsCall.arguments]);
+}
+
+/** Remove sibling `className` and return its expression so rewrites can preserve it. */
+function removeExistingClassNameAttribute(path: NodePath<t.JSXAttribute>): t.Expression | null {
+  const openingElement = path.parentPath;
+  if (!openingElement || !openingElement.isJSXOpeningElement()) return null;
+
+  const attrs = openingElement.node.attributes;
+  for (let i = 0; i < attrs.length; i++) {
+    const attr = attrs[i];
+    if (!t.isJSXAttribute(attr) || !t.isJSXIdentifier(attr.name, { name: "className" })) continue;
+
+    let classNameExpr: t.Expression | null = null;
+    if (t.isStringLiteral(attr.value)) {
+      classNameExpr = attr.value;
+    } else if (t.isJSXExpressionContainer(attr.value) && t.isExpression(attr.value.expression)) {
+      classNameExpr = attr.value.expression;
+    }
+
+    attrs.splice(i, 1);
+    return classNameExpr;
+  }
+
+  return null;
 }
 
 /** Convert `css={{ ...a, ...Css.df.$ }}`-style objects directly to props args. */

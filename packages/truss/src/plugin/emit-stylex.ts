@@ -304,6 +304,47 @@ export function buildMaybeIncDeclaration(helperName: string, increment: number):
   ]);
 }
 
+/** Build the per-file helper used to merge explicit `className` with `stylex.props()`. */
+export function buildMergePropsDeclaration(helperName: string, stylexNamespaceName: string): t.FunctionDeclaration {
+  const explicitClassNameParam = t.identifier("explicitClassName");
+  const stylesRestParam = t.restElement(t.identifier("styles"));
+  const sxId = t.identifier("sx");
+
+  return t.functionDeclaration(
+    t.identifier(helperName),
+    [explicitClassNameParam, stylesRestParam],
+    t.blockStatement([
+      t.variableDeclaration("const", [
+        t.variableDeclarator(
+          sxId,
+          t.callExpression(t.memberExpression(t.identifier(stylexNamespaceName), t.identifier("props")), [
+            t.spreadElement(t.identifier("styles")),
+          ]),
+        ),
+      ]),
+      t.returnStatement(
+        t.objectExpression([
+          t.spreadElement(sxId),
+          t.objectProperty(
+            t.identifier("className"),
+            t.callExpression(
+              t.memberExpression(
+                t.binaryExpression(
+                  "+",
+                  t.binaryExpression("+", explicitClassNameParam, t.stringLiteral(" ")),
+                  t.logicalExpression("||", t.memberExpression(sxId, t.identifier("className")), t.stringLiteral("")),
+                ),
+                t.identifier("trim"),
+              ),
+              [],
+            ),
+          ),
+        ]),
+      ),
+    ]),
+  );
+}
+
 /** Build `const <createVarName> = <stylexNs>.create({...})`. */
 export function buildCreateDeclaration(
   createVarName: string,
