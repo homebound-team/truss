@@ -221,10 +221,9 @@ function rewriteCssAttributeExpressions(ast: t.File, stylexNamespaceName: string
       const value = path.node.value;
       if (!t.isJSXExpressionContainer(value)) return;
       if (!t.isExpression(value.expression)) return;
-      const expr = normalizeStyleArrayLikeExpression(value.expression, path, new Set<t.Node>());
-      if (!expr) return;
-
-      const propsArgs = buildStyleArrayLikePropsArgs(expr, path, new Set<t.Node>());
+      const propsArgs =
+        buildStyleObjectPropsArgs(value.expression, path) ??
+        buildStyleArrayLikePropsArgsFromExpression(value.expression, path);
       if (!propsArgs) return;
 
       const propsCall = t.callExpression(
@@ -234,6 +233,47 @@ function rewriteCssAttributeExpressions(ast: t.File, stylexNamespaceName: string
       path.replaceWith(t.jsxSpreadAttribute(propsCall));
     },
   });
+}
+
+/** Convert `css={{ ...a, ...Css.df.$ }}`-style objects directly to props args. */
+function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expression | t.SpreadElement)[] | null {
+  if (!t.isObjectExpression(expr) || expr.properties.length === 0) return null;
+
+  let sawStyleArray = false;
+  const propsArgs: (t.Expression | t.SpreadElement)[] = [];
+
+  for (const prop of expr.properties) {
+    if (!t.isSpreadElement(prop)) return null;
+
+    const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>()); // I.e. `...cssProp`, `...Css.df.$`, or `...styles.wrapper`
+    if (!normalizedArg) {
+      propsArgs.push(t.spreadElement(prop.argument));
+      continue;
+    }
+
+    if (isStyleArrayLike(normalizedArg, path, new Set<t.Node>())) {
+      sawStyleArray = true;
+    }
+
+    const nestedArgs = buildStyleArrayLikePropsArgs(normalizedArg, path, new Set<t.Node>());
+    if (nestedArgs && t.isArrayExpression(normalizedArg)) {
+      propsArgs.push(...nestedArgs);
+    } else {
+      propsArgs.push(t.spreadElement(normalizedArg));
+    }
+  }
+
+  return sawStyleArray ? propsArgs : null;
+}
+
+/** Normalize and lower a style-array-like expression into props args. */
+function buildStyleArrayLikePropsArgsFromExpression(
+  expr: t.Expression,
+  path: NodePath,
+): (t.Expression | t.SpreadElement)[] | null {
+  const normalizedExpr = normalizeStyleArrayLikeExpression(expr, path, new Set<t.Node>());
+  if (!normalizedExpr) return null;
+  return buildStyleArrayLikePropsArgs(normalizedExpr, path, new Set<t.Node>());
 }
 
 // Style-array-like helpers are shared by object-spread repair and JSX css lowering.

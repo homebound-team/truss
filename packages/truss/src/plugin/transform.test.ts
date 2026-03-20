@@ -544,6 +544,38 @@ describe("transform", () => {
     );
   });
 
+  test("style-array variable named css can be spread inside css prop object", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const css = Css.df.aic.$; const el = <div css={{ ...css }} />;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css_ = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        const css = [css_.df, css_.aic];
+        const el = <div {...stylex.props(...css)} />;
+      `),
+    );
+  });
+
+  test("mixed css prop spread and Css chain spread are lowered together", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; function Box({ cssProp }) { return <div css={{ ...cssProp, ...Css.df.$ }} />; }`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ df: { display: "flex" } });
+        function Box({ cssProp }) { return <div {...stylex.props(...cssProp, css.df)} />; }
+      `),
+    );
+  });
+
   test("style-array object member in css prop is lowered to stylex.props", () => {
     expect(
       n(
