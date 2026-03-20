@@ -1,3 +1,9 @@
+## [2.0.0-next.8](https://github.com/homebound-team/truss/compare/v2.0.0-next.7...v2.0.0-next.8) (2026-03-20)
+
+### Bug Fixes
+
+* Fix another spread scenario ([#150](https://github.com/homebound-team/truss/issues/150)) ([feddee9](https://github.com/homebound-team/truss/commit/feddee951cb1e9b98ecbc503d437970f94e5114e))
+
 ## [2.0.0-next.7](https://github.com/homebound-team/truss/compare/v2.0.0-next.6...v2.0.0-next.7) (2026-03-20)
 
 ### Features
