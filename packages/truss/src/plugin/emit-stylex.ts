@@ -1,5 +1,6 @@
 import * as t from "@babel/types";
 import type { ResolvedChain } from "./resolve-chain";
+import type { ResolvedSegment } from "./types";
 
 export interface CreateEntrySpec {
   /**
@@ -34,7 +35,13 @@ export interface CreateEntrySpec {
 
 export interface CollectedCreateData {
   createEntries: Map<string, CreateEntrySpec>;
+  runtimeLookups: Map<string, RuntimeLookupSpec>;
   needsMaybeInc: boolean;
+}
+
+export interface RuntimeLookupSpec {
+  lookupKey: string;
+  refsByName: Record<string, string[]>;
 }
 
 /**
@@ -45,6 +52,7 @@ export interface CollectedCreateData {
  */
 export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData {
   const createEntries = new Map<string, CreateEntrySpec>();
+  const runtimeLookups = new Map<string, RuntimeLookupSpec>();
   let needsMaybeInc = false;
 
   for (const chain of chains) {
@@ -54,6 +62,11 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
       for (const seg of segs) {
         // Skip error segments — they have no CSS data to emit
         if (seg.error) continue;
+
+        if (seg.typographyLookup) {
+          collectTypographyLookup(createEntries, runtimeLookups, seg);
+          continue;
+        }
 
         if (seg.dynamicProps) {
           if (!createEntries.has(seg.key)) {
@@ -86,7 +99,43 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
     }
   }
 
-  return { createEntries, needsMaybeInc };
+  return { createEntries, runtimeLookups, needsMaybeInc };
+}
+
+function collectTypographyLookup(
+  createEntries: Map<string, CreateEntrySpec>,
+  runtimeLookups: Map<string, RuntimeLookupSpec>,
+  seg: ResolvedSegment,
+): void {
+  const lookup = seg.typographyLookup;
+  if (!lookup) return;
+
+  if (!runtimeLookups.has(lookup.lookupKey)) {
+    runtimeLookups.set(lookup.lookupKey, {
+      lookupKey: lookup.lookupKey,
+      refsByName: Object.fromEntries(
+        Object.entries(lookup.segmentsByName).map(function ([name, segments]) {
+          return [
+            name,
+            segments.map(function (segment) {
+              return segment.key;
+            }),
+          ];
+        }),
+      ),
+    });
+  }
+
+  for (const segments of Object.values(lookup.segmentsByName)) {
+    for (const segment of segments) {
+      if (createEntries.has(segment.key)) continue;
+      createEntries.set(segment.key, {
+        key: segment.key,
+        defs: segment.defs,
+        whenPseudo: segment.whenPseudo,
+      });
+    }
+  }
 }
 
 /**
@@ -265,6 +314,25 @@ export function buildCreateDeclaration(
     t.objectExpression(createProperties),
   ]);
   return t.variableDeclaration("const", [t.variableDeclarator(t.identifier(createVarName), createCall)]);
+}
+
+export function buildRuntimeLookupDeclaration(
+  lookupName: string,
+  createVarName: string,
+  lookup: RuntimeLookupSpec,
+): t.VariableDeclaration {
+  const properties: t.ObjectProperty[] = [];
+
+  for (const [name, refs] of Object.entries(lookup.refsByName)) {
+    const values = refs.map(function (refKey) {
+      return t.memberExpression(t.identifier(createVarName), t.identifier(refKey));
+    });
+    properties.push(t.objectProperty(toPropertyKey(name), t.arrayExpression(values)));
+  }
+
+  return t.variableDeclaration("const", [
+    t.variableDeclarator(t.identifier(lookupName), t.objectExpression(properties)),
+  ]);
 }
 
 /** Convert style definitions to an AST object, recursively. */

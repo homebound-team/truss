@@ -196,6 +196,100 @@ describe("transform", () => {
     );
   });
 
+  test("typography literal: Css.typography('f14').$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.typography("f14").$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ f14: { fontSize: "14px" } });
+        const s = [css.f14];
+      `),
+    );
+  });
+
+  test("typography runtime key: Css.typography(key).$", () => {
+    expect(
+      n(
+        transform(
+          `import { Css, type Typography } from "./Css"; const key: Typography = pickType(); const s = Css.typography(key).$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import { type Typography } from "./Css";
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          f24: { fontSize: "24px" },
+          f18: { fontSize: "18px" },
+          f16: { fontSize: "16px" },
+          f14: { fontSize: "14px" },
+          f12: { fontSize: "12px" },
+          f10: { fontSize: "10px", fontWeight: 500 }
+        });
+        const __typography = {
+          f24: [css.f24],
+          f18: [css.f18],
+          f16: [css.f16],
+          f14: [css.f14],
+          f12: [css.f12],
+          f10: [css.f10]
+        };
+        const key: Typography = pickType();
+        const s = [...(__typography[key] ?? [])];
+      `),
+    );
+  });
+
+  test("typography runtime keys across breakpoint contexts", () => {
+    expect(
+      n(
+        transform(
+          `import { Css, type Typography } from "./Css"; const key: Typography = pickType(); const otherKey: Typography = pickOtherType(); const s = Css.typography(key).ifSm.typography(otherKey).$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import { type Typography } from "./Css";
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          f24: { fontSize: "24px" },
+          f18: { fontSize: "18px" },
+          f16: { fontSize: "16px" },
+          f14: { fontSize: "14px" },
+          f12: { fontSize: "12px" },
+          f10: { fontSize: "10px", fontWeight: 500 },
+          f24__sm: { fontSize: { default: null, "@media (max-width: 599px)": "24px" } },
+          f18__sm: { fontSize: { default: null, "@media (max-width: 599px)": "18px" } },
+          f16__sm: { fontSize: { default: null, "@media (max-width: 599px)": "16px" } },
+          f14__sm: { fontSize: { default: null, "@media (max-width: 599px)": "14px" } },
+          f12__sm: { fontSize: { default: null, "@media (max-width: 599px)": "12px" } },
+          f10__sm: {
+            fontSize: { default: null, "@media (max-width: 599px)": "10px" },
+            fontWeight: { default: null, "@media (max-width: 599px)": 500 }
+          }
+        });
+        const __typography = {
+          f24: [css.f24],
+          f18: [css.f18],
+          f16: [css.f16],
+          f14: [css.f14],
+          f12: [css.f12],
+          f10: [css.f10]
+        };
+        const __typography__sm = {
+          f24: [css.f24__sm],
+          f18: [css.f18__sm],
+          f16: [css.f16__sm],
+          f14: [css.f14__sm],
+          f12: [css.f12__sm],
+          f10: [css.f10__sm]
+        };
+        const key: Typography = pickType();
+        const otherKey: Typography = pickOtherType();
+        const s = [...(__typography[key] ?? []), ...(__typography__sm[otherKey] ?? [])];
+      `),
+    );
+  });
+
   test("Css import is removed when only Css is imported", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`)!)).toBe(
       n(`

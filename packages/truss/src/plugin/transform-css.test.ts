@@ -89,6 +89,21 @@ describe("transformCssTs", () => {
     );
   });
 
+  test("typography literal: Css.typography('f14').$", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css"; export default { ".foo": Css.typography("f14").$ };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        .foo {
+          font-size: 14px;
+        }
+      `),
+    );
+  });
+
   test("delegate with literal: Css.mtPx(12).$", () => {
     const css = transformCssTs(
       `import { Css } from "./Css"; export default { ".foo": Css.mtPx(12).$ };`,
@@ -133,6 +148,17 @@ describe("transformCssTs", () => {
     );
     expect(n(css)).toBe(
       n(`/* [truss] unsupported: ".foo" — dynamic value with variable argument is not supported in .css.ts files */`),
+    );
+  });
+
+  test("error: typography runtime key produces inline comment", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css"; const key = "f14"; export default { ".foo": Css.typography(key).$ };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`/* [truss] unsupported: ".foo" — typography() with a runtime key is not supported in .css.ts files */`),
     );
   });
 

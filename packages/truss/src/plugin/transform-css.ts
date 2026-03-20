@@ -166,6 +166,9 @@ function resolveCssExpression(
       if (seg.dynamicProps && !seg.argResolved) {
         return { error: `dynamic value with variable argument is not supported in .css.ts files` };
       }
+      if (seg.typographyLookup) {
+        return { error: `typography() with a runtime key is not supported in .css.ts files` };
+      }
 
       // Reject segments with media query / pseudo-class / pseudo-element / when modifiers
       if (seg.mediaQuery) {
