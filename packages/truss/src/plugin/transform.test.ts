@@ -598,7 +598,7 @@ describe("transform", () => {
         export const headerRenderFn =
           () =>
           (key, css, content, classNames) => {
-            return <div key={key} {...__mergeProps(classNames, ...(css || []))}><span {...stylex.props(css.blue)}>{content}</span></div>;
+            return <div key={key} {...__mergeProps(classNames, ...(Array.isArray(css) ? css : css ? [css] : []))}><span {...stylex.props(css.blue)}>{content}</span></div>;
           };
       `),
     );
@@ -643,7 +643,7 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({ df: { display: "flex" } });
-        function Box({ cssProp }) { return <div {...stylex.props(...(cssProp || []), css.df)} />; }
+        function Box({ cssProp }) { return <div {...stylex.props(...(Array.isArray(cssProp) ? cssProp : cssProp ? [cssProp] : []), css.df)} />; }
       `),
     );
   });
@@ -663,7 +663,7 @@ describe("transform", () => {
         import { importedStyles } from "./other";
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({ blue: { color: "#526675" } });
-        const el = <div {...stylex.props(...(importedStyles || []), css.blue)} />;
+        const el = <div {...stylex.props(...(Array.isArray(importedStyles) ? importedStyles : importedStyles ? [importedStyles] : []), css.blue)} />;
       `),
     );
   });
@@ -686,10 +686,77 @@ describe("transform", () => {
         const css = stylex.create({ blue: { color: "#526675" } });
         function Box(props) {
           const { xss } = props;
-          return <div {...stylex.props(...(xss || []), css.blue)} />;
+          return <div {...stylex.props(...(Array.isArray(xss) ? xss : xss ? [xss] : []), css.blue)} />;
         }
       `),
     );
+  });
+
+  test("css object with conditional style spread and xss fallback is parenthesized correctly", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Example(props) {
+            const { multiline, wrap, xss, BorderHoverChild } = props;
+            const fieldStyles = {
+              inputWrapperReadOnly: Css.df.$,
+            };
+            return <div css={{
+              ...fieldStyles.inputWrapperReadOnly,
+              ...(multiline ? Css.fdc.aifs.gap2.$ : Css.if(wrap === false).truncate.$),
+              ...xss,
+            }} className={BorderHoverChild} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        function __mergeProps(explicitClassName, ...styles) {
+          const sx = stylex.props(...styles);
+          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
+        }
+        const css = stylex.create({
+          df: { display: "flex" },
+          fdc: { flexDirection: "column" },
+          aifs: { alignItems: "flex-start" },
+          gap2: { gap: "16px" },
+          truncate: { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }
+        });
+        function Example(props) {
+          const { multiline, wrap, xss, BorderHoverChild } = props;
+          const fieldStyles = {
+            inputWrapperReadOnly: [css.df]
+          };
+          return <div {...__mergeProps(BorderHoverChild, ...fieldStyles.inputWrapperReadOnly, ...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])]), ...(Array.isArray(xss) ? xss : xss ? [xss] : []))} />;
+        }
+      `),
+    );
+  });
+
+  test("mergeProps keeps parenthesized spread args from css object rewrites", () => {
+    const result = transform(`
+      import { Css } from "./Css";
+
+      function Example(props) {
+        const { multiline, wrap, xss, BorderHoverChild } = props;
+        const fieldStyles = {
+          inputWrapperReadOnly: Css.df.$,
+        };
+        return <div css={{
+          ...fieldStyles.inputWrapperReadOnly,
+          ...(multiline ? Css.fdc.aifs.gap2.$ : Css.if(wrap === false).truncate.$),
+          ...xss,
+        }} className={BorderHoverChild} />;
+      }
+    `)!;
+
+    expect(result).toContain(
+      "...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])])",
+    );
+    expect(result).toContain("...(Array.isArray(xss) ? xss : xss ? [xss] : [])");
   });
 
   test("css prop object with only intermediate style-array spreads is lowered", () => {
@@ -964,7 +1031,7 @@ describe("transform", () => {
           const { xss, compact } = props;
           const type = "primary";
           const typeStyles = { primary: [css.blue] };
-          const styles = useMemo(() => [...chipBaseStyles(compact), ...typeStyles[type], ...(xss || [])], [type, xss, compact]);
+          const styles = useMemo(() => [...chipBaseStyles(compact), ...typeStyles[type], ...(Array.isArray(xss) ? xss : xss ? [xss] : [])], [type, xss, compact]);
           return <span {...stylex.props(...styles)} />;
         }
       `),

@@ -232,7 +232,11 @@ function lowerCssExpressionToPropsArgs(
   expr: t.Expression,
   path: NodePath<t.JSXAttribute>,
 ): (t.Expression | t.SpreadElement)[] | null {
-  return buildStyleObjectPropsArgs(expr, path) ?? buildStyleArrayLikePropsArgsFromExpression(expr, path);
+  return (
+    buildStyleObjectPropsArgs(expr, path) ??
+    buildStyleArrayLikePropsArgsFromExpression(expr, path) ??
+    buildUnknownCssValuePropsArgs(expr)
+  );
 }
 
 /** Explain why a remaining `css={...}` expression could not be lowered. */
@@ -317,7 +321,7 @@ function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expre
     if (nestedArgs && t.isArrayExpression(normalizedArg)) {
       propsArgs.push(...nestedArgs);
     } else {
-      propsArgs.push(t.spreadElement(normalizedArg));
+      propsArgs.push(t.spreadElement(buildSafeSpreadArgument(normalizedArg)));
     }
   }
 
@@ -362,7 +366,7 @@ function buildStyleArrayLikePropsArgs(
         if (nestedArgs && t.isArrayExpression(normalizedArg)) {
           propsArgs.push(...nestedArgs);
         } else {
-          propsArgs.push(t.spreadElement(normalizedArg));
+          propsArgs.push(t.spreadElement(buildSafeSpreadArgument(normalizedArg)));
         }
         continue;
       }
@@ -380,10 +384,16 @@ function buildStyleArrayLikePropsArgs(
     t.isLogicalExpression(expr) ||
     t.isCallExpression(expr)
   ) {
-    return [t.spreadElement(expr)]; // I.e. `base`, `styles.wrapper`, `base || hover`, or `getStyles()`
+    return [t.spreadElement(buildSafeSpreadArgument(expr))]; // I.e. `base`, `styles.wrapper`, `base || hover`, or `getStyles()`
   }
 
   return null;
+}
+
+/** Lower unknown direct `css={value}` cases through the style-array helper. */
+function buildUnknownCssValuePropsArgs(expr: t.Expression): (t.Expression | t.SpreadElement)[] | null {
+  if (!(t.isIdentifier(expr) || t.isMemberExpression(expr) || t.isCallExpression(expr))) return null;
+  return [t.spreadElement(buildUnknownObjectSpreadFallback(expr))];
 }
 
 /**
@@ -418,7 +428,7 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
       new Set<t.Node>(), // I.e. `...Css.df.$`, `...(cond ? Css.df.$ : {})`, or `...styles.wrapper`
     );
     if (!normalizedArg) {
-      elements.push(t.spreadElement(buildUnknownObjectSpreadFallback(prop.argument)));
+      elements.push(t.spreadElement(buildInlineAsStyleArrayExpression(prop.argument)));
       continue;
     }
 
@@ -431,7 +441,7 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
       continue;
     }
 
-    elements.push(t.spreadElement(normalizedArg));
+    elements.push(t.spreadElement(buildSafeSpreadArgument(normalizedArg)));
   }
 
   if (!sawStyleArray) return null;
@@ -614,7 +624,21 @@ function isEmptyObjectExpression(expr: t.Expression): boolean {
 
 /** Convert unknown object-spread values into safe iterable fallbacks for `stylex.props(...)`. */
 function buildUnknownObjectSpreadFallback(expr: t.Expression): t.Expression {
-  return t.logicalExpression("||", expr, t.arrayExpression([]));
+  return buildInlineAsStyleArrayExpression(expr);
+}
+
+/** Inline arrayification for non-JSX object rewrites where helper injection is unavailable. */
+function buildInlineAsStyleArrayExpression(expr: t.Expression): t.Expression {
+  return t.conditionalExpression(
+    t.callExpression(t.memberExpression(t.identifier("Array"), t.identifier("isArray")), [expr]),
+    expr,
+    t.conditionalExpression(expr, t.arrayExpression([expr]), t.arrayExpression([])),
+  );
+}
+
+/** Parenthesize spread arguments that need grouping in emitted code. */
+function buildSafeSpreadArgument(expr: t.Expression): t.Expression {
+  return t.isConditionalExpression(expr) || t.isLogicalExpression(expr) ? t.parenthesizedExpression(expr) : expr;
 }
 
 /** Resolve static property names for `styles.wrapper` or `styles["wrapper"]`. */
