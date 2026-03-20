@@ -585,7 +585,51 @@ describe("transform", () => {
       n(`
         import * as stylex from "@stylexjs/stylex";
         const css = stylex.create({ df: { display: "flex" } });
-        function Box({ cssProp }) { return <div {...stylex.props(...cssProp, css.df)} />; }
+        function Box({ cssProp }) { return <div {...stylex.props(...(cssProp || []), css.df)} />; }
+      `),
+    );
+  });
+
+  test("imported spread plus inline Css spread is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { importedStyles } from "./other";
+          import { Css } from "./Css";
+
+          const el = <div css={{ ...importedStyles, ...Css.blue.$ }} />;
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import { importedStyles } from "./other";
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ blue: { color: "#526675" } });
+        const el = <div {...stylex.props(...(importedStyles || []), css.blue)} />;
+      `),
+    );
+  });
+
+  test("props spread plus inline Css spread uses safe fallback when xss is undefined", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Box(props) {
+            const { xss } = props;
+            return <div css={{ ...xss, ...Css.blue.$ }} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ blue: { color: "#526675" } });
+        function Box(props) {
+          const { xss } = props;
+          return <div {...stylex.props(...(xss || []), css.blue)} />;
+        }
       `),
     );
   });

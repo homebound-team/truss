@@ -291,7 +291,7 @@ function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expre
 
     const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>()); // I.e. `...cssProp`, `...Css.df.$`, or `...styles.wrapper`
     if (!normalizedArg) {
-      propsArgs.push(t.spreadElement(prop.argument));
+      propsArgs.push(t.spreadElement(buildUnknownObjectSpreadFallback(prop.argument)));
       continue;
     }
 
@@ -539,6 +539,11 @@ function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName
 /** Check for `{}` fallback branches that should become `[]`. */
 function isEmptyObjectExpression(expr: t.Expression): boolean {
   return t.isObjectExpression(expr) && expr.properties.length === 0;
+}
+
+/** Convert unknown object-spread values into safe iterable fallbacks for `stylex.props(...)`. */
+function buildUnknownObjectSpreadFallback(expr: t.Expression): t.Expression {
+  return t.logicalExpression("||", expr, t.arrayExpression([]));
 }
 
 /** Resolve static property names for `styles.wrapper` or `styles["wrapper"]`. */
