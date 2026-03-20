@@ -1,3 +1,9 @@
+## [2.0.0-next.4](https://github.com/homebound-team/truss/compare/v2.0.0-next.3...v2.0.0-next.4) (2026-03-20)
+
+### Features
+
+* Add Css.typography to replace Css[key] pattern. ([#146](https://github.com/homebound-team/truss/issues/146)) ([67e098b](https://github.com/homebound-team/truss/commit/67e098b8a1ba9bc03d94e03f5edc67f78cebde4c))
+
 ## [2.0.0-next.3](https://github.com/homebound-team/truss/compare/v2.0.0-next.2...v2.0.0-next.3) (2026-03-20)
 
 ### Bug Fixes
