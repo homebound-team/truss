@@ -499,6 +499,44 @@ describe("transform", () => {
     );
   });
 
+  test("object spread composition rewrites to style array", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const styles = { wrapper: { ...Css.df.aic.$, ...(someCondition ? Css.black.$ : Css.blue.$), ...(!compound ? Css.ba.$ : {}) }, hover: Css.bgBlue.$ }; const el = <div css={{ ...styles.wrapper, ...(isHovered ? styles.hover : {}) }} />;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          black: { color: "#353535" },
+          blue: { color: "#526675" },
+          ba: { borderStyle: "solid", borderWidth: "1px" },
+          bgBlue: { backgroundColor: "#526675" }
+        });
+        const styles = {
+          wrapper: [css.df, css.aic, ...(someCondition ? [css.black] : [css.blue]), ...(!compound ? [css.ba] : [])],
+          hover: [css.bgBlue]
+        };
+        const el = <div {...stylex.props(...styles.wrapper, ...(isHovered ? styles.hover : []))} />;
+      `),
+    );
+  });
+
+  test("ordinary object spreads stay objects", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = { foo: true, ...other }; const t = Css.df.$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ df: { display: "flex" } });
+        const s = { foo: true, ...other };
+        const t = [css.df];
+      `),
+    );
+  });
+
   test("conditional: Css.if(cond).df.else.db.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.if(isActive).df.else.db.$;`)!)).toBe(
       n(`
