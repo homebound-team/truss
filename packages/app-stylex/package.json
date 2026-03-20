@@ -1,7 +1,7 @@
 {
   "name": "app-stylex",
   "private": true,
-  "version": "2.0.0-next.5",
+  "version": "1.137.6-0",
   "type": "module",
   "scripts": {
     "dev": "yarn workspace @homebound/truss run build && vite",

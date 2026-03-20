@@ -1,3 +1,9 @@
+## [2.0.0-next.6](https://github.com/homebound-team/truss/compare/v2.0.0-next.5...v2.0.0-next.6) (2026-03-20)
+
+### Bug Fixes
+
+* Better handling of css prop rewriting. ([#148](https://github.com/homebound-team/truss/issues/148)) ([7e8546d](https://github.com/homebound-team/truss/commit/7e8546db97ab59a8c1bde58ad5d236e1a515e11c))
+
 ## [2.0.0-next.5](https://github.com/homebound-team/truss/compare/v2.0.0-next.4...v2.0.0-next.5) (2026-03-20)
 
 ### Bug Fixes
