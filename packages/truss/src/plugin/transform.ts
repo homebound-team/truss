@@ -19,6 +19,7 @@ import {
   collectCreateData,
   buildCreateProperties,
   buildMaybeIncDeclaration,
+  buildMergePropsDeclaration,
   buildCreateDeclaration,
   buildRuntimeLookupDeclaration,
 } from "./emit-stylex";
@@ -96,6 +97,8 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   const stylexNamespaceName = existingStylexNamespace ?? reservePreferredName(usedTopLevelNames, "stylex");
   const createVarName = reservePreferredName(usedTopLevelNames, "css", "css_");
   const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
+  const mergePropsHelperName = reservePreferredName(usedTopLevelNames, "__mergeProps");
+  const needsMergePropsHelper = { current: false };
   const runtimeLookupNames = new Map<string, string>();
   for (const [lookupKey] of runtimeLookups) {
     runtimeLookupNames.set(lookupKey, reservePreferredName(usedTopLevelNames, `__${lookupKey}`));
@@ -110,6 +113,8 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
     createVarName,
     stylexNamespaceName,
     maybeIncHelperName,
+    mergePropsHelperName,
+    needsMergePropsHelper,
     runtimeLookupNames,
   });
 
@@ -131,6 +136,9 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   const declarationsToInsert: t.Statement[] = [];
   if (maybeIncHelperName) {
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName, mapping.increment));
+  }
+  if (needsMergePropsHelper.current) {
+    declarationsToInsert.push(buildMergePropsDeclaration(mergePropsHelperName, stylexNamespaceName));
   }
   // Hoisted marker declarations go before stylex.create so they're in scope
   declarationsToInsert.push(...hoistedMarkerDecls);
