@@ -503,7 +503,21 @@ describe("transform", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; const styles = { wrapper: { ...Css.df.aic.$, ...(someCondition ? Css.black.$ : Css.blue.$), ...(!compound ? Css.ba.$ : {}) }, hover: Css.bgBlue.$ }; const el = <div css={{ ...styles.wrapper, ...(isHovered ? styles.hover : {}) }} />;`,
+          `
+            import { Css } from "./Css";
+
+            const styles = {
+              wrapper: {
+                ...Css.df.aic.$,
+                // An inline comment
+                ...(someCondition ? Css.black.$ : Css.blue.$),
+                ...(!compound ? Css.ba.$ : {}),
+              },
+              hover: Css.bgBlue.$,
+            };
+
+            const el = <div css={{ ...styles.wrapper, ...(isHovered ? styles.hover : {}) }} />;
+          `,
         )!,
       ),
     ).toBe(
@@ -580,7 +594,21 @@ describe("transform", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; function MyComponent({ disabled, someConst }) { const styles = { wrapper: { ...Css.df.aic.ba.$, ...(disabled ? Css.black.$ : {}) }, hover: Css.bgBlue.$ }; return <div className={someConst} css={{ ...styles.wrapper, ...(disabled ? styles.hover : {}) }}>Hello</div>; }`,
+          `
+            import { Css } from "./Css";
+
+            function MyComponent({ disabled, someConst }) {
+              const styles = {
+                wrapper: {
+                  ...Css.df.aic.ba.$,
+                  ...(disabled ? Css.black.$ : {}),
+                },
+                hover: Css.bgBlue.$,
+              };
+
+              return <div className={someConst} css={{ ...styles.wrapper, ...(disabled ? styles.hover : {}) }}>Hello</div>;
+            }
+          `,
         )!,
       ),
     ).toBe(
