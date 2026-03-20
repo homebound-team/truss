@@ -11,15 +11,15 @@ import {
   findCssImportBinding,
   removeCssImport,
   findStylexNamespaceImport,
-  findLastImportIndex,
   insertStylexNamespaceImport,
+  findNamedImportBinding,
+  upsertNamedImports,
   extractChain,
 } from "./ast-utils";
 import {
   collectCreateData,
   buildCreateProperties,
   buildMaybeIncDeclaration,
-  buildMergePropsDeclaration,
   buildCreateDeclaration,
   buildRuntimeLookupDeclaration,
 } from "./emit-stylex";
@@ -97,8 +97,13 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   const stylexNamespaceName = existingStylexNamespace ?? reservePreferredName(usedTopLevelNames, "stylex");
   const createVarName = reservePreferredName(usedTopLevelNames, "css", "css_");
   const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
-  const mergePropsHelperName = reservePreferredName(usedTopLevelNames, "__mergeProps");
+  const existingMergePropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "mergeProps");
+  const mergePropsHelperName = existingMergePropsHelperName ?? reservePreferredName(usedTopLevelNames, "mergeProps");
   const needsMergePropsHelper = { current: false };
+  const existingAsStyleArrayHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "asStyleArray");
+  const asStyleArrayHelperName =
+    existingAsStyleArrayHelperName ?? reservePreferredName(usedTopLevelNames, "asStyleArray");
+  const needsAsStyleArrayHelper = { current: false };
   const runtimeLookupNames = new Map<string, string>();
   for (const [lookupKey] of runtimeLookups) {
     runtimeLookupNames.set(lookupKey, reservePreferredName(usedTopLevelNames, `__${lookupKey}`));
@@ -115,6 +120,8 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
     maybeIncHelperName,
     mergePropsHelperName,
     needsMergePropsHelper,
+    asStyleArrayHelperName,
+    needsAsStyleArrayHelper,
     skippedCssPropMessages: errorMessages,
     runtimeLookupNames,
   });
@@ -125,6 +132,16 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   // Step 6: Ensure namespace stylex import exists
   if (!findStylexNamespaceImport(ast)) {
     insertStylexNamespaceImport(ast, stylexNamespaceName);
+  }
+  if (needsMergePropsHelper.current || needsAsStyleArrayHelper.current) {
+    const runtimeImports: Array<{ importedName: string; localName: string }> = [];
+    if (needsMergePropsHelper.current) {
+      runtimeImports.push({ importedName: "mergeProps", localName: mergePropsHelperName });
+    }
+    if (needsAsStyleArrayHelper.current) {
+      runtimeImports.push({ importedName: "asStyleArray", localName: asStyleArrayHelperName });
+    }
+    upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
   }
 
   // Step 7: Hoist marker declarations that are referenced in stylex.create entries.
@@ -137,9 +154,6 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   const declarationsToInsert: t.Statement[] = [];
   if (maybeIncHelperName) {
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName, mapping.increment));
-  }
-  if (needsMergePropsHelper.current) {
-    declarationsToInsert.push(buildMergePropsDeclaration(mergePropsHelperName, stylexNamespaceName));
   }
   // Hoisted marker declarations go before stylex.create so they're in scope
   declarationsToInsert.push(...hoistedMarkerDecls);
@@ -165,8 +179,10 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   }
 
   if (declarationsToInsert.length > 0) {
-    const insertIndex = findLastImportIndex(ast) + 1;
-    ast.program.body.splice(insertIndex, 0, ...declarationsToInsert);
+    const insertIndex = ast.program.body.findIndex(function (node) {
+      return !t.isImportDeclaration(node);
+    });
+    ast.program.body.splice(insertIndex === -1 ? ast.program.body.length : insertIndex, 0, ...declarationsToInsert);
   }
 
   const output = generate(ast, {

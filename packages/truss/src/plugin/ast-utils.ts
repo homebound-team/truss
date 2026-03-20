@@ -216,6 +216,49 @@ export function insertStylexNamespaceImport(ast: t.File, localName: string): voi
   ast.program.body.splice(idx + 1, 0, stylexImport);
 }
 
+export function findNamedImportBinding(ast: t.File, source: string, importedName: string): string | null {
+  for (const node of ast.program.body) {
+    if (!t.isImportDeclaration(node) || node.source.value !== source) continue;
+    for (const spec of node.specifiers) {
+      if (t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: importedName })) {
+        return spec.local.name;
+      }
+    }
+  }
+  return null;
+}
+
+export function upsertNamedImports(
+  ast: t.File,
+  source: string,
+  imports: Array<{ importedName: string; localName: string }>,
+): void {
+  if (imports.length === 0) return;
+
+  for (const node of ast.program.body) {
+    if (!t.isImportDeclaration(node) || node.source.value !== source) continue;
+
+    for (const entry of imports) {
+      const exists = node.specifiers.some(function (spec) {
+        return t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: entry.importedName });
+      });
+      if (exists) continue;
+
+      node.specifiers.push(t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName)));
+    }
+    return;
+  }
+
+  const importDecl = t.importDeclaration(
+    imports.map(function (entry) {
+      return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
+    }),
+    t.stringLiteral(source),
+  );
+  const idx = findLastImportIndex(ast);
+  ast.program.body.splice(idx + 1, 0, importDecl);
+}
+
 /**
  * Extract a `Css` method/property chain from an expression.
  *

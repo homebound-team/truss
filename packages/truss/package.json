@@ -14,6 +14,11 @@
       "types": "./build/plugin/index.d.ts",
       "import": "./build/plugin/index.js",
       "default": "./build/plugin/index.js"
+    },
+    "./runtime": {
+      "types": "./build/runtime.d.ts",
+      "import": "./build/runtime.js",
+      "default": "./build/runtime.js"
     }
   },
   "scripts": {

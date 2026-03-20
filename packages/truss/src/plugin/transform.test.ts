@@ -590,15 +590,12 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        function __mergeProps(explicitClassName, ...styles) {
-          const sx = stylex.props(...styles);
-          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
-        }
+        import { mergeProps, asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({ blue: { color: "#526675" } });
         export const headerRenderFn =
           () =>
           (key, css, content, classNames) => {
-            return <div key={key} {...__mergeProps(classNames, ...(Array.isArray(css) ? css : css ? [css] : []))}><span {...stylex.props(css.blue)}>{content}</span></div>;
+            return <div key={key} {...mergeProps(stylex, classNames, ...asStyleArray(css))}><span {...stylex.props(css.blue)}>{content}</span></div>;
           };
       `),
     );
@@ -714,10 +711,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        function __mergeProps(explicitClassName, ...styles) {
-          const sx = stylex.props(...styles);
-          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
-        }
+        import { mergeProps } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           fdc: { flexDirection: "column" },
@@ -730,7 +724,7 @@ describe("transform", () => {
           const fieldStyles = {
             inputWrapperReadOnly: [css.df]
           };
-          return <div {...__mergeProps(BorderHoverChild, ...fieldStyles.inputWrapperReadOnly, ...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])]), ...(Array.isArray(xss) ? xss : xss ? [xss] : []))} />;
+          return <div {...mergeProps(stylex, BorderHoverChild, ...fieldStyles.inputWrapperReadOnly, ...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])]), ...(Array.isArray(xss) ? xss : xss ? [xss] : []))} />;
         }
       `),
     );
@@ -783,10 +777,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        function __mergeProps(explicitClassName, ...styles) {
-          const sx = stylex.props(...styles);
-          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
-        }
+        import { mergeProps } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" },
@@ -799,7 +790,7 @@ describe("transform", () => {
             wrapper: [css.df, css.aic, css.ba, ...(disabled ? [css.black] : [])],
             hover: [css.bgBlue]
           };
-          return <div {...__mergeProps(someConst, ...styles.wrapper, ...(disabled ? styles.hover : []))}>Hello</div>;
+          return <div {...mergeProps(stylex, someConst, ...styles.wrapper, ...(disabled ? styles.hover : []))}>Hello</div>;
         }
       `),
     );
@@ -1216,12 +1207,9 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div className="existing" css={Css.df.$} />;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        function __mergeProps(explicitClassName, ...styles) {
-          const sx = stylex.props(...styles);
-          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
-        }
+        import { mergeProps } from "@homebound/truss/runtime";
         const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...__mergeProps("existing", css.df)} />;
+        const el = <div {...mergeProps(stylex, "existing", css.df)} />;
       `),
     );
   });
@@ -1236,13 +1224,10 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        function __mergeProps(explicitClassName, ...styles) {
-          const sx = stylex.props(...styles);
-          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
-        }
+        import { mergeProps } from "@homebound/truss/runtime";
         const css = stylex.create({ df: { display: "flex" } });
         const cls = getClass();
-        const el = <div {...__mergeProps(cls, css.df)} />;
+        const el = <div {...mergeProps(stylex, cls, css.df)} />;
       `),
     );
   });

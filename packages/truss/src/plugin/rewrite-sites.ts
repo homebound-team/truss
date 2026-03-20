@@ -22,6 +22,8 @@ export interface RewriteSitesOptions {
   maybeIncHelperName: string | null;
   mergePropsHelperName: string;
   needsMergePropsHelper: { current: boolean };
+  asStyleArrayHelperName: string;
+  needsAsStyleArrayHelper: { current: boolean };
   skippedCssPropMessages: Array<{ message: string; line: number | null }>;
   runtimeLookupNames: Map<string, string>;
 }
@@ -45,7 +47,13 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
       );
       cssAttrPath.replaceWith(
         t.jsxSpreadAttribute(
-          buildCssSpreadExpression(cssAttrPath, propsCall, options.mergePropsHelperName, options.needsMergePropsHelper),
+          buildCssSpreadExpression(
+            cssAttrPath,
+            propsCall,
+            options.mergePropsHelperName,
+            options.needsMergePropsHelper,
+            options.stylexNamespaceName,
+          ),
         ),
       );
       continue;
@@ -62,6 +70,8 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     options.stylexNamespaceName,
     options.mergePropsHelperName,
     options.needsMergePropsHelper,
+    options.asStyleArrayHelperName,
+    options.needsAsStyleArrayHelper,
     options.skippedCssPropMessages,
   );
 }
@@ -186,6 +196,8 @@ function rewriteCssAttributeExpressions(
   stylexNamespaceName: string,
   mergePropsHelperName: string,
   needsMergePropsHelper: { current: boolean },
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
   skippedCssPropMessages: Array<{ message: string; line: number | null }>,
 ): void {
   traverse(ast, {
@@ -202,7 +214,12 @@ function rewriteCssAttributeExpressions(
         return;
       }
 
-      const propsArgs = lowerCssExpressionToPropsArgs(value.expression, path);
+      const propsArgs = lowerCssExpressionToPropsArgs(
+        value.expression,
+        path,
+        asStyleArrayHelperName,
+        needsAsStyleArrayHelper,
+      );
       if (!propsArgs) {
         skippedCssPropMessages.push({
           message: explainSkippedCssRewrite(value.expression, path),
@@ -216,7 +233,9 @@ function rewriteCssAttributeExpressions(
         propsArgs,
       );
       path.replaceWith(
-        t.jsxSpreadAttribute(buildCssSpreadExpression(path, propsCall, mergePropsHelperName, needsMergePropsHelper)),
+        t.jsxSpreadAttribute(
+          buildCssSpreadExpression(path, propsCall, mergePropsHelperName, needsMergePropsHelper, stylexNamespaceName),
+        ),
       );
     },
   });
@@ -224,18 +243,20 @@ function rewriteCssAttributeExpressions(
 
 /** Check whether a JSX `css={...}` expression should be lowered to `stylex.props(...)`. */
 function isCssRewriteableExpression(expr: t.Expression, path: NodePath<t.JSXAttribute>): boolean {
-  return !!lowerCssExpressionToPropsArgs(expr, path);
+  return !!lowerCssExpressionToPropsArgs(expr, path, "asStyleArray", { current: false });
 }
 
 /** Lower a rewriteable JSX `css={...}` expression into `stylex.props(...)` args. */
 function lowerCssExpressionToPropsArgs(
   expr: t.Expression,
   path: NodePath<t.JSXAttribute>,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
 ): (t.Expression | t.SpreadElement)[] | null {
   return (
-    buildStyleObjectPropsArgs(expr, path) ??
-    buildStyleArrayLikePropsArgsFromExpression(expr, path) ??
-    buildUnknownCssValuePropsArgs(expr)
+    buildStyleObjectPropsArgs(expr, path, asStyleArrayHelperName, needsAsStyleArrayHelper) ??
+    buildStyleArrayLikePropsArgsFromExpression(expr, path, asStyleArrayHelperName, needsAsStyleArrayHelper) ??
+    buildUnknownCssValuePropsArgs(expr, asStyleArrayHelperName, needsAsStyleArrayHelper)
   );
 }
 
@@ -270,12 +291,17 @@ function buildCssSpreadExpression(
   propsCall: t.CallExpression,
   mergePropsHelperName: string,
   needsMergePropsHelper: { current: boolean },
+  stylexNamespaceName: string,
 ): t.Expression {
   const existingClassNameExpr = removeExistingClassNameAttribute(path);
   if (!existingClassNameExpr) return propsCall;
 
   needsMergePropsHelper.current = true;
-  return t.callExpression(t.identifier(mergePropsHelperName), [existingClassNameExpr, ...propsCall.arguments]);
+  return t.callExpression(t.identifier(mergePropsHelperName), [
+    t.identifier(stylexNamespaceName),
+    existingClassNameExpr,
+    ...propsCall.arguments,
+  ]);
 }
 
 /** Remove sibling `className` and return its expression so rewrites can preserve it. */
@@ -303,7 +329,12 @@ function removeExistingClassNameAttribute(path: NodePath<t.JSXAttribute>): t.Exp
 }
 
 /** Convert `css={{ ...a, ...Css.df.$ }}`-style objects directly to props args. */
-function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expression | t.SpreadElement)[] | null {
+function buildStyleObjectPropsArgs(
+  expr: t.Expression,
+  path: NodePath,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
+): (t.Expression | t.SpreadElement)[] | null {
   if (!t.isObjectExpression(expr) || expr.properties.length === 0) return null;
 
   const propsArgs: (t.Expression | t.SpreadElement)[] = [];
@@ -313,7 +344,11 @@ function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expre
 
     const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>()); // I.e. `...cssProp`, `...Css.df.$`, or `...styles.wrapper`
     if (!normalizedArg) {
-      propsArgs.push(t.spreadElement(buildUnknownObjectSpreadFallback(prop.argument)));
+      propsArgs.push(
+        t.spreadElement(
+          buildUnknownObjectSpreadFallback(prop.argument, asStyleArrayHelperName, needsAsStyleArrayHelper),
+        ),
+      );
       continue;
     }
 
@@ -332,6 +367,8 @@ function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expre
 function buildStyleArrayLikePropsArgsFromExpression(
   expr: t.Expression,
   path: NodePath,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
 ): (t.Expression | t.SpreadElement)[] | null {
   const normalizedExpr = normalizeStyleArrayLikeExpression(expr, path, new Set<t.Node>());
   if (!normalizedExpr) return null;
@@ -391,9 +428,13 @@ function buildStyleArrayLikePropsArgs(
 }
 
 /** Lower unknown direct `css={value}` cases through the style-array helper. */
-function buildUnknownCssValuePropsArgs(expr: t.Expression): (t.Expression | t.SpreadElement)[] | null {
+function buildUnknownCssValuePropsArgs(
+  expr: t.Expression,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
+): (t.Expression | t.SpreadElement)[] | null {
   if (!(t.isIdentifier(expr) || t.isMemberExpression(expr) || t.isCallExpression(expr))) return null;
-  return [t.spreadElement(buildUnknownObjectSpreadFallback(expr))];
+  return [t.spreadElement(buildUnknownObjectSpreadFallback(expr, asStyleArrayHelperName, needsAsStyleArrayHelper))];
 }
 
 /**
@@ -623,8 +664,13 @@ function isEmptyObjectExpression(expr: t.Expression): boolean {
 }
 
 /** Convert unknown object-spread values into safe iterable fallbacks for `stylex.props(...)`. */
-function buildUnknownObjectSpreadFallback(expr: t.Expression): t.Expression {
-  return buildInlineAsStyleArrayExpression(expr);
+function buildUnknownObjectSpreadFallback(
+  expr: t.Expression,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
+): t.Expression {
+  needsAsStyleArrayHelper.current = true;
+  return t.callExpression(t.identifier(asStyleArrayHelperName), [expr]);
 }
 
 /** Inline arrayification for non-JSX object rewrites where helper injection is unavailable. */
