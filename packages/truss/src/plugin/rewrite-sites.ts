@@ -194,12 +194,18 @@ function rewriteCssAttributeExpressions(
       const value = path.node.value;
       if (!t.isJSXExpressionContainer(value)) return;
       if (!t.isExpression(value.expression)) return;
-      const propsArgs =
-        buildStyleObjectPropsArgs(value.expression, path) ??
-        buildStyleArrayLikePropsArgsFromExpression(value.expression, path);
+      if (!isCssRewriteableExpression(value.expression, path)) {
+        skippedCssPropMessages.push({
+          message: explainSkippedCssRewrite(value.expression, path),
+          line: path.node.loc?.start.line ?? null,
+        });
+        return;
+      }
+
+      const propsArgs = lowerCssExpressionToPropsArgs(value.expression, path);
       if (!propsArgs) {
         skippedCssPropMessages.push({
-          message: buildSkippedCssPropMessage(value.expression, path),
+          message: explainSkippedCssRewrite(value.expression, path),
           line: path.node.loc?.start.line ?? null,
         });
         return;
@@ -216,8 +222,21 @@ function rewriteCssAttributeExpressions(
   });
 }
 
+/** Check whether a JSX `css={...}` expression should be lowered to `stylex.props(...)`. */
+function isCssRewriteableExpression(expr: t.Expression, path: NodePath<t.JSXAttribute>): boolean {
+  return !!lowerCssExpressionToPropsArgs(expr, path);
+}
+
+/** Lower a rewriteable JSX `css={...}` expression into `stylex.props(...)` args. */
+function lowerCssExpressionToPropsArgs(
+  expr: t.Expression,
+  path: NodePath<t.JSXAttribute>,
+): (t.Expression | t.SpreadElement)[] | null {
+  return buildStyleObjectPropsArgs(expr, path) ?? buildStyleArrayLikePropsArgsFromExpression(expr, path);
+}
+
 /** Explain why a remaining `css={...}` expression could not be lowered. */
-function buildSkippedCssPropMessage(expr: t.Expression, path: NodePath<t.JSXAttribute>): string {
+function explainSkippedCssRewrite(expr: t.Expression, path: NodePath<t.JSXAttribute>): string {
   if (t.isObjectExpression(expr)) {
     for (const prop of expr.properties) {
       if (!t.isSpreadElement(prop)) {
