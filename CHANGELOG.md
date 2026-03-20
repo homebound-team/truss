@@ -1,3 +1,9 @@
+## [2.0.0-next.9](https://github.com/homebound-team/truss/compare/v2.0.0-next.8...v2.0.0-next.9) (2026-03-20)
+
+### Bug Fixes
+
+* Fix combining className + css rewrite. ([#151](https://github.com/homebound-team/truss/issues/151)) ([8d5bb7c](https://github.com/homebound-team/truss/commit/8d5bb7cd3e2a26a8c466a39e5566a2be6c38c867))
+
 ## [2.0.0-next.8](https://github.com/homebound-team/truss/compare/v2.0.0-next.7...v2.0.0-next.8) (2026-03-20)
 
 ### Bug Fixes
