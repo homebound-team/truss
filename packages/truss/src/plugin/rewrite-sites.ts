@@ -404,7 +404,8 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
       new Set<t.Node>(), // I.e. `...Css.df.$`, `...(cond ? Css.df.$ : {})`, or `...styles.wrapper`
     );
     if (!normalizedArg) {
-      return null;
+      elements.push(t.spreadElement(buildUnknownObjectSpreadFallback(prop.argument)));
+      continue;
     }
 
     if (isStyleArrayLike(normalizedArg, path, new Set<t.Node>())) {
@@ -498,7 +499,7 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
   }
 
   if (t.isCallExpression(expr)) {
-    const returnExpr = getLocalFunctionReturnExpression(expr, path);
+    const returnExpr = getCallStyleArrayLikeExpression(expr, path);
     return !!(returnExpr && isStyleArrayLike(returnExpr, path, seen)); // I.e. `getStyles()`
   }
 
@@ -562,6 +563,23 @@ function getStaticMemberPropertyName(expr: t.MemberExpression, path: NodePath): 
     if (!bindingPath || !bindingPath.isVariableDeclarator()) return null;
     const init = bindingPath.node.init;
     return t.isStringLiteral(init) ? init.value : null;
+  }
+
+  return null;
+}
+
+/** Resolve a call expression that returns a style-array-like expression. */
+function getCallStyleArrayLikeExpression(expr: t.CallExpression, path: NodePath): t.Expression | null {
+  const localReturnExpr = getLocalFunctionReturnExpression(expr, path);
+  if (localReturnExpr) return localReturnExpr;
+
+  const firstArg = expr.arguments[0];
+  if (
+    firstArg &&
+    !t.isSpreadElement(firstArg) &&
+    (t.isArrowFunctionExpression(firstArg) || t.isFunctionExpression(firstArg))
+  ) {
+    return getFunctionLikeReturnExpression(firstArg); // I.e. `useMemo(() => [...], deps)`
   }
 
   return null;

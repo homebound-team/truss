@@ -862,6 +862,57 @@ describe("transform", () => {
     );
   });
 
+  test("useMemo-composed styles identifier is lowered in css prop", () => {
+    expect(
+      n(
+        transform(`
+          import { useMemo } from "react";
+          import { Css } from "./Css";
+
+          function chipBaseStyles(compact) {
+            return compact ? Css.df.$ : Css.aic.$;
+          }
+
+          function Chip(props) {
+            const { xss, compact } = props;
+            const type = "primary";
+            const typeStyles = { primary: Css.blue.$ };
+            const styles = useMemo(
+              () => ({
+                ...chipBaseStyles(compact),
+                ...typeStyles[type],
+                ...xss,
+              }),
+              [type, xss, compact],
+            );
+
+            return <span css={styles} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import { useMemo } from "react";
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          blue: { color: "#526675" }
+        });
+        function chipBaseStyles(compact) {
+          return compact ? [css.df] : [css.aic];
+        }
+        function Chip(props) {
+          const { xss, compact } = props;
+          const type = "primary";
+          const typeStyles = { primary: [css.blue] };
+          const styles = useMemo(() => [...chipBaseStyles(compact), ...typeStyles[type], ...(xss || [])], [type, xss, compact]);
+          return <span {...stylex.props(...styles)} />;
+        }
+      `),
+    );
+  });
+
   test("skipped css prop rewrite emits console.error with reason and location", () => {
     expect(
       n(
