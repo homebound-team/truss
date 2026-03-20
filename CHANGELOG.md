@@ -1,3 +1,9 @@
+## [2.0.0-next.7](https://github.com/homebound-team/truss/compare/v2.0.0-next.6...v2.0.0-next.7) (2026-03-20)
+
+### Features
+
+* Add support for consts in css.ts files. ([#149](https://github.com/homebound-team/truss/issues/149)) ([c876fca](https://github.com/homebound-team/truss/commit/c876fcac95d56d3c19fac6659fd7c045ab4a9082))
+
 ## [2.0.0-next.6](https://github.com/homebound-team/truss/compare/v2.0.0-next.5...v2.0.0-next.6) (2026-03-20)
 
 ### Bug Fixes
