@@ -2,6 +2,7 @@
 export interface TrussMapping {
   increment: number;
   breakpoints?: Record<string, string>;
+  typography?: string[];
   abbreviations: Record<string, TrussMappingEntry>;
 }
 
@@ -51,6 +52,14 @@ export interface ResolvedSegment {
   argNode?: any;
   /** Whether the arg was a literal we could evaluate */
   argResolved?: string;
+  /** For runtime typography lookups: the lookup metadata and runtime key node */
+  typographyLookup?: {
+    /** I.e. `"typography"` or `"typography__sm_hover"` for `Css.typography(key).$` in a given condition context. */
+    lookupKey: string;
+    argNode: any;
+    /** I.e. `{ f14: [{ key: "f14", defs: { fontSize: "14px" } }], f10: [{ key: "f10", defs: { fontSize: "10px", fontWeight: 500 } }] }`. */
+    segmentsByName: Record<string, ResolvedSegment[]>;
+  };
   /**
    * If set, this segment represents an unsupported pattern that could not be resolved.
    * The error message describes what went wrong. Valid segments in the same chain

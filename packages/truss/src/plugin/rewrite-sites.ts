@@ -18,6 +18,7 @@ export interface RewriteSitesOptions {
   createVarName: string;
   stylexNamespaceName: string;
   maybeIncHelperName: string | null;
+  runtimeLookupNames: Map<string, string>;
 }
 
 /**
@@ -145,7 +146,12 @@ function buildPropsArgsFromChain(
     const thenArgs = buildPropsArgs(part.thenSegments, options);
     const elseArgs = buildPropsArgs(part.elseSegments, options);
 
-    if (thenArgs.length === 1 && elseArgs.length === 1) {
+    if (
+      thenArgs.length === 1 &&
+      elseArgs.length === 1 &&
+      !t.isSpreadElement(thenArgs[0]) &&
+      !t.isSpreadElement(elseArgs[0])
+    ) {
       args.push(t.conditionalExpression(part.conditionNode, thenArgs[0], elseArgs[0]));
     } else if (thenArgs.length > 0 || elseArgs.length > 0) {
       args.push(
@@ -162,12 +168,26 @@ function buildPropsArgsFromChain(
 /**
  * Convert resolved segments to style refs and dynamic invocations.
  */
-function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOptions): t.Expression[] {
-  const args: t.Expression[] = [];
+function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOptions): (t.Expression | t.SpreadElement)[] {
+  const args: (t.Expression | t.SpreadElement)[] = [];
 
   for (const seg of segments) {
     // Skip error segments — they are logged via console.error at the top of the file
     if (seg.error) continue;
+
+    if (seg.typographyLookup) {
+      const lookupName = options.runtimeLookupNames.get(seg.typographyLookup.lookupKey);
+      if (!lookupName) {
+        continue;
+      }
+      const lookupAccess = t.memberExpression(
+        t.identifier(lookupName),
+        seg.typographyLookup.argNode as t.Expression,
+        true,
+      );
+      args.push(t.spreadElement(t.logicalExpression("??", lookupAccess, t.arrayExpression([]))));
+      continue;
+    }
 
     const ref = t.memberExpression(t.identifier(options.createVarName), t.identifier(seg.key));
 

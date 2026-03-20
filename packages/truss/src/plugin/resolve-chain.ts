@@ -239,6 +239,18 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           continue;
         }
 
+        if (abbr === "typography") {
+          const resolved = resolveTypographyCall(
+            node,
+            mapping,
+            currentMediaQuery,
+            currentPseudoClass,
+            currentPseudoElement,
+          );
+          segments.push(...resolved);
+          continue;
+        }
+
         // Pseudo-element: element("::placeholder") etc.
         if (abbr === "element") {
           if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
@@ -315,7 +327,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
 }
 
 /** Build the stylex.create key suffix from mediaQuery, pseudoClass, and/or pseudoElement. */
-function conditionKeySuffix(
+export function conditionKeySuffix(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
@@ -326,6 +338,75 @@ function conditionKeySuffix(
   if (mediaQuery) parts.push(pseudoName(mediaQuery, breakpoints));
   if (pseudoClass) parts.push(pseudoName(pseudoClass));
   return parts.join("_");
+}
+
+/** Resolve `typography(key)` into either direct segments or a runtime lookup-backed segment. */
+function resolveTypographyCall(
+  node: CallChainNode,
+  mapping: TrussMapping,
+  mediaQuery: string | null,
+  pseudoClass: string | null,
+  pseudoElement: string | null,
+): ResolvedSegment[] {
+  if (node.args.length !== 1) {
+    throw new UnsupportedPatternError(`typography() expects exactly 1 argument, got ${node.args.length}`);
+  }
+
+  const argAst = node.args[0];
+  if (argAst.type === "StringLiteral") {
+    return resolveTypographyEntry(argAst.value, mapping, mediaQuery, pseudoClass, pseudoElement);
+  }
+
+  const typography = mapping.typography ?? [];
+  if (typography.length === 0) {
+    throw new UnsupportedPatternError(`typography() is unavailable because no typography abbreviations were generated`);
+  }
+
+  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
+  const lookupKey = suffix ? `typography__${suffix}` : "typography";
+  const segmentsByName: Record<string, ResolvedSegment[]> = {};
+
+  for (const name of typography) {
+    segmentsByName[name] = resolveTypographyEntry(name, mapping, mediaQuery, pseudoClass, pseudoElement);
+  }
+
+  return [
+    {
+      key: lookupKey,
+      defs: {},
+      typographyLookup: {
+        lookupKey,
+        argNode: argAst,
+        segmentsByName,
+      },
+    },
+  ];
+}
+
+/** Resolve a single typography abbreviation name within the current condition context. */
+function resolveTypographyEntry(
+  name: string,
+  mapping: TrussMapping,
+  mediaQuery: string | null,
+  pseudoClass: string | null,
+  pseudoElement: string | null,
+): ResolvedSegment[] {
+  if (!(mapping.typography ?? []).includes(name)) {
+    throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
+  }
+
+  const entry = mapping.abbreviations[name];
+  if (!entry) {
+    throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
+  }
+
+  const resolved = resolveEntry(name, entry, mapping, mediaQuery, pseudoClass, pseudoElement, null);
+  for (const segment of resolved) {
+    if (segment.dynamicProps || segment.whenPseudo) {
+      throw new UnsupportedPatternError(`Typography abbreviation "${name}" cannot require runtime arguments`);
+    }
+  }
+  return resolved;
 }
 
 /**

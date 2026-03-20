@@ -150,6 +150,10 @@ class CssBuilder<T extends Properties> {
   
   ${breakpointIfs}
 
+  typography(key: Typography): CssBuilder<T> {
+    return (this as any)[key];
+  }
+
   get else() {
     if (this.selector !== undefined) {
       if (this.selector.includes("not")) {
@@ -396,6 +400,10 @@ class CssBuilder<T extends Properties> {
     return this;
   }
 
+  typography(key: Typography): CssBuilder<T> {
+    return (this as any)[key];
+  }
+
   /**
     * Styles after this \`when\` are applied based on a relationship + pseudo selector.
     *
@@ -504,6 +512,7 @@ ${extras || ""}
 export interface TrussMapping {
   increment: number;
   breakpoints?: Record<string, string>;
+  typography?: string[];
   abbreviations: Record<string, TrussMappingEntry>;
 }
 
@@ -570,6 +579,7 @@ function generateTrussMapping(config: Config, entries: StylexEntry[]): TrussMapp
   return {
     increment: config.increment,
     ...(Object.keys(breakpointEntries).length > 0 ? { breakpoints: breakpointEntries } : {}),
+    ...(Object.keys(config.fonts).length > 0 ? { typography: Object.keys(config.fonts) } : {}),
     abbreviations,
   };
 }
@@ -581,6 +591,9 @@ function condensedJson(mapping: TrussMapping): string {
   lines.push(`  "increment": ${mapping.increment},`);
   if (mapping.breakpoints && Object.keys(mapping.breakpoints).length > 0) {
     lines.push(`  "breakpoints": ${JSON.stringify(mapping.breakpoints)},`);
+  }
+  if (mapping.typography && mapping.typography.length > 0) {
+    lines.push(`  "typography": ${JSON.stringify(mapping.typography)},`);
   }
   lines.push(`  "abbreviations": {`);
   const entries = Object.entries(mapping.abbreviations);

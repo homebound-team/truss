@@ -2292,6 +2292,10 @@ class CssBuilder<T extends Properties> {
     return this;
   }
 
+  typography(key: Typography): CssBuilder<T> {
+    return (this as any)[key];
+  }
+
   /**
    * Styles after this `when` are applied based on a relationship + pseudo selector.
    *
