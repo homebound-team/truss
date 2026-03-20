@@ -115,6 +115,7 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
     maybeIncHelperName,
     mergePropsHelperName,
     needsMergePropsHelper,
+    skippedCssPropMessages: errorMessages,
     runtimeLookupNames,
   });
 

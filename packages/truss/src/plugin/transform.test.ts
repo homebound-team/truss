@@ -677,6 +677,44 @@ describe("transform", () => {
     );
   });
 
+  test("css prop object with chained && style-array spreads is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function MyComponent({ contrast, inputStylePalette }) {
+            const fieldStyles = {
+              input: {
+                ...Css.w100.mw0.outline0.fg1.$,
+                ...(contrast && !inputStylePalette && Css.element("::selection").bgBlue.$),
+              },
+            };
+
+            return <div css={{ ...fieldStyles.input }} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          w100: { width: "100%" },
+          mw0: { minWidth: 0 },
+          outline0: { outline: "0" },
+          fg1: { flexGrow: 1 },
+          bgBlue__selection: { "::selection": { backgroundColor: "#526675" } }
+        });
+        function MyComponent({ contrast, inputStylePalette }) {
+          const fieldStyles = {
+            input: [css.w100, css.mw0, css.outline0, css.fg1, ...(contrast && !inputStylePalette ? [css.bgBlue__selection] : [])]
+          };
+          return <div {...stylex.props(...fieldStyles.input)} />;
+        }
+      `),
+    );
+  });
+
   test("css prop object with style-array spreads using || is lowered", () => {
     expect(
       n(
@@ -776,6 +814,29 @@ describe("transform", () => {
           return [css.df, css.aic];
         }
         const el = <div {...stylex.props(...getStyles())} />;
+      `),
+    );
+  });
+
+  test("skipped css prop rewrite emits console.error with reason and location", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          const base = Css.df.$;
+          const cssProp = getCssProp();
+          const el = <div css={{ ...cssProp, foo: true }} />;
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ df: { display: "flex" } });
+        console.error("[truss] Unsupported pattern: Could not rewrite css prop: spread argument is not style-array-like (cssProp) (test.tsx:6)");
+        const base = [css.df];
+        const cssProp = getCssProp();
+        const el = <div css={{ ...cssProp, foo: true }} />;
       `),
     );
   });

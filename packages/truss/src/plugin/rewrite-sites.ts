@@ -1,10 +1,12 @@
 import _traverse from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
+import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import type { ResolvedSegment } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 
 // Babel packages are CJS today; normalize default interop across loaders.
+const generate = ((_generate as unknown as { default?: typeof _generate }).default ?? _generate) as typeof _generate;
 const traverse = ((_traverse as unknown as { default?: typeof _traverse }).default ?? _traverse) as typeof _traverse;
 
 export interface ExpressionSite {
@@ -20,6 +22,7 @@ export interface RewriteSitesOptions {
   maybeIncHelperName: string | null;
   mergePropsHelperName: string;
   needsMergePropsHelper: { current: boolean };
+  skippedCssPropMessages: Array<{ message: string; line: number | null }>;
   runtimeLookupNames: Map<string, string>;
 }
 
@@ -59,6 +62,7 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     options.stylexNamespaceName,
     options.mergePropsHelperName,
     options.needsMergePropsHelper,
+    options.skippedCssPropMessages,
   );
 }
 
@@ -182,6 +186,7 @@ function rewriteCssAttributeExpressions(
   stylexNamespaceName: string,
   mergePropsHelperName: string,
   needsMergePropsHelper: { current: boolean },
+  skippedCssPropMessages: Array<{ message: string; line: number | null }>,
 ): void {
   traverse(ast, {
     JSXAttribute(path: NodePath<t.JSXAttribute>) {
@@ -192,7 +197,13 @@ function rewriteCssAttributeExpressions(
       const propsArgs =
         buildStyleObjectPropsArgs(value.expression, path) ??
         buildStyleArrayLikePropsArgsFromExpression(value.expression, path);
-      if (!propsArgs) return;
+      if (!propsArgs) {
+        skippedCssPropMessages.push({
+          message: buildSkippedCssPropMessage(value.expression, path),
+          line: path.node.loc?.start.line ?? null,
+        });
+        return;
+      }
 
       const propsCall = t.callExpression(
         t.memberExpression(t.identifier(stylexNamespaceName), t.identifier("props")),
@@ -203,6 +214,31 @@ function rewriteCssAttributeExpressions(
       );
     },
   });
+}
+
+/** Explain why a remaining `css={...}` expression could not be lowered. */
+function buildSkippedCssPropMessage(expr: t.Expression, path: NodePath<t.JSXAttribute>): string {
+  if (t.isObjectExpression(expr)) {
+    for (const prop of expr.properties) {
+      if (!t.isSpreadElement(prop)) {
+        return `[truss] Unsupported pattern: Could not rewrite css prop: object contains a non-spread property (${formatNodeSnippet(expr)})`;
+      }
+
+      const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>());
+      if (!normalizedArg) {
+        return `[truss] Unsupported pattern: Could not rewrite css prop: spread argument is not style-array-like (${formatNodeSnippet(prop.argument)})`;
+      }
+    }
+
+    return `[truss] Unsupported pattern: Could not rewrite css prop: object spread composition was not recognized (${formatNodeSnippet(expr)})`;
+  }
+
+  return `[truss] Unsupported pattern: Could not rewrite css prop: expression is not style-array-like (${formatNodeSnippet(expr)})`;
+}
+
+/** Generate a compact code snippet for diagnostics. */
+function formatNodeSnippet(node: t.Node): string {
+  return generate(node, { compact: true, comments: true }).code;
 }
 
 /** Merge existing `className` attr into a rewritten `stylex.props(...)` spread. */
