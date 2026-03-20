@@ -574,6 +574,36 @@ describe("transform", () => {
     );
   });
 
+  test("nested render function param named css is lowered from css={{ ...css }}", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          export const headerRenderFn =
+            () =>
+            (key, css, content, classNames) => {
+              return <div key={key} css={{ ...css }} className={classNames}><span css={Css.blue.$}>{content}</span></div>;
+            };
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        function __mergeProps(explicitClassName, ...styles) {
+          const sx = stylex.props(...styles);
+          return { ...sx, className: (explicitClassName + " " + (sx.className || "")).trim() };
+        }
+        const css = stylex.create({ blue: { color: "#526675" } });
+        export const headerRenderFn =
+          () =>
+          (key, css, content, classNames) => {
+            return <div key={key} {...__mergeProps(classNames, ...(css || []))}><span {...stylex.props(css.blue)}>{content}</span></div>;
+          };
+      `),
+    );
+  });
+
   test("mixed css prop spread and Css chain spread are lowered together", () => {
     expect(
       n(

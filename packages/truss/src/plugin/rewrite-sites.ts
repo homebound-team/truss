@@ -283,7 +283,6 @@ function removeExistingClassNameAttribute(path: NodePath<t.JSXAttribute>): t.Exp
 function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expression | t.SpreadElement)[] | null {
   if (!t.isObjectExpression(expr) || expr.properties.length === 0) return null;
 
-  let sawStyleArray = false;
   const propsArgs: (t.Expression | t.SpreadElement)[] = [];
 
   for (const prop of expr.properties) {
@@ -295,10 +294,6 @@ function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expre
       continue;
     }
 
-    if (isStyleArrayLike(normalizedArg, path, new Set<t.Node>())) {
-      sawStyleArray = true;
-    }
-
     const nestedArgs = buildStyleArrayLikePropsArgs(normalizedArg, path, new Set<t.Node>());
     if (nestedArgs && t.isArrayExpression(normalizedArg)) {
       propsArgs.push(...nestedArgs);
@@ -307,7 +302,7 @@ function buildStyleObjectPropsArgs(expr: t.Expression, path: NodePath): (t.Expre
     }
   }
 
-  return sawStyleArray ? propsArgs : null;
+  return propsArgs.length > 0 ? propsArgs : null;
 }
 
 /** Normalize and lower a style-array-like expression into props args. */
