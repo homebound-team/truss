@@ -503,7 +503,21 @@ describe("transform", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; const styles = { wrapper: { ...Css.df.aic.$, ...(someCondition ? Css.black.$ : Css.blue.$), ...(!compound ? Css.ba.$ : {}) }, hover: Css.bgBlue.$ }; const el = <div css={{ ...styles.wrapper, ...(isHovered ? styles.hover : {}) }} />;`,
+          `
+            import { Css } from "./Css";
+
+            const styles = {
+              wrapper: {
+                ...Css.df.aic.$,
+                // An inline comment
+                ...(someCondition ? Css.black.$ : Css.blue.$),
+                ...(!compound ? Css.ba.$ : {}),
+              },
+              hover: Css.bgBlue.$,
+            };
+
+            const el = <div css={{ ...styles.wrapper, ...(isHovered ? styles.hover : {}) }} />;
+          `,
         )!,
       ),
     ).toBe(
@@ -580,7 +594,21 @@ describe("transform", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; function MyComponent({ disabled, someConst }) { const styles = { wrapper: { ...Css.df.aic.ba.$, ...(disabled ? Css.black.$ : {}) }, hover: Css.bgBlue.$ }; return <div className={someConst} css={{ ...styles.wrapper, ...(disabled ? styles.hover : {}) }}>Hello</div>; }`,
+          `
+            import { Css } from "./Css";
+
+            function MyComponent({ disabled, someConst }) {
+              const styles = {
+                wrapper: {
+                  ...Css.df.aic.ba.$,
+                  ...(disabled ? Css.black.$ : {}),
+                },
+                hover: Css.bgBlue.$,
+              };
+
+              return <div className={someConst} css={{ ...styles.wrapper, ...(disabled ? styles.hover : {}) }}>Hello</div>;
+            }
+          `,
         )!,
       ),
     ).toBe(
@@ -603,6 +631,47 @@ describe("transform", () => {
             hover: [css.bgBlue]
           };
           return <div {...__mergeProps(someConst, ...styles.wrapper, ...(disabled ? styles.hover : []))}>Hello</div>;
+        }
+      `),
+    );
+  });
+
+  test("css prop object with intermediate style-array spreads using && is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function MyComponent({ borderOnHover, compound, isHovered }) {
+            const fieldStyles = {
+              inputWrapper: {
+                ...Css.df.aic.ba.$,
+                ...(!compound ? Css.br4.$ : {}),
+                ...(borderOnHover && Css.black.$),
+                ...(isHovered && Css.blue.$),
+              },
+            };
+
+            return <div css={{ ...fieldStyles.inputWrapper }} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          ba: { borderStyle: "solid", borderWidth: "1px" },
+          br4: { borderRadius: "1rem" },
+          black: { color: "#353535" },
+          blue: { color: "#526675" }
+        });
+        function MyComponent({ borderOnHover, compound, isHovered }) {
+          const fieldStyles = {
+            inputWrapper: [css.df, css.aic, css.ba, ...(!compound ? [css.br4] : []), ...(borderOnHover ? [css.black] : []), ...(isHovered ? [css.blue] : [])]
+          };
+          return <div {...stylex.props(...fieldStyles.inputWrapper)} />;
         }
       `),
     );
