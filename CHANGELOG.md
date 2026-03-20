@@ -1,3 +1,9 @@
+## [2.0.0-next.2](https://github.com/homebound-team/truss/compare/v2.0.0-next.1...v2.0.0-next.2) (2026-03-20)
+
+### Bug Fixes
+
+* Use tsx for importing truss-config. ([cf01910](https://github.com/homebound-team/truss/commit/cf01910ad7015b7f127102a2d298657cbf432e29))
+
 ## [2.0.0-next.1](https://github.com/homebound-team/truss/compare/v1.137.5...v2.0.0-next.1) (2026-03-20)
 
 ### ⚠ BREAKING CHANGES
