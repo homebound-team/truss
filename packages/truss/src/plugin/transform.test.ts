@@ -526,6 +526,65 @@ describe("transform", () => {
     );
   });
 
+  // Previously unsupported before generalized `css={...}` style-array lowering.
+
+  test("style-array variable in css prop is lowered to stylex.props", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const base = Css.df.aic.$; const el = <div css={base} />;`)!),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        const base = [css.df, css.aic];
+        const el = <div {...stylex.props(...base)} />;
+      `),
+    );
+  });
+
+  test("style-array object member in css prop is lowered to stylex.props", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const styles = { wrapper: Css.df.aic.$ }; const el = <div css={styles.wrapper} />;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        const styles = { wrapper: [css.df, css.aic] };
+        const el = <div {...stylex.props(...styles.wrapper)} />;
+      `),
+    );
+  });
+
+  test("conditional style-array expression in css prop is lowered to stylex.props", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const base = Css.df.$; const active = Css.black.$; const el = <div css={isActive ? active : base} />;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          black: { color: "#353535" }
+        });
+        const base = [css.df];
+        const active = [css.black];
+        const el = <div {...stylex.props(...(isActive ? active : base))} />;
+      `),
+    );
+  });
+
   test("ordinary object spreads stay objects", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = { foo: true, ...other }; const t = Css.df.$;`)!)).toBe(
       n(`
@@ -574,22 +633,6 @@ describe("transform", () => {
           mt1: { marginTop: "8px" }
         });
         const s = [...(isActive ? [css.df] : [css.db, css.mt1])];
-      `),
-    );
-  });
-
-  test("$ assigned to variable then used in css prop", () => {
-    expect(
-      n(transform(`import { Css } from "./Css"; const base = Css.df.aic.$; const el = <div css={base} />;`)!),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const base = [css.df, css.aic];
-        const el = <div css={base} />;
       `),
     );
   });
