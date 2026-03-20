@@ -1,3 +1,9 @@
+## [2.0.0-next.5](https://github.com/homebound-team/truss/compare/v2.0.0-next.4...v2.0.0-next.5) (2026-03-20)
+
+### Bug Fixes
+
+* Rewrite object spreads to array spreads. ([#147](https://github.com/homebound-team/truss/issues/147)) ([07840ae](https://github.com/homebound-team/truss/commit/07840ae7d5e8451ece55d18da7373cd8ff6eeb30))
+
 ## [2.0.0-next.4](https://github.com/homebound-team/truss/compare/v2.0.0-next.3...v2.0.0-next.4) (2026-03-20)
 
 ### Features
