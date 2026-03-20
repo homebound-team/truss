@@ -5,8 +5,10 @@ module.exports = {
   ci: false,
   branches: ["main", { name: "feat/v2", range: "2.x", channel: "next" }],
   plugins: [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
+    // Use conventionalcommits preset (not the default angular) so that
+    // `feat!:` / `fix!:` commits are recognized as breaking changes.
+    ["@semantic-release/commit-analyzer", { preset: "conventionalcommits" }],
+    ["@semantic-release/release-notes-generator", { preset: "conventionalcommits" }],
     "@semantic-release/changelog",
     [
       "@semantic-release/exec",
