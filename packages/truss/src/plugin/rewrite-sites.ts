@@ -95,8 +95,8 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
 
   rewriteStyleObjectExpressions(options.ast);
 
-  // Second pass: flatten `css={[...Css.x.$, ...xss]}`-style arrays after site rewrites.
-  rewriteCssArrayExpressions(options.ast, options.stylexNamespaceName);
+  // Second pass: lower any style-array-like `css={...}` expression to `stylex.props(...)`.
+  rewriteCssAttributeExpressions(options.ast, options.stylexNamespaceName);
 }
 
 /**
@@ -212,39 +212,20 @@ function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOption
 }
 
 /**
- * Rewrite `css={[...a, ...b]}` to `...stylex.props(...)` by flattening nested
- * arrays produced by the first rewrite pass.
+ * Rewrite style-array-like `css={...}` expressions to `...stylex.props(...)`.
  */
-function rewriteCssArrayExpressions(ast: t.File, stylexNamespaceName: string): void {
+function rewriteCssAttributeExpressions(ast: t.File, stylexNamespaceName: string): void {
   traverse(ast, {
     JSXAttribute(path: NodePath<t.JSXAttribute>) {
       if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
       const value = path.node.value;
       if (!t.isJSXExpressionContainer(value)) return;
-      const expr = value.expression;
-      if (!t.isArrayExpression(expr)) return;
+      if (!t.isExpression(value.expression)) return;
+      const expr = normalizeStyleArrayLikeExpression(value.expression, path, new Set<t.Node>());
+      if (!expr) return;
 
-      const propsArgs: (t.Expression | t.SpreadElement)[] = [];
-
-      for (const el of expr.elements) {
-        if (t.isSpreadElement(el)) {
-          const arg = el.argument;
-          if (t.isArrayExpression(arg)) {
-            for (const inner of arg.elements) {
-              if (!inner) continue;
-              if (t.isSpreadElement(inner)) {
-                propsArgs.push(t.spreadElement(inner.argument));
-              } else {
-                propsArgs.push(inner);
-              }
-            }
-          } else {
-            propsArgs.push(t.spreadElement(arg));
-          }
-        } else if (el) {
-          propsArgs.push(el);
-        }
-      }
+      const propsArgs = buildStyleArrayLikePropsArgs(expr, path, new Set<t.Node>());
+      if (!propsArgs) return;
 
       const propsCall = t.callExpression(
         t.memberExpression(t.identifier(stylexNamespaceName), t.identifier("props")),
@@ -253,6 +234,52 @@ function rewriteCssArrayExpressions(ast: t.File, stylexNamespaceName: string): v
       path.replaceWith(t.jsxSpreadAttribute(propsCall));
     },
   });
+}
+
+// Style-array-like helpers are shared by object-spread repair and JSX css lowering.
+
+/** Convert a style-array-like expression into `stylex.props(...)` arguments. */
+function buildStyleArrayLikePropsArgs(
+  expr: t.Expression,
+  path: NodePath,
+  seen: Set<t.Node>,
+): (t.Expression | t.SpreadElement)[] | null {
+  if (seen.has(expr)) return null;
+  seen.add(expr);
+
+  if (t.isArrayExpression(expr)) {
+    const propsArgs: (t.Expression | t.SpreadElement)[] = [];
+
+    for (const el of expr.elements) {
+      if (!el) continue;
+
+      if (t.isSpreadElement(el)) {
+        const normalizedArg = normalizeStyleArrayLikeExpression(el.argument, path, new Set<t.Node>()); // I.e. `...[css.df]`, `...base`, or `...(cond ? styles.hover : {})`
+        if (!normalizedArg) {
+          propsArgs.push(t.spreadElement(el.argument));
+          continue;
+        }
+
+        const nestedArgs = buildStyleArrayLikePropsArgs(normalizedArg, path, seen);
+        if (nestedArgs && t.isArrayExpression(normalizedArg)) {
+          propsArgs.push(...nestedArgs);
+        } else {
+          propsArgs.push(t.spreadElement(normalizedArg));
+        }
+        continue;
+      }
+
+      propsArgs.push(el);
+    }
+
+    return propsArgs;
+  }
+
+  if (t.isIdentifier(expr) || t.isMemberExpression(expr) || t.isConditionalExpression(expr)) {
+    return [t.spreadElement(expr)]; // I.e. `base`, `styles.wrapper`, or `cond ? styles.hover : []`
+  }
+
+  return null;
 }
 
 /**
@@ -281,7 +308,7 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
       return null;
     }
 
-    const normalizedArg = normalizeStyleArrayExpression(
+    const normalizedArg = normalizeStyleArrayLikeExpression(
       prop.argument,
       path,
       new Set<t.Node>(), // I.e. `...Css.df.$`, `...(cond ? Css.df.$ : {})`, or `...styles.wrapper`
@@ -290,7 +317,7 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
       return null;
     }
 
-    if (isStyleArrayLikeExpression(normalizedArg, path, new Set<t.Node>())) {
+    if (isStyleArrayLike(normalizedArg, path, new Set<t.Node>())) {
       sawStyleArray = true;
     }
 
@@ -309,15 +336,15 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
 /**
  * Normalize style-array conditionals so object fallback branches become arrays.
  */
-function normalizeStyleArrayExpression(expr: t.Expression, path: NodePath, seen: Set<t.Node>): t.Expression | null {
+function normalizeStyleArrayLikeExpression(expr: t.Expression, path: NodePath, seen: Set<t.Node>): t.Expression | null {
   if (seen.has(expr)) return null;
   seen.add(expr);
 
   if (t.isArrayExpression(expr)) return expr; // I.e. `[css.df]` or `[css.df, ...xss]`
 
   if (t.isConditionalExpression(expr)) {
-    const consequent = normalizeConditionalBranch(expr.consequent, path, seen);
-    const alternate = normalizeConditionalBranch(expr.alternate, path, seen);
+    const consequent = normalizeStyleArrayLikeBranch(expr.consequent, path, seen);
+    const alternate = normalizeStyleArrayLikeBranch(expr.alternate, path, seen);
     if (!consequent || !alternate) return null;
     return t.conditionalExpression(expr.test, consequent, alternate); // I.e. `cond ? Css.df.$ : {}`
   }
@@ -325,23 +352,23 @@ function normalizeStyleArrayExpression(expr: t.Expression, path: NodePath, seen:
   if (t.isIdentifier(expr) || t.isMemberExpression(expr)) {
     const nestedSeen = new Set(seen);
     nestedSeen.delete(expr);
-    if (isStyleArrayLikeExpression(expr, path, nestedSeen)) return expr; // I.e. `base` or `styles.wrapper`
+    if (isStyleArrayLike(expr, path, nestedSeen)) return expr; // I.e. `base` or `styles.wrapper`
   }
 
   return null;
 }
 
-/** Normalize a conditional branch inside a style-array expression. */
-function normalizeConditionalBranch(expr: t.Expression, path: NodePath, seen: Set<t.Node>): t.Expression | null {
+/** Normalize a conditional branch inside a style-array-like expression. */
+function normalizeStyleArrayLikeBranch(expr: t.Expression, path: NodePath, seen: Set<t.Node>): t.Expression | null {
   if (isEmptyObjectExpression(expr)) {
     return t.arrayExpression([]); // I.e. `cond ? Css.df.$ : {}` becomes `cond ? [css.df] : []`
   }
 
-  return normalizeStyleArrayExpression(expr, path, seen);
+  return normalizeStyleArrayLikeExpression(expr, path, seen);
 }
 
 /** Check whether an expression is known to evaluate to a style ref array. */
-function isStyleArrayLikeExpression(expr: t.Expression, path: NodePath, seen: Set<t.Node>): boolean {
+function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>): boolean {
   if (seen.has(expr)) return false;
   seen.add(expr);
 
@@ -356,7 +383,7 @@ function isStyleArrayLikeExpression(expr: t.Expression, path: NodePath, seen: Se
     const bindingPath = binding?.path;
     if (!bindingPath || !bindingPath.isVariableDeclarator()) return false;
     const init = bindingPath.node.init;
-    return !!(init && isStyleArrayLikeExpression(init, bindingPath, seen)); // I.e. `base` where `const base = [css.df]`
+    return !!(init && isStyleArrayLike(init, bindingPath, seen)); // I.e. `base` where `const base = [css.df]`
   }
 
   if (t.isMemberExpression(expr) && !expr.computed && t.isIdentifier(expr.property)) {
@@ -374,7 +401,7 @@ function isStyleArrayLikeExpression(expr: t.Expression, path: NodePath, seen: Se
       if (!t.isObjectProperty(prop) || prop.computed) continue;
       if (!isMatchingPropertyName(prop.key, propertyName)) continue;
       const value = prop.value;
-      return t.isExpression(value) && isStyleArrayLikeExpression(value, bindingPath, seen); // I.e. `styles.wrapper`
+      return t.isExpression(value) && isStyleArrayLike(value, bindingPath, seen); // I.e. `styles.wrapper`
     }
   }
 
@@ -383,7 +410,7 @@ function isStyleArrayLikeExpression(expr: t.Expression, path: NodePath, seen: Se
 
 /** Check a branch used inside a conditional style-array expression. */
 function isStyleArrayLikeBranch(expr: t.Expression, path: NodePath, seen: Set<t.Node>): boolean {
-  return isEmptyObjectExpression(expr) || isStyleArrayLikeExpression(expr, path, seen); // I.e. `{}` or `[css.df]`
+  return isEmptyObjectExpression(expr) || isStyleArrayLike(expr, path, seen); // I.e. `{}` or `[css.df]`
 }
 
 /** Match static object property names. */
