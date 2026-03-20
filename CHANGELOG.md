@@ -1,3 +1,19 @@
+## [2.0.0-next.12](https://github.com/homebound-team/truss/compare/v2.0.0-next.11...v2.0.0-next.12) (2026-03-20)
+
+### Features
+
+* Add a runtime with helper methods. ([0740620](https://github.com/homebound-team/truss/commit/07406207b72c53b76be76a933158923aac58182f))
+* Add logging on expressions we don't understand. ([25f3fc4](https://github.com/homebound-team/truss/commit/25f3fc4a03b08f25247aecc9e8f43bfaa9968a2b))
+
+### Bug Fixes
+
+* Avoid rewriting non-css prop spreads. ([634c25b](https://github.com/homebound-team/truss/commit/634c25bd4d273f9fb5b96d89915a73ccb64f69da))
+* Fix imports. ([9bf1cca](https://github.com/homebound-team/truss/commit/9bf1cca9bfaa71962d3ce7ad766c14b62df83d12))
+* Fix render functions. ([718e74b](https://github.com/homebound-team/truss/commit/718e74bcf8d10101fbffd95ae2dda6cf1c20bd0d))
+* Fix useMemo'd styles not spreading. ([91b5474](https://github.com/homebound-team/truss/commit/91b54742486d452e2bbb9d20ef7b95601a4d415b))
+* Handle spreads more safely. ([45d57c4](https://github.com/homebound-team/truss/commit/45d57c469c62d1959b959b9a91f790679e3b59e2))
+* Support css={getFromAnotherFile()}. ([38d9d3d](https://github.com/homebound-team/truss/commit/38d9d3de9cd2780585efbb53d130434d69fab882))
+
 ## [2.0.0-next.11](https://github.com/homebound-team/truss/compare/v2.0.0-next.10...v2.0.0-next.11) (2026-03-20)
 
 ### Bug Fixes
