@@ -604,6 +604,34 @@ describe("transform", () => {
     );
   });
 
+  test("non-css prop object spread is not rewritten to style array", () => {
+    expect(
+      n(
+        transform(`
+          import { mergeProps } from "react-aria";
+          import { Css } from "./Css";
+
+          function Example() {
+            return <div inputProps={{
+              ...mergeProps(inputProps, { "aria-invalid": Boolean(errorMsg), onInput: () => state.open() }),
+            }}><span css={Css.df.$} /></div>;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import { mergeProps } from "react-aria";
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ df: { display: "flex" } });
+        function Example() {
+          return <div inputProps={{
+            ...mergeProps(inputProps, { "aria-invalid": Boolean(errorMsg), onInput: () => state.open() })
+          }}><span {...stylex.props(css.df)} /></div>;
+        }
+      `),
+    );
+  });
+
   test("mixed css prop spread and Css chain spread are lowered together", () => {
     expect(
       n(

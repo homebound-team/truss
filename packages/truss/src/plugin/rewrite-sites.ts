@@ -422,7 +422,7 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
       continue;
     }
 
-    if (isStyleArrayLike(normalizedArg, path, new Set<t.Node>())) {
+    if (isKnownStyleArrayLike(normalizedArg, path, new Set<t.Node>())) {
       sawStyleArray = true;
     }
 
@@ -535,6 +535,62 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
       if (!isMatchingPropertyName(prop.key, propertyName)) continue;
       const value = prop.value;
       return t.isExpression(value) && isStyleArrayLike(value, bindingPath, seen); // I.e. `styles.wrapper`
+    }
+  }
+
+  return false;
+}
+
+/** Check whether an expression is provably style-array-like without optimistic external-call assumptions. */
+function isKnownStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>): boolean {
+  if (seen.has(expr)) return false;
+  seen.add(expr);
+
+  if (t.isArrayExpression(expr)) return true;
+
+  if (t.isLogicalExpression(expr) && expr.operator === "&&") {
+    return isKnownStyleArrayLike(expr.right, path, seen);
+  }
+
+  if (t.isLogicalExpression(expr) && (expr.operator === "||" || expr.operator === "??")) {
+    return isKnownStyleArrayLike(expr.left, path, seen) && isStyleArrayLikeBranch(expr.right, path, seen);
+  }
+
+  if (t.isConditionalExpression(expr)) {
+    return isStyleArrayLikeBranch(expr.consequent, path, seen) && isStyleArrayLikeBranch(expr.alternate, path, seen);
+  }
+
+  if (t.isIdentifier(expr)) {
+    const binding = path.scope.getBinding(expr.name);
+    const bindingPath = binding?.path;
+    if (!bindingPath || !bindingPath.isVariableDeclarator()) return false;
+    const init = bindingPath.node.init;
+    return !!(init && isKnownStyleArrayLike(init, bindingPath, seen));
+  }
+
+  if (t.isCallExpression(expr)) {
+    const returnExpr = getCallStyleArrayLikeExpression(expr, path);
+    return !!(returnExpr && isKnownStyleArrayLike(returnExpr, path, seen));
+  }
+
+  if (t.isMemberExpression(expr)) {
+    const object = expr.object;
+    if (!t.isIdentifier(object)) return false;
+
+    const binding = path.scope.getBinding(object.name);
+    const bindingPath = binding?.path;
+    if (!bindingPath || !bindingPath.isVariableDeclarator()) return false;
+    const init = bindingPath.node.init;
+    if (!init || !t.isObjectExpression(init)) return false;
+
+    const propertyName = getStaticMemberPropertyName(expr, path);
+    if (!propertyName) return false;
+
+    for (const prop of init.properties) {
+      if (!t.isObjectProperty(prop) || prop.computed) continue;
+      if (!isMatchingPropertyName(prop.key, propertyName)) continue;
+      const value = prop.value;
+      return t.isExpression(value) && isKnownStyleArrayLike(value, bindingPath, seen);
     }
   }
 
