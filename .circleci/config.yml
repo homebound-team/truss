@@ -19,6 +19,7 @@ workflows:
             branches:
               only:
                 - main
+                - feat/v2
 
 jobs:
   build:
