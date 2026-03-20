@@ -1,3 +1,10 @@
+## [2.0.0-next.3](https://github.com/homebound-team/truss/compare/v2.0.0-next.2...v2.0.0-next.3) (2026-03-20)
+
+### Bug Fixes
+
+* Restore Only/increment/px utilities. ([183bf9d](https://github.com/homebound-team/truss/commit/183bf9d21f89296a3300b331131a82597529ed40))
+* Update snapshots. ([de3fd5c](https://github.com/homebound-team/truss/commit/de3fd5cc322316872405ee6f8e985a667771af05))
+
 ## [2.0.0-next.2](https://github.com/homebound-team/truss/compare/v2.0.0-next.1...v2.0.0-next.2) (2026-03-20)
 
 ### Bug Fixes
