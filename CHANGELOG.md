@@ -1,3 +1,9 @@
+## [2.0.0-next.10](https://github.com/homebound-team/truss/compare/v2.0.0-next.9...v2.0.0-next.10) (2026-03-20)
+
+### Bug Fixes
+
+* Fix && expressions ([#152](https://github.com/homebound-team/truss/issues/152)) ([c74e51f](https://github.com/homebound-team/truss/commit/c74e51ffa5dd6b2cb40096300687c67b0d021d19))
+
 ## [2.0.0-next.9](https://github.com/homebound-team/truss/compare/v2.0.0-next.8...v2.0.0-next.9) (2026-03-20)
 
 ### Bug Fixes
