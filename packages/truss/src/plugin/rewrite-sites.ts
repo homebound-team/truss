@@ -390,6 +390,12 @@ function normalizeStyleArrayLikeExpression(expr: t.Expression, path: NodePath, s
 
   if (t.isArrayExpression(expr)) return expr; // I.e. `[css.df]` or `[css.df, ...xss]`
 
+  if (t.isLogicalExpression(expr) && expr.operator === "&&") {
+    const consequent = normalizeStyleArrayLikeExpression(expr.right, path, seen);
+    if (!consequent) return null;
+    return t.conditionalExpression(expr.left, consequent, t.arrayExpression([])); // I.e. `cond && Css.df.$`
+  }
+
   if (t.isConditionalExpression(expr)) {
     const consequent = normalizeStyleArrayLikeBranch(expr.consequent, path, seen);
     const alternate = normalizeStyleArrayLikeBranch(expr.alternate, path, seen);
@@ -421,6 +427,10 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
   seen.add(expr);
 
   if (t.isArrayExpression(expr)) return true; // I.e. `[css.df]`
+
+  if (t.isLogicalExpression(expr) && expr.operator === "&&") {
+    return isStyleArrayLike(expr.right, path, seen); // I.e. `cond && [css.df]`
+  }
 
   if (t.isConditionalExpression(expr)) {
     return isStyleArrayLikeBranch(expr.consequent, path, seen) && isStyleArrayLikeBranch(expr.alternate, path, seen); // I.e. `cond ? [css.df] : []`

@@ -636,6 +636,47 @@ describe("transform", () => {
     );
   });
 
+  test("css prop object with intermediate style-array spreads using && is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function MyComponent({ borderOnHover, compound, isHovered }) {
+            const fieldStyles = {
+              inputWrapper: {
+                ...Css.df.aic.ba.$,
+                ...(!compound ? Css.br4.$ : {}),
+                ...(borderOnHover && Css.black.$),
+                ...(isHovered && Css.blue.$),
+              },
+            };
+
+            return <div css={{ ...fieldStyles.inputWrapper }} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          ba: { borderStyle: "solid", borderWidth: "1px" },
+          br4: { borderRadius: "1rem" },
+          black: { color: "#353535" },
+          blue: { color: "#526675" }
+        });
+        function MyComponent({ borderOnHover, compound, isHovered }) {
+          const fieldStyles = {
+            inputWrapper: [css.df, css.aic, css.ba, ...(!compound ? [css.br4] : []), ...(borderOnHover ? [css.black] : []), ...(isHovered ? [css.blue] : [])]
+          };
+          return <div {...stylex.props(...fieldStyles.inputWrapper)} />;
+        }
+      `),
+    );
+  });
+
   test("style-array object member in css prop is lowered to stylex.props", () => {
     expect(
       n(
