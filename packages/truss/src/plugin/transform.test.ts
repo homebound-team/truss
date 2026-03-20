@@ -677,6 +677,109 @@ describe("transform", () => {
     );
   });
 
+  test("css prop object with style-array spreads using || is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          const base = Css.df.$;
+          const hover = Css.blue.$;
+          const el = <div css={{ ...(hover || base) }} />;
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          blue: { color: "#526675" }
+        });
+        const base = [css.df];
+        const hover = [css.blue];
+        const el = <div {...stylex.props(...(hover || base))} />;
+      `),
+    );
+  });
+
+  test("css prop object with style-array spreads using ?? is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          const base = Css.df.$;
+          const hover = Css.blue.$;
+          const el = <div css={{ ...(hover ?? base) }} />;
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          blue: { color: "#526675" }
+        });
+        const base = [css.df];
+        const hover = [css.blue];
+        const el = <div {...stylex.props(...(hover ?? base))} />;
+      `),
+    );
+  });
+
+  test("css prop object with computed intermediate member spread is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          const key = "wrapper";
+          const styles = { wrapper: Css.df.aic.$ };
+          const el = <div css={{ ...styles[key] }} />;
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        const key = "wrapper";
+        const styles = { wrapper: [css.df, css.aic] };
+        const el = <div {...stylex.props(...styles[key])} />;
+      `),
+    );
+  });
+
+  test("css prop object with function-returned style-array spread is lowered", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function getStyles() {
+            return Css.df.aic.$;
+          }
+
+          const el = <div css={{ ...getStyles() }} />;
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        function getStyles() {
+          return [css.df, css.aic];
+        }
+        const el = <div {...stylex.props(...getStyles())} />;
+      `),
+    );
+  });
+
   test("style-array object member in css prop is lowered to stylex.props", () => {
     expect(
       n(

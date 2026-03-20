@@ -323,8 +323,14 @@ function buildStyleArrayLikePropsArgs(
     return propsArgs;
   }
 
-  if (t.isIdentifier(expr) || t.isMemberExpression(expr) || t.isConditionalExpression(expr)) {
-    return [t.spreadElement(expr)]; // I.e. `base`, `styles.wrapper`, or `cond ? styles.hover : []`
+  if (
+    t.isIdentifier(expr) ||
+    t.isMemberExpression(expr) ||
+    t.isConditionalExpression(expr) ||
+    t.isLogicalExpression(expr) ||
+    t.isCallExpression(expr)
+  ) {
+    return [t.spreadElement(expr)]; // I.e. `base`, `styles.wrapper`, `base || hover`, or `getStyles()`
   }
 
   return null;
@@ -396,6 +402,13 @@ function normalizeStyleArrayLikeExpression(expr: t.Expression, path: NodePath, s
     return t.conditionalExpression(expr.left, consequent, t.arrayExpression([])); // I.e. `cond && Css.df.$`
   }
 
+  if (t.isLogicalExpression(expr) && (expr.operator === "||" || expr.operator === "??")) {
+    const left = normalizeStyleArrayLikeExpression(expr.left, path, seen);
+    const right = normalizeStyleArrayLikeBranch(expr.right, path, seen);
+    if (!left || !right) return null;
+    return t.logicalExpression(expr.operator, left, right); // I.e. `base || Css.df.$` or `base ?? {}`
+  }
+
   if (t.isConditionalExpression(expr)) {
     const consequent = normalizeStyleArrayLikeBranch(expr.consequent, path, seen);
     const alternate = normalizeStyleArrayLikeBranch(expr.alternate, path, seen);
@@ -403,10 +416,10 @@ function normalizeStyleArrayLikeExpression(expr: t.Expression, path: NodePath, s
     return t.conditionalExpression(expr.test, consequent, alternate); // I.e. `cond ? Css.df.$ : {}`
   }
 
-  if (t.isIdentifier(expr) || t.isMemberExpression(expr)) {
+  if (t.isIdentifier(expr) || t.isMemberExpression(expr) || t.isCallExpression(expr)) {
     const nestedSeen = new Set(seen);
     nestedSeen.delete(expr);
-    if (isStyleArrayLike(expr, path, nestedSeen)) return expr; // I.e. `base` or `styles.wrapper`
+    if (isStyleArrayLike(expr, path, nestedSeen)) return expr; // I.e. `base`, `styles.wrapper`, or `getStyles()`
   }
 
   return null;
@@ -432,6 +445,10 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
     return isStyleArrayLike(expr.right, path, seen); // I.e. `cond && [css.df]`
   }
 
+  if (t.isLogicalExpression(expr) && (expr.operator === "||" || expr.operator === "??")) {
+    return isStyleArrayLike(expr.left, path, seen) && isStyleArrayLikeBranch(expr.right, path, seen); // I.e. `base || [css.df]`
+  }
+
   if (t.isConditionalExpression(expr)) {
     return isStyleArrayLikeBranch(expr.consequent, path, seen) && isStyleArrayLikeBranch(expr.alternate, path, seen); // I.e. `cond ? [css.df] : []`
   }
@@ -444,7 +461,12 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
     return !!(init && isStyleArrayLike(init, bindingPath, seen)); // I.e. `base` where `const base = [css.df]`
   }
 
-  if (t.isMemberExpression(expr) && !expr.computed && t.isIdentifier(expr.property)) {
+  if (t.isCallExpression(expr)) {
+    const returnExpr = getLocalFunctionReturnExpression(expr, path);
+    return !!(returnExpr && isStyleArrayLike(returnExpr, path, seen)); // I.e. `getStyles()`
+  }
+
+  if (t.isMemberExpression(expr)) {
     const object = expr.object;
     if (!t.isIdentifier(object)) return false;
 
@@ -454,7 +476,9 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
     const init = bindingPath.node.init;
     if (!init || !t.isObjectExpression(init)) return false;
 
-    const propertyName = expr.property.name;
+    const propertyName = getStaticMemberPropertyName(expr, path);
+    if (!propertyName) return false;
+
     for (const prop of init.properties) {
       if (!t.isObjectProperty(prop) || prop.computed) continue;
       if (!isMatchingPropertyName(prop.key, propertyName)) continue;
@@ -479,4 +503,60 @@ function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName
 /** Check for `{}` fallback branches that should become `[]`. */
 function isEmptyObjectExpression(expr: t.Expression): boolean {
   return t.isObjectExpression(expr) && expr.properties.length === 0;
+}
+
+/** Resolve static property names for `styles.wrapper` or `styles["wrapper"]`. */
+function getStaticMemberPropertyName(expr: t.MemberExpression, path: NodePath): string | null {
+  if (!expr.computed && t.isIdentifier(expr.property)) {
+    return expr.property.name;
+  }
+
+  if (t.isStringLiteral(expr.property)) {
+    return expr.property.value;
+  }
+
+  if (t.isIdentifier(expr.property)) {
+    const binding = path.scope.getBinding(expr.property.name);
+    const bindingPath = binding?.path;
+    if (!bindingPath || !bindingPath.isVariableDeclarator()) return null;
+    const init = bindingPath.node.init;
+    return t.isStringLiteral(init) ? init.value : null;
+  }
+
+  return null;
+}
+
+/** Resolve a local function call that returns a style-array-like expression. */
+function getLocalFunctionReturnExpression(expr: t.CallExpression, path: NodePath): t.Expression | null {
+  if (!t.isIdentifier(expr.callee)) return null;
+
+  const binding = path.scope.getBinding(expr.callee.name);
+  const bindingPath = binding?.path;
+  if (!bindingPath) return null;
+
+  if (bindingPath.isFunctionDeclaration()) {
+    return getFunctionLikeReturnExpression(bindingPath.node);
+  }
+
+  if (bindingPath.isVariableDeclarator()) {
+    const init = bindingPath.node.init;
+    if (init && (t.isArrowFunctionExpression(init) || t.isFunctionExpression(init))) {
+      return getFunctionLikeReturnExpression(init);
+    }
+  }
+
+  return null;
+}
+
+/** Extract a single returned expression from a function-like node. */
+function getFunctionLikeReturnExpression(
+  fn: t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression,
+): t.Expression | null {
+  if (t.isExpression(fn.body)) {
+    return fn.body;
+  }
+
+  if (fn.body.body.length !== 1) return null;
+  const stmt = fn.body.body[0];
+  return t.isReturnStatement(stmt) && stmt.argument && t.isExpression(stmt.argument) ? stmt.argument : null;
 }
