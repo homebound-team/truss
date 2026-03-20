@@ -1,6 +1,6 @@
 import { Css } from "./Css";
 import { useState } from "react";
-import "./App.css.ts";
+import { buttonNoteClassName } from "./App.css.ts";
 
 export function App() {
   const [count, setCount] = useState(0);
@@ -18,6 +18,7 @@ export function App() {
           </span>
         )}
       </div>
+      <p className={buttonNoteClassName}>This note uses an exported class constant from `App.css.ts`.</p>
 
       <div css={Css.mt2.df.gap1.$}>
         <div css={Css.ba.bcBlack.p1.br2.cursorPointer.onHover.bcBlue.bgLightGray.$}>

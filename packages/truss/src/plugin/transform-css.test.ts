@@ -11,7 +11,7 @@ const mapping = loadMapping(resolve(__dirname, "../../../app-stylex/src/Css.json
 describe("transformCssTs", () => {
   test("single selector with static chain", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.df.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.df.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -26,7 +26,7 @@ describe("transformCssTs", () => {
 
   test("multiple selectors", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.df.$, ".bar": Css.black.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.df.$, ".bar": Css.black.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -45,7 +45,7 @@ describe("transformCssTs", () => {
 
   test("multi-getter chain produces multiple declarations", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.df.aic.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.df.aic.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -61,7 +61,7 @@ describe("transformCssTs", () => {
 
   test("dynamic with literal arg: Css.mt(2).$", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.mt(2).$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.mt(2).$ };`,
       "test.css.ts",
       mapping,
     );
@@ -76,7 +76,7 @@ describe("transformCssTs", () => {
 
   test("dynamic with string literal: Css.mt('10px').$", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.mt("10px").$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.mt("10px").$ };`,
       "test.css.ts",
       mapping,
     );
@@ -91,7 +91,7 @@ describe("transformCssTs", () => {
 
   test("typography literal: Css.typography('f14').$", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.typography("f14").$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.typography("f14").$ };`,
       "test.css.ts",
       mapping,
     );
@@ -106,7 +106,7 @@ describe("transformCssTs", () => {
 
   test("delegate with literal: Css.mtPx(12).$", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.mtPx(12).$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.mtPx(12).$ };`,
       "test.css.ts",
       mapping,
     );
@@ -121,7 +121,7 @@ describe("transformCssTs", () => {
 
   test("complex selector strings", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo > .bar:nth-child(2)": Css.df.$, ".a ~ .b::before": Css.black.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo > .bar:nth-child(2)": Css.df.$, ".a ~ .b::before": Css.black.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -138,11 +138,26 @@ describe("transformCssTs", () => {
     );
   });
 
+  test("selector template literal can reuse an exported class constant", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css"; export const someClassName = "some-class-name"; export const css = { [\`.\${someClassName}\`]: Css.df.$ };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        .some-class-name {
+          display: flex;
+        }
+      `),
+    );
+  });
+
   // Error cases — inline comment, selector skipped
 
   test("error: variable arg produces inline comment", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; const x = 5; export default { ".foo": Css.mt(x).$ };`,
+      `import { Css } from "./Css"; const x = 5; export const css = { ".foo": Css.mt(x).$ };`,
       "test.css.ts",
       mapping,
     );
@@ -153,7 +168,7 @@ describe("transformCssTs", () => {
 
   test("error: typography runtime key produces inline comment", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; const key = "f14"; export default { ".foo": Css.typography(key).$ };`,
+      `import { Css } from "./Css"; const key = "f14"; export const css = { ".foo": Css.typography(key).$ };`,
       "test.css.ts",
       mapping,
     );
@@ -164,7 +179,7 @@ describe("transformCssTs", () => {
 
   test("error: if() conditional produces inline comment", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.if(true).df.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.if(true).df.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -173,7 +188,7 @@ describe("transformCssTs", () => {
 
   test("error: onHover modifier produces inline comment", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.onHover.blue.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.onHover.blue.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -186,7 +201,7 @@ describe("transformCssTs", () => {
 
   test("error: ifSm modifier produces inline comment", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.ifSm.blue.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.ifSm.blue.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -199,7 +214,7 @@ describe("transformCssTs", () => {
 
   test("error: unknown abbreviation produces inline comment", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": Css.totallyBogus.$ };`,
+      `import { Css } from "./Css"; export const css = { ".foo": Css.totallyBogus.$ };`,
       "test.css.ts",
       mapping,
     );
@@ -210,7 +225,7 @@ describe("transformCssTs", () => {
 
   test("error: non-Css expression value produces inline comment", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export default { ".foo": "not a Css expression" };`,
+      `import { Css } from "./Css"; export const css = { ".foo": "not a Css expression" };`,
       "test.css.ts",
       mapping,
     );
@@ -218,20 +233,20 @@ describe("transformCssTs", () => {
   });
 
   test("error: no Css import produces comment", () => {
-    const css = transformCssTs(`export default { ".foo": "bar" };`, "test.css.ts", mapping);
+    const css = transformCssTs(`export const css = { ".foo": "bar" };`, "test.css.ts", mapping);
     expect(n(css)).toBe(n(`/* [truss] test.css.ts: no Css import found */`));
   });
 
-  test("error: no default export produces comment", () => {
+  test("error: no named css export produces comment", () => {
     const css = transformCssTs(`import { Css } from "./Css"; const x = { ".foo": Css.df.$ };`, "test.css.ts", mapping);
-    expect(n(css)).toBe(n(`/* [truss] test.css.ts: expected \`export default { ... }\` with an object literal */`));
+    expect(n(css)).toBe(n(`/* [truss] test.css.ts: expected \`export const css = { ... }\` with an object literal */`));
   });
 
   test("valid selectors alongside invalid ones still emit the valid CSS", () => {
     const css = transformCssTs(
       `import { Css } from "./Css";
        const x = 5;
-       export default {
+       export const css = {
          ".good": Css.df.$,
          ".bad": Css.mt(x).$,
          ".also-good": Css.black.$,
@@ -301,26 +316,30 @@ describe("trussPlugin .css.ts integration", () => {
     writeFileSync(path, JSON.stringify(m, null, 2) + "\n", "utf8");
   }
 
-  test("resolveId resolves .css.ts imports to virtual CSS modules", () => {
+  test("resolveId resolves ?truss-css imports to virtual CSS modules", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
     });
     const cssTs = join(root, "src", "component.css.ts");
-    writeFileSync(cssTs, `import { Css } from "./Css"; export default { ".foo": Css.df.$ };`, "utf8");
+    writeFileSync(cssTs, `import { Css } from "./Css"; export const css = { ".foo": Css.df.$ };`, "utf8");
 
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {} as any, { root });
     invokeHook(plugin.buildStart, {} as any);
 
-    // resolveId should return a virtual ID for the .css.ts import
-    const resolved = invokeHook(plugin.resolveId, {} as any, "./component.css.ts", join(root, "src", "App.tsx"));
+    const resolved = invokeHook(
+      plugin.resolveId,
+      {} as any,
+      "./component.css.ts?truss-css",
+      join(root, "src", "App.tsx"),
+    );
     expect(resolved).toBeTruthy();
     expect(typeof resolved).toBe("string");
     expect((resolved as string).startsWith("\0truss-css:")).toBe(true);
   });
 
-  test("resolveId returns null for non-existent .css.ts files", () => {
+  test("resolveId returns null for non-existent ?truss-css files", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -329,7 +348,12 @@ describe("trussPlugin .css.ts integration", () => {
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {} as any, { root });
 
-    const resolved = invokeHook(plugin.resolveId, {} as any, "./nonexistent.css.ts", join(root, "src", "App.tsx"));
+    const resolved = invokeHook(
+      plugin.resolveId,
+      {} as any,
+      "./nonexistent.css.ts?truss-css",
+      join(root, "src", "App.tsx"),
+    );
     expect(resolved).toBeNull();
   });
 
@@ -339,7 +363,7 @@ describe("trussPlugin .css.ts integration", () => {
       df: { kind: "static", defs: { display: "flex" } },
     });
     const cssTs = join(root, "src", "component.css.ts");
-    writeFileSync(cssTs, `import { Css } from "./Css"; export default { ".foo": Css.df.$ };`, "utf8");
+    writeFileSync(cssTs, `import { Css } from "./Css"; export const css = { ".foo": Css.df.$ };`, "utf8");
 
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {} as any, { root });
@@ -352,6 +376,61 @@ describe("trussPlugin .css.ts integration", () => {
       n(`
         .foo {
           display: flex;
+        }
+      `),
+    );
+  });
+
+  test("transform keeps named .css.ts imports and adds a virtual CSS side effect", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root });
+
+    const result = invokeHook(
+      plugin.transform,
+      {},
+      `import { someClassName } from "./component.css.ts"; export function App() { return <div className={someClassName} />; }`,
+      join(root, "src", "App.tsx"),
+    );
+
+    expect(result).toMatchObject({ code: expect.any(String) });
+    expect(n((result as { code: string }).code)).toBe(
+      n(`
+        import { someClassName } from "./component.css.ts";
+        import "./component.css.ts?truss-css";
+        export function App() {
+          return <div className={someClassName} />;
+        }
+      `),
+    );
+  });
+
+  test("transform rewrites side-effect .css.ts imports to the virtual CSS module", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root });
+
+    const result = invokeHook(
+      plugin.transform,
+      {},
+      `import "./component.css.ts"; export function App() { return <div />; }`,
+      join(root, "src", "App.tsx"),
+    );
+
+    expect(result).toMatchObject({ code: expect.any(String) });
+    expect(n((result as { code: string }).code)).toBe(
+      n(`
+        import "./component.css.ts?truss-css";
+        export function App() {
+          return <div />;
         }
       `),
     );

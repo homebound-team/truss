@@ -3,6 +3,7 @@ import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import { extractChain, findCssImportBinding } from "./ast-utils";
+import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
 
 /**
  * Transform a `.css.ts` file into a plain CSS string.
@@ -10,7 +11,7 @@ import { extractChain, findCssImportBinding } from "./ast-utils";
  * The file is expected to have the shape:
  * ```ts
  * import { Css } from "./Css";
- * export default {
+ * export const css = {
  *   ".some-selector": Css.df.blue.$,
  *   ".other > .selector": Css.mt(2).black.$,
  * };
@@ -33,15 +34,16 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
     return `/* [truss] ${filename}: no Css import found */\n`;
   }
 
-  // Find the `export default { ... }` expression
-  const defaultExport = findDefaultExportObject(ast);
-  if (!defaultExport) {
-    return `/* [truss] ${filename}: expected \`export default { ... }\` with an object literal */\n`;
+  // Find the `export const css = { ... }` expression
+  const cssExport = findNamedCssExportObject(ast);
+  if (!cssExport) {
+    return `/* [truss] ${filename}: expected \`export const css = { ... }\` with an object literal */\n`;
   }
 
   const rules: string[] = [];
+  const stringBindings = collectStaticStringBindings(ast);
 
-  for (const prop of defaultExport.properties) {
+  for (const prop of cssExport.properties) {
     if (t.isSpreadElement(prop)) {
       rules.push(`/* [truss] unsupported: spread elements in css.ts export */`);
       continue;
@@ -53,7 +55,7 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
     }
 
     // Key must be a string literal (the CSS selector)
-    const selector = objectPropertyStringKey(prop);
+    const selector = objectPropertyStringKey(prop, stringBindings);
     if (selector === null) {
       rules.push(`/* [truss] unsupported: non-string-literal key in css.ts export */`);
       continue;
@@ -78,26 +80,34 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
   return rules.join("\n\n") + "\n";
 }
 
-/** Find the object expression in `export default { ... }`. */
-function findDefaultExportObject(ast: t.File): t.ObjectExpression | null {
+/** Find the object expression in `export const css = { ... }`. */
+function findNamedCssExportObject(ast: t.File): t.ObjectExpression | null {
   for (const node of ast.program.body) {
-    if (!t.isExportDefaultDeclaration(node)) continue;
-    const decl = node.declaration;
-    // `export default { ... }`
-    if (t.isObjectExpression(decl)) return decl;
-    // `export default { ... } as const` or similar TSAsExpression wrapping
-    if (t.isTSAsExpression(decl) && t.isObjectExpression(decl.expression)) return decl.expression;
-    // `export default { ... } satisfies ...`
-    if (t.isTSSatisfiesExpression(decl) && t.isObjectExpression(decl.expression)) return decl.expression;
+    if (!t.isExportNamedDeclaration(node) || !node.declaration) continue;
+    if (!t.isVariableDeclaration(node.declaration)) continue;
+
+    for (const declarator of node.declaration.declarations) {
+      if (!t.isIdentifier(declarator.id, { name: "css" })) continue;
+      const value = unwrapObjectExpression(declarator.init);
+      if (value) return value;
+    }
   }
   return null;
 }
 
-/** Extract a string key from an ObjectProperty (string literal or identifier). */
-function objectPropertyStringKey(prop: t.ObjectProperty): string | null {
+function unwrapObjectExpression(node: t.Expression | null | undefined): t.ObjectExpression | null {
+  if (!node) return null;
+  if (t.isObjectExpression(node)) return node;
+  if (t.isTSAsExpression(node) || t.isTSSatisfiesExpression(node)) return unwrapObjectExpression(node.expression);
+  return null;
+}
+
+/** Extract a static string key from an ObjectProperty. */
+function objectPropertyStringKey(prop: t.ObjectProperty, stringBindings: Map<string, string>): string | null {
   if (t.isStringLiteral(prop.key)) return prop.key.value;
   // Allow unquoted identifiers as keys too (e.g. `body: Css.df.$`)
   if (t.isIdentifier(prop.key) && !prop.computed) return prop.key.name;
+  if (prop.computed) return resolveStaticString(prop.key, stringBindings);
   return null;
 }
 
