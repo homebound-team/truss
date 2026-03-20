@@ -6,6 +6,9 @@ import { Properties as Properties1 } from "csstype";
 
 import * as stylex from "@stylexjs/stylex";
 
+/** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
+export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
+
 export type Properties = Properties1<string | 0, string>;
 
 /** A marker returned by `stylex.defineMarker()`, used with `when`/`markerOf` etc. */
@@ -2393,6 +2396,16 @@ export function maybeInc(inc: number | string): string {
   return typeof inc === "string" ? inc : `${inc * 8}px`;
 }
 
+/** Converts `inc` into pixels. */
+export function increment(inc: number): number {
+  return inc * 8;
+}
+
+/** Convert `pixels` to a `px` units string so it's not ambiguous. */
+export function px(pixels: number): string {
+  return `${pixels}px`;
+}
+
 export enum Palette {
   Black = "#353535",
   MidGray = "#888888",
@@ -2402,8 +2415,15 @@ export enum Palette {
   Primary = "var(--primary)",
 }
 
+/** A shortcut for defining Xss types. */
+export type Xss<P extends keyof Properties> = Pick<Properties, P>;
+
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined });
+
+export type Margin = "margin" | "marginTop" | "marginRight" | "marginBottom" | "marginLeft";
+
+export type Padding = "padding" | "paddingTop" | "paddingRight" | "paddingBottom" | "paddingLeft";
 
 export type Breakpoint = "print" | "sm" | "md" | "smOrMd" | "mdAndUp" | "mdAndDown" | "lg" | "mdOrLg";
 export enum Breakpoints {

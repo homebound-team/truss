@@ -292,11 +292,18 @@ function collectStylexGenerationData(config: Config): {
  * produces, and rewrites `Css.*.$` into file-local `stylex.create()` + `stylex.props()` calls.
  */
 function generateStylexCssBuilder(config: Config, sections: Record<string, UtilityMethod[]>): Code {
-  const { fonts, increment, extras, palette, breakpoints = {} } = config;
+  const { fonts, increment, extras, typeAliases, palette, breakpoints = {} } = config;
 
   const lines = Object.entries(sections)
     .map(([name, value]) => [`// ${name}`, ...value, ""])
     .flat();
+
+  const typeAliasCode = Object.entries({
+    ...defaultTypeAliases,
+    ...typeAliases,
+  }).map(([name, props]) => {
+    return `export type ${name} = ${props.map(quote).join(" | ")};\n\n`;
+  });
 
   const genBreakpointsMap = makeBreakpoints(breakpoints);
 
@@ -324,6 +331,9 @@ function generateStylexCssBuilder(config: Config, sections: Record<string, Utili
 // Target: stylex (build-time plugin)
 
 import * as stylex from "@stylexjs/stylex";
+
+/** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
+export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
 export type ${def("Properties")} = ${CssProperties}<string | 0, string>;
 
@@ -458,14 +468,29 @@ export function maybeInc(inc: number | string): string {
   return typeof inc === "string" ? inc : \`\${inc * ${increment}}px\`;
 }
 
+/** Converts \`inc\` into pixels. */
+export function increment(inc: number): number {
+  return inc * ${increment};
+}
+
+/** Convert \`pixels\` to a \`px\` units string so it's not ambiguous. */
+export function px(pixels: number): string {
+  return \`\${pixels}px\`;
+}
+
 export enum Palette {
   ${Object.entries(palette).map(([name, value]) => {
     return `${name} = "${value}",`;
   })}
 }
 
+/** A shortcut for defining Xss types. */
+export type Xss<P extends keyof Properties> = Pick<Properties, P>;
+
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined });
+
+${typeAliasCode}
 
 ${breakpointCode}
 
