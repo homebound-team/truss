@@ -1,3 +1,15 @@
+## [2.0.0-next.1](https://github.com/homebound-team/truss/compare/v1.137.5...v2.0.0-next.1) (2026-03-20)
+
+### ⚠ BREAKING CHANGES
+
+* Trigger 2.0 next release.
+
+### Features
+
+* Add file.css.ts support. ([#144](https://github.com/homebound-team/truss/issues/144)) ([d2d135f](https://github.com/homebound-team/truss/commit/d2d135f4725a5a76cbd21cefd22166fd6589aa99))
+* StyleX proof-of-concept. ([#132](https://github.com/homebound-team/truss/issues/132)) ([c65e4ee](https://github.com/homebound-team/truss/commit/c65e4ee3f134e58088c0594a25bb9242f4882dfb))
+* Trigger 2.0 next release. ([8f69a8b](https://github.com/homebound-team/truss/commit/8f69a8bf85c59e10ce742b1c3d4a9db1fed79844))
+
 ## [1.137.5](https://github.com/homebound-team/truss/compare/v1.137.4...v1.137.5) (2025-02-02)
 
 
