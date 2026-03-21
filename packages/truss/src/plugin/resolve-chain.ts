@@ -590,11 +590,11 @@ function resolveDelegateCall(
 }
 
 /**
- * Resolve an `add(prop, value)` call — arbitrary CSS property with a string literal
- * property name and either a literal or variable value.
+ * Resolve an `add(...)` call.
  *
- * Only the two-argument `add("propName", value)` overload is supported.
- * The object overload `add({ prop: value })` is not supported.
+ * Supported overloads:
+ * - `add(cssProp)` to inline an existing CssProp array into the chain output
+ * - `add("propName", value)` for an arbitrary CSS property/value pair
  */
 function resolveAddCall(
   node: CallChainNode,
@@ -603,10 +603,27 @@ function resolveAddCall(
   pseudoClass: string | null,
   pseudoElement: string | null,
 ): ResolvedSegment {
+  if (node.args.length === 1) {
+    const styleArg = node.args[0];
+    if (styleArg.type === "SpreadElement") {
+      throw new UnsupportedPatternError(`add() does not support spread arguments`);
+    }
+    if (styleArg.type === "ObjectExpression") {
+      throw new UnsupportedPatternError(
+        `add(cssProp) does not accept object literals -- pass an existing CssProp expression instead`,
+      );
+    }
+    return {
+      key: "__composed_css_prop",
+      defs: {},
+      styleArrayArg: styleArg,
+    };
+  }
+
   if (node.args.length !== 2) {
     throw new UnsupportedPatternError(
       `add() requires exactly 2 arguments (property name and value), got ${node.args.length}. ` +
-        `The add({...}) object overload is not supported -- use add("propName", value) instead`,
+        `Supported overloads are add(cssProp) and add("propName", value)`,
     );
   }
 
@@ -759,11 +776,11 @@ function whenPseudoKeyName(ap: { pseudo: string; markerNode?: any; relationship?
  */
 export function mergeOverlappingConditions(segments: ResolvedSegment[]): ResolvedSegment[] {
   // Index: for each CSS property, which segments set it?
-  // Only static segments (no dynamicProps, no whenPseudo, no error) participate in merging.
+  // Only static segments (no dynamicProps, no styleArrayArg, no whenPseudo, no error) participate in merging.
   const propToIndices = new Map<string, number[]>();
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
-    if (seg.dynamicProps || seg.whenPseudo || seg.error) continue;
+    if (seg.dynamicProps || seg.styleArrayArg || seg.whenPseudo || seg.error) continue;
     for (const prop of Object.keys(seg.defs)) {
       if (!propToIndices.has(prop)) propToIndices.set(prop, []);
       propToIndices.get(prop)!.push(i);

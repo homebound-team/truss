@@ -68,6 +68,10 @@ export function collectCreateData(chains: ResolvedChain[]): CollectedCreateData 
           continue;
         }
 
+        if (seg.styleArrayArg) {
+          continue;
+        }
+
         if (seg.dynamicProps) {
           if (!createEntries.has(seg.key)) {
             // Keyed dedupe guarantees a stable single entry for repeated usage.

@@ -31,10 +31,16 @@ export function mergeProps(
   };
 }
 
+/**
+ * Coerce maybe-array StyleX inputs into arrays, guarding against nullish/false and plain object values.
+ *
+ * I.e. `...asStyleArray(xss)` stays safe when destructured `xss` is `undefined`.
+ */
 export function asStyleArray(styles: unknown): ReadonlyArray<unknown> {
   if (Array.isArray(styles)) {
     return styles;
   }
+  // I.e. a single style object/ref like `xss={{ ...Css.blue.$ }}` becomes `[xss]`
   return styles ? [styles] : [];
 }
 
