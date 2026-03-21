@@ -1,9 +1,5 @@
 module.exports = {
-  // Disable CI environment detection so that semantic-release doesn't skip publishing
-  // when an open PR exists targeting the current branch (e.g. feat/v2 <- main), which
-  // causes CircleCI to set CIRCLE_PULL_REQUEST on every build for that branch.
-  ci: false,
-  branches: ["main", { name: "feat/v2", prerelease: "next", channel: "next" }],
+  branches: ["main"],
   plugins: [
     // Use conventionalcommits preset (not the default angular) so that
     // `feat!:` / `fix!:` commits are recognized as breaking changes.
@@ -13,7 +9,8 @@ module.exports = {
     [
       "@semantic-release/exec",
       {
-        prepareCmd: "yarn workspaces foreach -v --all version ${nextRelease.version}",
+        prepareCmd:
+          'ROOT=$(pwd) && yarn workspaces foreach -v --all exec node "$ROOT/scripts/set-package-versions.js" ${nextRelease.version}',
         publishCmd: "yarn workspaces foreach -v --all --no-private npm publish --tolerate-republish",
       },
     ],
