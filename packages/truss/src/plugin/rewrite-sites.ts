@@ -87,6 +87,7 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     options.asStyleArrayHelperName,
     options.needsAsStyleArrayHelper,
   );
+  normalizeMixedStyleTernaries(options.ast);
 
   // Second pass: lower any style-array-like `css={...}` expression to `stylex.props(...)`.
   rewriteCssAttributeExpressions(
@@ -560,6 +561,36 @@ function rewriteStyleObjectExpressions(
         });
       }
       path.replaceWith(t.arrayExpression(result.elements));
+    },
+  });
+}
+
+/**
+ * Normalize ternaries and logicals that mix `{}` with style arrays.
+ *
+ * After Css rewriting, `cond ? {} : Css.pt3.$` becomes `cond ? {} : [css.pt3]`.
+ * If `{}` is left as-is, spreading the result into an array fails at runtime
+ * ("not iterable"). This pass rewrites `{}` → `[]` in branches that coexist
+ * with style arrays so both sides are consistently iterable.
+ */
+function normalizeMixedStyleTernaries(ast: t.File): void {
+  traverse(ast, {
+    ConditionalExpression(path: NodePath<t.ConditionalExpression>) {
+      const consequentHasArray = expressionContainsArray(path.node.consequent, path);
+      const alternateHasArray = expressionContainsArray(path.node.alternate, path);
+      // Only act when one branch has an array and the other is `{}`
+      if (consequentHasArray && isEmptyObjectExpression(path.node.alternate)) {
+        path.node.alternate = t.arrayExpression([]);
+      } else if (alternateHasArray && isEmptyObjectExpression(path.node.consequent)) {
+        path.node.consequent = t.arrayExpression([]);
+      }
+    },
+    LogicalExpression(path: NodePath<t.LogicalExpression>) {
+      if (path.node.operator !== "||" && path.node.operator !== "??") return;
+      // I.e. `styles || {}` where styles is a style array
+      if (expressionContainsArray(path.node.left, path) && isEmptyObjectExpression(path.node.right)) {
+        path.node.right = t.arrayExpression([]);
+      }
     },
   });
 }

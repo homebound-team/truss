@@ -2240,6 +2240,31 @@ test("Css.spread with indirect style references via useMemo and function calls",
   );
 });
 
+test("ternary mixing {} and style array normalizes {} to []", () => {
+  expect(
+    n(
+      transform(`
+        import { Css } from "./Css";
+
+        function TabsContent(props) {
+          const styles = props.hideTabs ? {} : Css.pt3.$;
+          return <div css={{ ...styles, ...props.contentXss }} />;
+        }
+      `)!,
+    ),
+  ).toBe(
+    n(`
+      import * as stylex from "@stylexjs/stylex";
+      import { asStyleArray } from "@homebound/truss/runtime";
+      const css = stylex.create({ pt3: { paddingTop: "24px" } });
+      function TabsContent(props) {
+        const styles = props.hideTabs ? [] : [css.pt3];
+        return <div {...stylex.props(...styles, ...asStyleArray(props.contentXss))} />;
+      }
+    `),
+  );
+});
+
 function transform(code: string, options?: { debug?: boolean }): string | null {
   const result = transformTruss(code, "test.tsx", mapping, options);
   return result?.code ?? null;
