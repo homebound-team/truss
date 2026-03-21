@@ -167,6 +167,17 @@ describe("transform", () => {
     );
   });
 
+  test("delegate shorthand with multiple props supports sqPx: Css.sqPx(x).$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.sqPx(x).$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ sq: v => ({ height: v, width: v }) });
+        const x = getSomeValue();
+        const s = [css.sq(String(x) + "px")];
+      `),
+    );
+  });
+
   test("non-incremented dynamic: Css.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bc("red").$;`)!)).toBe(
       n(`

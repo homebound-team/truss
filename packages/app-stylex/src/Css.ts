@@ -1060,7 +1060,6 @@ class CssBuilder<T extends Properties> {
     return this.maxh(`${px}px`);
   }
   /** Sets `height: px; width: px`. */
-
   sqPx(px: number) {
     return this.add("height", `${px}px`).add("width", `${px}px`);
   }
@@ -2370,15 +2369,33 @@ class CssBuilder<T extends Properties> {
     return new CssBuilder({ ...this.opts, enabled: !this.enabled });
   }
 
-  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }> {
+  add(props: CssProp): CssBuilder<T>;
+  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
+  add<K extends keyof Properties>(propOrStyles: CssProp | K, value?: Properties[K]): CssBuilder<any> {
     if (!this.enabled) {
       return this;
     }
-    const newRules = { [prop]: value };
+
+    if (Array.isArray(propOrStyles)) {
+      const existingRules = this.rules as any;
+      const combinedRules = Array.isArray(existingRules)
+        ? [...existingRules, ...propOrStyles]
+        : Object.keys(existingRules).length > 0
+        ? [existingRules, ...propOrStyles]
+        : [...propOrStyles];
+      return this.newCss({ rules: combinedRules as any });
+    }
+
+    const newRules = { [propOrStyles]: value };
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
       : { ...this.rules, ...newRules };
     return this.newCss({ rules });
+  }
+
+  /** Marker helper for legacy object-spread composition. */
+  spread<P extends object>(props: P): P {
+    return props;
   }
 
   private get rules(): T {

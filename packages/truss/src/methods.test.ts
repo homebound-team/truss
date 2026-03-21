@@ -1,6 +1,6 @@
 import { Properties } from "csstype";
 import { Config } from "src/config";
-import { newIncrementMethods, newMethod, newMethodsForProp, newParamMethod } from "src/methods";
+import { newIncrementMethods, newMethod, newMethodsForProp, newParamMethod, newPxMethods } from "src/methods";
 import { describe, expect, it } from "vitest";
 
 describe("methods", () => {
@@ -94,6 +94,17 @@ describe("methods", () => {
       expect(result).toMatchInlineSnapshot(`
         "/** Sets \`backgroundColor: value\`. */
          bgColor(value: Properties["backgroundColor"]) { return this.add("backgroundColor", value).add("display", "block"); }"
+      `);
+    });
+  });
+
+  describe("newPxMethods", () => {
+    it("creates a multi-property px method", () => {
+      expect(newPxMethods("sq", ["height", "width"])).toMatchInlineSnapshot(`
+        [
+          "/** Sets \`height: px; width: px\`. */
+         sqPx(px: number) { return this.add(\"height\", \`\${px}px\`).add(\"width\", \`\${px}px\`); }",
+        ]
       `);
     });
   });
