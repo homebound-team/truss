@@ -598,6 +598,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" },
@@ -610,7 +611,7 @@ describe("transform", () => {
           wrapper: [css.df, css.aic, ...(someCondition ? [css.black] : [css.blue]), ...(!compound ? [css.ba] : [])],
           hover: [css.bgBlue]
         };
-        const el = <div {...stylex.props(...styles.wrapper, ...(isHovered ? styles.hover : []))} />;
+        const el = <div {...stylex.props(...asStyleArray(styles.wrapper), ...asStyleArray(isHovered ? styles.hover : []))} />;
       `),
     );
   });
@@ -644,6 +645,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" },
@@ -655,7 +657,7 @@ describe("transform", () => {
           const baseStyles = [css.df, css.aic];
           const activeStyles = [css.black];
           const hoverStyles = [css.blue];
-          return <div {...stylex.props(...baseStyles, ...(active ? activeStyles : []), ...(isHovered ? hoverStyles : []))} />;
+          return <div {...stylex.props(...asStyleArray(baseStyles), ...asStyleArray(active ? activeStyles : []), ...asStyleArray(isHovered ? hoverStyles : []))} />;
         }
       `),
     );
@@ -714,12 +716,13 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css_ = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" }
         });
         const css = [css_.df, css_.aic];
-        const el = <div {...stylex.props(...css)} />;
+        const el = <div {...stylex.props(...asStyleArray(css))} />;
       `),
     );
   });
@@ -877,7 +880,7 @@ describe("transform", () => {
           const fieldStyles = {
             inputWrapperReadOnly: [css.df]
           };
-          return <div {...mergeProps(stylex, BorderHoverChild, ...fieldStyles.inputWrapperReadOnly, ...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])]), ...asStyleArray(xss))} />;
+          return <div {...mergeProps(stylex, BorderHoverChild, ...asStyleArray(fieldStyles.inputWrapperReadOnly), ...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])]), ...asStyleArray(xss))} />;
         }
       `),
     );
@@ -930,7 +933,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        import { mergeProps } from "@homebound/truss/runtime";
+        import { mergeProps, asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" },
@@ -943,7 +946,7 @@ describe("transform", () => {
             wrapper: [css.df, css.aic, css.ba, ...(disabled ? [css.black] : [])],
             hover: [css.bgBlue]
           };
-          return <div {...mergeProps(stylex, someConst, ...styles.wrapper, ...(disabled ? styles.hover : []))}>Hello</div>;
+          return <div {...mergeProps(stylex, someConst, ...asStyleArray(styles.wrapper), ...asStyleArray(disabled ? styles.hover : []))}>Hello</div>;
         }
       `),
     );
@@ -972,6 +975,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" },
@@ -984,7 +988,7 @@ describe("transform", () => {
           const fieldStyles = {
             inputWrapper: [css.df, css.aic, css.ba, ...(!compound ? [css.br4] : []), ...(borderOnHover ? [css.black] : []), ...(isHovered ? [css.blue] : [])]
           };
-          return <div {...stylex.props(...fieldStyles.inputWrapper)} />;
+          return <div {...stylex.props(...asStyleArray(fieldStyles.inputWrapper))} />;
         }
       `),
     );
@@ -1011,6 +1015,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           w100: { width: "100%" },
           mw0: { minWidth: 0 },
@@ -1022,7 +1027,7 @@ describe("transform", () => {
           const fieldStyles = {
             input: [css.w100, css.mw0, css.outline0, css.fg1, ...(contrast && !inputStylePalette ? [css.bgBlue__selection] : [])]
           };
-          return <div {...stylex.props(...fieldStyles.input)} />;
+          return <div {...stylex.props(...asStyleArray(fieldStyles.input))} />;
         }
       `),
     );
@@ -1042,13 +1047,14 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           blue: { color: "#526675" }
         });
         const base = [css.df];
         const hover = [css.blue];
-        const el = <div {...stylex.props(...(hover || base))} />;
+        const el = <div {...stylex.props(...asStyleArray(hover || base))} />;
       `),
     );
   });
@@ -1067,13 +1073,14 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           blue: { color: "#526675" }
         });
         const base = [css.df];
         const hover = [css.blue];
-        const el = <div {...stylex.props(...(hover ?? base))} />;
+        const el = <div {...stylex.props(...asStyleArray(hover ?? base))} />;
       `),
     );
   });
@@ -1092,13 +1099,14 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" }
         });
         const key = "wrapper";
         const styles = { wrapper: [css.df, css.aic] };
-        const el = <div {...stylex.props(...styles[key])} />;
+        const el = <div {...stylex.props(...asStyleArray(styles[key]))} />;
       `),
     );
   });
@@ -1119,6 +1127,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           df: { display: "flex" },
           aic: { alignItems: "center" }
@@ -1126,7 +1135,7 @@ describe("transform", () => {
         function getStyles() {
           return [css.df, css.aic];
         }
-        const el = <div {...stylex.props(...getStyles())} />;
+        const el = <div {...stylex.props(...asStyleArray(getStyles()))} />;
       `),
     );
   });
@@ -1176,7 +1185,7 @@ describe("transform", () => {
           const { xss, compact } = props;
           const type = "primary";
           const typeStyles = { primary: [css.blue] };
-          const styles = useMemo(() => [...chipBaseStyles(compact), ...typeStyles[type], ...asStyleArray(xss)], [type, xss, compact]);
+          const styles = useMemo(() => [...asStyleArray(chipBaseStyles(compact)), ...asStyleArray(typeStyles[type]), ...asStyleArray(xss)], [type, xss, compact]);
           return <span {...stylex.props(...styles)} />;
         }
       `),
@@ -1292,13 +1301,14 @@ describe("transform", () => {
     ).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
         const css = stylex.create({
           bb: { borderBottomStyle: "solid", borderBottomWidth: "1px" },
           black: { color: "#353535" }
         });
         console.error("[truss] Unsupported pattern: Dropped non-spread properties from style composition object (foo) (test.tsx:1)");
         const borderBottomStyles = [css.bb];
-        const styles = { activeStyles: [css.black, ...borderBottomStyles] };
+        const styles = { activeStyles: [css.black, ...asStyleArray(borderBottomStyles)] };
       `),
     );
   });
@@ -2225,7 +2235,7 @@ test("Css.spread with indirect style references via useMemo and function calls",
           }, []);
           const attrs = {
             "data-testid": "button",
-            css: [...asStyleArray(styles.baseStyles), ...(props.active ? styles.activeStyles : [])]
+            css: [...asStyleArray(styles.baseStyles), ...asStyleArray(props.active ? styles.activeStyles : [])]
           };
           return <button {...attrs}>Click me</button>;
         }
@@ -2233,7 +2243,7 @@ test("Css.spread with indirect style references via useMemo and function calls",
           const borderBottomStyles = [css.bb];
           return {
             baseStyles: [css.df, css.aic],
-            activeStyles: [css.blue, ...borderBottomStyles]
+            activeStyles: [css.blue, ...asStyleArray(borderBottomStyles)]
           };
         }
       `),
@@ -2259,7 +2269,7 @@ test("ternary mixing {} and style array normalizes {} to []", () => {
       const css = stylex.create({ pt3: { paddingTop: "24px" } });
       function TabsContent(props) {
         const styles = props.hideTabs ? [] : [css.pt3];
-        return <div {...stylex.props(...styles, ...asStyleArray(props.contentXss))} />;
+        return <div {...stylex.props(...asStyleArray(styles), ...asStyleArray(props.contentXss))} />;
       }
     `),
   );

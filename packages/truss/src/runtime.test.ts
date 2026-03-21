@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { asStyleArray, mergeProps, TrussDebugInfo, trussProps } from "./runtime";
 
 describe("runtime", () => {
@@ -60,5 +60,17 @@ describe("runtime", () => {
 
   test("asStyleArray returns an empty array for false", () => {
     expect(asStyleArray(false)).toEqual([]);
+  });
+
+  test("asStyleArray returns an empty array for empty object", () => {
+    expect(asStyleArray({})).toEqual([{}]);
+  });
+
+  test("asStyleArray warns on non-empty object", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = asStyleArray({ color: "red" });
+    expect(result).toEqual([{ color: "red" }]);
+    expect(spy).toHaveBeenCalledWith(expect.stringMatching(/asStyleArray received a non-empty object/));
+    spy.mockRestore();
   });
 });
