@@ -1,3 +1,9 @@
+## [2.0.8](https://github.com/homebound-team/truss/compare/v2.0.7...v2.0.8) (2026-03-21)
+
+### Bug Fixes
+
+* Rewrite object literals in ternaries. ([#166](https://github.com/homebound-team/truss/issues/166)) ([bc34800](https://github.com/homebound-team/truss/commit/bc348000b9b692450f1cf7e042eaacd6e96f4aa1))
+
 ## [2.0.7](https://github.com/homebound-team/truss/compare/v2.0.6...v2.0.7) (2026-03-21)
 
 ### Bug Fixes
