@@ -690,6 +690,10 @@ function normalizeStyleArrayLikeBranch(expr: t.Expression, path: NodePath, seen:
     return t.arrayExpression([]); // I.e. `cond ? Css.df.$ : {}` becomes `cond ? [css.df] : []`
   }
 
+  if (t.isObjectExpression(expr)) {
+    return tryBuildStyleArrayFromObjectExpression(expr, path); // I.e. `cond ? { ...Css.df.$ } : {}`
+  }
+
   return normalizeStyleArrayLikeExpression(expr, path, seen);
 }
 
