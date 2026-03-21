@@ -341,6 +341,7 @@ function generateStylexCssBuilder(config: Config, sections: Record<string, Utili
 // Target: stylex (build-time plugin)
 
 import * as stylex from "@stylexjs/stylex";
+import { trussProps } from "@homebound/truss/runtime";
 
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
@@ -466,6 +467,11 @@ class CssBuilder<T extends Properties> {
   /** Marker helper for legacy object-spread composition. */
   spread<P extends object>(props: P): P {
     return props;
+  }
+
+  /** Convert a style array into \`{ className, style }\` props for manual spreading into non-\`css=\` contexts. */
+  props(styles: Properties): Record<string, unknown> {
+    return trussProps(stylex, ...(Array.isArray(styles) ? styles : [styles]));
   }
 
   private get rules(): T {
