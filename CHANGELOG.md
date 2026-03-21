@@ -1,3 +1,9 @@
+## [2.0.1](https://github.com/homebound-team/truss/compare/v2.0.0...v2.0.1) (2026-03-21)
+
+### Bug Fixes
+
+* Add Css.spread for easier migration. ([#159](https://github.com/homebound-team/truss/issues/159)) ([abf37c2](https://github.com/homebound-team/truss/commit/abf37c2491f5d767c4ffd207c540e60416a3f769))
+
 ## [2.0.0](https://github.com/homebound-team/truss/compare/v1.137.5...v2.0.0) (2026-03-21)
 
 ### ⚠ BREAKING CHANGES
