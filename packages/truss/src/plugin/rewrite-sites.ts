@@ -660,7 +660,7 @@ function flattenStyleObject(
 
     if (t.isArrayExpression(normalized)) {
       elements.push(...normalized.elements); // I.e. `...[css.df, css.aic]` → `css.df, css.aic`
-    } else if (expressionContainsArray(normalized, path)) {
+    } else if (isProvablyArray(normalized)) {
       elements.push(t.spreadElement(buildSafeSpreadArgument(normalized))); // I.e. `...(cond ? [css.df] : [])`
     } else {
       elements.push(
@@ -856,6 +856,25 @@ function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName
 /** Check for `{}` fallback branches that should become `[]`. */
 function isEmptyObjectExpression(expr: t.Expression): boolean {
   return t.isObjectExpression(expr) && expr.properties.length === 0;
+}
+
+/**
+ * Check whether an expression is structurally guaranteed to evaluate to an array.
+ *
+ * Unlike `expressionContainsArray` (which follows bindings), this is a pure
+ * structural check on the AST — no scope resolution. Used to decide whether a
+ * spread can be emitted directly (`...expr`) or needs `asStyleArray` wrapping.
+ */
+function isProvablyArray(expr: t.Expression): boolean {
+  if (t.isArrayExpression(expr)) return true;
+  if (t.isParenthesizedExpression(expr)) return isProvablyArray(expr.expression);
+  if (t.isConditionalExpression(expr)) {
+    return isProvablyArray(expr.consequent) && isProvablyArray(expr.alternate);
+  }
+  if (t.isLogicalExpression(expr)) {
+    return isProvablyArray(expr.left) && isProvablyArray(expr.right);
+  }
+  return false;
 }
 
 /** Convert unknown spread values into safe iterable fallbacks via `asStyleArray(...)`. */

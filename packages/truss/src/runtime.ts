@@ -40,7 +40,12 @@ export function asStyleArray(styles: unknown): ReadonlyArray<unknown> {
   if (Array.isArray(styles)) {
     return styles;
   }
-  // I.e. a single style object/ref like `xss={{ ...Css.blue.$ }}` becomes `[xss]`
+  if (styles && typeof styles === "object" && Object.keys(styles).length > 0) {
+    console.error(
+      "[truss] asStyleArray received a non-empty object — this likely means a style value was not rewritten to an array. " +
+        "Use a style array (e.g. Css.df.$) or an empty array [] instead of {}.",
+    );
+  }
   return styles ? [styles] : [];
 }
 
