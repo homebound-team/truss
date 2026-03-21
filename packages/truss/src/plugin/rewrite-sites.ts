@@ -564,7 +564,13 @@ function rewriteStyleObjectExpressions(
   });
 }
 
-/** Lower `Css.spread({ ... })` marker calls into plain style arrays. */
+/**
+ * Lower `Css.spread({ ... })` marker calls into plain style arrays.
+ *
+ * `Css.spread(...)` is an explicit user annotation that says "this object is
+ * style composition" — so we skip the `hasStyleArraySpread` detection gate
+ * and always rewrite.
+ */
 function rewriteCssSpreadCalls(
   ast: t.File,
   cssBindingName: string,
@@ -580,7 +586,6 @@ function rewriteCssSpreadCalls(
 
       const styleObject = unwrapStyleObjectExpression(arg);
       if (!styleObject) return;
-      if (!hasStyleArraySpread(styleObject, path)) return;
 
       const result = flattenStyleObject(styleObject, path, asStyleArrayHelperName, needsAsStyleArrayHelper);
       path.replaceWith(t.arrayExpression(result.elements));

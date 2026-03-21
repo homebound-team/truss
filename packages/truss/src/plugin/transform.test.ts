@@ -2175,6 +2175,71 @@ describe("transform", () => {
   });
 });
 
+test("Css.spread with indirect style references via useMemo and function calls", () => {
+  expect(
+    n(
+      transform(`
+          import { useMemo } from "react";
+          import { Css } from "./Css";
+
+          function SpreadLikeButton(props) {
+            const styles = useMemo(function () {
+              return getSpreadLikeStyles();
+            }, []);
+
+            const attrs = {
+              "data-testid": "button",
+              css: Css.spread({
+                ...styles.baseStyles,
+                ...(props.active && styles.activeStyles),
+              }),
+            };
+
+            return <button {...attrs}>Click me</button>;
+          }
+
+          function getSpreadLikeStyles() {
+            const borderBottomStyles = Css.bb.$;
+
+            return {
+              baseStyles: Css.df.aic.$,
+              activeStyles: { ...Css.blue.$, ...borderBottomStyles },
+            };
+          }
+        `)!,
+    ),
+  ).toBe(
+    n(`
+        import { useMemo } from "react";
+        import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
+        const css = stylex.create({
+          bb: { borderBottomStyle: "solid", borderBottomWidth: "1px" },
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          blue: { color: "#526675" }
+        });
+        function SpreadLikeButton(props) {
+          const styles = useMemo(function () {
+            return getSpreadLikeStyles();
+          }, []);
+          const attrs = {
+            "data-testid": "button",
+            css: [...asStyleArray(styles.baseStyles), ...(props.active ? styles.activeStyles : [])]
+          };
+          return <button {...attrs}>Click me</button>;
+        }
+        function getSpreadLikeStyles() {
+          const borderBottomStyles = [css.bb];
+          return {
+            baseStyles: [css.df, css.aic],
+            activeStyles: [css.blue, ...borderBottomStyles]
+          };
+        }
+      `),
+  );
+});
+
 function transform(code: string, options?: { debug?: boolean }): string | null {
   const result = transformTruss(code, "test.tsx", mapping, options);
   return result?.code ?? null;
