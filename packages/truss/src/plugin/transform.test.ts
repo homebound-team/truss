@@ -1932,11 +1932,33 @@ describe("transform", () => {
     );
   });
 
-  test("add with object overload emits console.error", () => {
+  test("add with CssProp argument composes arrays inline", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const base = getBase(); const sizeStyles = getSize(); const s = Css.df.add(base).add(sizeStyles).black.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
+        const css = stylex.create({
+          df: { display: "flex" },
+          black: { color: "#353535" }
+        });
+        const base = getBase();
+        const sizeStyles = getSize();
+        const s = [css.df, ...asStyleArray(base), ...asStyleArray(sizeStyles), css.black];
+      `),
+    );
+  });
+
+  test("add with object literal emits console.error", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add({ wordBreak: "break-word" }).$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        console.error("[truss] Unsupported pattern: add() requires exactly 2 arguments (property name and value), got 1. The add({...}) object overload is not supported -- use add(\\"propName\\", value) instead (test.tsx:1)");
+        console.error("[truss] Unsupported pattern: add(cssProp) does not accept object literals -- pass an existing CssProp expression instead (test.tsx:1)");
         const s = [];
       `),
     );

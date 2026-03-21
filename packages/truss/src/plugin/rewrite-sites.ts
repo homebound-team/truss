@@ -177,6 +177,19 @@ function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOption
       continue;
     }
 
+    if (seg.styleArrayArg) {
+      args.push(
+        t.spreadElement(
+          buildUnknownObjectSpreadFallback(
+            seg.styleArrayArg as t.Expression,
+            options.asStyleArrayHelperName,
+            options.needsAsStyleArrayHelper,
+          ),
+        ),
+      );
+      continue;
+    }
+
     const ref = t.memberExpression(t.identifier(options.createVarName), t.identifier(seg.key));
 
     if (seg.dynamicProps && seg.argNode) {

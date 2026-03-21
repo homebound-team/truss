@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { mergeProps, TrussDebugInfo, trussProps } from "./runtime";
+import { asStyleArray, mergeProps, TrussDebugInfo, trussProps } from "./runtime";
 
 describe("runtime", () => {
   test("trussProps strips debug info and adds compact data-truss-src", () => {
@@ -41,5 +41,24 @@ describe("runtime", () => {
       className: "existing x1",
       "data-truss-src": "Field.tsx:11",
     });
+  });
+
+  test("asStyleArray returns arrays unchanged", () => {
+    const styles = ["style-a", "style-b"];
+    expect(asStyleArray(styles)).toEqual(["style-a", "style-b"]);
+  });
+
+  test("asStyleArray wraps a single style object/ref in an array", () => {
+    // Not sure what this test is for...
+    const styleObject = { className: "x1" };
+    expect(asStyleArray(styleObject)).toEqual([{ className: "x1" }]);
+  });
+
+  test("asStyleArray returns an empty array for undefined", () => {
+    expect(asStyleArray(undefined)).toEqual([]);
+  });
+
+  test("asStyleArray returns an empty array for false", () => {
+    expect(asStyleArray(false)).toEqual([]);
   });
 });
