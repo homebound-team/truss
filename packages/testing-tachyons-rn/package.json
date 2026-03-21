@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss-testing-tachyons-rn",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "private": true,
   "main": "build/index.js",
   "scripts": {

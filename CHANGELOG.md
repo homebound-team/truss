@@ -1,3 +1,9 @@
+## [2.0.3](https://github.com/homebound-team/truss/compare/v2.0.2...v2.0.3) (2026-03-21)
+
+### Bug Fixes
+
+* Redo bringing back Properties. ([#161](https://github.com/homebound-team/truss/issues/161)) ([6cd133c](https://github.com/homebound-team/truss/commit/6cd133ccca976d75a72fb5f3e59de2651ce8e883))
+
 ## [2.0.2](https://github.com/homebound-team/truss/compare/v2.0.1...v2.0.2) (2026-03-21)
 
 ### Bug Fixes
