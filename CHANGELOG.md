@@ -1,3 +1,9 @@
+## [2.0.4](https://github.com/homebound-team/truss/compare/v2.0.3...v2.0.4) (2026-03-21)
+
+### Bug Fixes
+
+* Another spread pattern. ([#162](https://github.com/homebound-team/truss/issues/162)) ([01aae25](https://github.com/homebound-team/truss/commit/01aae257e60c41686d082cc7454750dabdecc049))
+
 ## [2.0.3](https://github.com/homebound-team/truss/compare/v2.0.2...v2.0.3) (2026-03-21)
 
 ### Bug Fixes
