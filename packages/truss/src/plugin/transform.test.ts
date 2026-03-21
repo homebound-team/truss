@@ -763,6 +763,75 @@ describe("transform", () => {
     );
   });
 
+  test("Css.props with sibling className merges via mergeProps", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Button({ asLink, navLink }) {
+            const attrs = {
+              className: asLink ? navLink : undefined,
+              ...Css.props(Css.df.aic.$),
+            };
+            return <button {...attrs}>Click me</button>;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { mergeProps } from "@homebound/truss/runtime";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        function Button({ asLink, navLink }) {
+          const attrs = {
+            ...mergeProps(stylex, asLink ? navLink : undefined, ...[css.df, css.aic])
+          };
+          return <button {...attrs}>Click me</button>;
+        }
+      `),
+    );
+  });
+
+  test("Css.props with sibling className and object literal styles", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Button({ asLink, navLink, baseStyles, active, hoverStyles }) {
+            const attrs = {
+              className: asLink ? navLink : undefined,
+              ...Css.props({
+                ...Css.df.$,
+                ...baseStyles,
+                ...(active && hoverStyles),
+              }),
+            };
+            return <button {...attrs}>Click me</button>;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { mergeProps, asStyleArray } from "@homebound/truss/runtime";
+        const css = stylex.create({
+          df: { display: "flex" }
+        });
+        function Button({ asLink, navLink, baseStyles, active, hoverStyles }) {
+          const attrs = {
+            ...mergeProps(stylex, asLink ? navLink : undefined, css.df, ...asStyleArray(baseStyles), ...asStyleArray(active ? hoverStyles : []))
+          };
+          return <button {...attrs}>Click me</button>;
+        }
+      `),
+    );
+  });
+
   test("inline css object supports nested object spread branch", () => {
     expect(
       n(
