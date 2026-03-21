@@ -46,6 +46,8 @@ export interface ResolvedSegment {
   dynamicProps?: string[];
   /** For dynamic entries: whether the value uses maybeInc */
   incremented?: boolean;
+  /** For dynamic Px delegates: whether the runtime value must append `px` */
+  appendPx?: boolean;
   /** For dynamic entries: additional static defs applied alongside the dynamic value */
   dynamicExtraDefs?: Record<string, unknown>;
   /** For dynamic entries: the AST node of the argument */
