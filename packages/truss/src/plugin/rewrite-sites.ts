@@ -626,10 +626,14 @@ function rewriteCssSpreadCalls(
 }
 
 /**
- * Rewrite `Css.props(expr)` into `stylex.props(...expr)` (or `trussProps(stylex, ...expr)` in debug mode).
+ * Rewrite `Css.props(expr)` into `stylex.props(...)` (or `trussProps(stylex, ...)` in debug mode).
  *
  * This lets users pass style arrays through plain objects (e.g. for `{...attrs}` spreading)
  * without relying on the `css=` prop that the build plugin normally rewrites.
+ *
+ * When the argument is an object literal (style composition), it is flattened
+ * to an array via `flattenStyleObject`, just like `css={...}` prop rewriting.
+ * Otherwise the argument is spread directly.
  */
 function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
   traverse(options.ast, {
@@ -639,9 +643,26 @@ function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
       const arg = path.node.arguments[0];
       if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
 
-      // `Css.props(expr)` → `buildPropsCall([...expr])`
-      const propsArgs: (t.Expression | t.SpreadElement)[] = [t.spreadElement(arg)];
       const line = path.node.loc?.start.line ?? null;
+
+      // If the argument is an object literal, flatten it the same way we do for `css={...}` props
+      const styleObject = unwrapStyleObjectExpression(arg);
+      if (styleObject) {
+        const result = flattenStyleObject(
+          styleObject,
+          path,
+          options.asStyleArrayHelperName,
+          options.needsAsStyleArrayHelper,
+        );
+        const propsArgs: (t.Expression | t.SpreadElement)[] = result.elements.filter(
+          (e): e is t.Expression | t.SpreadElement => e !== null,
+        );
+        path.replaceWith(buildPropsCall(propsArgs, line, options));
+        return;
+      }
+
+      // Otherwise just spread the style array: `Css.props(styleArray)` → `stylex.props(...styleArray)`
+      const propsArgs: (t.Expression | t.SpreadElement)[] = [t.spreadElement(arg)];
       path.replaceWith(buildPropsCall(propsArgs, line, options));
     },
   });

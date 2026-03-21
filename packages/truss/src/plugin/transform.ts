@@ -11,6 +11,7 @@ import {
   reservePreferredName,
   findCssImportBinding,
   removeCssImport,
+  hasCssMethodCall,
   findStylexNamespaceImport,
   insertStylexNamespaceImport,
   findNamedImportBinding,
@@ -94,7 +95,9 @@ export function transformTruss(
     },
   });
 
-  if (sites.length === 0) return null;
+  // Also check for Css.props(...) calls which need rewriting even without Css.$  sites
+  const hasCssPropsCall = hasCssMethodCall(ast, cssBindingName, "props");
+  if (sites.length === 0 && !hasCssPropsCall) return null;
 
   // Step 3: Collect stylex.create entries and helper needs
   const { createEntries, runtimeLookups, needsMaybeInc } = collectCreateData(sites.map((s) => s.resolvedChain));

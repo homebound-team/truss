@@ -153,6 +153,24 @@ export function findCssImportBinding(ast: t.File): string | null {
   return null;
 }
 
+/** Check if the AST contains a `binding.method(...)` call expression. */
+export function hasCssMethodCall(ast: t.File, binding: string, method: string): boolean {
+  let found = false;
+  t.traverseFast(ast, (node) => {
+    if (found) return;
+    if (
+      t.isCallExpression(node) &&
+      t.isMemberExpression(node.callee) &&
+      !node.callee.computed &&
+      t.isIdentifier(node.callee.object, { name: binding }) &&
+      t.isIdentifier(node.callee.property, { name: method })
+    ) {
+      found = true;
+    }
+  });
+  return found;
+}
+
 /**
  * Remove the Css import specifier. If it was the only specifier, remove the whole import.
  */
