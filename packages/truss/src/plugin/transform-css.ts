@@ -180,7 +180,7 @@ function resolveCssExpression(
         return { error: `typography() with a runtime key is not supported in .css.ts files` };
       }
       if (seg.styleArrayArg) {
-        return { error: `add(cssProp) is not supported in .css.ts files` };
+        return { error: `add(existingStyles) is not supported in .css.ts files` };
       }
 
       // Reject segments with media query / pseudo-class / pseudo-element / when modifiers

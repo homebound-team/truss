@@ -16,16 +16,13 @@ export type Marker = ReturnType<typeof stylex.defineMarker>;
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
-/** The type accepted by the `css` JSX prop. Opaque - the build-time plugin resolves this. */
-export type CssProp = any[];
-
 // Augment React types so JSX elements accept the `css` prop
 declare module "react" {
   interface HTMLAttributes<T> {
-    css?: CssProp;
+    css?: Properties;
   }
   interface SVGAttributes<T> {
-    css?: CssProp;
+    css?: Properties;
   }
 }
 
@@ -2262,7 +2259,7 @@ class CssBuilder<T extends Properties> {
     return this.f14.black;
   }
 
-  get $(): CssProp {
+  get $(): T {
     return this.rules as any;
   }
 
@@ -2370,15 +2367,18 @@ class CssBuilder<T extends Properties> {
     return new CssBuilder({ ...this.opts, enabled: !this.enabled });
   }
 
-  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }> {
+  add<P extends Properties>(props: P): CssBuilder<T & P>;
+  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
+  add<K extends keyof Properties>(propOrStyles: K | Properties, value?: Properties[K]): CssBuilder<any> {
     if (!this.enabled) {
       return this;
     }
-    const newRules = { [prop]: value };
+
+    const newRules = typeof propOrStyles === "string" ? { [propOrStyles]: value } : propOrStyles;
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
       : { ...this.rules, ...newRules };
-    return this.newCss({ rules });
+    return this.newCss({ rules: rules as any });
   }
 
   private get rules(): T {

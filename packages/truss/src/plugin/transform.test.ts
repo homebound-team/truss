@@ -1932,7 +1932,7 @@ describe("transform", () => {
     );
   });
 
-  test("add with CssProp argument composes arrays inline", () => {
+  test("add with existing styles argument composes arrays inline", () => {
     expect(
       n(
         transform(
@@ -1958,7 +1958,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add({ wordBreak: "break-word" }).$;`)!)).toBe(
       n(`
         import * as stylex from "@stylexjs/stylex";
-        console.error("[truss] Unsupported pattern: add(cssProp) does not accept object literals -- pass an existing CssProp expression instead (test.tsx:1)");
+        console.error("[truss] Unsupported pattern: add(existingStyles) does not accept object literals -- pass an existing style expression instead (test.tsx:1)");
         const s = [];
       `),
     );
