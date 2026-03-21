@@ -1,3 +1,9 @@
+## [2.0.5](https://github.com/homebound-team/truss/compare/v2.0.4...v2.0.5) (2026-03-21)
+
+### Bug Fixes
+
+* More extensive spread rewriting. ([#163](https://github.com/homebound-team/truss/issues/163)) ([c3af8a6](https://github.com/homebound-team/truss/commit/c3af8a6964a6e814630b627c56282a8b427217da))
+
 ## [2.0.4](https://github.com/homebound-team/truss/compare/v2.0.3...v2.0.4) (2026-03-21)
 
 ### Bug Fixes
