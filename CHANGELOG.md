@@ -1,3 +1,9 @@
+## [2.0.13](https://github.com/homebound-team/truss/compare/v2.0.12...v2.0.13) (2026-03-21)
+
+### Bug Fixes
+
+* Handle css set to ternary that returns undefined. ([#171](https://github.com/homebound-team/truss/issues/171)) ([ad90d40](https://github.com/homebound-team/truss/commit/ad90d4058d2e2b4d569ca1244860878849c4b2b7))
+
 ## [2.0.12](https://github.com/homebound-team/truss/compare/v2.0.11...v2.0.12) (2026-03-21)
 
 ### Bug Fixes
