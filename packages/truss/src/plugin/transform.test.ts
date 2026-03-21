@@ -1449,6 +1449,28 @@ describe("transform", () => {
     );
   });
 
+  test("conditional css prop with undefined branch normalizes to empty style array", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Repro(props: { enabled: boolean }) {
+            return <div css={props.enabled ? Css.pb2.$ : undefined}>hello</div>;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ pb2: { paddingBottom: "16px" } });
+        function Repro(props: { enabled: boolean; }) {
+          return <div {...stylex.props(...(props.enabled ? [css.pb2] : []))}>hello</div>;
+        }
+      `),
+    );
+  });
+
   test("ordinary object spreads stay objects", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = { foo: true, ...other }; const t = Css.df.$;`)!)).toBe(
       n(`

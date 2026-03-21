@@ -863,13 +863,14 @@ function expressionContainsArray(expr: t.Expression, path: NodePath): boolean {
 /**
  * Normalize a style expression so conditional branches use arrays instead of objects.
  *
- * Converts `&&` to ternary with `[]` fallback, `{}` to `[]`, and accepts
- * identifiers/members/calls as-is (they're assumed to be style arrays in context).
+ * Converts `&&` to ternary with `[]` fallback, empty fallbacks like `{}` or
+ * `undefined` to `[]`, and accepts identifiers/members/calls as-is (they're
+ * assumed to be style arrays in context).
  */
 function normalizeStyleExpression(expr: t.Expression): t.Expression | null {
   if (t.isArrayExpression(expr)) return expr; // I.e. `[css.df]`
 
-  if (isEmptyObjectExpression(expr)) return t.arrayExpression([]); // I.e. `{}`
+  if (isEmptyStyleFallbackExpression(expr)) return t.arrayExpression([]); // I.e. `{}` or `undefined`
 
   if (t.isLogicalExpression(expr) && expr.operator === "&&") {
     const consequent = normalizeStyleExpression(expr.right);
@@ -901,7 +902,7 @@ function normalizeStyleExpression(expr: t.Expression): t.Expression | null {
 
 /** Normalize a branch in a conditional style expression. */
 function normalizeStyleBranch(expr: t.Expression): t.Expression | null {
-  if (isEmptyObjectExpression(expr)) return t.arrayExpression([]); // I.e. `cond ? [css.blue] : {}`
+  if (isEmptyStyleFallbackExpression(expr)) return t.arrayExpression([]); // I.e. `cond ? [css.blue] : {}`
 
   if (t.isObjectExpression(expr)) {
     // Nested style objects in branches: `cond ? { ...Css.bb.$ } : {}`
@@ -969,6 +970,15 @@ function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName
 /** Check for `{}` fallback branches that should become `[]`. */
 function isEmptyObjectExpression(expr: t.Expression): boolean {
   return t.isObjectExpression(expr) && expr.properties.length === 0;
+}
+
+function isEmptyStyleFallbackExpression(expr: t.Expression): boolean {
+  return (
+    isEmptyObjectExpression(expr) ||
+    t.isIdentifier(expr, { name: "undefined" }) ||
+    t.isNullLiteral(expr) ||
+    (t.isBooleanLiteral(expr) && expr.value === false)
+  );
 }
 
 /**
