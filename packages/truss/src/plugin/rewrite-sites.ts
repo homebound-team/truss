@@ -645,7 +645,8 @@ function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
 
       const line = path.node.loc?.start.line ?? null;
 
-      // If the argument is an object literal, flatten it the same way we do for `css={...}` props
+      // Build the style args — flatten object literals, spread everything else
+      let propsArgs: (t.Expression | t.SpreadElement)[];
       const styleObject = unwrapStyleObjectExpression(arg);
       if (styleObject) {
         const result = flattenStyleObject(
@@ -654,18 +655,76 @@ function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
           options.asStyleArrayHelperName,
           options.needsAsStyleArrayHelper,
         );
-        const propsArgs: (t.Expression | t.SpreadElement)[] = result.elements.filter(
-          (e): e is t.Expression | t.SpreadElement => e !== null,
-        );
-        path.replaceWith(buildPropsCall(propsArgs, line, options));
-        return;
+        propsArgs = result.elements.filter((e): e is t.Expression | t.SpreadElement => e !== null);
+      } else {
+        propsArgs = [t.spreadElement(arg)];
       }
 
-      // Otherwise just spread the style array: `Css.props(styleArray)` → `stylex.props(...styleArray)`
-      const propsArgs: (t.Expression | t.SpreadElement)[] = [t.spreadElement(arg)];
-      path.replaceWith(buildPropsCall(propsArgs, line, options));
+      // Check for a sibling `className` property in the parent object literal,
+      // I.e. `{ className: expr, ...Css.props(...) }` → `{ ...mergeProps(stylex, expr, ...) }`
+      const classNameExpr = extractSiblingClassName(path);
+      if (classNameExpr) {
+        path.replaceWith(buildMergePropsCall(propsArgs, classNameExpr, line, options));
+      } else {
+        path.replaceWith(buildPropsCall(propsArgs, line, options));
+      }
     },
   });
+}
+
+/**
+ * If `...Css.props(...)` is spread inside an object literal that has a sibling
+ * `className` property, extract and remove that property so the rewrite can
+ * merge it via `mergeProps`.
+ */
+function extractSiblingClassName(callPath: NodePath<t.CallExpression>): t.Expression | null {
+  // Walk up: CallExpression → SpreadElement → ObjectExpression
+  const spreadPath = callPath.parentPath;
+  if (!spreadPath || !spreadPath.isSpreadElement()) return null;
+  const objectPath = spreadPath.parentPath;
+  if (!objectPath || !objectPath.isObjectExpression()) return null;
+
+  const properties = objectPath.node.properties;
+  for (let i = 0; i < properties.length; i++) {
+    const prop = properties[i];
+    if (!t.isObjectProperty(prop)) continue;
+    if (!isMatchingPropertyName(prop.key, "className")) continue;
+    if (!t.isExpression(prop.value)) continue;
+
+    const classNameExpr = prop.value;
+    properties.splice(i, 1);
+    return classNameExpr;
+  }
+
+  return null;
+}
+
+/** Emit `mergeProps(stylex, classNameExpr, ...styleArgs)` to combine an explicit className with stylex output. */
+function buildMergePropsCall(
+  propsArgs: (t.Expression | t.SpreadElement)[],
+  classNameExpr: t.Expression,
+  line: number | null,
+  options: Pick<
+    RewriteSitesOptions,
+    | "debug"
+    | "stylexNamespaceName"
+    | "mergePropsHelperName"
+    | "needsMergePropsHelper"
+    | "trussPropsHelperName"
+    | "needsTrussPropsHelper"
+    | "trussDebugInfoName"
+    | "needsTrussDebugInfo"
+    | "filename"
+  >,
+): t.CallExpression {
+  options.needsMergePropsHelper.current = true;
+  const args: Array<t.Expression | t.SpreadElement> = buildDebugElements(line, options);
+  args.push(...propsArgs);
+  return t.callExpression(t.identifier(options.mergePropsHelperName), [
+    t.identifier(options.stylexNamespaceName),
+    classNameExpr,
+    ...args,
+  ]);
 }
 
 // ---------------------------------------------------------------------------
