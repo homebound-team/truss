@@ -1,3 +1,9 @@
+## [2.0.0-next.16](https://github.com/homebound-team/truss/compare/v2.0.0-next.15...v2.0.0-next.16) (2026-03-21)
+
+### Features
+
+* Add back the Properties-based typing. ([#157](https://github.com/homebound-team/truss/issues/157)) ([f4f2a10](https://github.com/homebound-team/truss/commit/f4f2a10b7e5ca8ef02e9ea5959f078f969b7283b))
+
 ## [2.0.0-next.15](https://github.com/homebound-team/truss/compare/v2.0.0-next.14...v2.0.0-next.15) (2026-03-21)
 
 ### Features
