@@ -17,6 +17,7 @@ export interface ExpressionSite {
 export interface RewriteSitesOptions {
   ast: t.File;
   sites: ExpressionSite[];
+  cssBindingName: string;
   filename: string;
   debug: boolean;
   createVarName: string;
@@ -65,6 +66,7 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     site.path.replaceWith(buildStyleArrayExpression(propsArgs, site.path.node.loc?.start.line ?? null, options));
   }
 
+  rewriteCssSpreadCalls(options.ast, options.cssBindingName);
   rewriteStyleObjectExpressions(options.ast);
 
   // Second pass: lower any style-array-like `css={...}` expression to `stylex.props(...)`.
@@ -563,14 +565,38 @@ function rewriteStyleObjectExpressions(ast: t.File): void {
   });
 }
 
+/** Lower `Css.spread({ ... })` marker calls into plain style arrays. */
+function rewriteCssSpreadCalls(ast: t.File, cssBindingName: string): void {
+  traverse(ast, {
+    CallExpression(path: NodePath<t.CallExpression>) {
+      if (!isCssSpreadCall(path.node, cssBindingName)) return;
+
+      const arg = path.node.arguments[0];
+      if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
+
+      const styleObject = unwrapStyleObjectExpression(arg);
+      if (!styleObject) return;
+
+      const rewritten = tryBuildStyleArrayFromObjectExpression(styleObject, path);
+      if (!rewritten) return;
+      path.replaceWith(rewritten);
+    },
+  });
+}
+
 /** One-line detection for object spread groups that really represent style arrays. */
 function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.ArrayExpression | null {
-  if (path.node.properties.length === 0) return null;
+  return tryBuildStyleArrayFromObjectExpression(path.node, path);
+}
+
+/** Convert a style-object composition into an equivalent style array. */
+function tryBuildStyleArrayFromObjectExpression(expr: t.ObjectExpression, path: NodePath): t.ArrayExpression | null {
+  if (expr.properties.length === 0) return null;
 
   let sawStyleArray = false;
   const elements: (t.Expression | t.SpreadElement | null)[] = [];
 
-  for (const prop of path.node.properties) {
+  for (const prop of expr.properties) {
     if (!t.isSpreadElement(prop)) {
       return null;
     }
@@ -599,6 +625,25 @@ function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.Arr
 
   if (!sawStyleArray) return null;
   return t.arrayExpression(elements);
+}
+
+/** Match the legacy `Css.spread(...)` marker helper. */
+function isCssSpreadCall(expr: t.CallExpression, cssBindingName: string): boolean {
+  return (
+    t.isMemberExpression(expr.callee) &&
+    !expr.callee.computed &&
+    t.isIdentifier(expr.callee.object, { name: cssBindingName }) &&
+    t.isIdentifier(expr.callee.property, { name: "spread" })
+  );
+}
+
+/** Unwrap TS wrappers so `Css.spread({ ... } as const)` is still recognized. */
+function unwrapStyleObjectExpression(expr: t.Expression): t.ObjectExpression | null {
+  if (t.isObjectExpression(expr)) return expr;
+  if (t.isTSAsExpression(expr) || t.isTSSatisfiesExpression(expr) || t.isTSNonNullExpression(expr)) {
+    return unwrapStyleObjectExpression(expr.expression);
+  }
+  return null;
 }
 
 /**

@@ -138,6 +138,22 @@ Css.color(xss?.color ?? Palette.White).bgColor(xss?.backgroundColor ?? Palette.B
 
 The plugin handles spread patterns. `css={[...Css.df.$, ...xss]}` is flattened into `{...stylex.props(css.df, ...xss)}`.
 
+For legacy v1-style object composition helpers, wrap the object in `Css.spread(...)` so the build-time plugin can recognize it as style-array composition and erase the wrapper:
+
+```tsx
+const baseStyles = Css.spread({
+  ...Css.df.aic.$,
+});
+
+const buttonStyles = {
+  ...baseStyles,
+  ...(active && Css.spread({ ...Css.black.$ })),
+  ...(isHovered && Css.spread({ ...Css.blue.$ })),
+};
+```
+
+`Css.spread(...)` is only a migration hint for the StyleX transform; it does not add runtime behavior.
+
 ### css prop on JSX
 
 ```tsx
