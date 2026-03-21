@@ -17,11 +17,17 @@ export interface ExpressionSite {
 export interface RewriteSitesOptions {
   ast: t.File;
   sites: ExpressionSite[];
+  filename: string;
+  debug: boolean;
   createVarName: string;
   stylexNamespaceName: string;
   maybeIncHelperName: string | null;
   mergePropsHelperName: string;
   needsMergePropsHelper: { current: boolean };
+  trussPropsHelperName: string;
+  needsTrussPropsHelper: { current: boolean };
+  trussDebugInfoName: string;
+  needsTrussDebugInfo: { current: boolean };
   asStyleArrayHelperName: string;
   needsAsStyleArrayHelper: { current: boolean };
   skippedCssPropMessages: Array<{ message: string; line: number | null }>;
@@ -41,25 +47,22 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     const cssAttrPath = getCssAttributePath(site.path);
 
     if (cssAttrPath) {
-      const propsCall = t.callExpression(
-        t.memberExpression(t.identifier(options.stylexNamespaceName), t.identifier("props")),
-        propsArgs,
-      );
       cssAttrPath.replaceWith(
         t.jsxSpreadAttribute(
           buildCssSpreadExpression(
             cssAttrPath,
-            propsCall,
+            propsArgs,
+            site.path.node.loc?.start.line ?? null,
             options.mergePropsHelperName,
             options.needsMergePropsHelper,
-            options.stylexNamespaceName,
+            options,
           ),
         ),
       );
       continue;
     }
 
-    site.path.replaceWith(t.arrayExpression(propsArgs));
+    site.path.replaceWith(buildStyleArrayExpression(propsArgs, site.path.node.loc?.start.line ?? null, options));
   }
 
   rewriteStyleObjectExpressions(options.ast);
@@ -67,9 +70,15 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
   // Second pass: lower any style-array-like `css={...}` expression to `stylex.props(...)`.
   rewriteCssAttributeExpressions(
     options.ast,
+    options.filename,
+    options.debug,
     options.stylexNamespaceName,
     options.mergePropsHelperName,
     options.needsMergePropsHelper,
+    options.trussPropsHelperName,
+    options.needsTrussPropsHelper,
+    options.trussDebugInfoName,
+    options.needsTrussDebugInfo,
     options.asStyleArrayHelperName,
     options.needsAsStyleArrayHelper,
     options.skippedCssPropMessages,
@@ -199,9 +208,15 @@ function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOption
  */
 function rewriteCssAttributeExpressions(
   ast: t.File,
+  filename: string,
+  debug: boolean,
   stylexNamespaceName: string,
   mergePropsHelperName: string,
   needsMergePropsHelper: { current: boolean },
+  trussPropsHelperName: string,
+  needsTrussPropsHelper: { current: boolean },
+  trussDebugInfoName: string,
+  needsTrussDebugInfo: { current: boolean },
   asStyleArrayHelperName: string,
   needsAsStyleArrayHelper: { current: boolean },
   skippedCssPropMessages: Array<{ message: string; line: number | null }>,
@@ -234,17 +249,83 @@ function rewriteCssAttributeExpressions(
         return;
       }
 
-      const propsCall = t.callExpression(
-        t.memberExpression(t.identifier(stylexNamespaceName), t.identifier("props")),
-        propsArgs,
-      );
       path.replaceWith(
         t.jsxSpreadAttribute(
-          buildCssSpreadExpression(path, propsCall, mergePropsHelperName, needsMergePropsHelper, stylexNamespaceName),
+          buildCssSpreadExpression(
+            path,
+            propsArgs,
+            path.node.loc?.start.line ?? null,
+            mergePropsHelperName,
+            needsMergePropsHelper,
+            {
+              filename,
+              debug,
+              stylexNamespaceName,
+              trussPropsHelperName,
+              needsTrussPropsHelper,
+              trussDebugInfoName,
+              needsTrussDebugInfo,
+            },
+          ),
         ),
       );
     },
   });
+}
+
+/** Emit a style array and optionally prepend a Truss debug sentinel. */
+function buildStyleArrayExpression(
+  propsArgs: (t.Expression | t.SpreadElement)[],
+  line: number | null,
+  options: RewriteSitesOptions,
+): t.ArrayExpression {
+  const elements: Array<t.Expression | t.SpreadElement> = buildDebugElements(line, options);
+  elements.push(...propsArgs);
+  return t.arrayExpression(elements);
+}
+
+/** Emit `stylex.props(...)` or `trussProps(stylex, ...)` depending on debug mode. */
+function buildPropsCall(
+  propsArgs: (t.Expression | t.SpreadElement)[],
+  line: number | null,
+  options: Pick<
+    RewriteSitesOptions,
+    | "debug"
+    | "stylexNamespaceName"
+    | "trussPropsHelperName"
+    | "needsTrussPropsHelper"
+    | "trussDebugInfoName"
+    | "needsTrussDebugInfo"
+    | "filename"
+  >,
+): t.CallExpression {
+  if (!options.debug) {
+    return t.callExpression(
+      t.memberExpression(t.identifier(options.stylexNamespaceName), t.identifier("props")),
+      propsArgs,
+    );
+  }
+
+  options.needsTrussPropsHelper.current = true;
+  const args: Array<t.Expression | t.SpreadElement> = buildDebugElements(line, options);
+  args.push(...propsArgs);
+  return t.callExpression(t.identifier(options.trussPropsHelperName), [
+    t.identifier(options.stylexNamespaceName),
+    ...args,
+  ]);
+}
+
+/** Build the `new TrussDebugInfo("File.tsx:line")` expression for a site. */
+function buildDebugElements(
+  line: number | null,
+  options: Pick<RewriteSitesOptions, "debug" | "trussDebugInfoName" | "needsTrussDebugInfo" | "filename">,
+): Array<t.Expression | t.SpreadElement> {
+  if (!options.debug || line === null) {
+    return [];
+  }
+
+  options.needsTrussDebugInfo.current = true;
+  return [t.newExpression(t.identifier(options.trussDebugInfoName), [t.stringLiteral(`${options.filename}:${line}`)])];
 }
 
 /** Check whether a JSX `css={...}` expression should be lowered to `stylex.props(...)`. */
@@ -294,19 +375,31 @@ function formatNodeSnippet(node: t.Node): string {
 /** Merge existing `className` attr into a rewritten `stylex.props(...)` spread. */
 function buildCssSpreadExpression(
   path: NodePath<t.JSXAttribute>,
-  propsCall: t.CallExpression,
+  propsArgs: (t.Expression | t.SpreadElement)[],
+  line: number | null,
   mergePropsHelperName: string,
   needsMergePropsHelper: { current: boolean },
-  stylexNamespaceName: string,
+  options: Pick<
+    RewriteSitesOptions,
+    | "debug"
+    | "stylexNamespaceName"
+    | "trussPropsHelperName"
+    | "needsTrussPropsHelper"
+    | "trussDebugInfoName"
+    | "needsTrussDebugInfo"
+    | "filename"
+  >,
 ): t.Expression {
   const existingClassNameExpr = removeExistingClassNameAttribute(path);
-  if (!existingClassNameExpr) return propsCall;
+  if (!existingClassNameExpr) return buildPropsCall(propsArgs, line, options);
 
   needsMergePropsHelper.current = true;
+  const args: Array<t.Expression | t.SpreadElement> = buildDebugElements(line, options);
+  args.push(...propsArgs);
   return t.callExpression(t.identifier(mergePropsHelperName), [
-    t.identifier(stylexNamespaceName),
+    t.identifier(options.stylexNamespaceName),
     existingClassNameExpr,
-    ...propsCall.arguments,
+    ...args,
   ]);
 }
 

@@ -22,6 +22,8 @@ export default defineConfig({
     trussPlugin({ mapping, externalPackages }),
     stylex.vite({
       dev: true,
+      debug: false,
+      enableDevClassNames: false,
       useCSSLayers: false,
       // If your StyleX unplugin version supports it, pass the same list:
       // externalPackages,

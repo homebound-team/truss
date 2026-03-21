@@ -3,6 +3,7 @@ import _traverse from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
 import _generate from "@babel/generator";
 import * as t from "@babel/types";
+import { basename } from "path";
 import type { TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import {
@@ -34,6 +35,10 @@ export interface TransformResult {
   map?: unknown;
 }
 
+export interface TransformTrussOptions {
+  debug?: boolean;
+}
+
 /**
  * The core transform function. Given a source file's code and the truss mapping,
  * finds all `Css.*.$` expressions and rewrites them into file-local
@@ -41,7 +46,12 @@ export interface TransformResult {
  *
  * Returns null if the file doesn't use Css.
  */
-export function transformTruss(code: string, filename: string, mapping: TrussMapping): TransformResult | null {
+export function transformTruss(
+  code: string,
+  filename: string,
+  mapping: TrussMapping,
+  options: TransformTrussOptions = {},
+): TransformResult | null {
   // Fast bail: skip files that don't reference Css
   if (!code.includes("Css")) return null;
 
@@ -104,6 +114,12 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   const asStyleArrayHelperName =
     existingAsStyleArrayHelperName ?? reservePreferredName(usedTopLevelNames, "asStyleArray");
   const needsAsStyleArrayHelper = { current: false };
+  const existingTrussPropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "trussProps");
+  const trussPropsHelperName = existingTrussPropsHelperName ?? reservePreferredName(usedTopLevelNames, "trussProps");
+  const needsTrussPropsHelper = { current: false };
+  const existingTrussDebugInfoName = findNamedImportBinding(ast, "@homebound/truss/runtime", "TrussDebugInfo");
+  const trussDebugInfoName = existingTrussDebugInfoName ?? reservePreferredName(usedTopLevelNames, "TrussDebugInfo");
+  const needsTrussDebugInfo = { current: false };
   const runtimeLookupNames = new Map<string, string>();
   for (const [lookupKey] of runtimeLookups) {
     runtimeLookupNames.set(lookupKey, reservePreferredName(usedTopLevelNames, `__${lookupKey}`));
@@ -115,11 +131,17 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   rewriteExpressionSites({
     ast,
     sites,
+    filename: basename(filename),
+    debug: options.debug ?? false,
     createVarName,
     stylexNamespaceName,
     maybeIncHelperName,
     mergePropsHelperName,
     needsMergePropsHelper,
+    trussPropsHelperName,
+    needsTrussPropsHelper,
+    trussDebugInfoName,
+    needsTrussDebugInfo,
     asStyleArrayHelperName,
     needsAsStyleArrayHelper,
     skippedCssPropMessages: errorMessages,
@@ -133,13 +155,24 @@ export function transformTruss(code: string, filename: string, mapping: TrussMap
   if (!findStylexNamespaceImport(ast)) {
     insertStylexNamespaceImport(ast, stylexNamespaceName);
   }
-  if (needsMergePropsHelper.current || needsAsStyleArrayHelper.current) {
+  if (
+    needsMergePropsHelper.current ||
+    needsAsStyleArrayHelper.current ||
+    needsTrussPropsHelper.current ||
+    needsTrussDebugInfo.current
+  ) {
     const runtimeImports: Array<{ importedName: string; localName: string }> = [];
     if (needsMergePropsHelper.current) {
       runtimeImports.push({ importedName: "mergeProps", localName: mergePropsHelperName });
     }
     if (needsAsStyleArrayHelper.current) {
       runtimeImports.push({ importedName: "asStyleArray", localName: asStyleArrayHelperName });
+    }
+    if (needsTrussPropsHelper.current) {
+      runtimeImports.push({ importedName: "trussProps", localName: trussPropsHelperName });
+    }
+    if (needsTrussDebugInfo.current) {
+      runtimeImports.push({ importedName: "TrussDebugInfo", localName: trussDebugInfoName });
     }
     upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
   }

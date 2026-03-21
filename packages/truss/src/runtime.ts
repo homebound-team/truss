@@ -1,13 +1,32 @@
 import type * as stylex from "@stylexjs/stylex";
 
+export class TrussDebugInfo {
+  /** A compact `FileName.tsx:line` source label for a Truss CSS expression. */
+  readonly src: string;
+
+  constructor(src: string) {
+    this.src = src;
+  }
+}
+
+type StylexPropArg = Parameters<typeof stylex.props>[number];
+
+/** Call StyleX while stripping Truss debug sentinels from the style list. */
+export function trussProps(stylexNs: typeof stylex, ...styles: unknown[]): Record<string, unknown> {
+  const { debugSources, styleArgs } = splitDebugInfo(styles);
+  const sx = stylexNs.props(...styleArgs);
+  return applyDebugSources(sx, debugSources);
+}
+
 export function mergeProps(
   stylexNs: typeof stylex,
   explicitClassName: string,
-  ...styles: Array<Parameters<typeof stylex.props>[number]>
+  ...styles: unknown[]
 ): Record<string, unknown> {
-  const sx = stylexNs.props(...styles);
+  const { debugSources, styleArgs } = splitDebugInfo(styles);
+  const sx = stylexNs.props(...styleArgs);
   return {
-    ...sx,
+    ...applyDebugSources(sx, debugSources),
     className: `${explicitClassName} ${sx.className ?? ""}`.trim(),
   };
 }
@@ -17,4 +36,39 @@ export function asStyleArray(styles: unknown): ReadonlyArray<unknown> {
     return styles;
   }
   return styles ? [styles] : [];
+}
+
+/** Collect Truss debug info while preserving the original StyleX argument order. */
+function splitDebugInfo(styles: ReadonlyArray<unknown>): {
+  debugSources: string[];
+  styleArgs: StylexPropArg[];
+} {
+  const debugSources: string[] = [];
+  const styleArgs: StylexPropArg[] = [];
+
+  for (const style of styles) {
+    if (style instanceof TrussDebugInfo) {
+      debugSources.push(style.src);
+    } else {
+      styleArgs.push(style as StylexPropArg);
+    }
+  }
+
+  return { debugSources, styleArgs };
+}
+
+/** Deduplicate and attach compact Truss source labels to emitted props. */
+function applyDebugSources(
+  props: Record<string, unknown>,
+  debugSources: ReadonlyArray<string>,
+): Record<string, unknown> {
+  if (debugSources.length === 0) {
+    return props;
+  }
+
+  const uniqueSources = Array.from(new Set(debugSources));
+  return {
+    ...props,
+    "data-truss-src": uniqueSources.join("; "),
+  };
 }

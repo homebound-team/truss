@@ -61,6 +61,48 @@ describe("transform", () => {
     );
   });
 
+  test("debug mode rewrites jsx css props through trussProps", () => {
+    expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.df.aic.$} />;`, { debug: true })!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { trussProps, TrussDebugInfo } from "@homebound/truss/runtime";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        const el = <div {...trussProps(stylex, new TrussDebugInfo("test.tsx:1"), css.df, css.aic)} />;
+      `),
+    );
+  });
+
+  test("debug mode keeps debug info in non-jsx style arrays", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`, { debug: true })!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { TrussDebugInfo } from "@homebound/truss/runtime";
+        const css = stylex.create({ df: { display: "flex" } });
+        const s = [new TrussDebugInfo("test.tsx:1"), css.df];
+      `),
+    );
+  });
+
+  test("debug mode keeps mergeProps for className composition", () => {
+    expect(
+      n(
+        transform(`import { Css } from "./Css"; const el = <div className="existing" css={Css.df.$} />;`, {
+          debug: true,
+        })!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { mergeProps, TrussDebugInfo } from "@homebound/truss/runtime";
+        const css = stylex.create({ df: { display: "flex" } });
+        const el = <div {...mergeProps(stylex, "existing", new TrussDebugInfo("test.tsx:1"), css.df)} />;
+      `),
+    );
+  });
+
   test("dynamic with literal arg: Css.mt(2).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(2).$;`)!)).toBe(
       n(`
@@ -1931,8 +1973,8 @@ describe("transform", () => {
   });
 });
 
-function transform(code: string): string | null {
-  const result = transformTruss(code, "test.tsx", mapping);
+function transform(code: string, options?: { debug?: boolean }): string | null {
+  const result = transformTruss(code, "test.tsx", mapping, options);
   return result?.code ?? null;
 }
 
