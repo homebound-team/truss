@@ -15,7 +15,7 @@ export interface TrussPluginOptions {
 export interface TrussVitePlugin {
   name: string;
   enforce?: "pre" | "post";
-  configResolved?: (config: { root: string }) => void;
+  configResolved?: (config: { root: string; command?: string; mode?: string }) => void;
   buildStart?: () => void;
   resolveId?: (source: string, importer: string | undefined) => string | null;
   load?: (id: string) => string | null;
@@ -40,6 +40,7 @@ const CSS_TS_QUERY = "?truss-css";
 export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let mapping: TrussMapping | null = null;
   let projectRoot: string;
+  let debug = false;
   const externalPackages = opts.externalPackages ?? [];
 
   function mappingPath(): string {
@@ -59,8 +60,9 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     name: "truss-stylex",
     enforce: "pre",
 
-    configResolved(config: { root: string }) {
+    configResolved(config: { root: string; command?: string; mode?: string }) {
       projectRoot = config.root;
+      debug = config.command === "serve" || config.mode === "development" || config.mode === "test";
     },
 
     buildStart() {
@@ -119,7 +121,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
       // For regular JS/TS modules that still use the DSL, run the full Truss
       // transform after the import rewrite so both behaviors compose.
-      const result = transformTruss(rewrittenCode, id, ensureMapping());
+      const result = transformTruss(rewrittenCode, fileId, ensureMapping(), { debug });
       if (!result) {
         if (!rewrittenImports.changed) return null;
         return { code: rewrittenCode, map: null };

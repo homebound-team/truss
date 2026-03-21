@@ -1,5 +1,6 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
+import { TrussDebugInfo } from "@homebound/truss/runtime";
 import { Css, Palette, type CssProp } from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
 import "@testing-library/jest-dom/vitest";
@@ -284,7 +285,7 @@ describe("StyleX CssBuilder", () => {
 
     test("conditional false skips dynamic style", () => {
       const refs = Css.if(false).mt(2).$;
-      expect(refs).toEqual([]);
+      expect(refs).toEqual([new TrussDebugInfo("Css.test.tsx:287")]);
     });
   });
 

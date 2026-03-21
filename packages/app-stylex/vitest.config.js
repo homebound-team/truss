@@ -6,7 +6,9 @@ import { trussPlugin } from "@homebound/truss/plugin";
 export default defineConfig({
   plugins: [
     trussPlugin({ mapping: "./src/Css.json" }),
-    stripConfigureServer(stylex.vite({ dev: true, runtimeInjection: true, useCSSLayers: false })),
+    stripConfigureServer(
+      stylex.vite({ dev: true, debug: false, enableDevClassNames: false, runtimeInjection: true, useCSSLayers: false }),
+    ),
     react(),
   ],
   test: {
