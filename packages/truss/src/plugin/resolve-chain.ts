@@ -582,6 +582,7 @@ function resolveDelegateCall(
       pseudoElement,
       dynamicProps: targetEntry.props,
       incremented: false,
+      appendPx: true,
       dynamicExtraDefs: targetEntry.extraDefs,
       argNode: argAst,
     };

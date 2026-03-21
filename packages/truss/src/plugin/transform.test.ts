@@ -103,6 +103,28 @@ describe("transform", () => {
     );
   });
 
+  test("delegate with variable arg appends px: Css.mtPx(x).$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.mtPx(x).$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ mt: v => ({ marginTop: v }) });
+        const x = getSomeValue();
+        const s = [css.mt(String(x) + "px")];
+      `),
+    );
+  });
+
+  test("delegate shorthand with multiple props appends px: Css.pxPx(x).$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.pxPx(x).$;`)!)).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({ px: v => ({ paddingLeft: v, paddingRight: v }) });
+        const x = getSomeValue();
+        const s = [css.px(String(x) + "px")];
+      `),
+    );
+  });
+
   test("non-incremented dynamic: Css.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bc("red").$;`)!)).toBe(
       n(`

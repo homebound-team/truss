@@ -176,6 +176,12 @@ function buildPropsArgs(segments: ResolvedSegment[], options: RewriteSitesOption
         argExpr = t.callExpression(t.identifier(options.maybeIncHelperName), [seg.argNode]);
       } else if (seg.incremented) {
         argExpr = seg.argNode as t.Expression;
+      } else if (seg.appendPx) {
+        argExpr = t.binaryExpression(
+          "+",
+          t.callExpression(t.identifier("String"), [seg.argNode]),
+          t.stringLiteral("px"),
+        );
       } else {
         argExpr = t.callExpression(t.identifier("String"), [seg.argNode]);
       }
