@@ -1,3 +1,9 @@
+## [2.0.11](https://github.com/homebound-team/truss/compare/v2.0.10...v2.0.11) (2026-03-21)
+
+### Bug Fixes
+
+* Always rewrite Css.props with object literals. ([#169](https://github.com/homebound-team/truss/issues/169)) ([471b582](https://github.com/homebound-team/truss/commit/471b58255dac71f8f19d386c68eed4602175fa41))
+
 ## [2.0.10](https://github.com/homebound-team/truss/compare/v2.0.9...v2.0.10) (2026-03-21)
 
 ### Bug Fixes
