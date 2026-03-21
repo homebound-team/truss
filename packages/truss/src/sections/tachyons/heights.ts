@@ -1,5 +1,5 @@
 import { CreateMethodsFn } from "src/config";
-import { comment, newIncrementMethods, newMethodsForProp } from "src/methods";
+import { newIncrementMethods, newMethodsForProp, newPxMethods } from "src/methods";
 
 export const height: CreateMethodsFn = (config) => [
   // https://github.com/tachyons-css/tachyons/blob/master/src/_heights.css
@@ -52,8 +52,5 @@ export const height: CreateMethodsFn = (config) => [
     "maxh",
     true,
   ),
-
-  // Sneak this into heights.ts even though it's for width & height
-  `${comment({ height: "px", width: "px" })}
-  sqPx(px: number) { return this.add("height", \`\${px}px\`).add("width", \`\${px}px\`); }`,
+  ...newPxMethods("sq", ["height", "width"]),
 ];

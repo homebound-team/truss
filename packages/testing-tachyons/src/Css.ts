@@ -1054,7 +1054,6 @@ class CssBuilder<T extends Properties> {
     return this.maxh(`${px}px`);
   }
   /** Sets `height: px; width: px`. */
-
   sqPx(px: number) {
     return this.add("height", `${px}px`).add("width", `${px}px`);
   }
@@ -2317,6 +2316,10 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: "@media (min-width: 600px)" });
   }
 
+  typography(key: Typography): CssBuilder<T> {
+    return (this as any)[key];
+  }
+
   get else() {
     if (this.selector !== undefined) {
       if (this.selector.includes("not")) {
@@ -2367,6 +2370,11 @@ class CssBuilder<T extends Properties> {
     }
     const rules = { ...this.rules, [selector]: { ...(this.rules as any)[selector], ...newRules } };
     return this.newCss({ rules: rules as any });
+  }
+
+  /** Marker helper for legacy object-spread composition. */
+  spread<P extends object>(props: P): P {
+    return props;
   }
 }
 

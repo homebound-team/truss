@@ -220,6 +220,15 @@ export function newPxMethod(abbr: UtilityName, prop: Prop): UtilityMethod {
   return `${comment({ [prop]: "px" })} ${abbr}Px(px: number) { return this.${abbr}(\`\${px}px\`); }`;
 }
 
+export function newPxMethods(abbr: UtilityName, props: Prop[]): UtilityMethod[] {
+  const defs = Object.fromEntries(props.map((prop) => [prop, "px"]));
+  collect({ kind: "param", abbr, props });
+  collect({ kind: "px-delegate", abbr: `${abbr}Px`, props });
+  return [
+    `${comment(defs)} ${abbr}Px(px: number) { return this.${props.map((prop) => `add("${prop}", \`\${px}px\`)`).join(".")}; }`,
+  ];
+}
+
 export const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
 
 /** Keeps numbers as literals, and wraps anything else with double quotes. */

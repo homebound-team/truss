@@ -252,6 +252,8 @@
     "maxh100": {"kind":"static","defs":{"maxHeight":"100%"}},
     "maxh": {"kind":"dynamic","props":["maxHeight"],"incremented":false},
     "maxhPx": {"kind":"delegate","target":"maxh"},
+    "sq": {"kind":"dynamic","props":["height","width"],"incremented":false},
+    "sqPx": {"kind":"delegate","target":"sq"},
     "lineClamp1": {"kind":"static","defs":{"overflow":"hidden","display":"-webkit-box","WebkitBoxOrient":"vertical","textOverflow":"ellipsis","WebkitLineClamp":1}},
     "lineClamp2": {"kind":"static","defs":{"overflow":"hidden","display":"-webkit-box","WebkitBoxOrient":"vertical","textOverflow":"ellipsis","WebkitLineClamp":2}},
     "lineClamp3": {"kind":"static","defs":{"overflow":"hidden","display":"-webkit-box","WebkitBoxOrient":"vertical","textOverflow":"ellipsis","WebkitLineClamp":3}},
