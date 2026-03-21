@@ -1,3 +1,9 @@
+## [2.0.0-next.14](https://github.com/homebound-team/truss/compare/v2.0.0-next.13...v2.0.0-next.14) (2026-03-21)
+
+### Features
+
+* Debug mode ([#154](https://github.com/homebound-team/truss/issues/154)) ([f83fdba](https://github.com/homebound-team/truss/commit/f83fdbac03cfabccc0bdfb6ebee591ff586055e3))
+
 ## [2.0.0-next.13](https://github.com/homebound-team/truss/compare/v2.0.0-next.12...v2.0.0-next.13) (2026-03-21)
 
 ### Bug Fixes
