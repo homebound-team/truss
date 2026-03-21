@@ -1,3 +1,9 @@
+## [2.0.10](https://github.com/homebound-team/truss/compare/v2.0.9...v2.0.10) (2026-03-21)
+
+### Bug Fixes
+
+* Provide Css.props for spreading into attributes. ([#168](https://github.com/homebound-team/truss/issues/168)) ([41c5f97](https://github.com/homebound-team/truss/commit/41c5f97d5988ecd3a3adb1336308802cab40daf4))
+
 ## [2.0.9](https://github.com/homebound-team/truss/compare/v2.0.8...v2.0.9) (2026-03-21)
 
 ### Bug Fixes

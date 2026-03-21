@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss-testing-tachyons",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "private": true,
   "type": "module",
   "main": "build/index.js",
