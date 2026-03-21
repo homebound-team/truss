@@ -35,6 +35,21 @@ export interface RewriteSitesOptions {
   runtimeLookupNames: Map<string, string>;
 }
 
+interface StyleObjectRewriteResult {
+  rewritten: t.ArrayExpression | null;
+  droppedPropertyKeys: string[];
+}
+
+type StyleCompositionEntry = { kind: "known"; expr: t.Expression } | { kind: "unknown"; expr: t.Expression };
+
+function formatDroppedPropertyKey(prop: t.ObjectMember | t.SpreadElement): string {
+  if (t.isObjectProperty(prop)) {
+    if (t.isIdentifier(prop.key)) return prop.key.name;
+    if (t.isStringLiteral(prop.key)) return prop.key.value;
+  }
+  return formatNodeSnippet(prop);
+}
+
 /**
  * Rewrite collected `Css...$` expression sites into StyleX runtime calls.
  *
@@ -66,8 +81,18 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     site.path.replaceWith(buildStyleArrayExpression(propsArgs, site.path.node.loc?.start.line ?? null, options));
   }
 
-  rewriteCssSpreadCalls(options.ast, options.cssBindingName);
-  rewriteStyleObjectExpressions(options.ast);
+  rewriteCssSpreadCalls(
+    options.ast,
+    options.cssBindingName,
+    options.asStyleArrayHelperName,
+    options.needsAsStyleArrayHelper,
+  );
+  rewriteStyleObjectExpressions(
+    options.ast,
+    options.skippedCssPropMessages,
+    options.asStyleArrayHelperName,
+    options.needsAsStyleArrayHelper,
+  );
 
   // Second pass: lower any style-array-like `css={...}` expression to `stylex.props(...)`.
   rewriteCssAttributeExpressions(
@@ -357,8 +382,7 @@ function lowerCssExpressionToPropsArgs(
 ): (t.Expression | t.SpreadElement)[] | null {
   return (
     buildStyleObjectPropsArgs(expr, path, asStyleArrayHelperName, needsAsStyleArrayHelper) ??
-    buildStyleArrayLikePropsArgsFromExpression(expr, path, asStyleArrayHelperName, needsAsStyleArrayHelper) ??
-    buildUnknownCssValuePropsArgs(expr, asStyleArrayHelperName, needsAsStyleArrayHelper)
+    buildStyleArrayLikePropsArgsFromExpression(expr, path, asStyleArrayHelperName, needsAsStyleArrayHelper)
   );
 }
 
@@ -451,30 +475,30 @@ function buildStyleObjectPropsArgs(
 ): (t.Expression | t.SpreadElement)[] | null {
   if (!t.isObjectExpression(expr) || expr.properties.length === 0) return null;
 
-  const propsArgs: (t.Expression | t.SpreadElement)[] = [];
-
-  for (const prop of expr.properties) {
-    if (!t.isSpreadElement(prop)) return null;
-
-    const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>()); // I.e. `...cssProp`, `...Css.df.$`, or `...styles.wrapper`
-    if (!normalizedArg) {
-      propsArgs.push(
-        t.spreadElement(
-          buildUnknownObjectSpreadFallback(prop.argument, asStyleArrayHelperName, needsAsStyleArrayHelper),
-        ),
-      );
-      continue;
+  const result = collectStyleCompositionEntries(expr, path);
+  if (!result) {
+    if (
+      expr.properties.every(function (prop) {
+        return t.isSpreadElement(prop);
+      })
+    ) {
+      return expr.properties.map(function (prop) {
+        const spread = prop as t.SpreadElement;
+        return t.spreadElement(
+          buildUnknownObjectSpreadFallback(spread.argument, asStyleArrayHelperName, needsAsStyleArrayHelper), // I.e. `css={{ ...css }}` or `css={{ ...xss }}`
+        );
+      });
     }
-
-    const nestedArgs = buildStyleArrayLikePropsArgs(normalizedArg, path, new Set<t.Node>());
-    if (nestedArgs && t.isArrayExpression(normalizedArg)) {
-      propsArgs.push(...nestedArgs);
-    } else {
-      propsArgs.push(t.spreadElement(buildSafeSpreadArgument(normalizedArg)));
-    }
+    return null;
   }
+  if (result.droppedPropertyKeys.length > 0) return null;
 
-  return propsArgs.length > 0 ? propsArgs : null;
+  return buildPropsArgsFromStyleCompositionEntries(
+    result.entries,
+    path,
+    asStyleArrayHelperName,
+    needsAsStyleArrayHelper,
+  );
 }
 
 /** Normalize and lower a style-array-like expression into props args. */
@@ -535,7 +559,7 @@ function buildStyleArrayLikePropsArgs(
     t.isLogicalExpression(expr) ||
     t.isCallExpression(expr)
   ) {
-    return [t.spreadElement(buildSafeSpreadArgument(expr))]; // I.e. `base`, `styles.wrapper`, `base || hover`, or `getStyles()`
+    return [t.spreadElement(buildSafeSpreadArgument(expr))];
   }
 
   return null;
@@ -555,18 +579,34 @@ function buildUnknownCssValuePropsArgs(
  * Rewrite object spread composition like `{ ...[css.df], ...(cond ? [css.a] : {}) }`
  * into style ref arrays so later JSX css rewrites can flatten them safely.
  */
-function rewriteStyleObjectExpressions(ast: t.File): void {
+function rewriteStyleObjectExpressions(
+  ast: t.File,
+  messages: Array<{ message: string; line: number | null }>,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
+): void {
   traverse(ast, {
     ObjectExpression(path: NodePath<t.ObjectExpression>) {
-      const rewritten = tryBuildStyleArrayFromObject(path);
-      if (!rewritten) return;
-      path.replaceWith(rewritten);
+      const result = tryBuildStyleArrayFromObject(path, asStyleArrayHelperName, needsAsStyleArrayHelper);
+      if (!result.rewritten) return;
+      if (result.droppedPropertyKeys.length > 0) {
+        messages.push({
+          message: `[truss] Unsupported pattern: Dropped non-spread properties from style composition object (${result.droppedPropertyKeys.join(", ")})`,
+          line: path.node.loc?.start.line ?? null,
+        });
+      }
+      path.replaceWith(result.rewritten);
     },
   });
 }
 
 /** Lower `Css.spread({ ... })` marker calls into plain style arrays. */
-function rewriteCssSpreadCalls(ast: t.File, cssBindingName: string): void {
+function rewriteCssSpreadCalls(
+  ast: t.File,
+  cssBindingName: string,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
+): void {
   traverse(ast, {
     CallExpression(path: NodePath<t.CallExpression>) {
       if (!isCssSpreadCall(path.node, cssBindingName)) return;
@@ -577,54 +617,135 @@ function rewriteCssSpreadCalls(ast: t.File, cssBindingName: string): void {
       const styleObject = unwrapStyleObjectExpression(arg);
       if (!styleObject) return;
 
-      const rewritten = tryBuildStyleArrayFromObjectExpression(styleObject, path);
-      if (!rewritten) return;
-      path.replaceWith(rewritten);
+      const result = tryBuildStyleArrayFromObjectExpression(
+        styleObject,
+        path,
+        asStyleArrayHelperName,
+        needsAsStyleArrayHelper,
+      );
+      if (!result.rewritten) return;
+      path.replaceWith(result.rewritten);
     },
   });
 }
 
 /** One-line detection for object spread groups that really represent style arrays. */
-function tryBuildStyleArrayFromObject(path: NodePath<t.ObjectExpression>): t.ArrayExpression | null {
-  return tryBuildStyleArrayFromObjectExpression(path.node, path);
+function tryBuildStyleArrayFromObject(
+  path: NodePath<t.ObjectExpression>,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
+): StyleObjectRewriteResult {
+  return tryBuildStyleArrayFromObjectExpression(path.node, path, asStyleArrayHelperName, needsAsStyleArrayHelper);
 }
 
 /** Convert a style-object composition into an equivalent style array. */
-function tryBuildStyleArrayFromObjectExpression(expr: t.ObjectExpression, path: NodePath): t.ArrayExpression | null {
+function tryBuildStyleArrayFromObjectExpression(
+  expr: t.ObjectExpression,
+  path: NodePath,
+  asStyleArrayHelperName?: string,
+  needsAsStyleArrayHelper?: { current: boolean },
+): StyleObjectRewriteResult {
+  const result = collectStyleCompositionEntries(expr, path);
+  if (!result) return { rewritten: null, droppedPropertyKeys: [] };
+
+  const elements = buildArrayElementsFromStyleCompositionEntries(
+    result.entries,
+    path,
+    asStyleArrayHelperName,
+    needsAsStyleArrayHelper,
+  );
+  return { rewritten: t.arrayExpression(elements), droppedPropertyKeys: result.droppedPropertyKeys };
+}
+
+function collectStyleCompositionEntries(
+  expr: t.ObjectExpression,
+  path: NodePath,
+): { entries: StyleCompositionEntry[]; droppedPropertyKeys: string[] } | null {
   if (expr.properties.length === 0) return null;
 
-  let sawStyleArray = false;
-  const elements: (t.Expression | t.SpreadElement | null)[] = [];
+  let sawKnownStyle = false;
+  const entries: StyleCompositionEntry[] = [];
+  const droppedPropertyKeys: string[] = [];
 
   for (const prop of expr.properties) {
     if (!t.isSpreadElement(prop)) {
-      return null;
+      droppedPropertyKeys.push(formatDroppedPropertyKey(prop)); // I.e. `{ ...Css.black.$, foo: true, ...xss }`
+      continue;
     }
 
-    const normalizedArg = normalizeStyleArrayLikeExpression(
-      prop.argument,
-      path,
-      new Set<t.Node>(), // I.e. `...Css.df.$`, `...(cond ? Css.df.$ : {})`, or `...styles.wrapper`
-    );
+    const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>());
     if (!normalizedArg) {
-      elements.push(t.spreadElement(buildInlineAsStyleArrayExpression(prop.argument)));
+      entries.push({ kind: "unknown", expr: prop.argument }); // I.e. `...borderBottomStyles`
       continue;
     }
 
     if (isKnownStyleArrayLike(normalizedArg, path, new Set<t.Node>())) {
-      sawStyleArray = true;
+      sawKnownStyle = true;
+      entries.push({ kind: "known", expr: normalizedArg }); // I.e. `...Css.black.$` or `...styles.wrapper`
+    } else {
+      entries.push({ kind: "unknown", expr: normalizedArg }); // I.e. `...(maybeStyles ?? baseStyles)`
     }
+  }
 
-    if (t.isArrayExpression(normalizedArg)) {
-      elements.push(...normalizedArg.elements);
+  return sawKnownStyle ? { entries, droppedPropertyKeys } : null;
+}
+
+function buildPropsArgsFromStyleCompositionEntries(
+  entries: StyleCompositionEntry[],
+  path: NodePath,
+  asStyleArrayHelperName: string,
+  needsAsStyleArrayHelper: { current: boolean },
+): (t.Expression | t.SpreadElement)[] {
+  const propsArgs: (t.Expression | t.SpreadElement)[] = [];
+
+  for (const entry of entries) {
+    const nestedArgs =
+      entry.kind === "known" ? buildStyleArrayLikePropsArgs(entry.expr, path, new Set<t.Node>()) : null;
+    if (nestedArgs && t.isArrayExpression(entry.expr)) {
+      propsArgs.push(...nestedArgs); // I.e. `[css.df, css.aic]` becomes `css.df, css.aic`
       continue;
     }
 
-    elements.push(t.spreadElement(buildSafeSpreadArgument(normalizedArg)));
+    propsArgs.push(
+      t.spreadElement(
+        entry.kind === "known"
+          ? buildSafeSpreadArgument(entry.expr)
+          : buildUnknownObjectSpreadFallback(entry.expr, asStyleArrayHelperName, needsAsStyleArrayHelper),
+      ),
+    );
   }
 
-  if (!sawStyleArray) return null;
-  return t.arrayExpression(elements);
+  return propsArgs;
+}
+
+function buildArrayElementsFromStyleCompositionEntries(
+  entries: StyleCompositionEntry[],
+  path: NodePath,
+  asStyleArrayHelperName?: string,
+  needsAsStyleArrayHelper?: { current: boolean },
+): (t.Expression | t.SpreadElement | null)[] {
+  const elements: (t.Expression | t.SpreadElement | null)[] = [];
+
+  for (const entry of entries) {
+    const nestedArgs =
+      entry.kind === "known" ? buildStyleArrayLikePropsArgs(entry.expr, path, new Set<t.Node>()) : null;
+    if (nestedArgs && t.isArrayExpression(entry.expr)) {
+      elements.push(...entry.expr.elements); // I.e. `{ ...Css.df.aic.$ }` becomes `[css.df, css.aic]`
+      continue;
+    }
+
+    elements.push(
+      t.spreadElement(
+        entry.kind === "known"
+          ? buildSafeSpreadArgument(entry.expr)
+          : asStyleArrayHelperName && needsAsStyleArrayHelper
+            ? buildUnknownObjectSpreadFallback(entry.expr, asStyleArrayHelperName, needsAsStyleArrayHelper)
+            : buildInlineAsStyleArrayExpression(entry.expr),
+      ),
+    );
+  }
+
+  return elements;
 }
 
 /** Match the legacy `Css.spread(...)` marker helper. */
@@ -658,27 +779,27 @@ function normalizeStyleArrayLikeExpression(expr: t.Expression, path: NodePath, s
   if (t.isLogicalExpression(expr) && expr.operator === "&&") {
     const consequent = normalizeStyleArrayLikeExpression(expr.right, path, seen);
     if (!consequent) return null;
-    return t.conditionalExpression(expr.left, consequent, t.arrayExpression([])); // I.e. `cond && Css.df.$`
+    return t.conditionalExpression(expr.left, consequent, t.arrayExpression([])); // I.e. `active && Css.blue.$`
   }
 
   if (t.isLogicalExpression(expr) && (expr.operator === "||" || expr.operator === "??")) {
     const left = normalizeStyleArrayLikeExpression(expr.left, path, seen);
     const right = normalizeStyleArrayLikeBranch(expr.right, path, seen);
     if (!left || !right) return null;
-    return t.logicalExpression(expr.operator, left, right); // I.e. `base || Css.df.$` or `base ?? {}`
+    return t.logicalExpression(expr.operator, left, right); // I.e. `hover || base` or `hover ?? base`
   }
 
   if (t.isConditionalExpression(expr)) {
     const consequent = normalizeStyleArrayLikeBranch(expr.consequent, path, seen);
     const alternate = normalizeStyleArrayLikeBranch(expr.alternate, path, seen);
     if (!consequent || !alternate) return null;
-    return t.conditionalExpression(expr.test, consequent, alternate); // I.e. `cond ? Css.df.$ : {}`
+    return t.conditionalExpression(expr.test, consequent, alternate); // I.e. `cond ? Css.blue.$ : {}`
   }
 
   if (t.isIdentifier(expr) || t.isMemberExpression(expr) || t.isCallExpression(expr)) {
     const nestedSeen = new Set(seen);
     nestedSeen.delete(expr);
-    if (isStyleArrayLike(expr, path, nestedSeen)) return expr; // I.e. `base`, `styles.wrapper`, or `getStyles()`
+    if (isStyleArrayLike(expr, path, nestedSeen)) return expr; // I.e. `baseStyles`, `styles.wrapper`, or `getStyles()`
   }
 
   return null;
@@ -687,11 +808,11 @@ function normalizeStyleArrayLikeExpression(expr: t.Expression, path: NodePath, s
 /** Normalize a conditional branch inside a style-array-like expression. */
 function normalizeStyleArrayLikeBranch(expr: t.Expression, path: NodePath, seen: Set<t.Node>): t.Expression | null {
   if (isEmptyObjectExpression(expr)) {
-    return t.arrayExpression([]); // I.e. `cond ? Css.df.$ : {}` becomes `cond ? [css.df] : []`
+    return t.arrayExpression([]); // I.e. `cond ? Css.blue.$ : {}`
   }
 
   if (t.isObjectExpression(expr)) {
-    return tryBuildStyleArrayFromObjectExpression(expr, path); // I.e. `cond ? { ...Css.df.$ } : {}`
+    return tryBuildStyleArrayFromObjectExpression(expr, path).rewritten; // I.e. `cond ? { ...Css.bb.$ } : {}`
   }
 
   return normalizeStyleArrayLikeExpression(expr, path, seen);
@@ -702,34 +823,55 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
   if (seen.has(expr)) return false;
   seen.add(expr);
 
-  if (t.isArrayExpression(expr)) return true; // I.e. `[css.df]`
+  if (t.isArrayExpression(expr)) return true;
 
   if (t.isLogicalExpression(expr) && expr.operator === "&&") {
-    return isStyleArrayLike(expr.right, path, seen); // I.e. `cond && [css.df]`
+    return isStyleArrayLike(expr.right, path, seen);
   }
 
   if (t.isLogicalExpression(expr) && (expr.operator === "||" || expr.operator === "??")) {
-    return isStyleArrayLike(expr.left, path, seen) && isStyleArrayLikeBranch(expr.right, path, seen); // I.e. `base || [css.df]`
+    return isStyleArrayLike(expr.left, path, seen) && isStyleArrayLikeBranch(expr.right, path, seen);
   }
 
   if (t.isConditionalExpression(expr)) {
-    return isStyleArrayLikeBranch(expr.consequent, path, seen) && isStyleArrayLikeBranch(expr.alternate, path, seen); // I.e. `cond ? [css.df] : []`
+    return isStyleArrayLikeBranch(expr.consequent, path, seen) && isStyleArrayLikeBranch(expr.alternate, path, seen);
   }
 
   if (t.isIdentifier(expr)) {
+    const possibleValues = resolvePossibleStyleValues(expr, path, new Set(seen));
+    if (possibleValues) {
+      return possibleValues.every(function (value: t.Expression) {
+        return isStyleArrayLike(value, path, new Set(seen));
+      });
+    }
+
     const binding = path.scope.getBinding(expr.name);
     const bindingPath = binding?.path;
     if (!bindingPath || !bindingPath.isVariableDeclarator()) return false;
     const init = bindingPath.node.init;
-    return !!(init && isStyleArrayLike(init, bindingPath, seen)); // I.e. `base` where `const base = [css.df]`
+    return !!(init && isStyleArrayLike(init, bindingPath, seen));
   }
 
   if (t.isCallExpression(expr)) {
+    const possibleValues = resolvePossibleStyleValues(expr, path, new Set(seen));
+    if (possibleValues) {
+      return possibleValues.every(function (value: t.Expression) {
+        return isStyleArrayLike(value, path, new Set(seen));
+      });
+    }
+
     const returnExpr = getCallStyleArrayLikeExpression(expr, path);
-    return returnExpr ? isStyleArrayLike(returnExpr, path, seen) : true; // I.e. `getStyles()` or imported `getFromAnotherFile()`
+    return returnExpr ? isStyleArrayLike(returnExpr, path, seen) : true;
   }
 
   if (t.isMemberExpression(expr)) {
+    const possibleValues = resolvePossibleStyleValues(expr, path, new Set(seen));
+    if (possibleValues) {
+      return possibleValues.every(function (value: t.Expression) {
+        return isStyleArrayLike(value, path, new Set(seen));
+      });
+    }
+
     const object = expr.object;
     if (!t.isIdentifier(object)) return false;
 
@@ -746,7 +888,7 @@ function isStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.Node>)
       if (!t.isObjectProperty(prop) || prop.computed) continue;
       if (!isMatchingPropertyName(prop.key, propertyName)) continue;
       const value = prop.value;
-      return t.isExpression(value) && isStyleArrayLike(value, bindingPath, seen); // I.e. `styles.wrapper`
+      return t.isExpression(value) && isStyleArrayLike(value, bindingPath, seen);
     }
   }
 
@@ -773,6 +915,13 @@ function isKnownStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.N
   }
 
   if (t.isIdentifier(expr)) {
+    const possibleValues = resolvePossibleStyleValues(expr, path, new Set(seen));
+    if (possibleValues) {
+      return possibleValues.every(function (value: t.Expression) {
+        return isKnownStyleArrayLike(value, path, new Set(seen));
+      });
+    }
+
     const binding = path.scope.getBinding(expr.name);
     const bindingPath = binding?.path;
     if (!bindingPath || !bindingPath.isVariableDeclarator()) return false;
@@ -781,11 +930,25 @@ function isKnownStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.N
   }
 
   if (t.isCallExpression(expr)) {
+    const possibleValues = resolvePossibleStyleValues(expr, path, new Set(seen));
+    if (possibleValues) {
+      return possibleValues.every(function (value: t.Expression) {
+        return isKnownStyleArrayLike(value, path, new Set(seen));
+      });
+    }
+
     const returnExpr = getCallStyleArrayLikeExpression(expr, path);
     return !!(returnExpr && isKnownStyleArrayLike(returnExpr, path, seen));
   }
 
   if (t.isMemberExpression(expr)) {
+    const possibleValues = resolvePossibleStyleValues(expr, path, new Set(seen));
+    if (possibleValues) {
+      return possibleValues.every(function (value: t.Expression) {
+        return isKnownStyleArrayLike(value, path, new Set(seen));
+      });
+    }
+
     const object = expr.object;
     if (!t.isIdentifier(object)) return false;
 
@@ -811,7 +974,7 @@ function isKnownStyleArrayLike(expr: t.Expression, path: NodePath, seen: Set<t.N
 
 /** Check a branch used inside a conditional style-array expression. */
 function isStyleArrayLikeBranch(expr: t.Expression, path: NodePath, seen: Set<t.Node>): boolean {
-  return isEmptyObjectExpression(expr) || isStyleArrayLike(expr, path, seen); // I.e. `{}` or `[css.df]`
+  return isEmptyObjectExpression(expr) || isStyleArrayLike(expr, path, seen);
 }
 
 /** Match static object property names. */
@@ -831,7 +994,7 @@ function buildUnknownObjectSpreadFallback(
   needsAsStyleArrayHelper: { current: boolean },
 ): t.Expression {
   needsAsStyleArrayHelper.current = true;
-  return t.callExpression(t.identifier(asStyleArrayHelperName), [expr]);
+  return t.callExpression(t.identifier(asStyleArrayHelperName), [expr]); // I.e. `...xss` or `...borderBottomStyles`
 }
 
 /** Inline arrayification for non-JSX object rewrites where helper injection is unavailable. */
@@ -839,7 +1002,7 @@ function buildInlineAsStyleArrayExpression(expr: t.Expression): t.Expression {
   return t.conditionalExpression(
     t.callExpression(t.memberExpression(t.identifier("Array"), t.identifier("isArray")), [expr]),
     expr,
-    t.conditionalExpression(expr, t.arrayExpression([expr]), t.arrayExpression([])),
+    t.conditionalExpression(expr, t.arrayExpression([expr]), t.arrayExpression([])), // I.e. `xss` becomes `[xss]` when truthy
   );
 }
 
@@ -880,7 +1043,60 @@ function getCallStyleArrayLikeExpression(expr: t.CallExpression, path: NodePath)
     !t.isSpreadElement(firstArg) &&
     (t.isArrowFunctionExpression(firstArg) || t.isFunctionExpression(firstArg))
   ) {
-    return getFunctionLikeReturnExpression(firstArg); // I.e. `useMemo(() => [...], deps)`
+    return getFunctionLikeReturnExpression(firstArg); // I.e. `useMemo(() => ({ ...baseStyles }), deps)`
+  }
+
+  return null;
+}
+
+/** Resolve the possible expressions a local identifier/member/call might evaluate to. */
+function resolvePossibleStyleValues(expr: t.Expression, path: NodePath, seen: Set<t.Node>): t.Expression[] | null {
+  if (seen.has(expr)) return null;
+  seen.add(expr);
+
+  if (t.isObjectExpression(expr) || t.isArrayExpression(expr)) {
+    return [expr]; // I.e. `[css.df]` or `{ wrapper: [css.df] }`
+  }
+
+  if (t.isIdentifier(expr)) {
+    const binding = path.scope.getBinding(expr.name);
+    const bindingPath = binding?.path;
+    if (!bindingPath || !bindingPath.isVariableDeclarator()) return null;
+    const init = bindingPath.node.init;
+    return init && t.isExpression(init) ? resolvePossibleStyleValues(init, bindingPath, seen) : null; // I.e. `baseStyles`
+  }
+
+  if (t.isCallExpression(expr)) {
+    const returnExpr = getCallStyleArrayLikeExpression(expr, path);
+    return returnExpr ? resolvePossibleStyleValues(returnExpr, path, seen) : null; // I.e. `getButtonStyles(...)`
+  }
+
+  if (t.isMemberExpression(expr)) {
+    const object = expr.object;
+    if (!t.isExpression(object)) return null;
+
+    const objectValues = resolvePossibleStyleValues(object, path, seen); // I.e. `styles` in `styles.wrapper`
+    if (!objectValues) return null;
+
+    const propertyName = getStaticMemberPropertyName(expr, path);
+    const values: t.Expression[] = [];
+
+    for (const objectValue of objectValues) {
+      if (!t.isObjectExpression(objectValue)) continue;
+
+      for (const prop of objectValue.properties) {
+        if (!t.isObjectProperty(prop) || prop.computed || !t.isExpression(prop.value)) continue;
+        if (propertyName) {
+          if (isMatchingPropertyName(prop.key, propertyName)) {
+            values.push(prop.value);
+          }
+        } else {
+          values.push(prop.value);
+        }
+      }
+    }
+
+    return values.length > 0 ? values : null;
   }
 
   return null;
