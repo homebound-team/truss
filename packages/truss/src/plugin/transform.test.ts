@@ -661,6 +661,35 @@ describe("transform", () => {
     );
   });
 
+  test("inline css object supports nested object spread branch", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          const el = <div css={{
+            ...Css.df.aic.oa.wsnw.gap1.$,
+            ...(includeBottomBorder ? { ...Css.bb.black.$ } : {}),
+          }} />;
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          oa: { overflow: "auto" },
+          wsnw: { whiteSpace: "nowrap" },
+          gap1: { gap: "8px" },
+          bb: { borderBottomStyle: "solid", borderBottomWidth: "1px" },
+          black: { color: "#353535" }
+        });
+        const el = <div {...stylex.props(css.df, css.aic, css.oa, css.wsnw, css.gap1, ...(includeBottomBorder ? [css.bb, css.black] : []))} />;
+      `),
+    );
+  });
+
   // Previously unsupported before generalized `css={...}` style-array lowering.
 
   test("style-array variable in css prop is lowered to stylex.props", () => {
