@@ -1,3 +1,9 @@
+## [2.0.9](https://github.com/homebound-team/truss/compare/v2.0.8...v2.0.9) (2026-03-21)
+
+### Bug Fixes
+
+* Add more 'object is not iterable' spread protection. ([#167](https://github.com/homebound-team/truss/issues/167)) ([bd8f27e](https://github.com/homebound-team/truss/commit/bd8f27e094b5a3ac2c219e1489fff15fb3096f1e))
+
 ## [2.0.8](https://github.com/homebound-team/truss/compare/v2.0.7...v2.0.8) (2026-03-21)
 
 ### Bug Fixes
