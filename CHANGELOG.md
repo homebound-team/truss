@@ -1,3 +1,9 @@
+## [2.0.0-next.15](https://github.com/homebound-team/truss/compare/v2.0.0-next.14...v2.0.0-next.15) (2026-03-21)
+
+### Features
+
+* Add support for Css.add(cssProp). ([#156](https://github.com/homebound-team/truss/issues/156)) ([f17026d](https://github.com/homebound-team/truss/commit/f17026d3c0d3f0b71ce8798bd3bc1e0f6f68fe1e))
+
 ## [2.0.0-next.14](https://github.com/homebound-team/truss/compare/v2.0.0-next.13...v2.0.0-next.14) (2026-03-21)
 
 ### Features
