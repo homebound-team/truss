@@ -1,3 +1,9 @@
+## [2.0.12](https://github.com/homebound-team/truss/compare/v2.0.11...v2.0.12) (2026-03-21)
+
+### Bug Fixes
+
+* Recognize className in a Css.props target. ([#170](https://github.com/homebound-team/truss/issues/170)) ([7cb1b96](https://github.com/homebound-team/truss/commit/7cb1b96bc8ce7d26c9b201c85d8b79350a2135c3))
+
 ## [2.0.11](https://github.com/homebound-team/truss/compare/v2.0.10...v2.0.11) (2026-03-21)
 
 ### Bug Fixes
