@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss",
-  "version": "2.0.0-next.16",
+  "version": "2.0.0",
   "type": "module",
   "main": "build/index.js",
   "bin": "cli.js",
@@ -40,6 +40,5 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
-  },
-  "stableVersion": "1.137.5"
+  }
 }

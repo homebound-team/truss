@@ -1,3 +1,41 @@
+## [2.0.0](https://github.com/homebound-team/truss/compare/v1.137.5...v2.0.0) (2026-03-21)
+
+### ⚠ BREAKING CHANGES
+
+* Trigger 2.0 next release.
+
+### Features
+
+* Add a runtime with helper methods. ([0740620](https://github.com/homebound-team/truss/commit/07406207b72c53b76be76a933158923aac58182f))
+* Add Css.typography to replace Css[key] pattern. ([#146](https://github.com/homebound-team/truss/issues/146)) ([67e098b](https://github.com/homebound-team/truss/commit/67e098b8a1ba9bc03d94e03f5edc67f78cebde4c))
+* Add file.css.ts support. ([#144](https://github.com/homebound-team/truss/issues/144)) ([d2d135f](https://github.com/homebound-team/truss/commit/d2d135f4725a5a76cbd21cefd22166fd6589aa99))
+* Add logging on expressions we don't understand. ([25f3fc4](https://github.com/homebound-team/truss/commit/25f3fc4a03b08f25247aecc9e8f43bfaa9968a2b))
+* Add support for consts in css.ts files. ([#149](https://github.com/homebound-team/truss/issues/149)) ([c876fca](https://github.com/homebound-team/truss/commit/c876fcac95d56d3c19fac6659fd7c045ab4a9082))
+* Add support for Css.add(cssProp). ([#156](https://github.com/homebound-team/truss/issues/156)) ([f17026d](https://github.com/homebound-team/truss/commit/f17026d3c0d3f0b71ce8798bd3bc1e0f6f68fe1e))
+* Debug mode ([#154](https://github.com/homebound-team/truss/issues/154)) ([f83fdba](https://github.com/homebound-team/truss/commit/f83fdbac03cfabccc0bdfb6ebee591ff586055e3))
+* StyleX proof-of-concept. ([#132](https://github.com/homebound-team/truss/issues/132)) ([c65e4ee](https://github.com/homebound-team/truss/commit/c65e4ee3f134e58088c0594a25bb9242f4882dfb))
+* Trigger 2.0 next release. ([8f69a8b](https://github.com/homebound-team/truss/commit/8f69a8bf85c59e10ce742b1c3d4a9db1fed79844))
+
+### Bug Fixes
+
+* Avoid rewriting non-css prop spreads. ([634c25b](https://github.com/homebound-team/truss/commit/634c25bd4d273f9fb5b96d89915a73ccb64f69da))
+* Better handling of css prop rewriting. ([#148](https://github.com/homebound-team/truss/issues/148)) ([7e8546d](https://github.com/homebound-team/truss/commit/7e8546db97ab59a8c1bde58ad5d236e1a515e11c))
+* Fix && expressions ([#152](https://github.com/homebound-team/truss/issues/152)) ([c74e51f](https://github.com/homebound-team/truss/commit/c74e51ffa5dd6b2cb40096300687c67b0d021d19))
+* Fix another spread scenario ([#150](https://github.com/homebound-team/truss/issues/150)) ([feddee9](https://github.com/homebound-team/truss/commit/feddee951cb1e9b98ecbc503d437970f94e5114e))
+* Fix combining className + css rewrite. ([#151](https://github.com/homebound-team/truss/issues/151)) ([8d5bb7c](https://github.com/homebound-team/truss/commit/8d5bb7cd3e2a26a8c466a39e5566a2be6c38c867))
+* Fix imports. ([9bf1cca](https://github.com/homebound-team/truss/commit/9bf1cca9bfaa71962d3ce7ad766c14b62df83d12))
+* Fix package.json versions. ([70c8726](https://github.com/homebound-team/truss/commit/70c8726caf58add1d6fb493477b28c5b2049d9d8))
+* Fix px abbreviations loosing their unit. ([#155](https://github.com/homebound-team/truss/issues/155)) ([bfe0f5d](https://github.com/homebound-team/truss/commit/bfe0f5d40e5edab365a31ebcb5ee0c9d48172ade))
+* Fix render functions. ([718e74b](https://github.com/homebound-team/truss/commit/718e74bcf8d10101fbffd95ae2dda6cf1c20bd0d))
+* Fix useMemo'd styles not spreading. ([91b5474](https://github.com/homebound-team/truss/commit/91b54742486d452e2bbb9d20ef7b95601a4d415b))
+* Handle spreads more safely. ([45d57c4](https://github.com/homebound-team/truss/commit/45d57c469c62d1959b959b9a91f790679e3b59e2))
+* More expressions. ([#153](https://github.com/homebound-team/truss/issues/153)) ([0d77bda](https://github.com/homebound-team/truss/commit/0d77bdaa2de2107412cba94a3770c05203a4d4ef))
+* Restore Only/increment/px utilities. ([183bf9d](https://github.com/homebound-team/truss/commit/183bf9d21f89296a3300b331131a82597529ed40))
+* Rewrite object spreads to array spreads. ([#147](https://github.com/homebound-team/truss/issues/147)) ([07840ae](https://github.com/homebound-team/truss/commit/07840ae7d5e8451ece55d18da7373cd8ff6eeb30))
+* Support css={getFromAnotherFile()}. ([38d9d3d](https://github.com/homebound-team/truss/commit/38d9d3de9cd2780585efbb53d130434d69fab882))
+* Update snapshots. ([de3fd5c](https://github.com/homebound-team/truss/commit/de3fd5cc322316872405ee6f8e985a667771af05))
+* Use tsx for importing truss-config. ([cf01910](https://github.com/homebound-team/truss/commit/cf01910ad7015b7f127102a2d298657cbf432e29))
+
 ## [2.0.0-next.15](https://github.com/homebound-team/truss/compare/v2.0.0-next.14...v2.0.0-next.15) (2026-03-21)
 
 ### Features
