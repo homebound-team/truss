@@ -1,3 +1,9 @@
+## [2.0.2](https://github.com/homebound-team/truss/compare/v2.0.1...v2.0.2) (2026-03-21)
+
+### Bug Fixes
+
+* Fix sqPx missing from Css.json. ([#160](https://github.com/homebound-team/truss/issues/160)) ([74d50fe](https://github.com/homebound-team/truss/commit/74d50fec0dcf15bd323c660c1dd2f6a7fa383d47))
+
 ## [2.0.1](https://github.com/homebound-team/truss/compare/v2.0.0...v2.0.1) (2026-03-21)
 
 ### Bug Fixes
