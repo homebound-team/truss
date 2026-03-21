@@ -730,6 +730,39 @@ describe("transform", () => {
     );
   });
 
+  test("Css.props with object literal flattens to style array", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Button({ active, styles }) {
+            const attrs = {
+              "data-testid": "button",
+              ...Css.props({
+                ...styles.baseStyles,
+                ...(active && styles.activeStyles),
+              }),
+            };
+            return <button {...attrs}>Click me</button>;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { asStyleArray } from "@homebound/truss/runtime";
+        function Button({ active, styles }) {
+          const attrs = {
+            "data-testid": "button",
+            ...stylex.props(...asStyleArray(styles.baseStyles), ...asStyleArray(active ? styles.activeStyles : []))
+          };
+          return <button {...attrs}>Click me</button>;
+        }
+      `),
+    );
+  });
+
   test("inline css object supports nested object spread branch", () => {
     expect(
       n(
