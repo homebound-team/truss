@@ -409,6 +409,32 @@ describe("StyleX CssBuilder", () => {
     });
   });
 
+  describe("Css.props for non-css= spreading", () => {
+    test("Css.props spreads className/style into a plain attributes object", () => {
+      const attrs = {
+        "data-testid": "button",
+        ...Css.props(Css.blue.$),
+      };
+      const r = render(<button {...attrs}>Click me</button>);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ color: "#526675" });
+      expect(el.getAttribute("data-testid")).toBe("button");
+    });
+
+    test("Css.props works with composed styles", () => {
+      const attrs = {
+        ...Css.props(Css.df.aic.mt1.$),
+      };
+      const r = render(<div {...attrs}>Test</div>);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({
+        display: "flex",
+        alignItems: "center",
+        marginTop: "8px",
+      });
+    });
+  });
+
   describe("pseudo with overlapping base property", () => {
     test("onHover on same property emits correct default and hover CSS rules", () => {
       // Css.bgBlue.onHover.bgBlack.$ — both set backgroundColor.

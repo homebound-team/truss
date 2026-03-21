@@ -75,6 +75,7 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     site.path.replaceWith(buildStyleArrayExpression(propsArgs, site.path.node.loc?.start.line ?? null, options));
   }
 
+  rewriteCssPropsCalls(options);
   rewriteCssSpreadCalls(
     options.ast,
     options.cssBindingName,
@@ -624,6 +625,28 @@ function rewriteCssSpreadCalls(
   });
 }
 
+/**
+ * Rewrite `Css.props(expr)` into `stylex.props(...expr)` (or `trussProps(stylex, ...expr)` in debug mode).
+ *
+ * This lets users pass style arrays through plain objects (e.g. for `{...attrs}` spreading)
+ * without relying on the `css=` prop that the build plugin normally rewrites.
+ */
+function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
+  traverse(options.ast, {
+    CallExpression(path: NodePath<t.CallExpression>) {
+      if (!isCssPropsCall(path.node, options.cssBindingName)) return;
+
+      const arg = path.node.arguments[0];
+      if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
+
+      // `Css.props(expr)` → `buildPropsCall([...expr])`
+      const propsArgs: (t.Expression | t.SpreadElement)[] = [t.spreadElement(arg)];
+      const line = path.node.loc?.start.line ?? null;
+      path.replaceWith(buildPropsCall(propsArgs, line, options));
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Core: flatten a style composition object into an array of style refs
 // ---------------------------------------------------------------------------
@@ -828,6 +851,16 @@ function normalizeStyleBranch(expr: t.Expression): t.Expression | null {
 // ---------------------------------------------------------------------------
 // Utility helpers
 // ---------------------------------------------------------------------------
+
+/** Match `Css.props(...)` calls. */
+function isCssPropsCall(expr: t.CallExpression, cssBindingName: string): boolean {
+  return (
+    t.isMemberExpression(expr.callee) &&
+    !expr.callee.computed &&
+    t.isIdentifier(expr.callee.object, { name: cssBindingName }) &&
+    t.isIdentifier(expr.callee.property, { name: "props" })
+  );
+}
 
 /** Match the legacy `Css.spread(...)` marker helper. */
 function isCssSpreadCall(expr: t.CallExpression, cssBindingName: string): boolean {

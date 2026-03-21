@@ -663,6 +663,73 @@ describe("transform", () => {
     );
   });
 
+  test("Css.props is rewritten to stylex.props spread", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Button() {
+            const attrs = {
+              "data-testid": "button",
+              ...Css.props(Css.blue.$),
+            };
+            return <button {...attrs}>Click me</button>;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          blue: { color: "#526675" }
+        });
+        function Button() {
+          const attrs = {
+            "data-testid": "button",
+            ...stylex.props(...[css.blue])
+          };
+          return <button {...attrs}>Click me</button>;
+        }
+      `),
+    );
+  });
+
+  test("Css.props in debug mode is rewritten to trussProps", () => {
+    expect(
+      n(
+        transform(
+          `
+          import { Css } from "./Css";
+
+          function Button() {
+            const attrs = {
+              ...Css.props(Css.df.aic.$),
+            };
+            return <button {...attrs}>Click me</button>;
+          }
+        `,
+          { debug: true },
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        import { trussProps, TrussDebugInfo } from "@homebound/truss/runtime";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" }
+        });
+        function Button() {
+          const attrs = {
+            ...trussProps(stylex, new TrussDebugInfo("test.tsx:6"), ...[new TrussDebugInfo("test.tsx:6"), css.df, css.aic])
+          };
+          return <button {...attrs}>Click me</button>;
+        }
+      `),
+    );
+  });
+
   test("inline css object supports nested object spread branch", () => {
     expect(
       n(

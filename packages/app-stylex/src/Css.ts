@@ -4,6 +4,7 @@ import { Properties as Properties1 } from "csstype";
 // See your project's `truss-config.ts` to make configuration changes (fonts, increments, etc).
 // Target: stylex (build-time plugin)
 
+import { trussProps } from "@homebound/truss/runtime";
 import * as stylex from "@stylexjs/stylex";
 
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
@@ -2383,6 +2384,11 @@ class CssBuilder<T extends Properties> {
   /** Marker helper for legacy object-spread composition. */
   spread<P extends object>(props: P): P {
     return props;
+  }
+
+  /** Convert a style array into `{ className, style }` props for manual spreading into non-`css=` contexts. */
+  props(styles: Properties): Record<string, unknown> {
+    return trussProps(stylex, ...(Array.isArray(styles) ? styles : [styles]));
   }
 
   private get rules(): T {
