@@ -131,6 +131,7 @@ export function transformTruss(
   rewriteExpressionSites({
     ast,
     sites,
+    cssBindingName,
     filename: basename(filename),
     debug: options.debug ?? false,
     createVarName,

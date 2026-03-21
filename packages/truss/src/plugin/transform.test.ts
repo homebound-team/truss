@@ -604,6 +604,52 @@ describe("transform", () => {
     );
   });
 
+  test("Css.spread legacy helper is erased and lowered to style arrays", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+
+          function Button(props) {
+            const { active, isHovered } = props;
+            const baseStyles = Css.spread({
+              ...Css.df.aic.$,
+            });
+            const activeStyles = Css.spread({
+              ...Css.black.$,
+            });
+            const hoverStyles = Css.spread({
+              ...Css.blue.$,
+            });
+
+            return <div css={{
+              ...baseStyles,
+              ...(active && activeStyles),
+              ...(isHovered && hoverStyles),
+            }} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import * as stylex from "@stylexjs/stylex";
+        const css = stylex.create({
+          df: { display: "flex" },
+          aic: { alignItems: "center" },
+          black: { color: "#353535" },
+          blue: { color: "#526675" }
+        });
+        function Button(props) {
+          const { active, isHovered } = props;
+          const baseStyles = [css.df, css.aic];
+          const activeStyles = [css.black];
+          const hoverStyles = [css.blue];
+          return <div {...stylex.props(...baseStyles, ...(active ? activeStyles : []), ...(isHovered ? hoverStyles : []))} />;
+        }
+      `),
+    );
+  });
+
   // Previously unsupported before generalized `css={...}` style-array lowering.
 
   test("style-array variable in css prop is lowered to stylex.props", () => {
