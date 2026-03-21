@@ -1,3 +1,9 @@
+## [2.0.7](https://github.com/homebound-team/truss/compare/v2.0.6...v2.0.7) (2026-03-21)
+
+### Bug Fixes
+
+* Trust Css.spread even w/o style arrays in it. ([#165](https://github.com/homebound-team/truss/issues/165)) ([dbdbae4](https://github.com/homebound-team/truss/commit/dbdbae4943753175588a691fb99eb7c9efc4fb64))
+
 ## [2.0.6](https://github.com/homebound-team/truss/compare/v2.0.5...v2.0.6) (2026-03-21)
 
 ### Bug Fixes
