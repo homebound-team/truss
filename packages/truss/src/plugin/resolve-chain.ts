@@ -593,7 +593,7 @@ function resolveDelegateCall(
  * Resolve an `add(...)` call.
  *
  * Supported overloads:
- * - `add(cssProp)` to inline an existing CssProp array into the chain output
+ * - `add(existingStyles)` to inline an existing style expression into the chain output
  * - `add("propName", value)` for an arbitrary CSS property/value pair
  */
 function resolveAddCall(
@@ -610,7 +610,7 @@ function resolveAddCall(
     }
     if (styleArg.type === "ObjectExpression") {
       throw new UnsupportedPatternError(
-        `add(cssProp) does not accept object literals -- pass an existing CssProp expression instead`,
+        `add(existingStyles) does not accept object literals -- pass an existing style expression instead`,
       );
     }
     return {
@@ -623,7 +623,7 @@ function resolveAddCall(
   if (node.args.length !== 2) {
     throw new UnsupportedPatternError(
       `add() requires exactly 2 arguments (property name and value), got ${node.args.length}. ` +
-        `Supported overloads are add(cssProp) and add("propName", value)`,
+        `Supported overloads are add(existingStyles) and add("propName", value)`,
     );
   }
 

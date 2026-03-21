@@ -454,7 +454,7 @@ function buildStyleObjectPropsArgs(
   for (const prop of expr.properties) {
     if (!t.isSpreadElement(prop)) return null;
 
-    const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>()); // I.e. `...cssProp`, `...Css.df.$`, or `...styles.wrapper`
+    const normalizedArg = normalizeStyleArrayLikeExpression(prop.argument, path, new Set<t.Node>()); // I.e. `...styles`, `...Css.df.$`, or `...styles.wrapper`
     if (!normalizedArg) {
       propsArgs.push(
         t.spreadElement(

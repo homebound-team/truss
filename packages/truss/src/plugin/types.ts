@@ -52,7 +52,7 @@ export interface ResolvedSegment {
   dynamicExtraDefs?: Record<string, unknown>;
   /** For dynamic entries: the AST node of the argument */
   argNode?: any;
-  /** For composed Css props inserted via `add(cssProp)` */
+  /** For composed style expressions inserted via `add(existingStyles)` */
   styleArrayArg?: any;
   /** Whether the arg was a literal we could evaluate */
   argResolved?: string;

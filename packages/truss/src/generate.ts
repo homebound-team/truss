@@ -288,8 +288,9 @@ function collectStylexGenerationData(config: Config): {
 // ── StyleX Code Generator ─────────────────────────────────────────────
 
 /**
- * For the "stylex" target, we generate a stylex-friendly CssBuilder (for IDE autocomplete
- * and type checking) but with `CssProp` typed to be compatible with StyleX refs.
+ * For the "stylex" target, we generate a stylex-friendly CssBuilder whose public
+ * TypeScript surface matches the runtime targets: `.$` is typed as the accumulated
+ * style object shape, even though the Vite plugin later rewrites it to StyleX refs.
  *
  * The actual StyleX transformation happens at build time via the truss Vite plugin,
  * which reads the companion `Css.json` to understand what each abbreviation
@@ -346,16 +347,13 @@ export type Marker = ReturnType<typeof stylex.defineMarker>;
 
 ${typographyType}
 
-/** The type accepted by the \`css\` JSX prop. Opaque - the build-time plugin resolves this. */
-export type CssProp = any[];
-
 // Augment React types so JSX elements accept the \`css\` prop
 declare module "react" {
   interface HTMLAttributes<T> {
-    css?: CssProp;
+    css?: Properties;
   }
   interface SVGAttributes<T> {
-    css?: CssProp;
+    css?: Properties;
   }
 }
 
@@ -370,7 +368,7 @@ class CssBuilder<T extends Properties> {
 
   ${lines.join("\n  ").replace(/ +\n/g, "\n")}
 
-  get $(): CssProp {
+  get $(): T {
     return this.rules as any;
   }
 
@@ -448,26 +446,16 @@ class CssBuilder<T extends Properties> {
     return new CssBuilder({ ...this.opts, enabled: !this.enabled });
   }
 
-  add(props: CssProp): CssBuilder<T>;
+  add<P extends Properties>(props: P): CssBuilder<T & P>;
   add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
-  add<K extends keyof Properties>(propOrStyles: CssProp | K, value?: Properties[K]): CssBuilder<any> {
+  add<K extends keyof Properties>(propOrStyles: K | Properties, value?: Properties[K]): CssBuilder<any> {
     if (!this.enabled) return this;
 
-    if (Array.isArray(propOrStyles)) {
-      const existingRules = this.rules as any;
-      const combinedRules = Array.isArray(existingRules)
-        ? [...existingRules, ...propOrStyles]
-        : Object.keys(existingRules).length > 0
-          ? [existingRules, ...propOrStyles]
-          : [...propOrStyles];
-      return this.newCss({ rules: combinedRules as any });
-    }
-
-    const newRules = { [propOrStyles]: value };
+    const newRules = typeof propOrStyles === "string" ? { [propOrStyles]: value } : propOrStyles;
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
       : { ...this.rules, ...newRules };
-    return this.newCss({ rules });
+    return this.newCss({ rules: rules as any });
   }
 
   private get rules(): T {

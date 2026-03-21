@@ -1,11 +1,26 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 import { TrussDebugInfo } from "@homebound/truss/runtime";
-import { Css, Palette, type CssProp } from "./Css";
+import { Css, Palette, type Only, type Xss } from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
 import "@testing-library/jest-dom/vitest";
 
 afterEach(cleanup);
+
+type Margin = "marginLeft" | "marginRight" | "marginTop" | "marginBottom";
+type ChipXss = "backgroundColor" | "color" | Margin;
+
+function Chip<X extends Only<Xss<ChipXss>, X>>(props: { xss?: X }) {
+  return <div css={{ ...Css.df.$, ...props.xss }}>chip</div>;
+}
+
+const chipElement = <Chip xss={Css.bgBlue.mr1.$} />;
+// @ts-expect-error `display` is not part of `ChipXss`, so `Css.df.$` should be rejected.
+const invalidChipElement = <Chip xss={Css.df.$} />;
+
+// Avoid lint errors
+void chipElement;
+void invalidChipElement;
 
 /**
  * With `runtimeInjection: true` in the vitest config, the StyleX unplugin
@@ -285,7 +300,7 @@ describe("StyleX CssBuilder", () => {
 
     test("conditional false skips dynamic style", () => {
       const refs = Css.if(false).mt(2).$;
-      expect(refs).toEqual([new TrussDebugInfo("Css.test.tsx:287")]);
+      expect(refs).toEqual([new TrussDebugInfo("Css.test.tsx:302")]);
     });
   });
 
@@ -308,11 +323,11 @@ describe("StyleX CssBuilder", () => {
     });
   });
 
-  describe("spreading / combining CssProp arrays", () => {
-    test("spreading two CssProp arrays merges styles", () => {
+  describe("spreading / combining object-shaped styles", () => {
+    test("spreading two .$ objects merges styles", () => {
       const base = Css.df.aic.$;
       const override = Css.black.p1.$;
-      const r = render(<div css={[...base, ...override]} />);
+      const r = render(<div css={{ ...base, ...override }} />);
       const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
         display: "flex",
@@ -325,14 +340,14 @@ describe("StyleX CssBuilder", () => {
     test("later spread wins on conflicting properties", () => {
       const base = Css.df.$;
       const override = Css.db.$;
-      const r = render(<div css={[...base, ...override]} />);
+      const r = render(<div css={{ ...base, ...override }} />);
       const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({ display: "block" });
     });
 
-    test("helper function accepting CssProp can receive overrides", () => {
-      function renderBox(overrides: CssProp) {
-        return <div css={[...Css.df.aic.gap1.$, ...overrides]} />;
+    test("Only/Xss-typed helper accepts allowed overrides", () => {
+      function renderBox<X extends Only<Xss<"flexDirection" | "color">, X>>(overrides: X) {
+        return <div css={{ ...Css.df.aic.gap1.$, ...overrides }} />;
       }
       const r = render(renderBox(Css.fdc.black.$));
       const el = r.container.firstChild as HTMLElement;
