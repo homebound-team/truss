@@ -1,3 +1,9 @@
+## [2.0.0-next.13](https://github.com/homebound-team/truss/compare/v2.0.0-next.12...v2.0.0-next.13) (2026-03-21)
+
+### Bug Fixes
+
+* Fix px abbreviations loosing their unit. ([#155](https://github.com/homebound-team/truss/issues/155)) ([bfe0f5d](https://github.com/homebound-team/truss/commit/bfe0f5d40e5edab365a31ebcb5ee0c9d48172ade))
+
 ## [2.0.0-next.12](https://github.com/homebound-team/truss/compare/v2.0.0-next.11...v2.0.0-next.12) (2026-03-20)
 
 ### Features
