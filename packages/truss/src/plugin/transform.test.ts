@@ -1289,6 +1289,21 @@ describe("transform", () => {
     );
   });
 
+  test("style merging: css + style on same element", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const el = <div style={{ minWidth: "fit-content" }} css={Css.blue.$} />;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import { mergeProps } from "@homebound/truss/runtime";
+        const el = <div {...mergeProps(undefined, { minWidth: "fit-content" }, { color: "blue" })} />;
+      `),
+    );
+  });
+
   test("falls back for __maybeInc helper name collisions", () => {
     expect(
       n(
