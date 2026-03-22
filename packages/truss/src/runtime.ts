@@ -24,6 +24,8 @@ export type TrussStyleValue =
 /** A property-keyed style hash where each key owns one logical CSS property. */
 export type TrussStyleHash = Record<string, TrussStyleValue>;
 
+const shouldValidateTrussStyleValues = resolveShouldValidateTrussStyleValues();
+
 /** Merge one or more Truss style hashes into `{ className, style?, data-truss-src? }`. */
 export function trussProps(
   ...hashes: ReadonlyArray<TrussStyleHash | false | null | undefined>
@@ -40,11 +42,16 @@ export function trussProps(
   const debugSources: string[] = [];
 
   for (const [key, value] of Object.entries(merged)) {
+    if (shouldValidateTrussStyleValues) assertValidTrussStyleValue(key, value);
+
     // __marker is a special key — its value is a marker class name, not a CSS property
     if (key === "__marker") {
-      if (typeof value === "string") classNames.push(value);
+      if (typeof value === "string") {
+        classNames.push(value);
+      }
       continue;
     }
+
     if (typeof value === "string") {
       // I.e. "df" or "black blue_h"
       classNames.push(value);
@@ -118,4 +125,38 @@ export function __injectTrussCSS(cssText: string): void {
   if (!style.textContent?.includes(cssText)) {
     style.textContent = (style.textContent ?? "") + cssText;
   }
+}
+
+/** Fail fast when `trussProps` receives a non-Truss style value. */
+function assertValidTrussStyleValue(key: string, value: unknown): asserts value is TrussStyleValue {
+  if (typeof value === "string") return;
+  if (Array.isArray(value) && typeof value[0] === "string") {
+    for (let i = 1; i < value.length; i++) {
+      const el = value[i];
+      if (el instanceof TrussDebugInfo) continue;
+      if (typeof el === "object" && el !== null && !Array.isArray(el)) continue;
+      throw new TypeError(invalidTrussStyleValueMessage(key));
+    }
+    return;
+  }
+  throw new TypeError(invalidTrussStyleValueMessage(key));
+}
+
+function invalidTrussStyleValueMessage(key: string): string {
+  return `Invalid Truss style value for \`${key}\`. trussProps only accepts generated Truss style hashes; use mergeProps for explicit className/style merging.`;
+}
+
+/** Enable validation in dev/test environments, but skip it in production. */
+function resolveShouldValidateTrussStyleValues(): boolean {
+  if (typeof process !== "undefined" && typeof process.env.NODE_ENV === "string") {
+    return process.env.NODE_ENV !== "production";
+  }
+  const viteEnv = (import.meta as ImportMeta & { env?: { DEV?: boolean; PROD?: boolean } }).env;
+  if (typeof viteEnv?.DEV === "boolean") {
+    return viteEnv.DEV;
+  }
+  if (typeof viteEnv?.PROD === "boolean") {
+    return !viteEnv.PROD;
+  }
+  return false;
 }
