@@ -26,13 +26,13 @@ void invalidChipElement;
  * means jsdom's `getComputedStyle` can resolve class-based styles, and
  * `toHaveStyle` works for static (class-based) styles.
  *
- * Dynamic/parameterized styles (e.g. `Css.mt(n).$` with a variable) use CSS
- * variables: the class sets `margin-top: var(--mt_dyn)` and the inline style
- * sets `--mt_dyn: 16px`. jsdom cannot resolve `var()` references, so truly
- * dynamic values must be tested by checking the CSS variable on the element's
+ * Variable/parameterized styles (e.g. `Css.mt(n).$` with a variable) use CSS
+ * variables: the class sets `margin-top: var(--mt_var)` and the inline style
+ * sets `--mt_var: 16px`. jsdom cannot resolve `var()` references, so truly
+ * variable values must be tested by checking the CSS variable on the element's
  * inline style.
  *
- * Note: When the argument to a dynamic method is a literal (e.g. `Css.mt(2).$`),
+ * Note: When the argument to a variable method is a literal (e.g. `Css.mt(2).$`),
  * Truss evaluates it at compile time and produces a static class — no CSS
  * variable is used. Use `toHaveStyle` for these cases.
  */
@@ -154,7 +154,7 @@ describe("Truss CssBuilder", () => {
     });
   });
 
-  describe("parameterized methods (dynamic styles via CSS variables)", () => {
+  describe("parameterized methods (variable styles via CSS variables)", () => {
     // When the argument is a literal, Truss inlines it at build time as a
     // static class — so we test with toHaveStyle. When we pass a variable,
     // Truss uses CSS variables, so we test via inline style.
@@ -199,7 +199,7 @@ describe("Truss CssBuilder", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el.style.getPropertyValue("--mt_dyn")).toBe("16px");
+      expect(el.style.getPropertyValue("--mt_var")).toBe("16px");
     });
   });
 
@@ -228,7 +228,7 @@ describe("Truss CssBuilder", () => {
       });
     });
 
-    test("mixing static and dynamic: Css.df.mt(2).black", () => {
+    test("mixing static and variable: Css.df.mt(2).black", () => {
       const r = render(<div css={Css.df.mt(2).black.$} />);
       const el = r.container.firstChild as HTMLElement;
       expect(el).toHaveStyle({
@@ -288,14 +288,14 @@ describe("Truss CssBuilder", () => {
       expect(elFalse).toHaveStyle({ display: "block" });
     });
 
-    test("conditional with dynamic style: Css.if(true).mt(2)", () => {
+    test("conditional with variable style: Css.if(true).mt(2)", () => {
       const r = render(<div css={Css.if(true).mt(2).$} />);
       const el = r.container.firstChild as HTMLElement;
       // Literal argument → static class
       expect(el).toHaveStyle({ marginTop: "16px" });
     });
 
-    test("conditional false skips dynamic style", () => {
+    test("conditional false skips variable style", () => {
       const refs = Css.if(false).mt(2).$;
       // When condition is false, the style hash is empty (no properties applied)
       expect(refs).toEqual({});
@@ -382,14 +382,14 @@ describe("Truss CssBuilder", () => {
       expect(div).toHaveStyle({ display: "flex" });
     });
 
-    test("css prop applies dynamic styles with variable", () => {
+    test("css prop applies variable styles with variable", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
-      expect(div.style.getPropertyValue("--mt_dyn")).toBe("16px");
+      expect(div.style.getPropertyValue("--mt_var")).toBe("16px");
     });
 
-    test("css prop applies dynamic styles with literal", () => {
+    test("css prop applies variable styles with literal", () => {
       const r = render(<div css={Css.mt(2).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
       // Literal arg is inlined at build time → static class

@@ -130,7 +130,7 @@ function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
  * I.e. `p1` → `pt1`, `pr1`, `pb1`, `pl1` (not `p1_paddingTop`, etc.)
  * I.e. `ba` → `bss`, `bw1` (not `ba_borderStyle`, etc.)
  *
- * For literal-folded dynamics (argResolved set), includes the value:
+ * For literal-folded variables (argResolved set), includes the value:
  * I.e. `mt(2)` → `mt_16px`, `bc("red")` → `bc_red`.
  */
 function computeStaticBaseName(
@@ -187,9 +187,9 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
       const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
       for (const seg of segs) {
         if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.whenPseudo) continue;
-        if (seg.dynamicProps) {
+        if (seg.variableProps) {
           if (seg.incremented) needsMaybeInc = true;
-          collectDynamicRules(rules, seg, mapping);
+          collectVariableRules(rules, seg, mapping);
         } else {
           collectStaticRules(rules, seg, mapping);
         }
@@ -228,13 +228,13 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
   }
 }
 
-/** Collect atomic rules for a dynamic segment. */
-function collectDynamicRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
+/** Collect atomic rules for a variable segment. */
+function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
   const baseKey = seg.key.split("__")[0];
 
-  for (const prop of seg.dynamicProps!) {
-    const className = prefix ? `${prefix}${baseKey}_dyn` : `${baseKey}_dyn`;
+  for (const prop of seg.variableProps!) {
+    const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
     const varName = `--${className}`;
 
     if (!rules.has(className)) {
@@ -250,9 +250,9 @@ function collectDynamicRules(rules: Map<string, AtomicRule>, seg: ResolvedSegmen
     }
   }
 
-  // Extra static defs alongside dynamic props
-  if (seg.dynamicExtraDefs) {
-    for (const [cssProp, value] of Object.entries(seg.dynamicExtraDefs)) {
+  // Extra static defs alongside variable props
+  if (seg.variableExtraDefs) {
+    for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
       const extraBase = `${baseKey}_${cssProp}`;
       const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
       if (!rules.has(extraName)) {
@@ -390,7 +390,7 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
     lines.push(formatMediaPseudoElementRule(rule));
   }
 
-  // @property declarations for dynamic rules
+  // @property declarations for variable rules
   for (const rule of allRules) {
     if (rule.cssVarName) {
       lines.push(`@property ${rule.cssVarName} {\n  syntax: "*";\n  inherits: false;\n}`);
@@ -439,12 +439,12 @@ export function buildStyleHashProperties(
   mapping: TrussMapping,
   maybeIncHelperName?: string | null,
 ): t.ObjectProperty[] {
-  // Group: cssProperty → list of { className, isDynamic, varName, argNode, incremented, appendPx }
+  // Group: cssProperty -> list of { className, isVariable, varName, argNode, incremented, appendPx }
   const propGroups = new Map<
     string,
     Array<{
       className: string;
-      isDynamic: boolean;
+      isVariable: boolean;
       varName?: string;
       argNode?: unknown;
       incremented?: boolean;
@@ -455,18 +455,18 @@ export function buildStyleHashProperties(
   for (const seg of segments) {
     if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.whenPseudo) continue;
 
-    if (seg.dynamicProps) {
+    if (seg.variableProps) {
       const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
       const baseKey = seg.key.split("__")[0];
 
-      for (const prop of seg.dynamicProps) {
-        const className = prefix ? `${prefix}${baseKey}_dyn` : `${baseKey}_dyn`;
+      for (const prop of seg.variableProps) {
+        const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
         const varName = `--${className}`;
 
         if (!propGroups.has(prop)) propGroups.set(prop, []);
         propGroups.get(prop)!.push({
           className,
-          isDynamic: true,
+          isVariable: true,
           varName,
           argNode: seg.argNode,
           incremented: seg.incremented,
@@ -475,12 +475,12 @@ export function buildStyleHashProperties(
       }
 
       // Extra static defs
-      if (seg.dynamicExtraDefs) {
-        for (const [cssProp, value] of Object.entries(seg.dynamicExtraDefs)) {
+      if (seg.variableExtraDefs) {
+        for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
           const extraBase = `${baseKey}_${cssProp}`;
           const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
           if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
-          propGroups.get(cssProp)!.push({ className: extraName, isDynamic: false });
+          propGroups.get(cssProp)!.push({ className: extraName, isVariable: false });
         }
       }
     } else {
@@ -496,7 +496,7 @@ export function buildStyleHashProperties(
         const className = prefix ? `${prefix}${baseName}` : baseName;
 
         if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
-        propGroups.get(cssProp)!.push({ className, isDynamic: false });
+        propGroups.get(cssProp)!.push({ className, isVariable: false });
       }
     }
   }
@@ -506,12 +506,12 @@ export function buildStyleHashProperties(
 
   for (const [cssProp, entries] of Array.from(propGroups.entries())) {
     const classNames = entries.map((e) => e.className).join(" ");
-    const dynamicEntries = entries.filter((e) => e.isDynamic);
+    const variableEntries = entries.filter((e) => e.isVariable);
 
-    if (dynamicEntries.length > 0) {
+    if (variableEntries.length > 0) {
       // Tuple: [classNames, { vars }]
       const varsProps: t.ObjectProperty[] = [];
-      for (const dyn of dynamicEntries) {
+      for (const dyn of variableEntries) {
         let valueExpr: t.Expression = dyn.argNode as t.Expression;
         if (dyn.incremented) {
           // Wrap with __maybeInc (or whatever name was reserved to avoid collisions)

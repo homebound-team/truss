@@ -113,7 +113,7 @@ Phase 2 is done. All definition-of-done criteria are met:
 | `packages/app-stylex/vitest.config.js`   | Removed StyleX plugin and `stripConfigureServer` workaround                                                                                                                      |
 | `packages/app-stylex/package.json`       | Removed `@stylexjs/stylex`, `@stylexjs/unplugin`, `unplugin`                                                                                                                     |
 | `packages/app-stylex/src/Css.ts`         | Regenerated without StyleX imports                                                                                                                                               |
-| `packages/app-stylex/src/Css.test.tsx`   | Updated CSS variable names (`--mt_dyn`), conditional false output (`{}`), removed `TrussDebugInfo` import, updated comments                                                      |
+| `packages/app-stylex/src/Css.test.tsx`   | Updated CSS variable names (`--mt_var`), conditional false output (`{}`), removed `TrussDebugInfo` import, updated comments                                                      |
 | `packages/app-stylex/src/App.test.tsx`   | Skipped marker test (Phase 3)                                                                                                                                                    |
 
 ### Key design decisions made during implementation

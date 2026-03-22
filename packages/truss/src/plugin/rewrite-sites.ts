@@ -167,7 +167,7 @@ function buildStyleHashMembers(
  * Inject debug info into the first property of a style hash ObjectExpression.
  *
  * For static values, promotes `"df"` to `["df", new TrussDebugInfo("...")]`.
- * For dynamic tuples, appends the debug info as a third element.
+ * For variable tuples, appends the debug info as a third element.
  */
 function injectDebugInfo(
   expr: t.ObjectExpression,
@@ -189,7 +189,7 @@ function injectDebugInfo(
     // Static: "df" → ["df", new TrussDebugInfo("...")]
     firstProp.value = t.arrayExpression([firstProp.value, debugExpr]);
   } else if (t.isArrayExpression(firstProp.value)) {
-    // Dynamic tuple: ["mt_dyn", { vars }] → ["mt_dyn", { vars }, new TrussDebugInfo("...")]
+    // Variable tuple: ["mt_var", { vars }] → ["mt_var", { vars }, new TrussDebugInfo("...")]
     firstProp.value.elements.push(debugExpr);
   }
 }

@@ -17,21 +17,21 @@ describe("trussProps", () => {
     expect(result).toEqual({ className: "black blue_h df" });
   });
 
-  test("handles dynamic tuples with CSS variables", () => {
-    const result = trussProps({ marginTop: ["mt_dyn", { "--mt_dyn": "16px" }] });
+  test("handles variable tuples with CSS variables", () => {
+    const result = trussProps({ marginTop: ["mt_var", { "--mt_var": "16px" }] });
     expect(result).toEqual({
-      className: "mt_dyn",
-      style: { "--mt_dyn": "16px" },
+      className: "mt_var",
+      style: { "--mt_var": "16px" },
     });
   });
 
-  test("handles dynamic tuples with multiple CSS variables", () => {
+  test("handles variable tuples with multiple CSS variables", () => {
     const result = trussProps({
-      borderColor: ["bc_dyn bc_dyn_h", { "--bc_dyn": "red", "--bc_dyn_h": "blue" }],
+      borderColor: ["bc_var bc_var_h", { "--bc_var": "red", "--bc_var_h": "blue" }],
     });
     expect(result).toEqual({
-      className: "bc_dyn bc_dyn_h",
-      style: { "--bc_dyn": "red", "--bc_dyn_h": "blue" },
+      className: "bc_var bc_var_h",
+      style: { "--bc_var": "red", "--bc_var_h": "blue" },
     });
   });
 
@@ -67,13 +67,13 @@ describe("trussProps", () => {
     });
   });
 
-  test("handles dynamic tuple with debug info", () => {
+  test("handles variable tuple with debug info", () => {
     const result = trussProps({
-      marginTop: ["mt_dyn", { "--mt_dyn": "16px" }, new TrussDebugInfo("File.tsx:3")],
+      marginTop: ["mt_var", { "--mt_var": "16px" }, new TrussDebugInfo("File.tsx:3")],
     });
     expect(result).toEqual({
-      className: "mt_dyn",
-      style: { "--mt_dyn": "16px" },
+      className: "mt_var",
+      style: { "--mt_var": "16px" },
       "data-truss-src": "File.tsx:3",
     });
   });
@@ -95,23 +95,23 @@ describe("mergeProps", () => {
       undefined,
       { color: "red" },
       {
-        marginTop: ["mt_dyn", { "--mt_dyn": "16px" }],
+        marginTop: ["mt_var", { "--mt_var": "16px" }],
       },
     );
     expect(result).toEqual({
-      className: "mt_dyn",
-      style: { color: "red", "--mt_dyn": "16px" },
+      className: "mt_var",
+      style: { color: "red", "--mt_var": "16px" },
     });
   });
 
   test("CSS variables override explicit style keys if they collide", () => {
     // CSS variables (from Truss) should take precedence over explicit style
-    const result = mergeProps(undefined, { "--mt_dyn": "8px" } as Record<string, unknown>, {
-      marginTop: ["mt_dyn", { "--mt_dyn": "16px" }],
+    const result = mergeProps(undefined, { "--mt_var": "8px" } as Record<string, unknown>, {
+      marginTop: ["mt_var", { "--mt_var": "16px" }],
     });
     expect(result).toEqual({
-      className: "mt_dyn",
-      style: { "--mt_dyn": "16px" },
+      className: "mt_var",
+      style: { "--mt_var": "16px" },
     });
   });
 

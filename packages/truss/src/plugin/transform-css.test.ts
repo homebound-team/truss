@@ -59,7 +59,7 @@ describe("transformCssTs", () => {
     );
   });
 
-  test("dynamic with literal arg: Css.mt(2).$", () => {
+  test("variable with literal arg: Css.mt(2).$", () => {
     const css = transformCssTs(
       `import { Css } from "./Css"; export const css = { ".foo": Css.mt(2).$ };`,
       "test.css.ts",
@@ -74,7 +74,7 @@ describe("transformCssTs", () => {
     );
   });
 
-  test("dynamic with string literal: Css.mt('10px').$", () => {
+  test("variable with string literal: Css.mt('10px').$", () => {
     const css = transformCssTs(
       `import { Css } from "./Css"; export const css = { ".foo": Css.mt("10px").$ };`,
       "test.css.ts",
@@ -162,7 +162,7 @@ describe("transformCssTs", () => {
       mapping,
     );
     expect(n(css)).toBe(
-      n(`/* [truss] unsupported: ".foo" — dynamic value with variable argument is not supported in .css.ts files */`),
+      n(`/* [truss] unsupported: ".foo" — variable value with variable argument is not supported in .css.ts files */`),
     );
   });
 
@@ -260,7 +260,7 @@ describe("transformCssTs", () => {
           display: flex;
         }
 
-        /* [truss] unsupported: ".bad" — dynamic value with variable argument is not supported in .css.ts files */
+        /* [truss] unsupported: ".bad" — variable value with variable argument is not supported in .css.ts files */
 
         .also-good {
           color: #353535;

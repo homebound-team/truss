@@ -91,39 +91,39 @@ describe("collectAtomicRules", () => {
     });
   });
 
-  test("dynamic segment", () => {
+  test("variable segment", () => {
     const seg: ResolvedSegment = {
       key: "mt",
       defs: {},
-      dynamicProps: ["marginTop"],
+      variableProps: ["marginTop"],
       incremented: true,
       argNode: { type: "Identifier", name: "x" },
     };
     const result = collectAtomicRules([chain([seg])], testMapping);
     expect(result.needsMaybeInc).toBe(true);
-    expect(result.rules.get("mt_dyn")).toMatchObject({
-      className: "mt_dyn",
+    expect(result.rules.get("mt_var")).toMatchObject({
+      className: "mt_var",
       cssProperty: "margin-top",
-      cssValue: "var(--mt_dyn)",
-      cssVarName: "--mt_dyn",
+      cssValue: "var(--mt_var)",
+      cssVarName: "--mt_var",
     });
   });
 
-  test("dynamic with hover", () => {
+  test("variable with hover", () => {
     const seg: ResolvedSegment = {
       key: "bc__hover",
       defs: {},
-      dynamicProps: ["borderColor"],
+      variableProps: ["borderColor"],
       pseudoClass: ":hover",
       argNode: { type: "Identifier", name: "y" },
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
-    expect(rules.get("h_bc_dyn")).toMatchObject({
-      className: "h_bc_dyn",
+    expect(rules.get("h_bc_var")).toMatchObject({
+      className: "h_bc_var",
       cssProperty: "border-color",
-      cssValue: "var(--h_bc_dyn)",
+      cssValue: "var(--h_bc_var)",
       pseudoClass: ":hover",
-      cssVarName: "--h_bc_dyn",
+      cssVarName: "--h_bc_var",
     });
   });
 });
@@ -192,21 +192,21 @@ describe("generateCssText", () => {
     expect(css).toContain(".placeholder_blue::placeholder {\n  color: #526675;\n}");
   });
 
-  test("dynamic rule includes @property", () => {
+  test("variable rule includes @property", () => {
     const rules = new Map<string, AtomicRule>([
       [
-        "mt_dyn",
+        "mt_var",
         {
-          className: "mt_dyn",
+          className: "mt_var",
           cssProperty: "margin-top",
-          cssValue: "var(--mt_dyn)",
-          cssVarName: "--mt_dyn",
+          cssValue: "var(--mt_var)",
+          cssVarName: "--mt_var",
         },
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".mt_dyn {\n  margin-top: var(--mt_dyn);\n}");
-    expect(css).toContain('@property --mt_dyn {\n  syntax: "*";\n  inherits: false;\n}');
+    expect(css).toContain(".mt_var {\n  margin-top: var(--mt_var);\n}");
+    expect(css).toContain('@property --mt_var {\n  syntax: "*";\n  inherits: false;\n}');
   });
 
   test("ordering: base before pseudo before media", () => {

@@ -75,24 +75,24 @@ describe("transform", () => {
     );
   });
 
-  test("dynamic with literal arg: Css.mt(2).$", () => {
+  test("variable with literal arg: Css.mt(2).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(2).$;`)!)).toBe(
       n(`const s = { marginTop: "mt_16px" };`),
     );
   });
 
-  test("dynamic with string literal: Css.mt('10px').$", () => {
+  test("variable with string literal: Css.mt('10px').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt("10px").$;`)!)).toBe(
       n(`const s = { marginTop: "mt_10px" };`),
     );
   });
 
-  test("dynamic with variable arg: Css.mt(x).$", () => {
+  test("variable with variable arg: Css.mt(x).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.mt(x).$;`)!)).toBe(
       n(`
         const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
         const x = getSomeValue();
-        const s = { marginTop: ["mt_dyn", { "--mt_dyn": __maybeInc(x) }] };
+        const s = { marginTop: ["mt_var", { "--mt_var": __maybeInc(x) }] };
       `),
     );
   });
@@ -107,7 +107,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.mtPx(x).$;`)!)).toBe(
       n(`
         const x = getSomeValue();
-        const s = { marginTop: ["mt_dyn", { "--mt_dyn": \`\${x}px\` }] };
+        const s = { marginTop: ["mt_var", { "--mt_var": \`\${x}px\` }] };
       `),
     );
   });
@@ -116,7 +116,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.pxPx(x).$;`)!)).toBe(
       n(`
         const x = getSomeValue();
-        const s = { paddingLeft: ["px_dyn", { "--px_dyn": \`\${x}px\` }], paddingRight: ["px_dyn", { "--px_dyn": \`\${x}px\` }] };
+        const s = { paddingLeft: ["px_var", { "--px_var": \`\${x}px\` }], paddingRight: ["px_var", { "--px_var": \`\${x}px\` }] };
       `),
     );
   });
@@ -125,34 +125,34 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.sqPx(x).$;`)!)).toBe(
       n(`
         const x = getSomeValue();
-        const s = { height: ["sq_dyn", { "--sq_dyn": \`\${x}px\` }], width: ["sq_dyn", { "--sq_dyn": \`\${x}px\` }] };
+        const s = { height: ["sq_var", { "--sq_var": \`\${x}px\` }], width: ["sq_var", { "--sq_var": \`\${x}px\` }] };
       `),
     );
   });
 
-  test("non-incremented dynamic: Css.bc('red').$", () => {
+  test("non-incremented variable: Css.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bc("red").$;`)!)).toBe(
       n(`const s = { borderColor: "bc_red" };`),
     );
   });
 
-  test("non-incremented dynamic with variable: Css.bc(color).$", () => {
+  test("non-incremented variable with variable: Css.bc(color).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const color = getColor(); const s = Css.bc(color).$;`)!)).toBe(
       n(`
         const color = getColor();
-        const s = { borderColor: ["bc_dyn", { "--bc_dyn": color }] };
+        const s = { borderColor: ["bc_var", { "--bc_var": color }] };
       `),
     );
   });
 
-  test("dynamic method keeps extra defs: Css.lineClamp(lines).$", () => {
+  test("variable method keeps extra defs: Css.lineClamp(lines).$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const lines = getLineCount(); const s = Css.lineClamp(lines).$;`)!),
     ).toBe(
       n(`
         const lines = getLineCount();
         const s = {
-          WebkitLineClamp: ["lineClamp_dyn", { "--lineClamp_dyn": lines }],
+          WebkitLineClamp: ["lineClamp_var", { "--lineClamp_var": lines }],
           overflow: "lineClamp_overflow",
           display: "lineClamp_display",
           WebkitBoxOrient: "lineClamp_WebkitBoxOrient",
@@ -162,7 +162,7 @@ describe("transform", () => {
     );
   });
 
-  test("dynamic literal keeps extra defs: Css.lineClamp('3').$", () => {
+  test("variable literal keeps extra defs: Css.lineClamp('3').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.lineClamp("3").$;`)!)).toBe(
       n(`
         const s = {
@@ -281,7 +281,7 @@ describe("transform", () => {
     );
   });
 
-  test("mixed static and dynamic: Css.df.mt(2).black.$", () => {
+  test("mixed static and variable: Css.df.mt(2).black.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.mt(2).black.$;`)!)).toBe(
       n(`const s = { display: "df", marginTop: "mt_16px", color: "black" };`),
     );
@@ -305,19 +305,19 @@ describe("transform", () => {
     );
   });
 
-  test("onHover with dynamic literal: Css.onHover.bc('red').$", () => {
+  test("onHover with variable literal: Css.onHover.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onHover.bc("red").$;`)!)).toBe(
       n(`const s = { borderColor: "h_bc_red" };`),
     );
   });
 
-  test("onHover with variable dynamic: Css.onHover.bc(color).$", () => {
+  test("onHover with variable variable: Css.onHover.bc(color).$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const color = getColor(); const s = Css.onHover.bc(color).$;`)!),
     ).toBe(
       n(`
         const color = getColor();
-        const s = { borderColor: ["h_bc_dyn", { "--h_bc_dyn": color }] };
+        const s = { borderColor: ["h_bc_var", { "--h_bc_var": color }] };
       `),
     );
   });
@@ -1273,7 +1273,7 @@ describe("transform", () => {
     );
   });
 
-  test("className merging: css + dynamic className expression", () => {
+  test("className merging: css + variable className expression", () => {
     expect(
       n(
         transform(
@@ -1301,7 +1301,7 @@ describe("transform", () => {
         const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
         const __maybeInc = keepMe();
         const x = getSomeValue();
-        const s = { marginTop: ["mt_dyn", { "--mt_dyn": __maybeInc_1(x) }] };
+        const s = { marginTop: ["mt_var", { "--mt_var": __maybeInc_1(x) }] };
       `),
     );
   });
@@ -1416,7 +1416,7 @@ describe("transform", () => {
     );
   });
 
-  test("breakpoint with dynamic literal: Css.ifSm.mt(2).$", () => {
+  test("breakpoint with variable literal: Css.ifSm.mt(2).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.mt(2).$;`)!)).toBe(
       n(`const s = { marginTop: "sm_mt_16px" };`),
     );
@@ -1451,7 +1451,7 @@ describe("transform", () => {
     );
   });
 
-  test("element with dynamic literal: element('::placeholder').bc('red').$", () => {
+  test("element with variable literal: element('::placeholder').bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").bc("red").$;`)!)).toBe(
       n(`const s = { borderColor: "placeholder_bc_red" };`),
     );
@@ -1508,7 +1508,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         const shadow = getShadow();
-        const s = { boxShadow: ["add_boxShadow_dyn", { "--add_boxShadow_dyn": shadow }] };
+        const s = { boxShadow: ["add_boxShadow_var", { "--add_boxShadow_var": shadow }] };
       `),
     );
   });

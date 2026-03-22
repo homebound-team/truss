@@ -14,8 +14,8 @@ export interface TrussMapping {
 export type TrussMappingEntry =
   /** I.e. `{ "kind": "static", "defs": { "display": "flex" } }` for `Css.df.$`. */
   | { kind: "static"; defs: Record<string, unknown> }
-  /** I.e. `{ "kind": "dynamic", "props": ["marginTop"], "incremented": true }` for `Css.mt(v).$`. */
-  | { kind: "dynamic"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
+  /** I.e. `{ "kind": "variable", "props": ["marginTop"], "incremented": true }` for `Css.mt(v).$`. */
+  | { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
   /** I.e. `{ "kind": "delegate", "target": "mt" }` for `Css.mtPx(v).$`. */
   | { kind: "delegate"; target: string }
   /** I.e. `{ "kind": "alias", "chain": ["f14", "black"] }` for `Css.bodyText.$`. */
@@ -42,15 +42,15 @@ export interface ResolvedSegment {
    * `stylex.when.<relationship>(pseudo, marker?)` as the computed property key.
    */
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
-  /** For dynamic entries: the CSS prop names */
-  dynamicProps?: string[];
-  /** For dynamic entries: whether the value uses maybeInc */
+  /** For variable entries: the CSS prop names */
+  variableProps?: string[];
+  /** For variable entries: whether the value uses maybeInc */
   incremented?: boolean;
-  /** For dynamic Px delegates: whether the runtime value must append `px` */
+  /** For variable Px delegates: whether the runtime value must append `px` */
   appendPx?: boolean;
-  /** For dynamic entries: additional static defs applied alongside the dynamic value */
-  dynamicExtraDefs?: Record<string, unknown>;
-  /** For dynamic entries: the AST node of the argument */
+  /** For variable entries: additional static defs applied alongside the variable value */
+  variableExtraDefs?: Record<string, unknown>;
+  /** For variable entries: the AST node of the argument */
   argNode?: any;
   /** For composed Css props inserted via `add(cssProp)` */
   styleArrayArg?: any;
@@ -99,8 +99,8 @@ export interface StylexCreateEntry {
   key: string;
   /** For static entries: the CSS defs object (may include pseudo wrapping) */
   defs?: Record<string, unknown>;
-  /** For dynamic entries: the param name(s) and whether it has pseudo wrapping */
-  dynamic?: {
+  /** For variable entries: the param name(s) and whether it has pseudo wrapping */
+  variable?: {
     props: string[];
     pseudo: string | null;
   };

@@ -15,12 +15,12 @@ Everything inside `packages/truss/src/plugin/` and `packages/truss/src/runtime.t
 - `rewrite-sites.ts` — simplified to emit object expressions instead of style arrays
 - `transform.ts` — removes StyleX imports, wires in new emitter and runtime imports
 - `transform.test.ts` — fully rewritten expectations for new output shape
-- All style types: static, dynamic, pseudo-classes, media queries, pseudo-elements
+- All style types: static, variable, pseudo-classes, media queries, pseudo-elements
 - Debug mode (`TrussDebugInfo` injection)
 - Condition precedence tables (pseudo-class ordering, media ordering)
 - Specificity tiers (base, pseudo, media doubled-selector, media+pseudo)
 - Shorthand expansion to longhands
-- `add()` via dynamic class infrastructure
+- `add()` via variable class infrastructure
 - `Css.props` lowering to `trussProps`
 
 ### Out of scope (deferred to Phase 2+)
@@ -54,7 +54,7 @@ Remove:
 Write `runtime.test.ts` to cover:
 
 - Static hash merging and className output
-- Dynamic tuple handling (CSS variables in inline style)
+- Variable tuple handling (CSS variables in inline style)
 - Space-separated class bundles (pseudo/media)
 - Debug info collection and `data-truss-src`
 - Falsy value filtering
@@ -77,8 +77,8 @@ Replaces `emit-stylex.ts`. Core responsibilities:
 - Media suffix: `_sm`, `_md`, `_lg`
 - Pseudo-element suffix: `_placeholder`, etc.
 - Stacked: `blue_sm_h`
-- Dynamic: `mt_dyn`, `bc_dyn_h`
-- `add()`: `color_dyn` (reuses dynamic infrastructure)
+- Variable: `mt_var`, `bc_var_h`
+- `add()`: `color_var` (reuses variable infrastructure)
 
 **CSS text generation:**
 
@@ -87,13 +87,13 @@ Replaces `emit-stylex.ts`. Core responsibilities:
 - Media: `@media (...) { .blue_sm.blue_sm { color: ... } }` (doubled selector)
 - Media+pseudo: `@media (...) { .blue_sm_h.blue_sm_h:hover { ... } }`
 - Pseudo-element: `.blue_placeholder::placeholder { ... }`
-- Dynamic: `.mt_dyn { margin-top: var(--mt_dyn) }` + `@property`
+- Variable: `.mt_var { margin-top: var(--mt_var) }` + `@property`
 - Ordered by precedence tiers
 
 **AST generation:**
 
 - `buildStyleHashProperties(segments)` → array of Babel `ObjectProperty` nodes for `{ display: "df", color: "black blue_h" }`
-- Dynamic entries produce `ArrayExpression` tuples
+- Variable entries produce `ArrayExpression` tuples
 - `buildMaybeIncDeclaration()` — increment helper (carried forward)
 - `collectAtomicRules(sites)` → populates the CSS rule registry
 - `generateCssText()` → returns the full CSS string from the registry, ordered by tiers
@@ -143,8 +143,8 @@ Key test categories:
 
 - Single static abbreviation (`Css.df.$`)
 - Multi-property abbreviation (`Css.ba.$`, `Css.p1.$`)
-- Dynamic with literal folding (`Css.mt(2).$`)
-- Dynamic with runtime variable (`Css.mt(x).$`)
+- Variable with literal folding (`Css.mt(2).$`)
+- Variable with runtime variable (`Css.mt(x).$`)
 - Pseudo-class (`Css.black.onHover.blue.$`)
 - Media query (`Css.black.ifSm.blue.$`)
 - Stacked pseudo+media (`Css.black.ifSm.onHover.blue.$`)
@@ -198,7 +198,7 @@ Phase 1 is done. All definition-of-done criteria are met:
 
 1. **`skipMerge` in `resolveFullChain`**: The old `mergeOverlappingConditions` pass collapsed same-property segments into one entry with nested condition defs. The new model needs individual segments with their own `pseudoClass`/`mediaQuery` fields so `buildStyleHashProperties` can generate space-separated class bundles. Added a `skipMerge` option rather than removing the merge logic (which is still used for `.css.ts` pipeline).
 
-2. **Class naming for literal-folded dynamics**: `computeStaticBaseName` derives class names from abbreviation + cleaned resolved value (e.g. `mt_16px`, `bc_red`, `mt_neg8px`). Negative values use a `neg` prefix to avoid ambiguity.
+2. **Class naming for literal-folded variables**: `computeStaticBaseName` derives class names from abbreviation + cleaned resolved value (e.g. `mt_16px`, `bc_red`, `mt_neg8px`). Negative values use a `neg` prefix to avoid ambiguity.
 
 3. **No CSS injection by default**: Added `injectCss` option to `TransformTrussOptions`. When false (default), no `__injectTrussCSS` call is emitted — the CSS text is available via the `css` field on the result for the Vite plugin to collect in Phase 2.
 

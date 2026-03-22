@@ -9,11 +9,11 @@ export class TrussDebugInfo {
 }
 
 /**
- * Space-separated atomic class names, or a dynamic tuple with class names + CSS variable map.
+ * Space-separated atomic class names, or a variable tuple with class names + CSS variable map.
  *
  * In debug mode, the transform appends a TrussDebugInfo as an extra tuple element:
  * - static with debug: `[classNames, debugInfo]`
- * - dynamic with debug: `[classNames, vars, debugInfo]`
+ * - variable with debug: `[classNames, vars, debugInfo]`
  */
 export type TrussStyleValue =
   | string

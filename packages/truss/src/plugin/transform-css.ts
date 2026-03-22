@@ -172,9 +172,9 @@ function resolveCssExpression(
         return { error: seg.error };
       }
 
-      // Reject segments that require runtime (dynamic with variable args)
-      if (seg.dynamicProps && !seg.argResolved) {
-        return { error: `dynamic value with variable argument is not supported in .css.ts files` };
+      // Reject segments that require runtime (variable with variable args)
+      if (seg.variableProps && !seg.argResolved) {
+        return { error: `variable value with variable argument is not supported in .css.ts files` };
       }
       if (seg.typographyLookup) {
         return { error: `typography() with a runtime key is not supported in .css.ts files` };

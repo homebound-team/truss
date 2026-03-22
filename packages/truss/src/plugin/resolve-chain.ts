@@ -299,8 +299,8 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
         }
 
-        if (entry.kind === "dynamic") {
-          const seg = resolveDynamicCall(
+        if (entry.kind === "variable") {
+          const seg = resolveVariableCall(
             abbr,
             entry,
             node,
@@ -413,7 +413,7 @@ function resolveTypographyEntry(
 
   const resolved = resolveEntry(name, entry, mapping, mediaQuery, pseudoClass, pseudoElement, null);
   for (const segment of resolved) {
-    if (segment.dynamicProps || segment.whenPseudo) {
+    if (segment.variableProps || segment.whenPseudo) {
       throw new UnsupportedPatternError(`Typography abbreviation "${name}" cannot require runtime arguments`);
     }
   }
@@ -481,7 +481,7 @@ function resolveEntry(
       }
       return result;
     }
-    case "dynamic":
+    case "variable":
     case "delegate":
       throw new UnsupportedPatternError(`Abbreviation "${abbr}" requires arguments — use ${abbr}() not .${abbr}`);
     default:
@@ -489,10 +489,10 @@ function resolveEntry(
   }
 }
 
-/** Resolve a dynamic (parameterized) call like mt(2) or mt(x). */
-function resolveDynamicCall(
+/** Resolve a variable (parameterized) call like mt(2) or mt(x). */
+function resolveVariableCall(
   abbr: string,
-  entry: { kind: "dynamic"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> },
+  entry: { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> },
   node: CallChainNode,
   mapping: TrussMapping,
   mediaQuery: string | null,
@@ -533,9 +533,9 @@ function resolveDynamicCall(
       defs: {},
       mediaQuery,
       pseudoClass,
-      dynamicProps: entry.props,
+      variableProps: entry.props,
       incremented: entry.incremented,
-      dynamicExtraDefs: entry.extraDefs,
+      variableExtraDefs: entry.extraDefs,
       argNode: argAst,
     };
   }
@@ -552,8 +552,8 @@ function resolveDelegateCall(
   pseudoElement: string | null,
 ): ResolvedSegment {
   const targetEntry = mapping.abbreviations[entry.target];
-  if (!targetEntry || targetEntry.kind !== "dynamic") {
-    throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a dynamic entry`);
+  if (!targetEntry || targetEntry.kind !== "variable") {
+    throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a variable entry`);
   }
 
   if (node.args.length !== 1) {
@@ -591,10 +591,10 @@ function resolveDelegateCall(
       mediaQuery,
       pseudoClass,
       pseudoElement,
-      dynamicProps: targetEntry.props,
+      variableProps: targetEntry.props,
       incremented: false,
       appendPx: true,
-      dynamicExtraDefs: targetEntry.extraDefs,
+      variableExtraDefs: targetEntry.extraDefs,
       argNode: argAst,
     };
   }
@@ -674,7 +674,7 @@ function resolveAddCall(
       mediaQuery,
       pseudoClass,
       pseudoElement,
-      dynamicProps: [propName],
+      variableProps: [propName],
       incremented: false,
       argNode: valueArg,
     };
@@ -787,11 +787,11 @@ function whenPseudoKeyName(ap: { pseudo: string; markerNode?: any; relationship?
  */
 export function mergeOverlappingConditions(segments: ResolvedSegment[]): ResolvedSegment[] {
   // Index: for each CSS property, which segments set it?
-  // Only static segments (no dynamicProps, no styleArrayArg, no whenPseudo, no error) participate in merging.
+  // Only static segments (no variableProps, no styleArrayArg, no whenPseudo, no error) participate in merging.
   const propToIndices = new Map<string, number[]>();
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
-    if (seg.dynamicProps || seg.styleArrayArg || seg.whenPseudo || seg.error) continue;
+    if (seg.variableProps || seg.styleArrayArg || seg.whenPseudo || seg.error) continue;
     for (const prop of Object.keys(seg.defs)) {
       if (!propToIndices.has(prop)) propToIndices.set(prop, []);
       propToIndices.get(prop)!.push(i);

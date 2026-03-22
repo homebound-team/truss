@@ -24,7 +24,7 @@ The resulting system should stay very close in spirit to StyleX:
 - atomic classes
 - property-level last-write-wins semantics
 - pseudo/media bundled as ownership of a logical CSS property
-- dynamic values implemented via CSS custom properties
+- variable values implemented via CSS custom properties
 
 But it will no longer depend on StyleX's plugin or runtime.
 
@@ -33,7 +33,7 @@ But it will no longer depend on StyleX's plugin or runtime.
 - Make `.$` produce hash-like objects again so `{ ...a, ...b }` just works.
 - Preserve StyleX-like semantics for conflict resolution: ownership is per logical CSS property.
 - Generate deterministic, human-readable class names based on Truss abbreviations.
-- Keep dynamic styles on the StyleX model: static class + CSS variable + inline style value.
+- Keep variable styles on the StyleX model: static class + CSS variable + inline style value.
 - Keep `Css.test.tsx` mostly unchanged as a black-box behavior test suite.
 - Keep `.css.ts` support and align runtime-generated CSS with the same rule model.
 - Emit a single production stylesheet, `truss.css`, for maximal class reuse.
@@ -90,11 +90,11 @@ But for pseudo/media/pseudo-element cases it can be a space-separated bundle of 
 }
 ```
 
-And for dynamic values it can be a tuple of class bundle + CSS variable map:
+And for variable values it can be a tuple of class bundle + CSS variable map:
 
 ```ts
 {
-  marginTop: ["mt_dyn", { "--mt_dyn": "16px" }];
+  marginTop: ["mt_var", { "--mt_var": "16px" }];
 }
 ```
 
@@ -158,25 +158,25 @@ This eliminates the shorthand/longhand specificity problem entirely. In standard
 
 This applies to all shorthand abbreviations: `p1` expands to `pt1`/`pr1`/`pb1`/`pl1`, `ba` expands to `bsSolid`/`bw1`, `br` expands to the individual border-radius longhands, etc. The emitted CSS only ever contains longhand property declarations.
 
-### Dynamic style hash
+### Variable style hash
 
-Dynamic values should follow the StyleX approach: a static class points at a CSS variable, and runtime sets the variable.
+Variable values should follow the StyleX approach: a static class points at a CSS variable, and runtime sets the variable.
 
 Example:
 
 ```ts
 Css.mt(x).$ -> {
-  marginTop: ["mt_dyn", { "--mt_dyn": __maybeInc(x) }],
+  marginTop: ["mt_var", { "--mt_var": __maybeInc(x) }],
 }
 ```
 
 And:
 
 ```css
-.mt_dyn {
-  margin-top: var(--mt_dyn);
+.mt_var {
+  margin-top: var(--mt_var);
 }
-@property --mt_dyn {
+@property --mt_var {
   syntax: "*";
   inherits: false;
 }
@@ -184,40 +184,40 @@ And:
 
 At runtime, `trussProps` will turn that into:
 
-- `className: "mt_dyn"`
-- `style: { "--mt_dyn": "16px" }`
+- `className: "mt_var"`
+- `style: { "--mt_var": "16px" }`
 
-The tuple format is `[classNames: string, vars: Record<string, string>]` where `classNames` is space-separated (just like static values) and `vars` maps CSS variable names to runtime values. This naturally supports multiple dynamic values within one property bundle:
+The tuple format is `[classNames: string, vars: Record<string, string>]` where `classNames` is space-separated (just like static values) and `vars` maps CSS variable names to runtime values. This naturally supports multiple variable values within one property bundle:
 
 ```ts
 Css.bc(x).onHover.bc(y).$ -> {
-  borderColor: ["bc_dyn h_bc_dyn", { "--bc_dyn": x, "--h_bc_dyn": y }],
+  borderColor: ["bc_var h_bc_var", { "--bc_var": x, "--h_bc_var": y }],
 }
 ```
 
 with CSS:
 
 ```css
-.bc_dyn {
-  border-color: var(--bc_dyn);
+.bc_var {
+  border-color: var(--bc_var);
 }
-.h_bc_dyn:hover {
-  border-color: var(--h_bc_dyn);
+.h_bc_var:hover {
+  border-color: var(--h_bc_var);
 }
 ```
 
-Literal dynamic calls still fold at build time when possible:
+Literal variable calls still fold at build time when possible:
 
 ```ts
 Css.mt(2).$ -> { marginTop: "mt_16px" }
 Css.bc("red").$ -> { borderColor: "bc_red" }
 ```
 
-When a property bundle has multiple dynamic conditions, the tuple carries the full atomic class bundle plus all CSS variables needed by those classes:
+When a property bundle has multiple variable conditions, the tuple carries the full atomic class bundle plus all CSS variables needed by those classes:
 
 ```ts
 Css.bc(x).onHover.bc(y).$ -> {
-  borderColor: ["bc_dyn h_bc_dyn", { "--bc_dyn": x, "--h_bc_dyn": y }],
+  borderColor: ["bc_var h_bc_var", { "--bc_var": x, "--h_bc_var": y }],
 }
 ```
 
@@ -421,18 +421,18 @@ Instead it should:
 1. accept one or more Truss style hashes (or falsy values, for `cond && styles` ergonomics)
 2. merge them in order via `Object.assign` (last-write-wins)
 3. split space-separated class name strings to produce the final `className`
-4. collect CSS variable maps from dynamic tuples to produce inline `style`
+4. collect CSS variable maps from variable tuples to produce inline `style`
 5. preserve debug metadata in debug mode
 
 Sketch:
 
 ```ts
 /**
- * Space-separated atomic class names, or a dynamic tuple with class names + CSS variable map.
+ * Space-separated atomic class names, or a variable tuple with class names + CSS variable map.
  *
  * In debug mode, the transform appends a TrussDebugInfo as an extra tuple element:
  * - static with debug: [classNames: string, debugInfo: TrussDebugInfo]
- * - dynamic with debug: [classNames: string, vars: Record<string, string>, debugInfo: TrussDebugInfo]
+ * - variable with debug: [classNames: string, vars: Record<string, string>, debugInfo: TrussDebugInfo]
  */
 type TrussStyleValue =
   | string
@@ -517,11 +517,11 @@ In debug mode, the transform emits tuples with the debug info as an extra elemen
 { display: ["df", new TrussDebugInfo("MyComponent.tsx:5")], color: "black h_blue" }
 ```
 
-Only the first property in the hash needs the debug info (it's per-expression, not per-property). For dynamic values the debug info is appended as a third element:
+Only the first property in the hash needs the debug info (it's per-expression, not per-property). For variable values the debug info is appended as a third element:
 
 ```ts
 {
-  marginTop: ["mt_dyn", { "--mt_dyn": x }, new TrussDebugInfo("MyComponent.tsx:12")];
+  marginTop: ["mt_var", { "--mt_var": x }, new TrussDebugInfo("MyComponent.tsx:12")];
 }
 ```
 
@@ -541,7 +541,7 @@ This lets developers inspect any element in the DOM and immediately see which Tr
 - `trussProps(...)` output
 - any generated debug data attribute
 
-It also needs to merge inline `style` props, because dynamic Truss styles emit CSS variables.
+It also needs to merge inline `style` props, because variable Truss styles emit CSS variables.
 
 Example:
 
@@ -558,7 +558,7 @@ should become something equivalent to:
 and produce:
 
 - `className` from Truss styles
-- `style={{ color: "red", "--mt_dyn": "16px" }}`
+- `style={{ color: "red", "--mt_var": "16px" }}`
 
 So in practice `mergeProps` should be a small React-prop merge helper, not just a className concatenator.
 
@@ -681,32 +681,32 @@ Use the pseudo-element name (without `::`) as a prefix:
 - `placeholder_blue` -> `.placeholder_blue::placeholder { color: #526675 }`
 - `placeholder_f_red` -> `.placeholder_f_red:focus::placeholder { color: red }`
 
-### Dynamic classes
+### Variable classes
 
-Use `abbrev_dyn` with the same condition prefixes:
+Use `abbrev_var` with the same condition prefixes:
 
-- `mt_dyn` -> `.mt_dyn { margin-top: var(--mt_dyn) }`
-- `h_bc_dyn` -> `.h_bc_dyn:hover { border-color: var(--h_bc_dyn) }`
+- `mt_var` -> `.mt_var { margin-top: var(--mt_var) }`
+- `h_bc_var` -> `.h_bc_var:hover { border-color: var(--h_bc_var) }`
 
 CSS variables are named to match their class:
 
-- `--mt_dyn`
-- `--h_bc_dyn`
+- `--mt_var`
+- `--h_bc_var`
 
 ### `add()` classes
 
-`add()` should reuse the dynamic class infrastructure because it accepts arbitrary property names and values at the callsite.
+`add()` should reuse the variable class infrastructure because it accepts arbitrary property names and values at the callsite.
 
 For a runtime value:
 
 ```ts
-Css.add("color", color).$ -> { color: ["color_dyn", { "--color_dyn": color }] }
+Css.add("color", color).$ -> { color: ["color_var", { "--color_var": color }] }
 ```
 
 For a literal value, Phase 1 has two possible behaviors:
 
 - fold to a static atom when we want maximal CSS reuse and smaller inline styles
-- or still use the dynamic class path for implementation simplicity
+- or still use the variable class path for implementation simplicity
 
 The preferred behavior is to fold literals to static atoms when both the property and value are string literals, because that better matches the rest of Truss's compile-time folding.
 
@@ -714,18 +714,18 @@ So the ideal behavior is:
 
 ```ts
 Css.add("color", "red").$ -> { color: "color_red" }
-Css.add("color", color).$ -> { color: ["color_dyn", { "--color_dyn": color }] }
+Css.add("color", color).$ -> { color: ["color_var", { "--color_var": color }] }
 ```
 
-If implementation simplicity forces Phase 1 to make all `add()` calls dynamic, the doc and tests should say so explicitly. What matters most is that the behavior is deliberate and documented.
+If implementation simplicity forces Phase 1 to make all `add()` calls variable, the doc and tests should say so explicitly. What matters most is that the behavior is deliberate and documented.
 
-Dynamic example:
+Variable example:
 
 ```ts
-Css.add("color", "red").$ -> { color: ["color_dyn", { "--color_dyn": "red" }] }
+Css.add("color", "red").$ -> { color: ["color_var", { "--color_var": "red" }] }
 ```
 
-This reuses the same `.color_dyn { color: var(--color_dyn) }` class that any other dynamic `color` value would use.
+This reuses the same `.color_var { color: var(--color_var) }` class that any other variable `color` value would use.
 
 ## Transform Behavior
 
@@ -927,19 +927,19 @@ Examples:
   color: #526675;
 }
 
-/* Dynamic classes */
-.mt_dyn {
-  margin-top: var(--mt_dyn);
+/* Variable classes */
+.mt_var {
+  margin-top: var(--mt_var);
 }
-@property --mt_dyn {
+@property --mt_var {
   syntax: "*";
   inherits: false;
 }
 
-.h_bc_dyn:hover {
-  border-color: var(--h_bc_dyn);
+.h_bc_var:hover {
+  border-color: var(--h_bc_var);
 }
-@property --h_bc_dyn {
+@property --h_bc_var {
   syntax: "*";
   inherits: false;
 }
@@ -988,7 +988,7 @@ Useful assertions:
 
 - transformed JS matches expected `trussProps(...)` / object output
 - generated CSS contains expected atomic rules
-- dynamic entries generate expected `var(--...)` declarations
+- variable entries generate expected `var(--...)` declarations
 - pseudo/media bundles generate expected selectors
 
 ## `packages/app-stylex/src/Css.test.tsx`
@@ -1064,7 +1064,7 @@ Potential future direction:
 For Phase 1, the clean approach is to focus on:
 
 - static styles
-- dynamic styles
+- variable styles
 - pseudo-classes
 - pseudo-elements
 - media queries

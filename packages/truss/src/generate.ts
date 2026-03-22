@@ -534,7 +534,7 @@ export interface TrussMapping {
 
 export type TrussMappingEntry =
   | { kind: "static"; defs: Record<string, unknown> }
-  | { kind: "dynamic"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
+  | { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
   | { kind: "delegate"; target: string }
   | { kind: "alias"; chain: string[] };
 
@@ -555,7 +555,7 @@ function generateTrussMapping(config: Config, entries: StylexEntry[]): TrussMapp
         break;
       case "param":
         abbreviations[entry.abbr] = {
-          kind: "dynamic",
+          kind: "variable",
           props: entry.props || [],
           incremented: false,
           extraDefs: entry.extraDefs,
@@ -563,7 +563,7 @@ function generateTrussMapping(config: Config, entries: StylexEntry[]): TrussMapp
         break;
       case "increment-param":
         abbreviations[entry.abbr] = {
-          kind: "dynamic",
+          kind: "variable",
           props: entry.props || [],
           incremented: true,
           extraDefs: entry.extraDefs,
