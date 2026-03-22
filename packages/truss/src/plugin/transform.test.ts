@@ -828,13 +828,14 @@ describe("transform", () => {
     ).toBe(
       n(`const s = { color: "black", ...(isActive ? { backgroundColor: "bgBlue" } : { color: "black h_white" }) };`),
     );
+    // bgBlue sorts before black alphabetically (both are priority 3000 longhands)
     expect(n(css(`import { Css } from "./Css"; const s = Css.black.if(isActive).bgBlue.else.onHover.white.$;`)!)).toBe(
       n(`
-        .black {
-          color: #353535;
-        }
         .bgBlue {
           background-color: #526675;
+        }
+        .black {
+          color: #353535;
         }
         .h_white:hover {
           color: #fcfcfa;
@@ -1193,16 +1194,17 @@ describe("transform", () => {
 
     expect(n(transform(input)!)).toBe(n(`const s = { color: "sm_black mdandup_white" };`));
 
+    // mdandup sorts before sm alphabetically (both are priority 3200 = longhand + @media)
     expect(n(css(input)!)).toEqual(
       n(`
-      @media screen and (max-width: 599px) {
-        .sm_black.sm_black {
-          color: #353535;
-        }
-      }
       @media screen and (min-width: 600px) {
         .mdandup_white.mdandup_white {
           color: #fcfcfa;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_black.sm_black {
+          color: #353535;
         }
       }
     `),

@@ -68,9 +68,18 @@ function isVariableRule(rule: AtomicRule): boolean {
   return rule.cssVarName !== undefined;
 }
 
-/** Sort an array of AtomicRules in-place by their computed priority. */
+/**
+ * Sort an array of AtomicRules in-place by their computed priority.
+ *
+ * When two rules have the same priority (e.g. two different longhands both at 3000),
+ * we tiebreak by class name so the output is fully deterministic regardless of
+ * file processing order (which differs between dev HMR and production builds).
+ */
 export function sortRulesByPriority(rules: AtomicRule[]): void {
   rules.sort(function (a, b) {
-    return computeRulePriority(a) - computeRulePriority(b);
+    const diff = computeRulePriority(a) - computeRulePriority(b);
+    if (diff !== 0) return diff;
+    // Alphabetical tiebreaker ensures identical output in dev and production
+    return a.className < b.className ? -1 : a.className > b.className ? 1 : 0;
   });
 }

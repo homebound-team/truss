@@ -390,6 +390,30 @@ describe("generateCssText", () => {
     expect(bcIdx).toBeLessThan(btcIdx);
   });
 
+  test("same-priority rules are deterministic regardless of insertion order", () => {
+    // These are all longhands (priority 3000) — order must be alphabetical by class name
+    // so dev (HMR) and production builds produce identical CSS
+    const rulesForward = new Map<string, AtomicRule>([
+      ["absolute", { className: "absolute", cssProperty: "position", cssValue: "absolute" }],
+      ["bgBlue700", { className: "bgBlue700", cssProperty: "background-color", cssValue: "blue" }],
+      ["bgWhite", { className: "bgWhite", cssProperty: "background-color", cssValue: "white" }],
+    ]);
+    const rulesReverse = new Map<string, AtomicRule>([
+      ["bgWhite", { className: "bgWhite", cssProperty: "background-color", cssValue: "white" }],
+      ["bgBlue700", { className: "bgBlue700", cssProperty: "background-color", cssValue: "blue" }],
+      ["absolute", { className: "absolute", cssProperty: "position", cssValue: "absolute" }],
+    ]);
+    // Both insertion orders must produce the same output
+    expect(generateCssText(rulesForward)).toBe(generateCssText(rulesReverse));
+    // And the alphabetical order should be: absolute, bgBlue700, bgWhite
+    const css = generateCssText(rulesForward);
+    const absIdx = css.indexOf(".absolute {");
+    const blueIdx = css.indexOf(".bgBlue700 {");
+    const whiteIdx = css.indexOf(".bgWhite {");
+    expect(absIdx).toBeLessThan(blueIdx);
+    expect(blueIdx).toBeLessThan(whiteIdx);
+  });
+
   test("disabled pseudo-class sorts after hover and active", () => {
     const rules = new Map<string, AtomicRule>([
       ["d_gray", { className: "d_gray", cssProperty: "color", cssValue: "gray", pseudoClass: ":disabled" }],
