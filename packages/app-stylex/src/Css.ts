@@ -2385,11 +2385,6 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ rules: rules as any });
   }
 
-  /** Marker helper for legacy object-spread composition. */
-  spread<P extends object>(props: P): P {
-    return props;
-  }
-
   /** Convert a style hash into `{ className, style }` props for manual spreading into non-`css=` contexts. */
   props(styles: Properties): Record<string, unknown> {
     return trussProps(styles as any);
