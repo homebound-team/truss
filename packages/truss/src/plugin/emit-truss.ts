@@ -288,7 +288,7 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
   const segmentBaseKey = seg.key.split("__")[0];
 
   for (const prop of seg.variableProps!) {
-    const baseKey = variableBaseKey(seg, prop);
+    const baseKey = seg.key.split("__")[0];
     const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
     const varName = toCssVariableName(className, baseKey, prop);
     const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
@@ -381,7 +381,7 @@ function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedS
   const mClass = markerClassName(wp.markerNode);
 
   for (const prop of seg.variableProps!) {
-    const baseKey = variableBaseKey(seg, prop);
+    const baseKey = seg.key.split("__")[0];
     const className = `${prefix}${baseKey}_var`;
     const varName = toCssVariableName(className, baseKey, prop);
     const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
@@ -690,7 +690,7 @@ export function buildStyleHashProperties(
       const segmentBaseKey = seg.key.split("__")[0];
 
       for (const prop of seg.variableProps) {
-        const baseKey = variableBaseKey(seg, prop);
+        const baseKey = seg.key.split("__")[0];
         const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
         const varName = toCssVariableName(className, baseKey, prop);
 
@@ -769,13 +769,6 @@ export function buildStyleHashProperties(
   }
 
   return properties;
-}
-
-function variableBaseKey(seg: ResolvedSegment, cssProp: string): string {
-  if (seg.key.startsWith("add_")) {
-    return cssProp;
-  }
-  return seg.key.split("__")[0];
 }
 
 /** Build a CSS variable name from the real CSS property and class condition prefix. */

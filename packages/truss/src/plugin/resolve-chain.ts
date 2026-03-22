@@ -808,10 +808,10 @@ function resolveAddCall(
         .replace(/[^a-zA-Z0-9]/g, "_")
         .replace(/_+/g, "_")
         .replace(/^_|_$/g, "");
-      const key = `add_${propName}__${keySuffix}__${wpSuffix}`;
+      const key = `${propName}__${keySuffix}__${wpSuffix}`;
       return { key, defs: { [propName]: literalValue }, whenPseudo, argResolved: literalValue };
     } else {
-      const key = `add_${propName}__${wpSuffix}`;
+      const key = `${propName}__${wpSuffix}`;
       return { key, defs: {}, whenPseudo, variableProps: [propName], incremented: false, argNode: valueArg };
     }
   }
@@ -823,7 +823,7 @@ function resolveAddCall(
       .replace(/[^a-zA-Z0-9]/g, "_")
       .replace(/_+/g, "_")
       .replace(/^_|_$/g, "");
-    const key = suffix ? `add_${propName}__${keySuffix}__${suffix}` : `add_${propName}__${keySuffix}`;
+    const key = suffix ? `${propName}__${keySuffix}__${suffix}` : `${propName}__${keySuffix}`;
     const defs: Record<string, unknown> = { [propName]: literalValue };
     const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
@@ -835,7 +835,7 @@ function resolveAddCall(
       argResolved: literalValue,
     };
   } else {
-    const key = suffix ? `add_${propName}__${suffix}` : `add_${propName}`;
+    const key = suffix ? `${propName}__${suffix}` : propName;
     return {
       key,
       defs: {},

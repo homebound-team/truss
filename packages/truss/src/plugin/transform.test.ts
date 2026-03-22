@@ -1687,13 +1687,13 @@ describe("transform", () => {
 
   test("add with string literal value: Css.add('boxShadow', '0 0 0 1px blue').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add("boxShadow", "0 0 0 1px blue").$;`)!)).toBe(
-      n(`const s = { boxShadow: "add_boxShadow_0_0_0_1px_blue" };`),
+      n(`const s = { boxShadow: "boxShadow_0_0_0_1px_blue" };`),
     );
   });
 
   test("add with numeric literal value: Css.add('animationDelay', '300ms').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add("animationDelay", "300ms").$;`)!)).toBe(
-      n(`const s = { animationDelay: "add_animationDelay_300ms" };`),
+      n(`const s = { animationDelay: "animationDelay_300ms" };`),
     );
   });
 
@@ -1714,17 +1714,17 @@ describe("transform", () => {
 
   test("add mixed with other chain segments: Css.df.add('wordBreak', 'break-word').black.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.add("wordBreak", "break-word").black.$;`)!)).toBe(
-      n(`const s = { display: "df", wordBreak: "add_wordBreak_break_word", color: "black" };`),
+      n(`const s = { display: "df", wordBreak: "wordBreak_break_word", color: "black" };`),
     );
   });
 
-  test("add keeps explicit add_ prefix in jsx output and generated css", () => {
+  test("add uses property name in jsx output and generated css", () => {
     const code = `import { Css } from "./Css"; const el = <div css={Css.mt2.add("transition", "all 240ms").$} />;`;
 
     expect(n(transform(code)!)).toBe(
       n(`
         import { trussProps } from "@homebound/truss/runtime";
-        const el = <div {...trussProps({ marginTop: "mt2", transition: "add_transition_all_240ms" })} />;
+        const el = <div {...trussProps({ marginTop: "mt2", transition: "transition_all_240ms" })} />;
       `),
     );
     expect(n(css(code)!)).toBe(
@@ -1732,7 +1732,7 @@ describe("transform", () => {
       .mt2 {
         margin-top: 16px;
       }
-      .add_transition_all_240ms {
+      .transition_all_240ms {
         transition: all 240ms;
       }
     `),
@@ -1776,7 +1776,7 @@ describe("transform", () => {
   test("add with pseudo: Css.onHover.add('textDecoration', 'underline').$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.onHover.add("textDecoration", "underline").$;`)!),
-    ).toBe(n(`const s = { textDecoration: "h_add_textDecoration_underline" };`));
+    ).toBe(n(`const s = { textDecoration: "h_textDecoration_underline" };`));
   });
 
   test("add with CssProp argument composes inline as spread", () => {
