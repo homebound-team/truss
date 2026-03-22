@@ -1,3 +1,9 @@
+## [2.1.0-next.10](https://github.com/homebound-team/truss/compare/v2.1.0-next.9...v2.1.0-next.10) (2026-03-22)
+
+### Bug Fixes
+
+* Fix `if` keeping overriden properties. ([175887c](https://github.com/homebound-team/truss/commit/175887c9027a45b1af43d676ee2918c714223225))
+
 ## [2.1.0-next.9](https://github.com/homebound-team/truss/compare/v2.1.0-next.8...v2.1.0-next.9) (2026-03-22)
 
 ### Bug Fixes
