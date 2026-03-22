@@ -1,3 +1,9 @@
+## [2.1.0-next.4](https://github.com/homebound-team/truss/compare/v2.1.0-next.3...v2.1.0-next.4) (2026-03-22)
+
+### Bug Fixes
+
+* Use the same variable names for `add`. ([bdae3f9](https://github.com/homebound-team/truss/commit/bdae3f9c4022d73819dfb343cf553dd5424d28b2))
+
 ## [2.1.0-next.3](https://github.com/homebound-team/truss/compare/v2.1.0-next.2...v2.1.0-next.3) (2026-03-22)
 
 ### Bug Fixes
