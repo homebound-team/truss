@@ -88,3 +88,42 @@ The virtual runtime script:
 - `Css.test.tsx` black-box suite passes
 - No `@stylexjs` packages in `node_modules` or config
 - `emit-stylex.ts` deleted
+
+## Completion
+
+Phase 2 is done. All definition-of-done criteria are met:
+
+- **56 tests pass** in `Css.test.tsx` and `App.test.tsx`. 1 marker/when test is skipped (deferred to Phase 3). **192 tests pass** in the truss package (16 marker/when tests skipped).
+- The Vite plugin now owns CSS generation end-to-end: global CSS rule registry, dev HMR via virtual CSS endpoint + WebSocket events, and production `truss.css` emission via `generateBundle`/`writeBundle`.
+- In test mode (jsdom), the plugin passes `injectCss: true` to `transformTruss()`, which injects `__injectTrussCSS(cssText)` calls so `document.styleSheets` has rules and `toHaveStyle` works.
+- No `@stylexjs` packages remain in any `package.json`, `vite.config.ts`, or `vitest.config.js`.
+- `emit-stylex.ts` was already deleted in Phase 1.
+- The codegen (`generate.ts`) no longer emits `import * as stylex` or references `stylex.defineMarker` in the generated `Css.ts`.
+- Babel packages (`@babel/parser`, `@babel/traverse`, `@babel/generator`, `@babel/types`) are now direct dependencies of `@homebound/truss` (previously they were transitive via `@stylexjs/unplugin`).
+
+### Files changed
+
+| File                                     | Change                                                                                                                                                                           |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/truss/src/plugin/index.ts`     | Rewritten — global CSS registry, dev HMR (virtual endpoint + runtime script + WebSocket), production CSS emission, `injectCss` for tests, renamed from `truss-stylex` to `truss` |
+| `packages/truss/src/plugin/transform.ts` | `TransformResult` now includes `rules: Map<string, AtomicRule>`                                                                                                                  |
+| `packages/truss/src/generate.ts`         | Removed `import * as stylex`, `stylex.defineMarker` refs; updated `Css.props()` to call `trussProps(styles)` directly                                                            |
+| `packages/truss/package.json`            | Added `@babel/generator`, `@babel/parser`, `@babel/traverse`, `@babel/types` as direct dependencies                                                                              |
+| `packages/app-stylex/vite.config.ts`     | Removed StyleX plugin; only `trussPlugin` + `react`                                                                                                                              |
+| `packages/app-stylex/vitest.config.js`   | Removed StyleX plugin and `stripConfigureServer` workaround                                                                                                                      |
+| `packages/app-stylex/package.json`       | Removed `@stylexjs/stylex`, `@stylexjs/unplugin`, `unplugin`                                                                                                                     |
+| `packages/app-stylex/src/Css.ts`         | Regenerated without StyleX imports                                                                                                                                               |
+| `packages/app-stylex/src/Css.test.tsx`   | Updated CSS variable names (`--mt_dyn`), conditional false output (`{}`), removed `TrussDebugInfo` import, updated comments                                                      |
+| `packages/app-stylex/src/App.test.tsx`   | Skipped marker test (Phase 3)                                                                                                                                                    |
+
+### Key design decisions made during implementation
+
+1. **`isTest` mode in plugin**: The plugin detects `config.mode === "test"` and passes `injectCss: true` to `transformTruss()`. This causes each transformed file to include `__injectTrussCSS(cssText)` calls, which populate `document.styleSheets` in jsdom so `toHaveStyle` assertions work.
+
+2. **`configureServer` skipped in test mode**: The `configureServer` hook (which registers the HMR interval) is skipped when `isTest` is true. This prevents the "close timed out" issue where Vitest can't exit because the `setInterval` keeps the process alive.
+
+3. **`TransformResult.rules`**: The transform now returns the collected `Map<string, AtomicRule>` directly, so the Vite plugin can merge rules into its global registry without re-parsing CSS text.
+
+4. **Codegen `Marker` type**: Changed from `ReturnType<typeof stylex.defineMarker>` to `symbol` as a placeholder until Phase 3 implements native marker support.
+
+5. **Babel as direct dependencies**: Previously these were transitive via `@stylexjs/unplugin`. Now that StyleX is removed, they must be explicit in `@homebound/truss`'s `package.json`.

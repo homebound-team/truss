@@ -79,22 +79,84 @@ function cleanValueForClassName(value: string): string {
 }
 
 /**
+ * Build a reverse lookup from `"cssProperty\0cssValue"` → canonical abbreviation name.
+ *
+ * For each single-property static abbreviation in the mapping, records the
+ * canonical name so multi-property abbreviations can reuse it.
+ * I.e. `{ paddingTop: "8px" }` → `"pt1"`, `{ borderStyle: "solid" }` → `"bss"`.
+ */
+function buildLonghandLookup(mapping: TrussMapping): Map<string, string> {
+  const lookup = new Map<string, string>();
+  for (const [abbrev, entry] of Object.entries(mapping.abbreviations)) {
+    if (entry.kind !== "static") continue;
+    const props = Object.keys(entry.defs);
+    if (props.length !== 1) continue;
+    const prop = props[0];
+    const value = String(entry.defs[prop]);
+    const key = `${prop}\0${value}`;
+    // First match wins — if multiple abbreviations produce the same declaration,
+    // the one that appears first in the mapping is canonical.
+    if (!lookup.has(key)) {
+      lookup.set(key, abbrev);
+    }
+  }
+  return lookup;
+}
+
+/** Cached longhand lookup per mapping (keyed by identity). */
+let cachedMapping: TrussMapping | null = null;
+let cachedLookup: Map<string, string> | null = null;
+
+/** Get or build the longhand lookup for a mapping. */
+function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
+  if (cachedMapping !== mapping) {
+    cachedMapping = mapping;
+    cachedLookup = buildLonghandLookup(mapping);
+  }
+  return cachedLookup!;
+}
+
+/**
  * Compute the base class name for a static segment.
+ *
+ * For multi-property abbreviations, looks up the canonical single-property
+ * abbreviation name so classes are maximally reused.
+ * I.e. `p1` → `pt1`, `pr1`, `pb1`, `pl1` (not `p1_paddingTop`, etc.)
+ * I.e. `ba` → `bss`, `bw1` (not `ba_borderStyle`, etc.)
  *
  * For literal-folded dynamics (argResolved set), includes the value:
  * I.e. `mt(2)` → `mt_16px`, `bc("red")` → `bc_red`.
- * For multi-property abbreviations, includes the CSS property:
- * I.e. `ba` → `ba_borderStyle`, `ba_borderWidth`.
  */
-function computeStaticBaseName(seg: ResolvedSegment, cssProp: string, isMultiProp: boolean): string {
+function computeStaticBaseName(
+  seg: ResolvedSegment,
+  cssProp: string,
+  cssValue: string,
+  isMultiProp: boolean,
+  mapping: TrussMapping,
+): string {
   const abbrev = seg.key.split("__")[0];
 
   if (seg.argResolved !== undefined) {
     const valuePart = cleanValueForClassName(seg.argResolved);
-    return isMultiProp ? `${abbrev}_${valuePart}_${cssProp}` : `${abbrev}_${valuePart}`;
+    if (isMultiProp) {
+      // Try to find a canonical single-property abbreviation for this longhand
+      const lookup = getLonghandLookup(mapping);
+      const canonical = lookup.get(`${cssProp}\0${cssValue}`);
+      if (canonical) return canonical;
+      return `${abbrev}_${valuePart}_${cssProp}`;
+    }
+    return `${abbrev}_${valuePart}`;
   }
 
-  return isMultiProp ? `${abbrev}_${cssProp}` : abbrev;
+  if (isMultiProp) {
+    // Try to find a canonical single-property abbreviation for this longhand
+    const lookup = getLonghandLookup(mapping);
+    const canonical = lookup.get(`${cssProp}\0${cssValue}`);
+    if (canonical) return canonical;
+    return `${abbrev}_${cssProp}`;
+  }
+
+  return abbrev;
 }
 
 // -- Collecting atomic rules from resolved chains --
@@ -144,7 +206,7 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
     const cssValue = extractLeafValue(value);
     if (cssValue === null) continue;
 
-    const baseName = computeStaticBaseName(seg, cssProp, isMultiProp);
+    const baseName = computeStaticBaseName(seg, cssProp, String(cssValue), isMultiProp, mapping);
     const className = suffix ? `${baseName}${suffix}` : baseName;
 
     if (!rules.has(className)) {
@@ -424,7 +486,7 @@ export function buildStyleHashProperties(
         const val = extractLeafValue(rawDefs[cssProp]);
         if (val === null) continue;
 
-        const baseName = computeStaticBaseName(seg, cssProp, isMultiProp);
+        const baseName = computeStaticBaseName(seg, cssProp, String(val), isMultiProp, mapping);
         const className = suffix ? `${baseName}${suffix}` : baseName;
 
         if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);

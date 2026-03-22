@@ -1,6 +1,5 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
-import { TrussDebugInfo } from "@homebound/truss/runtime";
 import { Css, Palette, type Only, type Xss } from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
 import "@testing-library/jest-dom/vitest";
@@ -22,24 +21,23 @@ void chipElement;
 void invalidChipElement;
 
 /**
- * With `runtimeInjection: true` in the vitest config, the StyleX unplugin
- * compiles `stylex.create()` at build time AND inserts runtime code that injects
- * the resulting CSS rules into `<style>` tags. This means jsdom's
- * `getComputedStyle` can resolve class-based styles, and `toHaveStyle` works
- * for static (class-based) styles.
+ * The truss plugin transforms `Css.*.$` expressions at build time and injects
+ * the resulting CSS rules into a `<style>` tag via `__injectTrussCSS`. This
+ * means jsdom's `getComputedStyle` can resolve class-based styles, and
+ * `toHaveStyle` works for static (class-based) styles.
  *
  * Dynamic/parameterized styles (e.g. `Css.mt(n).$` with a variable) use CSS
- * variables: the class sets `margin-top: var(--x-marginTop)` and the inline
- * style sets `--x-marginTop: 16px`. jsdom cannot resolve `var()` references,
- * so truly dynamic values must be tested by checking the CSS variable on the
- * element's inline style.
+ * variables: the class sets `margin-top: var(--mt_dyn)` and the inline style
+ * sets `--mt_dyn: 16px`. jsdom cannot resolve `var()` references, so truly
+ * dynamic values must be tested by checking the CSS variable on the element's
+ * inline style.
  *
  * Note: When the argument to a dynamic method is a literal (e.g. `Css.mt(2).$`),
- * StyleX evaluates it at compile time and produces a static class — no CSS
+ * Truss evaluates it at compile time and produces a static class — no CSS
  * variable is used. Use `toHaveStyle` for these cases.
  */
 
-describe("StyleX CssBuilder", () => {
+describe("Truss CssBuilder", () => {
   describe("basic static abbreviations", () => {
     test("Css.df applies display: flex", () => {
       const r = render(<div css={Css.df.$} />);
@@ -157,9 +155,9 @@ describe("StyleX CssBuilder", () => {
   });
 
   describe("parameterized methods (dynamic styles via CSS variables)", () => {
-    // When the argument is a literal, StyleX inlines it at build time as a
+    // When the argument is a literal, Truss inlines it at build time as a
     // static class — so we test with toHaveStyle. When we pass a variable,
-    // StyleX uses CSS variables, so we test via inline style.
+    // Truss uses CSS variables, so we test via inline style.
 
     test("Css.mt(2) applies margin-top: 16px (literal → static)", () => {
       const r = render(<div css={Css.mt(2).$} />);
@@ -201,7 +199,7 @@ describe("StyleX CssBuilder", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el.style.getPropertyValue("--x-marginTop")).toBe("16px");
+      expect(el.style.getPropertyValue("--mt_dyn")).toBe("16px");
     });
   });
 
@@ -299,7 +297,8 @@ describe("StyleX CssBuilder", () => {
 
     test("conditional false skips dynamic style", () => {
       const refs = Css.if(false).mt(2).$;
-      expect(refs).toEqual([new TrussDebugInfo("Css.test.tsx:301")]);
+      // When condition is false, the style hash is empty (no properties applied)
+      expect(refs).toEqual({});
     });
   });
 
@@ -387,7 +386,7 @@ describe("StyleX CssBuilder", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
-      expect(div.style.getPropertyValue("--x-marginTop")).toBe("16px");
+      expect(div.style.getPropertyValue("--mt_dyn")).toBe("16px");
     });
 
     test("css prop applies dynamic styles with literal", () => {

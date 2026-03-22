@@ -167,7 +167,7 @@ describe("transform", () => {
       n(`
         const s = {
           WebkitLineClamp: "lineClamp_3_WebkitLineClamp",
-          overflow: "lineClamp_3_overflow",
+          overflow: "oh",
           display: "lineClamp_3_display",
           WebkitBoxOrient: "lineClamp_3_WebkitBoxOrient",
           textOverflow: "lineClamp_3_textOverflow"
@@ -220,7 +220,7 @@ describe("transform", () => {
           f16: { fontSize: "f16" },
           f14: { fontSize: "f14" },
           f12: { fontSize: "f12" },
-          f10: { fontSize: "f10_fontSize", fontWeight: "f10_fontWeight" }
+          f10: { fontSize: "f10_fontSize", fontWeight: "fw5" }
         };
         const key: Typography = pickType();
         const s = { ...(__typography[key] ?? {}) };
@@ -244,7 +244,7 @@ describe("transform", () => {
           f16: { fontSize: "f16" },
           f14: { fontSize: "f14" },
           f12: { fontSize: "f12" },
-          f10: { fontSize: "f10_fontSize", fontWeight: "f10_fontWeight" }
+          f10: { fontSize: "f10_fontSize", fontWeight: "fw5" }
         };
         const __typography__sm = {
           f24: { fontSize: "f24_sm" },
@@ -252,7 +252,7 @@ describe("transform", () => {
           f16: { fontSize: "f16_sm" },
           f14: { fontSize: "f14_sm" },
           f12: { fontSize: "f12_sm" },
-          f10: { fontSize: "f10_fontSize_sm", fontWeight: "f10_fontWeight_sm" }
+          f10: { fontSize: "f10_fontSize_sm", fontWeight: "fw5_sm" }
         };
         const key: Typography = pickType();
         const otherKey: Typography = pickOtherType();
@@ -277,7 +277,7 @@ describe("transform", () => {
 
   test("multi-property static: Css.ba.$ (border)", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ba.$;`)!)).toBe(
-      n(`const s = { borderStyle: "ba_borderStyle", borderWidth: "ba_borderWidth" };`),
+      n(`const s = { borderStyle: "bss", borderWidth: "bw1" };`),
     );
   });
 
@@ -295,7 +295,7 @@ describe("transform", () => {
 
   test("onHover with multi-property: Css.onHover.ba.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onHover.ba.$;`)!)).toBe(
-      n(`const s = { borderStyle: "ba_borderStyle_h", borderWidth: "ba_borderWidth_h" };`),
+      n(`const s = { borderStyle: "bss_h", borderWidth: "bw1_h" };`),
     );
   });
 
@@ -403,7 +403,7 @@ describe("transform", () => {
           wrapper: {
             ...{ display: "df", alignItems: "aic" },
             ...(someCondition ? { color: "black" } : { color: "blue" }),
-            ...(!compound ? { borderStyle: "ba_borderStyle", borderWidth: "ba_borderWidth" } : {})
+            ...(!compound ? { borderStyle: "bss", borderWidth: "bw1" } : {})
           },
           hover: { backgroundColor: "bgBlue" }
         };
@@ -788,7 +788,7 @@ describe("transform", () => {
           };
           return <div {...mergeProps(BorderHoverChild, undefined, {
             ...fieldStyles.inputWrapperReadOnly,
-            ...(multiline ? { flexDirection: "fdc", alignItems: "aifs", gap: "gap2" } : { ...(wrap === false ? { whiteSpace: "truncate_whiteSpace", overflow: "truncate_overflow", textOverflow: "truncate_textOverflow" } : {}) }),
+            ...(multiline ? { flexDirection: "fdc", alignItems: "aifs", gap: "gap2" } : { ...(wrap === false ? { whiteSpace: "wsnw", overflow: "oh", textOverflow: "truncate_textOverflow" } : {}) }),
             ...xss
           })} />;
         }
@@ -823,7 +823,7 @@ describe("transform", () => {
         function MyComponent({ disabled, someConst }) {
           const styles = {
             wrapper: {
-              ...{ display: "df", alignItems: "aic", borderStyle: "ba_borderStyle", borderWidth: "ba_borderWidth" },
+              ...{ display: "df", alignItems: "aic", borderStyle: "bss", borderWidth: "bw1" },
               ...(disabled ? { color: "black" } : {})
             },
             hover: { backgroundColor: "bgBlue" }
@@ -860,7 +860,7 @@ describe("transform", () => {
         function MyComponent({ borderOnHover, compound, isHovered }) {
           const fieldStyles = {
             inputWrapper: {
-              ...{ display: "df", alignItems: "aic", borderStyle: "ba_borderStyle", borderWidth: "ba_borderWidth" },
+              ...{ display: "df", alignItems: "aic", borderStyle: "bss", borderWidth: "bw1" },
               ...(!compound ? { borderRadius: "br4" } : {}),
               ...(borderOnHover && { color: "black" }),
               ...(isHovered && { color: "blue" })
@@ -1200,12 +1200,12 @@ describe("transform", () => {
         function getTabStyles() {
           const borderBottomStyles = maybeBorderStyles();
           return {
-            baseStyles: { display: "df", alignItems: "aic", height: "h_32px", paddingLeft: "px1_paddingLeft", paddingRight: "px1_paddingRight", outline: "outline0", color: "black", cursor: "cursorPointer" },
+            baseStyles: { display: "df", alignItems: "aic", height: "h_32px", paddingLeft: "pl1", paddingRight: "pr1", outline: "outline0", color: "black", cursor: "cursorPointer" },
             activeStyles: { ...{ color: "black", borderRadius: "br4" }, ...borderBottomStyles },
             disabledStyles: { color: "blue", cursor: "cursorNotAllowed" },
-            focusRingStyles: { borderStyle: "ba_borderStyle", borderWidth: "ba_borderWidth" },
+            focusRingStyles: { borderStyle: "bss", borderWidth: "bw1" },
             hoverStyles: { ...{ color: "blue" }, ...borderBottomStyles },
-            activeHoverStyles: { ...{ borderStyle: "ba_borderStyle", borderWidth: "ba_borderWidth", color: "black" }, ...borderBottomStyles }
+            activeHoverStyles: { ...{ borderStyle: "bss", borderWidth: "bw1", color: "black" }, ...borderBottomStyles }
           };
         }
       `),
@@ -1222,10 +1222,10 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.p1.if(isActive).df.else.db.$;`)!)).toBe(
       n(`
         const s = {
-          paddingTop: "p1_paddingTop",
-          paddingBottom: "p1_paddingBottom",
-          paddingRight: "p1_paddingRight",
-          paddingLeft: "p1_paddingLeft",
+          paddingTop: "pt1",
+          paddingBottom: "pb1",
+          paddingRight: "pr1",
+          paddingLeft: "pl1",
           ...(isActive ? { display: "df" } : { display: "db" })
         };
       `),
@@ -1255,10 +1255,10 @@ describe("transform", () => {
       n(`
         const s = {
           marginTop: "mt0 mt1",
-          paddingTop: "p1_paddingTop",
-          paddingBottom: "p1_paddingBottom",
-          paddingRight: "p1_paddingRight",
-          paddingLeft: "p1_paddingLeft"
+          paddingTop: "pt1",
+          paddingBottom: "pb1",
+          paddingRight: "pr1",
+          paddingLeft: "pl1"
         };
       `),
     );
@@ -1424,7 +1424,7 @@ describe("transform", () => {
 
   test("breakpoint with multi-property: Css.ifSm.ba.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.ba.$;`)!)).toBe(
-      n(`const s = { borderStyle: "ba_borderStyle_sm", borderWidth: "ba_borderWidth_sm" };`),
+      n(`const s = { borderStyle: "bss_sm", borderWidth: "bw1_sm" };`),
     );
   });
 

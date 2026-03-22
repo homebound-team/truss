@@ -33,6 +33,8 @@ export interface TransformResult {
   map?: unknown;
   /** The generated CSS text for this file's Truss usages. */
   css: string;
+  /** The atomic CSS rules collected during this transform, keyed by class name. */
+  rules: Map<string, import("./emit-truss").AtomicRule>;
 }
 
 export interface TransformTrussOptions {
@@ -209,7 +211,7 @@ export function transformTruss(
     retainLines: false,
   });
 
-  return { code: output.code, map: output.map, css: cssText };
+  return { code: output.code, map: output.map, css: cssText, rules };
 }
 
 /** Collect typography runtime lookups from all resolved chains. */
