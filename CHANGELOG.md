@@ -1,3 +1,9 @@
+## [2.1.0-next.8](https://github.com/homebound-team/truss/compare/v2.1.0-next.7...v2.1.0-next.8) (2026-03-22)
+
+### Bug Fixes
+
+* Another attempt at ordering fix. ([ba9fc8a](https://github.com/homebound-team/truss/commit/ba9fc8a868d90df10101afc8515c1c81e4f8d596))
+
 ## [2.1.0-next.7](https://github.com/homebound-team/truss/compare/v2.1.0-next.6...v2.1.0-next.7) (2026-03-22)
 
 ### Bug Fixes
