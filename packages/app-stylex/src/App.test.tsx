@@ -70,7 +70,7 @@ describe("App", () => {
     expect(span).toHaveStyle({ color: "#353535" });
   });
 
-  test("conditional styles apply blue above threshold", async () => {
+  test("conditional styles apply above threshold", async () => {
     render(<App />);
     const user = userEvent.setup();
     const button = screen.getByRole("button");
@@ -84,8 +84,8 @@ describe("App", () => {
   test("marker card renders with marker and when classes", () => {
     render(<App />);
     const markerCard = screen.getByText("Hover this card").parentElement!;
-    const childSpan = screen.getByText(/I turn blue on parent hover/);
+    const childSpan = screen.getByText(/I turn white on parent hover/);
     expect(markerCard.className).toMatch(/__truss_m/);
-    expect(childSpan.className).toMatch(/wh_anc_h_blue/);
+    expect(childSpan.className).toMatch(/wh_anc_h_white/);
   });
 });
