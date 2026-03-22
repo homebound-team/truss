@@ -2441,7 +2441,13 @@ export enum Palette {
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({ rules: {}, enabled: true, important: false, selector: undefined });
+export const Css = new CssBuilder({
+  rules: {},
+  enabled: true,
+  important: false,
+  selector: undefined,
+  elseApplied: false,
+});
 
 export type Margin = "margin" | "marginTop" | "marginRight" | "marginBottom" | "marginLeft";
 
