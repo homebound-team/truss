@@ -1,3 +1,9 @@
+## [2.1.1](https://github.com/homebound-team/truss/compare/v2.1.0...v2.1.1) (2026-03-22)
+
+### Bug Fixes
+
+* Fix ba/bw override. ([#175](https://github.com/homebound-team/truss/issues/175)) ([8dc394e](https://github.com/homebound-team/truss/commit/8dc394e87b83ded4ecfeb2f4e6db98bec2fd88f5))
+
 ## [2.1.0](https://github.com/homebound-team/truss/compare/v2.0.13...v2.1.0) (2026-03-22)
 
 ### Features
