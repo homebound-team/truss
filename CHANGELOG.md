@@ -1,3 +1,9 @@
+## [2.1.0-next.7](https://github.com/homebound-team/truss/compare/v2.1.0-next.6...v2.1.0-next.7) (2026-03-22)
+
+### Bug Fixes
+
+* Fix variable rules emit after static. ([ceb5e52](https://github.com/homebound-team/truss/commit/ceb5e521013c5538cb396817f43e1ad73b0cc511))
+
 ## [2.1.0-next.6](https://github.com/homebound-team/truss/compare/v2.1.0-next.5...v2.1.0-next.6) (2026-03-22)
 
 ### Bug Fixes
