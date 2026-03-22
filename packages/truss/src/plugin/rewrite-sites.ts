@@ -60,7 +60,6 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
   }
 
   rewriteCssPropsCalls(options);
-  rewriteCssSpreadCalls(options.ast, options.cssBindingName);
 
   // Second pass: lower any remaining `css={...}` expression to `trussProps(...)`.
   rewriteCssAttributeExpressions(options);
@@ -323,28 +322,6 @@ function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
 }
 
 // ---------------------------------------------------------------------------
-// Css.spread(...) rewriting
-// ---------------------------------------------------------------------------
-
-/**
- * Strip `Css.spread(expr)` wrappers — in the new model, style composition
- * is native object composition, so Css.spread is a no-op.
- */
-function rewriteCssSpreadCalls(ast: t.File, cssBindingName: string): void {
-  traverse(ast, {
-    CallExpression(path: NodePath<t.CallExpression>) {
-      if (!isCssSpreadCall(path.node, cssBindingName)) return;
-
-      const arg = path.node.arguments[0];
-      if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
-
-      // Just unwrap: Css.spread({ ...a, ...b }) → { ...a, ...b }
-      path.replaceWith(arg);
-    },
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Second pass: remaining css={...} attributes
 // ---------------------------------------------------------------------------
 
@@ -400,16 +377,6 @@ function isCssPropsCall(expr: t.CallExpression, cssBindingName: string): boolean
     !expr.callee.computed &&
     t.isIdentifier(expr.callee.object, { name: cssBindingName }) &&
     t.isIdentifier(expr.callee.property, { name: "props" })
-  );
-}
-
-/** Match the legacy `Css.spread(...)` marker helper. */
-function isCssSpreadCall(expr: t.CallExpression, cssBindingName: string): boolean {
-  return (
-    t.isMemberExpression(expr.callee) &&
-    !expr.callee.computed &&
-    t.isIdentifier(expr.callee.object, { name: cssBindingName }) &&
-    t.isIdentifier(expr.callee.property, { name: "spread" })
   );
 }
 

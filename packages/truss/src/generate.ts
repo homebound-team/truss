@@ -192,10 +192,6 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ rules: rules as any });
   }
 
-  /** Marker helper for legacy object-spread composition. */
-  spread<P extends object>(props: P): P {
-    return props;
-  }
 }
 
 /** Sort keys so equivalent rule objects have deterministic shape. */
@@ -466,11 +462,6 @@ class CssBuilder<T extends Properties> {
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
       : { ...this.rules, ...newRules };
     return this.newCss({ rules: rules as any });
-  }
-
-  /** Marker helper for legacy object-spread composition. */
-  spread<P extends object>(props: P): P {
-    return props;
   }
 
   /** Convert a style hash into \`{ className, style }\` props for manual spreading into non-\`css=\` contexts. */

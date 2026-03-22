@@ -412,7 +412,7 @@ describe("transform", () => {
     );
   });
 
-  test("Css.spread legacy helper is erased and inner expression stays as-is", () => {
+  test("native object composition stays as-is", () => {
     expect(
       n(
         transform(`
@@ -420,15 +420,15 @@ describe("transform", () => {
 
           function Button(props) {
             const { active, isHovered } = props;
-            const baseStyles = Css.spread({
+            const baseStyles = {
               ...Css.df.aic.$,
-            });
-            const activeStyles = Css.spread({
+            };
+            const activeStyles = {
               ...Css.black.$,
-            });
-            const hoverStyles = Css.spread({
+            };
+            const hoverStyles = {
               ...Css.blue.$,
-            });
+            };
 
             return <div css={{
               ...baseStyles,
@@ -1700,7 +1700,7 @@ describe("transform", () => {
   });
 });
 
-test("Css.spread with indirect style references via useMemo and function calls", () => {
+test("indirect style references via useMemo and function calls", () => {
   expect(
     n(
       transform(`
@@ -1714,10 +1714,10 @@ test("Css.spread with indirect style references via useMemo and function calls",
 
             const attrs = {
               "data-testid": "button",
-              css: Css.spread({
+              css: {
                 ...styles.baseStyles,
                 ...(props.active && styles.activeStyles),
-              }),
+              },
             };
 
             return <button {...attrs}>Click me</button>;
