@@ -1521,6 +1521,33 @@ describe("transform", () => {
     );
   });
 
+  test("breakpoint else uses the complementary screen query", () => {
+    const input = `import { Css } from "./Css"; const s = Css.ifSm.black.else.white.$;`;
+
+    expect(n(transform(input)!)).toBe(n(`const s = { color: "sm_black mdandup_white" };`));
+
+    expect(css(input)).toEqual(`@media screen and (max-width: 599px) {
+  .sm_black.sm_black {
+    color: #353535;
+  }
+}
+@media screen and (min-width: 600px) {
+  .mdandup_white.mdandup_white {
+    color: #fcfcfa;
+  }
+}`);
+  });
+
+  test("raw media else uses the complementary screen query", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const s = Css.if("@media screen and (max-width: 599px)").black.else.white.$;`,
+        )!,
+      ),
+    ).toBe(n(`const s = { color: "sm_black mdandup_white" };`));
+  });
+
   test("breakpoint after base style: Css.df.ifMd.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.ifMd.blue.$;`)!)).toBe(
       n(`const s = { display: "df", color: "md_blue" };`),

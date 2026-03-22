@@ -26,7 +26,7 @@ declare module "react" {
   }
 }
 
-type Opts<T> = { rules: T; enabled: boolean; selector: string | undefined };
+type Opts<T> = { rules: T; enabled: boolean; selector: string | undefined; elseApplied: boolean };
 
 class CssBuilder<T extends Properties> {
   constructor(private opts: Opts<T>) {}
@@ -2362,13 +2362,22 @@ class CssBuilder<T extends Properties> {
   if(mediaQuery: string): CssBuilder<T>;
   if(condOrMediaQuery: boolean | string): CssBuilder<T> {
     if (typeof condOrMediaQuery === "boolean") {
-      return new CssBuilder({ ...this.opts, enabled: condOrMediaQuery });
+      return new CssBuilder({ ...this.opts, enabled: condOrMediaQuery, elseApplied: false });
     }
-    return this.newCss({ selector: condOrMediaQuery });
+    return this.newCss({ selector: condOrMediaQuery, elseApplied: false });
   }
 
   get else(): CssBuilder<T> {
-    return new CssBuilder({ ...this.opts, enabled: !this.enabled });
+    if (this.selector !== undefined) {
+      if (this.opts.elseApplied) {
+        throw new Error("else was already called");
+      }
+      return this.newCss({ selector: invertMediaQuery(this.selector), elseApplied: true });
+    }
+    if (this.opts.elseApplied) {
+      throw new Error("else was already called");
+    }
+    return new CssBuilder({ ...this.opts, enabled: !this.enabled, elseApplied: true });
   }
 
   add<P extends Properties>(props: P): CssBuilder<T & P>;
@@ -2448,4 +2457,26 @@ export enum Breakpoints {
   mdAndDown = "@media screen and (max-width: 959px)",
   lg = "@media screen and (min-width: 960px)",
   mdOrLg = "@media screen and (min-width: 600px)",
+}
+
+function invertMediaQuery(query: string): string {
+  const screenPrefix = "@media screen and ";
+  if (query.startsWith(screenPrefix)) {
+    const conditions = query.slice(screenPrefix.length).trim();
+    const rangeMatch = conditions.match(/^(min-width: (d+)px) and (max-width: (d+)px)$/);
+    if (rangeMatch) {
+      const min = Number(rangeMatch[1]);
+      const max = Number(rangeMatch[2]);
+      return `@media screen and (max-width: ${min - 1}px), screen and (min-width: ${max + 1}px)`;
+    }
+    const minMatch = conditions.match(/^(min-width: (d+)px)$/);
+    if (minMatch) {
+      return `@media screen and (max-width: ${Number(minMatch[1]) - 1}px)`;
+    }
+    const maxMatch = conditions.match(/^(max-width: (d+)px)$/);
+    if (maxMatch) {
+      return `@media screen and (min-width: ${Number(maxMatch[1]) + 1}px)`;
+    }
+  }
+  return query.replace("@media", "@media not");
 }

@@ -10,7 +10,29 @@ export type Properties = Properties1<string | 0, string>;
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
-type Opts<T> = { rules: T; enabled: boolean; important: boolean; selector: string | undefined };
+type Opts<T> = { rules: T; enabled: boolean; important: boolean; selector: string | undefined; elseApplied: boolean };
+
+function invertMediaQuery(query: string): string {
+  const screenPrefix = "@media screen and ";
+  if (query.startsWith(screenPrefix)) {
+    const conditions = query.slice(screenPrefix.length).trim();
+    const rangeMatch = conditions.match(/^(min-width: (d+)px) and (max-width: (d+)px)$/);
+    if (rangeMatch) {
+      const min = Number(rangeMatch[1]);
+      const max = Number(rangeMatch[2]);
+      return `@media screen and (max-width: ${min - 1}px), screen and (min-width: ${max + 1}px)`;
+    }
+    const minMatch = conditions.match(/^(min-width: (d+)px)$/);
+    if (minMatch) {
+      return `@media screen and (max-width: ${Number(minMatch[1]) - 1}px)`;
+    }
+    const maxMatch = conditions.match(/^(max-width: (d+)px)$/);
+    if (maxMatch) {
+      return `@media screen and (min-width: ${Number(maxMatch[1]) + 1}px)`;
+    }
+  }
+  return query.replace("@media", "@media not");
+}
 
 class CssBuilder<T extends Properties> {
   constructor(private opts: Opts<T>) {}
@@ -2322,13 +2344,13 @@ class CssBuilder<T extends Properties> {
 
   get else() {
     if (this.selector !== undefined) {
-      if (this.selector.includes("not")) {
+      if (this.opts.elseApplied) {
         throw new Error("else was already called");
       } else {
-        return this.newCss({ selector: this.selector.replace("@media", "@media not") });
+        return this.newCss({ selector: invertMediaQuery(this.selector), elseApplied: true });
       }
     }
-    return this.newCss({ enabled: !this.enabled });
+    return this.newCss({ enabled: !this.enabled, elseApplied: true });
   }
 
   get important() {

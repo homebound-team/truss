@@ -96,6 +96,35 @@ export function resolveFullChain(
 
   while (i < filteredChain.length) {
     const node = filteredChain[i];
+    const mediaStart = getMediaConditionalStartNode(node, mapping);
+    if (mediaStart) {
+      const elseIndex = findElseIndex(filteredChain, i + 1);
+      if (elseIndex !== -1) {
+        if (currentNodes.length > 0) {
+          const unconditionalSegs = resolveChain(currentNodes, mapping);
+          parts.push({
+            type: "unconditional",
+            segments: options?.skipMerge ? unconditionalSegs : mergeOverlappingConditions(unconditionalSegs),
+          });
+          currentNodes = [];
+        }
+
+        const thenNodes = mediaStart.thenNodes
+          ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
+          : filteredChain.slice(i, elseIndex);
+        const elseNodes = [makeMediaQueryNode(mediaStart.inverseMediaQuery), ...filteredChain.slice(elseIndex + 1)];
+        const thenSegs = resolveChain(thenNodes, mapping);
+        const elseSegs = resolveChain(elseNodes, mapping);
+        const combinedSegs = [...thenSegs, ...elseSegs];
+        parts.push({
+          type: "unconditional",
+          segments: options?.skipMerge ? combinedSegs : mergeOverlappingConditions(combinedSegs),
+        });
+        i = filteredChain.length;
+        break;
+      }
+    }
+
     if (node.type === "if") {
       // if(stringLiteral) → media query pseudo, not a boolean conditional
       if (node.conditionNode.type === "StringLiteral") {
@@ -174,6 +203,62 @@ export function resolveFullChain(
   }
 
   return { parts, markers, errors: [...scanErrors, ...segmentErrors] };
+}
+
+function getMediaConditionalStartNode(
+  node: ChainNode,
+  mapping: TrussMapping,
+): { inverseMediaQuery: string; thenNodes?: ChainNode[] } | null {
+  if (node.type === "if" && node.conditionNode.type === "StringLiteral") {
+    return {
+      inverseMediaQuery: invertMediaQuery(node.conditionNode.value),
+      thenNodes: [makeMediaQueryNode(node.conditionNode.value)],
+    };
+  }
+
+  if (node.type === "getter" && mapping.breakpoints && node.name in mapping.breakpoints) {
+    return { inverseMediaQuery: invertMediaQuery(mapping.breakpoints[node.name]) };
+  }
+
+  return null;
+}
+
+function findElseIndex(chain: ChainNode[], start: number): number {
+  for (let i = start; i < chain.length; i++) {
+    if (chain[i].type === "if") {
+      return -1;
+    }
+    if (chain[i].type === "else") {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function makeMediaQueryNode(mediaQuery: string): ChainNode {
+  return { type: "__mediaQuery" as any, mediaQuery } as any;
+}
+
+function invertMediaQuery(query: string): string {
+  const screenPrefix = "@media screen and ";
+  if (query.startsWith(screenPrefix)) {
+    const conditions = query.slice(screenPrefix.length).trim();
+    const rangeMatch = conditions.match(/^\(min-width: (\d+)px\) and \(max-width: (\d+)px\)$/);
+    if (rangeMatch) {
+      const min = Number(rangeMatch[1]);
+      const max = Number(rangeMatch[2]);
+      return `@media screen and (max-width: ${min - 1}px), screen and (min-width: ${max + 1}px)`;
+    }
+    const minMatch = conditions.match(/^\(min-width: (\d+)px\)$/);
+    if (minMatch) {
+      return `@media screen and (max-width: ${Number(minMatch[1]) - 1}px)`;
+    }
+    const maxMatch = conditions.match(/^\(max-width: (\d+)px\)$/);
+    if (maxMatch) {
+      return `@media screen and (min-width: ${Number(maxMatch[1]) + 1}px)`;
+    }
+  }
+  return query.replace("@media", "@media not");
 }
 
 /**
