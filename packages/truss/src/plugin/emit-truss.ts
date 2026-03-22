@@ -518,6 +518,16 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
     }
   }
 
+  sortRulesWithinPropertyTier(base);
+  sortRulesWithinPropertyTier(pseudoElement);
+  sortRulesWithinPropertyTier(whenRules);
+  sortRulesWithinPropertyTier(media);
+  sortRulesWithinPropertyTier(mediaPseudo);
+  sortRulesWithinPropertyTier(mediaPseudoElement);
+  for (const tier of pseudo.values()) {
+    sortRulesWithinPropertyTier(tier);
+  }
+
   const lines: string[] = [];
 
   // Tier 1: base atoms
@@ -576,6 +586,36 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   }
 
   return lines.join("\n");
+}
+
+function sortRulesWithinPropertyTier(rules: AtomicRule[]): void {
+  const indexedRules = rules.map(function (rule, index) {
+    return { rule, index };
+  });
+
+  indexedRules.sort(function (left, right) {
+    if (left.rule.cssProperty !== right.rule.cssProperty) {
+      return left.index - right.index;
+    }
+
+    const leftIsVariable = isVariableRule(left.rule);
+    const rightIsVariable = isVariableRule(right.rule);
+    if (leftIsVariable !== rightIsVariable) {
+      return leftIsVariable ? 1 : -1;
+    }
+
+    return left.index - right.index;
+  });
+
+  for (let i = 0; i < indexedRules.length; i++) {
+    rules[i] = indexedRules[i].rule;
+  }
+}
+
+function isVariableRule(rule: AtomicRule): boolean {
+  return getRuleDeclarations(rule).some(function (declaration) {
+    return declaration.cssVarName !== undefined;
+  });
 }
 
 function formatBaseRule(rule: AtomicRule): string {

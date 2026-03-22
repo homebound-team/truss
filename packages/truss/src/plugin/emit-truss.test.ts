@@ -276,6 +276,25 @@ describe("generateCssText", () => {
     expect(pseudoIdx).toBeLessThan(mediaIdx);
   });
 
+  test("ordering: static base rules stay before variable rules for the same property", () => {
+    const rules = new Map<string, AtomicRule>([
+      [
+        "w_var",
+        {
+          className: "w_var",
+          cssProperty: "width",
+          cssValue: "var(--width)",
+          cssVarName: "--width",
+        },
+      ],
+      ["w100", { className: "w100", cssProperty: "width", cssValue: "100%" }],
+    ]);
+    const css = generateCssText(rules);
+    const staticIdx = css.indexOf(".w100 {");
+    const variableIdx = css.indexOf(".w_var {");
+    expect(staticIdx).toBeLessThan(variableIdx);
+  });
+
   test("pseudo ordering: hover before focus before active", () => {
     const rules = new Map<string, AtomicRule>([
       ["a_red", { className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" }],

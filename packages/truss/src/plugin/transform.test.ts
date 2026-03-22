@@ -843,6 +843,29 @@ describe("transform", () => {
     );
   });
 
+  test("conditional variable branch keeps the variable class on the same property", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.w100.if(isActive).w(getWidth()).$;`)!)).toBe(
+      n(`
+        const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+        const s = { width: "w100", ...(isActive ? { width: ["w100 w_var", { "--width": __maybeInc(getWidth()) }] } : {}) };
+      `),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.w100.if(isActive).w(getWidth()).$;`)!)).toBe(
+      n(`
+        .w100 {
+          width: 100%;
+        }
+        .w_var {
+          width: var(--width);
+        }
+        @property --width {
+          syntax: "*";
+          inherits: false;
+        }
+      `),
+    );
+  });
+
   test("negative increment: Css.mt(-1).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(-1).$;`)!)).toBe(
       n(`const s = { marginTop: "mt_neg8px" };`),
