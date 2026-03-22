@@ -457,5 +457,19 @@ describe("Truss CssBuilder", () => {
       expect(hasCssDeclaration(el, "background-color", { hover: false })).toBe(true);
       expect(hasCssDeclaration(el, "background-color", { hover: true })).toBe(true);
     });
+
+    test("conditional before hover keeps the earlier non-hover value", () => {
+      const r = render(<div css={Css.black.if(true).onHover.white.$}>Hover me</div>);
+      const el = r.container.firstChild as HTMLElement;
+      expect(hasCssDeclaration(el, "color", { hover: false })).toBe(true);
+      expect(hasCssDeclaration(el, "color", { hover: true })).toBe(true);
+    });
+
+    test("conditional else before hover keeps the earlier non-hover value", () => {
+      const r = render(<div css={Css.black.if(false).bgBlue.else.onHover.white.$}>Hover me</div>);
+      const el = r.container.firstChild as HTMLElement;
+      expect(hasCssDeclaration(el, "color", { hover: false })).toBe(true);
+      expect(hasCssDeclaration(el, "color", { hover: true })).toBe(true);
+    });
   });
 });

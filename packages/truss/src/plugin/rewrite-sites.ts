@@ -87,6 +87,7 @@ function getCssAttributePath(path: NodePath<t.MemberExpression>): NodePath<t.JSX
 /** Build an ObjectExpression from a ResolvedChain, handling conditionals. */
 function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOptions): t.ObjectExpression {
   const members: (t.ObjectProperty | t.SpreadElement)[] = [];
+  const previousProperties = new Map<string, t.ObjectProperty>();
 
   if (chain.markers.length > 0) {
     const markerClasses = chain.markers.map(function (marker) {
@@ -97,11 +98,23 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
 
   for (const part of chain.parts) {
     if (part.type === "unconditional") {
-      members.push(...buildStyleHashMembers(part.segments, options));
+      const partMembers = buildStyleHashMembers(part.segments, options);
+      members.push(...partMembers);
+      for (const member of partMembers) {
+        if (t.isObjectProperty(member)) {
+          previousProperties.set(propertyName(member.key), member);
+        }
+      }
     } else {
       // Conditional: ...(cond ? { then } : { else })
-      const thenMembers = buildStyleHashMembers(part.thenSegments, options);
-      const elseMembers = buildStyleHashMembers(part.elseSegments, options);
+      const thenMembers = mergeConditionalBranchMembers(
+        buildStyleHashMembers(part.thenSegments, options),
+        previousProperties,
+      );
+      const elseMembers = mergeConditionalBranchMembers(
+        buildStyleHashMembers(part.elseSegments, options),
+        previousProperties,
+      );
       members.push(
         t.spreadElement(
           t.conditionalExpression(part.conditionNode, t.objectExpression(thenMembers), t.objectExpression(elseMembers)),
@@ -163,6 +176,111 @@ function buildStyleHashMembers(
 
   flushNormal();
   return members;
+}
+
+function mergeConditionalBranchMembers(
+  members: (t.ObjectProperty | t.SpreadElement)[],
+  previousProperties: Map<string, t.ObjectProperty>,
+): (t.ObjectProperty | t.SpreadElement)[] {
+  return members.map(function (member) {
+    if (!t.isObjectProperty(member)) {
+      return member;
+    }
+
+    const prior = previousProperties.get(propertyName(member.key));
+    if (!prior) {
+      return member;
+    }
+
+    return t.objectProperty(
+      clonePropertyKey(member.key),
+      mergePropertyValues(prior.value as t.Expression, member.value as t.Expression),
+    );
+  });
+}
+
+function mergePropertyValues(previousValue: t.Expression, currentValue: t.Expression): t.Expression {
+  if (t.isStringLiteral(previousValue) && t.isStringLiteral(currentValue)) {
+    return t.stringLiteral(`${previousValue.value} ${currentValue.value}`);
+  }
+
+  if (t.isStringLiteral(previousValue) && t.isArrayExpression(currentValue)) {
+    return mergeTupleValue(currentValue, previousValue.value, true);
+  }
+
+  if (t.isArrayExpression(previousValue) && t.isStringLiteral(currentValue)) {
+    return mergeTupleValue(previousValue, currentValue.value, false);
+  }
+
+  if (t.isArrayExpression(previousValue) && t.isArrayExpression(currentValue)) {
+    const previousClassNames = tupleClassNames(previousValue);
+    return mergeTupleValue(currentValue, previousClassNames, true, arrayElementExpression(previousValue.elements[1]));
+  }
+
+  return t.cloneNode(currentValue, true);
+}
+
+function mergeTupleValue(
+  tuple: t.ArrayExpression,
+  classNames: string,
+  prependClassNames: boolean,
+  previousVars?: t.Expression | null,
+): t.ArrayExpression {
+  const currentClassNames = tupleClassNames(tuple);
+  const mergedClassNames = prependClassNames
+    ? `${classNames} ${currentClassNames}`
+    : `${currentClassNames} ${classNames}`;
+  const varsExpr = tuple.elements[1];
+  const mergedVars =
+    previousVars && arrayElementExpression(varsExpr)
+      ? mergeVarsObject(previousVars, arrayElementExpression(varsExpr)!)
+      : (arrayElementExpression(varsExpr) ?? previousVars ?? null);
+
+  return t.arrayExpression([
+    t.stringLiteral(mergedClassNames),
+    mergedVars ? t.cloneNode(mergedVars, true) : t.objectExpression([]),
+  ]);
+}
+
+function tupleClassNames(tuple: t.ArrayExpression): string {
+  const classNames = tuple.elements[0];
+  return t.isStringLiteral(classNames) ? classNames.value : "";
+}
+
+function arrayElementExpression(element: t.Expression | t.SpreadElement | null | undefined): t.Expression | null {
+  return element && !t.isSpreadElement(element) ? element : null;
+}
+
+function mergeVarsObject(previousVars: t.Expression, currentVars: t.Expression): t.Expression {
+  if (t.isObjectExpression(previousVars) && t.isObjectExpression(currentVars)) {
+    return t.objectExpression([
+      ...previousVars.properties.map(function (property) {
+        return t.cloneNode(property, true);
+      }),
+      ...currentVars.properties.map(function (property) {
+        return t.cloneNode(property, true);
+      }),
+    ]);
+  }
+
+  return t.cloneNode(currentVars, true);
+}
+
+function propertyName(key: t.Expression | t.Identifier | t.PrivateName): string {
+  if (t.isIdentifier(key)) {
+    return key.name;
+  }
+  if (t.isStringLiteral(key)) {
+    return key.value;
+  }
+  return generate(key).code;
+}
+
+function clonePropertyKey(key: t.Expression | t.Identifier | t.PrivateName): t.Expression | t.Identifier {
+  if (t.isPrivateName(key)) {
+    return t.identifier(key.id.name);
+  }
+  return t.cloneNode(key, true);
 }
 
 // ---------------------------------------------------------------------------

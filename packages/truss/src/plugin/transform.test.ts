@@ -1238,6 +1238,43 @@ describe("transform", () => {
     );
   });
 
+  test("conditional pseudo branch keeps earlier base class on the same property", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.black.if(isActive).onHover.white.$;`)!)).toBe(
+      n(`const s = { color: "black", ...(isActive ? { color: "black h_white" } : {}) };`),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.black.if(isActive).onHover.white.$;`)!)).toBe(
+      n(`
+        .black {
+          color: #353535;
+        }
+        .h_white:hover {
+          color: #fcfcfa;
+        }
+      `),
+    );
+  });
+
+  test("conditional else pseudo branch keeps earlier base class on the same property", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.black.if(isActive).bgBlue.else.onHover.white.$;`)!),
+    ).toBe(
+      n(`const s = { color: "black", ...(isActive ? { backgroundColor: "bgBlue" } : { color: "black h_white" }) };`),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.black.if(isActive).bgBlue.else.onHover.white.$;`)!)).toBe(
+      n(`
+        .black {
+          color: #353535;
+        }
+        .bgBlue {
+          background-color: #526675;
+        }
+        .h_white:hover {
+          color: #fcfcfa;
+        }
+      `),
+    );
+  });
+
   test("negative increment: Css.mt(-1).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(-1).$;`)!)).toBe(
       n(`const s = { marginTop: "mt_neg8px" };`),
