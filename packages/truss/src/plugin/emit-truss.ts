@@ -1,6 +1,7 @@
 import * as t from "@babel/types";
 import type { ResolvedChain } from "./resolve-chain";
 import type { ResolvedSegment, TrussMapping } from "./types";
+import { sortRulesByPriority } from "./priority";
 
 // -- Atomic CSS rule model --
 
@@ -35,9 +36,6 @@ const PSEUDO_SUFFIX: Record<string, string> = {
   ":active": "_a",
   ":disabled": "_d",
 };
-
-/** Pseudo-class precedence order (weakest to strongest). */
-const PSEUDO_ORDER: string[] = [":hover", ":focus", ":focus-visible", ":active", ":disabled"];
 
 /** Short abbreviations for relationship types in when() class names. */
 const RELATIONSHIP_SHORT: Record<string, string> = {
@@ -354,100 +352,23 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
 
 // -- CSS text generation --
 
-/** Generate the full CSS text from collected rules, ordered by specificity tiers. */
+/**
+ * Generate the full CSS text from collected rules, sorted by StyleX priority.
+ *
+ * Uses an additive priority system where property tier + pseudo + at-rule priorities
+ * are summed to produce a single sort key, guaranteeing longhands beat shorthands,
+ * pseudo-classes follow LVFHA order, and at-rules override base styles.
+ */
 export function generateCssText(rules: Map<string, AtomicRule>): string {
   const allRules = Array.from(rules.values());
 
-  // Sort into tiers
-  const base: AtomicRule[] = [];
-  const pseudo: Map<string, AtomicRule[]> = new Map();
-  const pseudoElement: AtomicRule[] = [];
-  const whenRules: AtomicRule[] = [];
-  const media: AtomicRule[] = [];
-  const mediaPseudo: AtomicRule[] = [];
-  const mediaPseudoElement: AtomicRule[] = [];
-
-  for (const rule of allRules) {
-    if (rule.whenSelector) {
-      whenRules.push(rule);
-    } else if (rule.mediaQuery && rule.pseudoClass) {
-      mediaPseudo.push(rule);
-    } else if (rule.mediaQuery && rule.pseudoElement) {
-      mediaPseudoElement.push(rule);
-    } else if (rule.mediaQuery) {
-      media.push(rule);
-    } else if (rule.pseudoClass && rule.pseudoElement) {
-      // pseudo-class + pseudo-element, emit in pseudo tier
-      const tier = pseudo.get(rule.pseudoClass) ?? [];
-      tier.push(rule);
-      pseudo.set(rule.pseudoClass, tier);
-    } else if (rule.pseudoElement) {
-      pseudoElement.push(rule);
-    } else if (rule.pseudoClass) {
-      const tier = pseudo.get(rule.pseudoClass) ?? [];
-      tier.push(rule);
-      pseudo.set(rule.pseudoClass, tier);
-    } else {
-      base.push(rule);
-    }
-  }
-
-  sortRulesWithinPropertyTier(base);
-  sortRulesWithinPropertyTier(pseudoElement);
-  sortRulesWithinPropertyTier(whenRules);
-  sortRulesWithinPropertyTier(media);
-  sortRulesWithinPropertyTier(mediaPseudo);
-  sortRulesWithinPropertyTier(mediaPseudoElement);
-  for (const tier of pseudo.values()) {
-    sortRulesWithinPropertyTier(tier);
-  }
+  // Single flat sort by computed priority
+  sortRulesByPriority(allRules);
 
   const lines: string[] = [];
 
-  // Tier 1: base atoms
-  for (const rule of base) {
-    lines.push(formatBaseRule(rule));
-  }
-
-  // Tier 2: pseudo-class atoms, ordered by precedence
-  for (const pc of PSEUDO_ORDER) {
-    const tier = pseudo.get(pc);
-    if (!tier) continue;
-    for (const rule of tier) {
-      lines.push(formatPseudoRule(rule));
-    }
-  }
-  // Any pseudo-classes not in the table (shouldn't happen, but be safe)
-  for (const [pc, tier] of Array.from(pseudo.entries())) {
-    if (PSEUDO_ORDER.includes(pc)) continue;
-    for (const rule of tier) {
-      lines.push(formatPseudoRule(rule));
-    }
-  }
-
-  // Tier 3: pseudo-element atoms
-  for (const rule of pseudoElement) {
-    lines.push(formatPseudoElementRule(rule));
-  }
-
-  // Tier 4: when() relationship selector atoms
-  for (const rule of whenRules) {
-    lines.push(formatWhenRule(rule));
-  }
-
-  // Tier 5: media atoms (doubled selector)
-  for (const rule of media) {
-    lines.push(formatMediaRule(rule));
-  }
-
-  // Tier 5: media+pseudo atoms (doubled selector + pseudo)
-  for (const rule of mediaPseudo) {
-    lines.push(formatMediaPseudoRule(rule));
-  }
-
-  // Tier 6: media+pseudo-element atoms
-  for (const rule of mediaPseudoElement) {
-    lines.push(formatMediaPseudoElementRule(rule));
+  for (const rule of allRules) {
+    lines.push(formatRule(rule));
   }
 
   // @property declarations for variable rules
@@ -462,59 +383,16 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   return lines.join("\n");
 }
 
-/**
- * Reorder rules within a tier so that variable rules (`var(--...)`) for a given
- * CSS property always appear after all static rules for that same property.
- *
- * A simple comparison sort can't do this because it creates intransitive orderings
- * when unrelated properties are interleaved. Instead we do two passes:
- * 1. Emit all rules except variable rules whose property also has a static rule
- * 2. Append the deferred variable rules at the end
- */
-function sortRulesWithinPropertyTier(rules: AtomicRule[]): void {
-  // Find properties that have both static and variable rules
-  const staticProps = new Set<string>();
-  const variableProps = new Set<string>();
-  for (const rule of rules) {
-    if (isVariableRule(rule)) {
-      variableProps.add(rule.cssProperty);
-    } else {
-      staticProps.add(rule.cssProperty);
-    }
-  }
-
-  // Properties that need reordering: have both static and variable rules
-  const conflictingProps = new Set<string>();
-  for (const prop of variableProps) {
-    if (staticProps.has(prop)) {
-      conflictingProps.add(prop);
-    }
-  }
-
-  if (conflictingProps.size === 0) return;
-
-  // Pass 1: keep everything except variable rules for conflicting properties
-  const kept: AtomicRule[] = [];
-  const deferred: AtomicRule[] = [];
-  for (const rule of rules) {
-    if (conflictingProps.has(rule.cssProperty) && isVariableRule(rule)) {
-      deferred.push(rule);
-    } else {
-      kept.push(rule);
-    }
-  }
-
-  // Rebuild: static rules in original order, then deferred variable rules
-  const result = [...kept, ...deferred];
-  for (let i = 0; i < result.length; i++) {
-    rules[i] = result[i];
-  }
-}
-
-function isVariableRule(rule: AtomicRule): boolean {
-  return getRuleDeclarations(rule).some(function (declaration) {
-    return declaration.cssVarName !== undefined;
-  });
+/** Format a single rule into its CSS text, dispatching by rule type. */
+function formatRule(rule: AtomicRule): string {
+  if (rule.whenSelector) return formatWhenRule(rule);
+  if (rule.mediaQuery && rule.pseudoClass) return formatMediaPseudoRule(rule);
+  if (rule.mediaQuery && rule.pseudoElement) return formatMediaPseudoElementRule(rule);
+  if (rule.mediaQuery) return formatMediaRule(rule);
+  if (rule.pseudoClass && rule.pseudoElement) return formatPseudoRule(rule);
+  if (rule.pseudoElement) return formatPseudoElementRule(rule);
+  if (rule.pseudoClass) return formatPseudoRule(rule);
+  return formatBaseRule(rule);
 }
 
 function formatBaseRule(rule: AtomicRule): string {

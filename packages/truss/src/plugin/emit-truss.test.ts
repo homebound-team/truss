@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { collectAtomicRules, generateCssText, type AtomicRule } from "./emit-truss";
+import { computeRulePriority } from "./priority";
 import type { ResolvedSegment, TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 
@@ -307,5 +308,190 @@ describe("generateCssText", () => {
     const activeIdx = css.indexOf(".a_red:active");
     expect(hoverIdx).toBeLessThan(focusIdx);
     expect(focusIdx).toBeLessThan(activeIdx);
+  });
+
+  test("shorthand border-color emits before longhand border-top-color", () => {
+    // I.e. `bc("white")` sets border-color (shorthand-of-longhands → 2000),
+    // `btc("red")` sets border-top-color (physical longhand → 4000).
+    // border-top-color must appear later so it wins in the cascade.
+    const rules = new Map<string, AtomicRule>([
+      ["btc_red", { className: "btc_red", cssProperty: "border-top-color", cssValue: "red" }],
+      ["bc_white", { className: "bc_white", cssProperty: "border-color", cssValue: "white" }],
+    ]);
+    const css = generateCssText(rules);
+    const bcIdx = css.indexOf(".bc_white {");
+    const btcIdx = css.indexOf(".btc_red {");
+    expect(bcIdx).toBeLessThan(btcIdx);
+  });
+
+  test("shorthand border-color variable emits before longhand border-top-color variable", () => {
+    // Same scenario but with var() rules — the bug that originally motivated this change.
+    const rules = new Map<string, AtomicRule>([
+      [
+        "btc_var",
+        {
+          className: "btc_var",
+          cssProperty: "border-top-color",
+          cssValue: "var(--borderTopColor)",
+          cssVarName: "--borderTopColor",
+        },
+      ],
+      [
+        "bc_var",
+        {
+          className: "bc_var",
+          cssProperty: "border-color",
+          cssValue: "var(--borderColor)",
+          cssVarName: "--borderColor",
+        },
+      ],
+    ]);
+    const css = generateCssText(rules);
+    const bcIdx = css.indexOf(".bc_var {");
+    const btcIdx = css.indexOf(".btc_var {");
+    expect(bcIdx).toBeLessThan(btcIdx);
+  });
+
+  test("shorthand margin emits before longhand margin-top", () => {
+    // margin is shorthand-of-shorthands → 1000, margin-top is physical longhand → 4000
+    const rules = new Map<string, AtomicRule>([
+      ["mt0", { className: "mt0", cssProperty: "margin-top", cssValue: "0" }],
+      ["m0", { className: "m0", cssProperty: "margin", cssValue: "0" }],
+    ]);
+    const css = generateCssText(rules);
+    const mIdx = css.indexOf(".m0 {");
+    const mtIdx = css.indexOf(".mt0 {");
+    expect(mIdx).toBeLessThan(mtIdx);
+  });
+
+  test("shorthand padding emits before padding-left", () => {
+    const rules = new Map<string, AtomicRule>([
+      ["pl8", { className: "pl8", cssProperty: "padding-left", cssValue: "8px" }],
+      ["p0", { className: "p0", cssProperty: "padding", cssValue: "0" }],
+    ]);
+    const css = generateCssText(rules);
+    const pIdx = css.indexOf(".p0 {");
+    const plIdx = css.indexOf(".pl8 {");
+    expect(pIdx).toBeLessThan(plIdx);
+  });
+
+  test("border (shorthand-of-shorthands) before border-color (shorthand-of-longhands) before border-top-color (longhand)", () => {
+    // Three levels: border → 1000, border-color → 2000, border-top-color → 4000
+    const rules = new Map<string, AtomicRule>([
+      ["btc_red", { className: "btc_red", cssProperty: "border-top-color", cssValue: "red" }],
+      ["bc_blue", { className: "bc_blue", cssProperty: "border-color", cssValue: "blue" }],
+      ["b_none", { className: "b_none", cssProperty: "border", cssValue: "none" }],
+    ]);
+    const css = generateCssText(rules);
+    const borderIdx = css.indexOf(".b_none {");
+    const bcIdx = css.indexOf(".bc_blue {");
+    const btcIdx = css.indexOf(".btc_red {");
+    expect(borderIdx).toBeLessThan(bcIdx);
+    expect(bcIdx).toBeLessThan(btcIdx);
+  });
+
+  test("disabled pseudo-class sorts after hover and active", () => {
+    const rules = new Map<string, AtomicRule>([
+      ["d_gray", { className: "d_gray", cssProperty: "color", cssValue: "gray", pseudoClass: ":disabled" }],
+      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
+      ["a_red", { className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" }],
+    ]);
+    const css = generateCssText(rules);
+    const hoverIdx = css.indexOf(".h_blue:hover");
+    const activeIdx = css.indexOf(".a_red:active");
+    // :disabled is not in LVFHA but stylex gives it priority 92, which is < :hover (130)
+    // So :disabled should come before :hover
+    expect(css.indexOf(".d_gray:disabled")).toBeLessThan(hoverIdx);
+    expect(hoverIdx).toBeLessThan(activeIdx);
+  });
+});
+
+describe("computeRulePriority", () => {
+  test("property tiers: shorthand-of-shorthands < shorthand-of-longhands < longhand < physical longhand", () => {
+    const border = computeRulePriority({ className: "b", cssProperty: "border", cssValue: "none" });
+    const borderColor = computeRulePriority({ className: "bc", cssProperty: "border-color", cssValue: "white" });
+    const color = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
+    const borderTopColor = computeRulePriority({
+      className: "btc",
+      cssProperty: "border-top-color",
+      cssValue: "red",
+    });
+    expect(border).toBe(1000);
+    expect(borderColor).toBe(2000);
+    expect(color).toBe(3000);
+    expect(borderTopColor).toBe(4000);
+  });
+
+  test("pseudo-class adds to property priority", () => {
+    const base = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
+    const hover = computeRulePriority({
+      className: "h_c",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":hover",
+    });
+    const active = computeRulePriority({
+      className: "a_c",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":active",
+    });
+    expect(base).toBe(3000);
+    expect(hover).toBe(3130);
+    expect(active).toBe(3170);
+  });
+
+  test("media query adds 200", () => {
+    const base = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
+    const media = computeRulePriority({
+      className: "sm_c",
+      cssProperty: "color",
+      cssValue: "red",
+      mediaQuery: "@media (max-width: 599px)",
+    });
+    expect(media - base).toBe(200);
+  });
+
+  test("pseudo-element adds 5000", () => {
+    const base = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
+    const pe = computeRulePriority({
+      className: "ph_c",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoElement: "::placeholder",
+    });
+    expect(pe - base).toBe(5000);
+  });
+
+  test("additive composition: hover + media", () => {
+    const priority = computeRulePriority({
+      className: "sm_h_c",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":hover",
+      mediaQuery: "@media (max-width: 599px)",
+    });
+    // 3000 (longhand) + 130 (:hover) + 200 (@media)
+    expect(priority).toBe(3330);
+  });
+
+  test("variable rules get +0.5 to sort after static rules for same property", () => {
+    const staticRule = computeRulePriority({ className: "w100", cssProperty: "width", cssValue: "100%" });
+    const varRule = computeRulePriority({
+      className: "w_var",
+      cssProperty: "width",
+      cssValue: "var(--width)",
+      cssVarName: "--width",
+    });
+    expect(varRule).toBe(staticRule + 0.5);
+  });
+
+  test("unknown properties default to 3000 (longhand)", () => {
+    const priority = computeRulePriority({
+      className: "custom",
+      cssProperty: "some-unknown-property",
+      cssValue: "value",
+    });
+    expect(priority).toBe(3000);
   });
 });

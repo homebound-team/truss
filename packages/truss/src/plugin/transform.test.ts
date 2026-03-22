@@ -1355,13 +1355,14 @@ describe("transform", () => {
         const el = <div {...trussProps({ marginTop: "mt2", transition: "transition_all_240ms" })} />;
       `),
     );
+    // transition (shorthand-of-longhands = 2000) sorts before margin-top (physical longhand = 4000)
     expect(n(css(code)!)).toBe(
       n(`
-      .mt2 {
-        margin-top: 16px;
-      }
       .transition_all_240ms {
         transition: all 240ms;
+      }
+      .mt2 {
+        margin-top: 16px;
       }
     `),
     );
