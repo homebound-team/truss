@@ -403,6 +403,11 @@ class CssBuilder<T extends Properties> {
     return this;
   }
 
+  /** Creates a marker token for use with markerOf() and when(). */
+  newMarker(): Marker {
+    return Symbol("truss-marker");
+  }
+
   typography(key: Typography): CssBuilder<T> {
     return (this as any)[key];
   }

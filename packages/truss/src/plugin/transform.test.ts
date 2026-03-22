@@ -1318,35 +1318,160 @@ describe("transform", () => {
     );
   });
 
-  // ── Marker tests (Phase 2 deferred) ─────────────────────────────────
+  // ── Marker tests ────────────────────────────────────────────────────
 
-  test.skip("Css.marker.$ emits stylex.defaultMarker()", () => {});
+  test("Css.marker.$ emits a default marker class", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.marker.$;`)!)).toBe(
+      n(`const s = { __marker: "__truss_m" };`),
+    );
+  });
 
-  test.skip("Css.marker.$ in JSX css prop emits stylex.props(stylex.defaultMarker())", () => {});
+  test("Css.marker.$ in JSX css prop emits trussProps with marker metadata", () => {
+    expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.marker.$} />;`)!)).toBe(
+      n(`
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ __marker: "__truss_m" })} />;
+      `),
+    );
+  });
 
-  test.skip("Css.marker.df.$ combines marker with styles", () => {});
+  test("Css.marker.df.$ combines marker with styles", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.marker.df.$;`)!)).toBe(
+      n(`const s = { __marker: "__truss_m", display: "df" };`),
+    );
+  });
 
-  test.skip("Css.markerOf(row).$ passes marker variable through", () => {});
+  test("Css.markerOf(row).$ passes marker variable through", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const row = Css.newMarker(); const s = Css.markerOf(row).$;`)!),
+    ).toBe(
+      n(`
+        const row = Css.newMarker();
+        const s = { __marker: "__truss_m_row" };
+      `),
+    );
+  });
 
-  test.skip("marker and when('ancestor') in same file use same user-defined marker variable", () => {});
+  test("marker and when('ancestor') in same file use same user-defined marker variable", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const row = Css.newMarker(); const a = Css.markerOf(row).$; const b = Css.when("ancestor", row, ":hover").blue.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        const row = Css.newMarker();
+        const a = { __marker: "__truss_m_row" };
+        const b = { color: "wh_anc_h_row_blue" };
+      `),
+    );
+    expect(
+      css(
+        `import { Css } from "./Css"; const row = Css.newMarker(); const a = Css.markerOf(row).$; const b = Css.when("ancestor", row, ":hover").blue.$;`,
+      ),
+    ).toBe(`.__truss_m_row:hover .wh_anc_h_row_blue {\n  color: #526675;\n}`);
+  });
 
-  // ── when() generic API tests (Phase 2 deferred) ──────────────────────
+  // ── when() generic API tests ──────────────────────────────────────
 
-  test.skip("Css.when('ancestor', ':hover').blue.$", () => {});
+  test("Css.when('ancestor', ':hover').blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_anc_h_blue" };`),
+    );
+    expect(css(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)).toBe(
+      `.__truss_m:hover .wh_anc_h_blue {\n  color: #526675;\n}`,
+    );
+  });
 
-  test.skip("Css.when('ancestor', marker, ':hover').blue.$", () => {});
+  test("Css.when('ancestor', marker, ':hover').blue.$", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const marker = Css.newMarker(); const s = Css.when("ancestor", marker, ":hover").blue.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        const marker = Css.newMarker();
+        const s = { color: "wh_anc_h_marker_blue" };
+      `),
+    );
+  });
 
-  test.skip("Css.when('descendant', ':focus').blue.$", () => {});
+  test("Css.when('descendant', ':focus').blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_desc_f_blue" };`),
+    );
+    expect(css(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)).toBe(
+      `.wh_desc_f_blue:has(.__truss_m:focus) {\n  color: #526675;\n}`,
+    );
+  });
 
-  test.skip("Css.when('siblingAfter', ':hover').blue.$", () => {});
+  test("Css.when('siblingAfter', ':hover').blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_sibA_h_blue" };`),
+    );
+    expect(css(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)).toBe(
+      `.wh_sibA_h_blue:has(~ .__truss_m:hover) {\n  color: #526675;\n}`,
+    );
+  });
 
-  test.skip("Css.when('anySibling', marker, ':hover').blue.$", () => {});
+  test("Css.when('siblingBefore', ':hover').blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_sibB_h_blue" };`),
+    );
+    expect(css(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)).toBe(
+      `.__truss_m:hover ~ .wh_sibB_h_blue {\n  color: #526675;\n}`,
+    );
+  });
 
-  test.skip("Css.when with invalid relationship emits console.error", () => {});
+  test("Css.when('anySibling', marker, ':hover').blue.$", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const row = Css.newMarker(); const s = Css.when("anySibling", row, ":hover").blue.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        const row = Css.newMarker();
+        const s = { color: "wh_anyS_h_row_blue" };
+      `),
+    );
+  });
 
-  test.skip("Css.when with non-literal relationship emits console.error", () => {});
+  test("Css.when with invalid relationship emits console.error", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("bogus", ":hover").blue.$;`)!)).toBe(
+      n(`
+        console.error("[truss] Unsupported pattern: when() relationship must be one of: ancestor, descendant, anySibling, siblingBefore, siblingAfter -- got \\\"bogus\\\" (test.tsx:1)");
+        const s = { color: "blue" };
+      `),
+    );
+  });
 
-  test.skip("markerOf accepts a variable argument", () => {});
+  test("Css.when with non-literal relationship emits console.error", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const rel = "ancestor"; const s = Css.when(rel, ":hover").blue.$;`)!),
+    ).toBe(
+      n(`
+        console.error("[truss] Unsupported pattern: when() first argument must be a string literal relationship (test.tsx:1)");
+        const rel = "ancestor";
+        const s = { color: "blue" };
+      `),
+    );
+  });
+
+  test("markerOf accepts a variable argument", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const row = getMarker(); const s = Css.markerOf(row).df.$;`)!),
+    ).toBe(
+      n(`
+        const row = getMarker();
+        const s = { __marker: "__truss_m_row", display: "df" };
+      `),
+    );
+  });
 
   // ── Breakpoint / media query tests ──────────────────────────────────
 

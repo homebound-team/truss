@@ -26,7 +26,7 @@ export type TrussMappingEntry =
  * The plugin collects these while walking a `Css.x.y.z.$` chain.
  */
 export interface ResolvedSegment {
-  /** The stylex.create entry key (e.g. "df", "black__hover", "mt__16px") */
+  /** The emitted entry key (e.g. "df", "black__hover", "mt__16px") */
   key: string;
   /** The CSS property defs for this segment */
   defs: Record<string, unknown>;
@@ -37,9 +37,7 @@ export interface ResolvedSegment {
   /** If inside a pseudo-element context (e.g. "::placeholder", "::selection") — becomes a top-level key in the stylex.create namespace */
   pseudoElement?: string | null;
   /**
-   * If inside a `stylex.when.*` context (e.g. onHoverOf, when("descendant", ...)),
-   * the relationship + pseudo selector info. When set, uses
-   * `stylex.when.<relationship>(pseudo, marker?)` as the computed property key.
+   * If inside a `when()` relationship selector context, the relationship + pseudo selector info.
    */
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
   /** For variable entries: the CSS prop names */
@@ -73,12 +71,12 @@ export interface ResolvedSegment {
 }
 
 /**
- * A "marker" segment — not a CSS style, but a directive to attach
- * `stylex.defaultMarker()` or a user-defined marker to the element.
+ * A marker segment — not a CSS style, but a directive to attach
+ * a default or user-defined marker class to the element.
  */
 export interface MarkerSegment {
   type: "marker";
-  /** If set, the AST node of the user-provided marker variable (return value of stylex.defineMarker()). Otherwise, default marker. */
+  /** If set, the AST node of the user-provided marker variable. Otherwise, default marker. */
   markerNode?: any;
 }
 
@@ -94,7 +92,7 @@ export interface CssExpressionSite {
   };
 }
 
-/** An entry to emit into the file-local stylex.create call */
+/** Legacy emitted entry shape retained for type compatibility. */
 export interface StylexCreateEntry {
   key: string;
   /** For static entries: the CSS defs object (may include pseudo wrapping) */

@@ -4,7 +4,7 @@ import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
-import { buildStyleHashProperties } from "./emit-truss";
+import { buildStyleHashProperties, markerClassName } from "./emit-truss";
 import type { ResolvedSegment } from "./types";
 
 // Babel packages are CJS today; normalize default interop across loaders.
@@ -89,6 +89,13 @@ function getCssAttributePath(path: NodePath<t.MemberExpression>): NodePath<t.JSX
 function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOptions): t.ObjectExpression {
   const members: (t.ObjectProperty | t.SpreadElement)[] = [];
 
+  if (chain.markers.length > 0) {
+    const markerClasses = chain.markers.map(function (marker) {
+      return markerClassName(marker.markerNode);
+    });
+    members.push(t.objectProperty(t.identifier("__marker"), t.stringLiteral(markerClasses.join(" "))));
+  }
+
   for (const part of chain.parts) {
     if (part.type === "unconditional") {
       members.push(...buildStyleHashMembers(part.segments, options));
@@ -128,7 +135,7 @@ function buildStyleHashMembers(
   }
 
   for (const seg of segments) {
-    if (seg.error || seg.whenPseudo) continue;
+    if (seg.error) continue;
 
     if (seg.styleArrayArg) {
       flushNormal();
@@ -176,8 +183,16 @@ function injectDebugInfo(
 ): void {
   if (!options.debug) return;
 
-  // Find the first ObjectProperty (skip SpreadElements)
-  const firstProp = expr.properties.find((p) => t.isObjectProperty(p)) as t.ObjectProperty | undefined;
+  // Find the first real style property (skip SpreadElements and __marker metadata)
+  const firstProp = expr.properties.find(function (p) {
+    return (
+      t.isObjectProperty(p) &&
+      !(
+        (t.isIdentifier(p.key) && p.key.name === "__marker") ||
+        (t.isStringLiteral(p.key) && p.key.value === "__marker")
+      )
+    );
+  }) as t.ObjectProperty | undefined;
   if (!firstProp) return;
 
   options.needsTrussDebugInfo.current = true;

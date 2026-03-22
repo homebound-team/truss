@@ -14,6 +14,12 @@ export interface AtomicRule {
   pseudoElement?: string;
   /** If true, this is a `var(--name)` rule that needs an `@property` declaration. */
   cssVarName?: string;
+  /** For when() rules: the relationship selector context. */
+  whenSelector?: {
+    relationship: string;
+    markerClass: string;
+    pseudo: string;
+  };
 }
 
 /** Pseudo-class short suffixes for class naming. */
@@ -27,6 +33,40 @@ const PSEUDO_SUFFIX: Record<string, string> = {
 
 /** Pseudo-class precedence order (weakest to strongest). */
 const PSEUDO_ORDER: string[] = [":hover", ":focus", ":focus-visible", ":active", ":disabled"];
+
+/** Short abbreviations for relationship types in when() class names. */
+const RELATIONSHIP_SHORT: Record<string, string> = {
+  ancestor: "anc",
+  descendant: "desc",
+  siblingAfter: "sibA",
+  siblingBefore: "sibB",
+  anySibling: "anyS",
+};
+
+/** Default marker class name (used when no explicit marker is provided). */
+export const DEFAULT_MARKER_CLASS = "__truss_m";
+
+/** Derive a marker class name from a marker AST node (or use the default). */
+export function markerClassName(markerNode?: { type: string; name?: string }): string {
+  if (!markerNode) return DEFAULT_MARKER_CLASS;
+  if (markerNode.type === "Identifier" && markerNode.name) {
+    return `__truss_m_${markerNode.name}`;
+  }
+  return `${DEFAULT_MARKER_CLASS}_marker`;
+}
+
+/**
+ * Build a when() class name prefix from whenPseudo info.
+ *
+ * I.e. `when("ancestor", ":hover")` → `"wh_anc_h_"`,
+ * `when("ancestor", row, ":hover")` → `"wh_anc_h_row_"`.
+ */
+function whenPrefix(whenPseudo: { pseudo: string; markerNode?: any; relationship?: string }): string {
+  const rel = RELATIONSHIP_SHORT[whenPseudo.relationship ?? "ancestor"] ?? "anc";
+  const pseudoTag = PSEUDO_SUFFIX[whenPseudo.pseudo]?.replace(/^_/, "") ?? whenPseudo.pseudo.replace(/^:/, "");
+  const markerPart = whenPseudo.markerNode?.type === "Identifier" ? `${whenPseudo.markerNode.name}_` : "";
+  return `wh_${rel}_${pseudoTag}_${markerPart}`;
+}
 
 /**
  * Build a condition prefix string for class naming.
@@ -186,7 +226,16 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
     for (const part of chain.parts) {
       const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
       for (const seg of segs) {
-        if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.whenPseudo) continue;
+        if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
+        if (seg.whenPseudo) {
+          if (seg.variableProps) {
+            if (seg.incremented) needsMaybeInc = true;
+            collectWhenVariableRules(rules, seg, mapping);
+          } else {
+            collectWhenStaticRules(rules, seg, mapping);
+          }
+          continue;
+        }
         if (seg.variableProps) {
           if (seg.incremented) needsMaybeInc = true;
           collectVariableRules(rules, seg, mapping);
@@ -269,6 +318,81 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
   }
 }
 
+/** Collect atomic rules for a static when() segment. */
+function collectWhenStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
+  const wp = seg.whenPseudo!;
+  const prefix = whenPrefix(wp);
+  const rawDefs = seg.defs;
+  const isMultiProp = Object.keys(rawDefs).length > 1;
+  const mClass = markerClassName(wp.markerNode);
+
+  for (const [cssProp, value] of Object.entries(rawDefs)) {
+    const cssValue = typeof value === "string" || typeof value === "number" ? value : extractLeafValue(value);
+    if (cssValue === null) continue;
+
+    const baseName = computeStaticBaseName(seg, cssProp, String(cssValue), isMultiProp, mapping);
+    const className = `${prefix}${baseName}`;
+
+    if (!rules.has(className)) {
+      rules.set(className, {
+        className,
+        cssProperty: camelToKebab(cssProp),
+        cssValue: String(cssValue),
+        whenSelector: {
+          relationship: wp.relationship ?? "ancestor",
+          markerClass: mClass,
+          pseudo: wp.pseudo,
+        },
+      });
+    }
+  }
+}
+
+/** Collect atomic rules for a variable when() segment. */
+function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
+  const wp = seg.whenPseudo!;
+  const prefix = whenPrefix(wp);
+  const baseKey = seg.key.split("__")[0];
+  const mClass = markerClassName(wp.markerNode);
+
+  for (const prop of seg.variableProps!) {
+    const className = `${prefix}${baseKey}_var`;
+    const varName = `--${className}`;
+
+    if (!rules.has(className)) {
+      rules.set(className, {
+        className,
+        cssProperty: camelToKebab(prop),
+        cssValue: `var(${varName})`,
+        cssVarName: varName,
+        whenSelector: {
+          relationship: wp.relationship ?? "ancestor",
+          markerClass: mClass,
+          pseudo: wp.pseudo,
+        },
+      });
+    }
+  }
+
+  if (seg.variableExtraDefs) {
+    for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
+      const extraName = `${prefix}${baseKey}_${cssProp}`;
+      if (!rules.has(extraName)) {
+        rules.set(extraName, {
+          className: extraName,
+          cssProperty: camelToKebab(cssProp),
+          cssValue: String(value),
+          whenSelector: {
+            relationship: wp.relationship ?? "ancestor",
+            markerClass: mClass,
+            pseudo: wp.pseudo,
+          },
+        });
+      }
+    }
+  }
+}
+
 /** Unwrap StyleX-style condition nesting and pseudo-element wrapping to get raw defs. */
 function unwrapDefs(defs: Record<string, unknown>, pseudoElement?: string | null): Record<string, unknown> {
   let result = defs;
@@ -319,12 +443,15 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   const base: AtomicRule[] = [];
   const pseudo: Map<string, AtomicRule[]> = new Map();
   const pseudoElement: AtomicRule[] = [];
+  const whenRules: AtomicRule[] = [];
   const media: AtomicRule[] = [];
   const mediaPseudo: AtomicRule[] = [];
   const mediaPseudoElement: AtomicRule[] = [];
 
   for (const rule of allRules) {
-    if (rule.mediaQuery && rule.pseudoClass) {
+    if (rule.whenSelector) {
+      whenRules.push(rule);
+    } else if (rule.mediaQuery && rule.pseudoClass) {
       mediaPseudo.push(rule);
     } else if (rule.mediaQuery && rule.pseudoElement) {
       mediaPseudoElement.push(rule);
@@ -332,7 +459,6 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
       media.push(rule);
     } else if (rule.pseudoClass && rule.pseudoElement) {
       // pseudo-class + pseudo-element, emit in pseudo tier
-      const order = PSEUDO_ORDER.indexOf(rule.pseudoClass);
       const tier = pseudo.get(rule.pseudoClass) ?? [];
       tier.push(rule);
       pseudo.set(rule.pseudoClass, tier);
@@ -375,7 +501,12 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
     lines.push(formatPseudoElementRule(rule));
   }
 
-  // Tier 4: media atoms (doubled selector)
+  // Tier 4: when() relationship selector atoms
+  for (const rule of whenRules) {
+    lines.push(formatWhenRule(rule));
+  }
+
+  // Tier 5: media atoms (doubled selector)
   for (const rule of media) {
     lines.push(formatMediaRule(rule));
   }
@@ -411,6 +542,34 @@ function formatPseudoRule(rule: AtomicRule): string {
 
 function formatPseudoElementRule(rule: AtomicRule): string {
   return `.${rule.className}${rule.pseudoElement} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+}
+
+function formatWhenRule(rule: AtomicRule): string {
+  const whenSelector = rule.whenSelector;
+  if (!whenSelector) {
+    return formatBaseRule(rule);
+  }
+
+  const markerSelector = `.${whenSelector.markerClass}${whenSelector.pseudo}`;
+  const targetSelector = `.${rule.className}`;
+
+  if (whenSelector.relationship === "ancestor") {
+    return `${markerSelector} ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  }
+  if (whenSelector.relationship === "descendant") {
+    return `${targetSelector}:has(${markerSelector}) {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  }
+  if (whenSelector.relationship === "siblingAfter") {
+    return `${targetSelector}:has(~ ${markerSelector}) {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  }
+  if (whenSelector.relationship === "siblingBefore") {
+    return `${markerSelector} ~ ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  }
+  if (whenSelector.relationship === "anySibling") {
+    return `${targetSelector}:has(~ ${markerSelector}), ${markerSelector} ~ ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  }
+
+  return `${markerSelector} ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
 }
 
 function formatMediaRule(rule: AtomicRule): string {
@@ -453,10 +612,12 @@ export function buildStyleHashProperties(
   >();
 
   for (const seg of segments) {
-    if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.whenPseudo) continue;
+    if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
 
     if (seg.variableProps) {
-      const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+      const prefix = seg.whenPseudo
+        ? whenPrefix(seg.whenPseudo)
+        : conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
       const baseKey = seg.key.split("__")[0];
 
       for (const prop of seg.variableProps) {
@@ -484,8 +645,10 @@ export function buildStyleHashProperties(
         }
       }
     } else {
-      const rawDefs = unwrapDefs(seg.defs, seg.pseudoElement);
-      const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+      const rawDefs = seg.whenPseudo ? seg.defs : unwrapDefs(seg.defs, seg.pseudoElement);
+      const prefix = seg.whenPseudo
+        ? whenPrefix(seg.whenPseudo)
+        : conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
       const isMultiProp = Object.keys(rawDefs).length > 1;
 
       for (const cssProp of Object.keys(rawDefs)) {

@@ -1064,45 +1064,51 @@ class CssBuilder<T extends Properties> {
   // lineClamp
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 1`. */
   get lineClamp1() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "textOverflow",
-      "ellipsis",
-    ).add("WebkitLineClamp", 1);
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis")
+      .add("WebkitLineClamp", 1);
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 2`. */
   get lineClamp2() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "textOverflow",
-      "ellipsis",
-    ).add("WebkitLineClamp", 2);
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis")
+      .add("WebkitLineClamp", 2);
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 3`. */
   get lineClamp3() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "textOverflow",
-      "ellipsis",
-    ).add("WebkitLineClamp", 3);
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis")
+      .add("WebkitLineClamp", 3);
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 4`. */
   get lineClamp4() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "textOverflow",
-      "ellipsis",
-    ).add("WebkitLineClamp", 4);
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis")
+      .add("WebkitLineClamp", 4);
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 5`. */
   get lineClamp5() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "textOverflow",
-      "ellipsis",
-    ).add("WebkitLineClamp", 5);
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis")
+      .add("WebkitLineClamp", 5);
   }
   /** Sets `overflow: "hidden"; display: "-webkit-box"; WebkitBoxOrient: "vertical"; textOverflow: "ellipsis"; WebkitLineClamp: 6`. */
   get lineClamp6() {
-    return this.add("overflow", "hidden").add("display", "-webkit-box").add("WebkitBoxOrient", "vertical").add(
-      "textOverflow",
-      "ellipsis",
-    ).add("WebkitLineClamp", 6);
+    return this.add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis")
+      .add("WebkitLineClamp", 6);
   }
   /** Sets `WebkitLineClamp: "unset"`. */
   get lineClampNone() {
@@ -1110,10 +1116,11 @@ class CssBuilder<T extends Properties> {
   }
   /** Sets `WebkitLineClamp: value`. */
   lineClamp(value: Properties["WebkitLineClamp"]) {
-    return this.add("WebkitLineClamp", value).add("overflow", "hidden").add("display", "-webkit-box").add(
-      "WebkitBoxOrient",
-      "vertical",
-    ).add("textOverflow", "ellipsis");
+    return this.add("WebkitLineClamp", value)
+      .add("overflow", "hidden")
+      .add("display", "-webkit-box")
+      .add("WebkitBoxOrient", "vertical")
+      .add("textOverflow", "ellipsis");
   }
 
   // objectFit
@@ -1563,45 +1570,45 @@ class CssBuilder<T extends Properties> {
   }
   /** Sets `marginTop: "16px"; marginBottom: "16px"; marginRight: "16px"; marginLeft: "16px"`. */
   get m2() {
-    return this.add("marginTop", "16px").add("marginBottom", "16px").add("marginRight", "16px").add(
-      "marginLeft",
-      "16px",
-    );
+    return this.add("marginTop", "16px")
+      .add("marginBottom", "16px")
+      .add("marginRight", "16px")
+      .add("marginLeft", "16px");
   }
   /** Sets `marginTop: "24px"; marginBottom: "24px"; marginRight: "24px"; marginLeft: "24px"`. */
   get m3() {
-    return this.add("marginTop", "24px").add("marginBottom", "24px").add("marginRight", "24px").add(
-      "marginLeft",
-      "24px",
-    );
+    return this.add("marginTop", "24px")
+      .add("marginBottom", "24px")
+      .add("marginRight", "24px")
+      .add("marginLeft", "24px");
   }
   /** Sets `marginTop: "32px"; marginBottom: "32px"; marginRight: "32px"; marginLeft: "32px"`. */
   get m4() {
-    return this.add("marginTop", "32px").add("marginBottom", "32px").add("marginRight", "32px").add(
-      "marginLeft",
-      "32px",
-    );
+    return this.add("marginTop", "32px")
+      .add("marginBottom", "32px")
+      .add("marginRight", "32px")
+      .add("marginLeft", "32px");
   }
   /** Sets `marginTop: "auto"; marginBottom: "auto"; marginRight: "auto"; marginLeft: "auto"`. */
   get ma() {
-    return this.add("marginTop", "auto").add("marginBottom", "auto").add("marginRight", "auto").add(
-      "marginLeft",
-      "auto",
-    );
+    return this.add("marginTop", "auto")
+      .add("marginBottom", "auto")
+      .add("marginRight", "auto")
+      .add("marginLeft", "auto");
   }
   /** Sets `marginTop: "v"; marginBottom: "v"; marginRight: "v"; marginLeft: "v"`. */
   m(v: number | string) {
-    return this.add("marginTop", maybeInc(v)).add("marginBottom", maybeInc(v)).add("marginRight", maybeInc(v)).add(
-      "marginLeft",
-      maybeInc(v),
-    );
+    return this.add("marginTop", maybeInc(v))
+      .add("marginBottom", maybeInc(v))
+      .add("marginRight", maybeInc(v))
+      .add("marginLeft", maybeInc(v));
   }
   /** Sets `marginTop: px; marginBottom: px; marginRight: px; marginLeft: px`. */
   mPx(px: number) {
-    return this.add("marginTop", `${px}px`).add("marginBottom", `${px}px`).add("marginRight", `${px}px`).add(
-      "marginLeft",
-      `${px}px`,
-    );
+    return this.add("marginTop", `${px}px`)
+      .add("marginBottom", `${px}px`)
+      .add("marginRight", `${px}px`)
+      .add("marginLeft", `${px}px`);
   }
   /** Sets `paddingTop: "0px"`. */
   get pt0() {
@@ -1773,52 +1780,52 @@ class CssBuilder<T extends Properties> {
   }
   /** Sets `paddingTop: "0px"; paddingBottom: "0px"; paddingRight: "0px"; paddingLeft: "0px"`. */
   get p0() {
-    return this.add("paddingTop", "0px").add("paddingBottom", "0px").add("paddingRight", "0px").add(
-      "paddingLeft",
-      "0px",
-    );
+    return this.add("paddingTop", "0px")
+      .add("paddingBottom", "0px")
+      .add("paddingRight", "0px")
+      .add("paddingLeft", "0px");
   }
   /** Sets `paddingTop: "8px"; paddingBottom: "8px"; paddingRight: "8px"; paddingLeft: "8px"`. */
   get p1() {
-    return this.add("paddingTop", "8px").add("paddingBottom", "8px").add("paddingRight", "8px").add(
-      "paddingLeft",
-      "8px",
-    );
+    return this.add("paddingTop", "8px")
+      .add("paddingBottom", "8px")
+      .add("paddingRight", "8px")
+      .add("paddingLeft", "8px");
   }
   /** Sets `paddingTop: "16px"; paddingBottom: "16px"; paddingRight: "16px"; paddingLeft: "16px"`. */
   get p2() {
-    return this.add("paddingTop", "16px").add("paddingBottom", "16px").add("paddingRight", "16px").add(
-      "paddingLeft",
-      "16px",
-    );
+    return this.add("paddingTop", "16px")
+      .add("paddingBottom", "16px")
+      .add("paddingRight", "16px")
+      .add("paddingLeft", "16px");
   }
   /** Sets `paddingTop: "24px"; paddingBottom: "24px"; paddingRight: "24px"; paddingLeft: "24px"`. */
   get p3() {
-    return this.add("paddingTop", "24px").add("paddingBottom", "24px").add("paddingRight", "24px").add(
-      "paddingLeft",
-      "24px",
-    );
+    return this.add("paddingTop", "24px")
+      .add("paddingBottom", "24px")
+      .add("paddingRight", "24px")
+      .add("paddingLeft", "24px");
   }
   /** Sets `paddingTop: "32px"; paddingBottom: "32px"; paddingRight: "32px"; paddingLeft: "32px"`. */
   get p4() {
-    return this.add("paddingTop", "32px").add("paddingBottom", "32px").add("paddingRight", "32px").add(
-      "paddingLeft",
-      "32px",
-    );
+    return this.add("paddingTop", "32px")
+      .add("paddingBottom", "32px")
+      .add("paddingRight", "32px")
+      .add("paddingLeft", "32px");
   }
   /** Sets `paddingTop: "v"; paddingBottom: "v"; paddingRight: "v"; paddingLeft: "v"`. */
   p(v: number | string) {
-    return this.add("paddingTop", maybeInc(v)).add("paddingBottom", maybeInc(v)).add("paddingRight", maybeInc(v)).add(
-      "paddingLeft",
-      maybeInc(v),
-    );
+    return this.add("paddingTop", maybeInc(v))
+      .add("paddingBottom", maybeInc(v))
+      .add("paddingRight", maybeInc(v))
+      .add("paddingLeft", maybeInc(v));
   }
   /** Sets `paddingTop: px; paddingBottom: px; paddingRight: px; paddingLeft: px`. */
   pPx(px: number) {
-    return this.add("paddingTop", `${px}px`).add("paddingBottom", `${px}px`).add("paddingRight", `${px}px`).add(
-      "paddingLeft",
-      `${px}px`,
-    );
+    return this.add("paddingTop", `${px}px`)
+      .add("paddingBottom", `${px}px`)
+      .add("paddingRight", `${px}px`)
+      .add("paddingLeft", `${px}px`);
   }
 
   // textAlign
@@ -2286,6 +2293,11 @@ class CssBuilder<T extends Properties> {
   /** Marks this element with a user-defined marker. */
   markerOf(_marker: Marker): CssBuilder<T> {
     return this;
+  }
+
+  /** Creates a marker token for use with markerOf() and when(). */
+  newMarker(): Marker {
+    return Symbol("truss-marker");
   }
 
   typography(key: Typography): CssBuilder<T> {

@@ -39,7 +39,12 @@ export function trussProps(
   const inlineStyle: Record<string, string> = {};
   const debugSources: string[] = [];
 
-  for (const value of Object.values(merged)) {
+  for (const [key, value] of Object.entries(merged)) {
+    // __marker is a special key — its value is a marker class name, not a CSS property
+    if (key === "__marker") {
+      if (typeof value === "string") classNames.push(value);
+      continue;
+    }
     if (typeof value === "string") {
       // I.e. "df" or "black blue_h"
       classNames.push(value);

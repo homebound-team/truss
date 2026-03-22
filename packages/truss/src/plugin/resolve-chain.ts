@@ -245,7 +245,14 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
 
         // add(prop, value) — arbitrary CSS property
         if (abbr === "add") {
-          const seg = resolveAddCall(node, mapping, currentMediaQuery, currentPseudoClass, currentPseudoElement);
+          const seg = resolveAddCall(
+            node,
+            mapping,
+            currentMediaQuery,
+            currentPseudoClass,
+            currentPseudoElement,
+            currentWhenPseudo,
+          );
           segments.push(seg);
           continue;
         }
@@ -308,6 +315,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
             currentMediaQuery,
             currentPseudoClass,
             currentPseudoElement,
+            currentWhenPseudo,
           );
           segments.push(seg);
         } else if (entry.kind === "delegate") {
@@ -319,6 +327,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
             currentMediaQuery,
             currentPseudoClass,
             currentPseudoElement,
+            currentWhenPseudo,
           );
           segments.push(seg);
         } else {
@@ -498,6 +507,7 @@ function resolveVariableCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
@@ -505,6 +515,33 @@ function resolveVariableCall(
 
   const argAst = node.args[0];
   const literalValue = tryEvaluateLiteral(argAst, entry.incremented, mapping.increment);
+
+  // When inside a when() context, use whenPseudo key naming instead of condition suffix
+  if (whenPseudo) {
+    const wpSuffix = whenPseudoKeyName(whenPseudo);
+    if (literalValue !== null) {
+      const keySuffix = literalValue.replace(/[^a-zA-Z0-9]/g, "_");
+      const key = `${abbr}__${keySuffix}__${wpSuffix}`;
+      const defs: Record<string, unknown> = {};
+      for (const prop of entry.props) {
+        defs[prop] = literalValue;
+      }
+      if (entry.extraDefs) Object.assign(defs, entry.extraDefs);
+      return { key, defs, whenPseudo, argResolved: literalValue };
+    } else {
+      const key = `${abbr}__${wpSuffix}`;
+      return {
+        key,
+        defs: {},
+        whenPseudo,
+        variableProps: entry.props,
+        incremented: entry.incremented,
+        variableExtraDefs: entry.extraDefs,
+        argNode: argAst,
+      };
+    }
+  }
+
   const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
 
   if (literalValue !== null) {
@@ -550,6 +587,7 @@ function resolveDelegateCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment {
   const targetEntry = mapping.abbreviations[entry.target];
   if (!targetEntry || targetEntry.kind !== "variable") {
@@ -562,6 +600,34 @@ function resolveDelegateCall(
 
   const argAst = node.args[0];
   const literalValue = tryEvaluatePxLiteral(argAst);
+
+  // When inside a when() context, use whenPseudo key naming instead of condition suffix
+  if (whenPseudo) {
+    const wpSuffix = whenPseudoKeyName(whenPseudo);
+    if (literalValue !== null) {
+      const keySuffix = literalValue.replace(/[^a-zA-Z0-9]/g, "_");
+      const key = `${entry.target}__${keySuffix}__${wpSuffix}`;
+      const defs: Record<string, unknown> = {};
+      for (const prop of targetEntry.props) {
+        defs[prop] = literalValue;
+      }
+      if (targetEntry.extraDefs) Object.assign(defs, targetEntry.extraDefs);
+      return { key, defs, whenPseudo, argResolved: literalValue };
+    } else {
+      const key = `${entry.target}__${wpSuffix}`;
+      return {
+        key,
+        defs: {},
+        whenPseudo,
+        variableProps: targetEntry.props,
+        incremented: false,
+        appendPx: true,
+        variableExtraDefs: targetEntry.extraDefs,
+        argNode: argAst,
+      };
+    }
+  }
+
   const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
 
   if (literalValue !== null) {
@@ -613,6 +679,7 @@ function resolveAddCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment {
   if (node.args.length === 1) {
     const styleArg = node.args[0];
@@ -647,6 +714,22 @@ function resolveAddCall(
   const valueArg = node.args[1];
   // Try to evaluate the value as a literal
   const literalValue = tryEvaluateAddLiteral(valueArg);
+
+  // When inside a when() context, use whenPseudo key naming
+  if (whenPseudo) {
+    const wpSuffix = whenPseudoKeyName(whenPseudo);
+    if (literalValue !== null) {
+      const keySuffix = literalValue
+        .replace(/[^a-zA-Z0-9]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "");
+      const key = `add_${propName}__${keySuffix}__${wpSuffix}`;
+      return { key, defs: { [propName]: literalValue }, whenPseudo, argResolved: literalValue };
+    } else {
+      const key = `add_${propName}__${wpSuffix}`;
+      return { key, defs: {}, whenPseudo, variableProps: [propName], incremented: false, argNode: valueArg };
+    }
+  }
 
   const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
 

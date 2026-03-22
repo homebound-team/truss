@@ -81,13 +81,11 @@ describe("App", () => {
     expect(span).toHaveStyle({ color: "#526675" });
   });
 
-  // marker/when() deferred to Phase 3
-  test.skip("marker card renders with data attribute and child has class", () => {
+  test("marker card renders with marker and when classes", () => {
     render(<App />);
     const markerCard = screen.getByText("Hover this card").parentElement!;
     const childSpan = screen.getByText(/I turn blue on parent hover/);
-    // Both marker card and child should have class names applied
-    expect(markerCard.className).toBeTruthy();
-    expect(childSpan.className).toBeTruthy();
+    expect(markerCard.className).toMatch(/__truss_m/);
+    expect(childSpan.className).toMatch(/wh_anc_h_blue/);
   });
 });
