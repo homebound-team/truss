@@ -1,7 +1,6 @@
-import type * as stylex from "@stylexjs/stylex";
-
+/** A compact source label for a Truss CSS expression, used in debug mode. */
 export class TrussDebugInfo {
-  /** A compact `FileName.tsx:line` source label for a Truss CSS expression. */
+  /** I.e. `"FileName.tsx:line"` */
   readonly src: string;
 
   constructor(src: string) {
@@ -9,77 +8,109 @@ export class TrussDebugInfo {
   }
 }
 
-type StylexPropArg = Parameters<typeof stylex.props>[number];
-
-/** Call StyleX while stripping Truss debug sentinels from the style list. */
-export function trussProps(stylexNs: typeof stylex, ...styles: unknown[]): Record<string, unknown> {
-  const { debugSources, styleArgs } = splitDebugInfo(styles);
-  const sx = stylexNs.props(...styleArgs);
-  return applyDebugSources(sx, debugSources);
-}
-
-export function mergeProps(
-  stylexNs: typeof stylex,
-  explicitClassName: string,
-  ...styles: unknown[]
-): Record<string, unknown> {
-  const { debugSources, styleArgs } = splitDebugInfo(styles);
-  const sx = stylexNs.props(...styleArgs);
-  return {
-    ...applyDebugSources(sx, debugSources),
-    className: `${explicitClassName} ${sx.className ?? ""}`.trim(),
-  };
-}
-
 /**
- * Coerce maybe-array StyleX inputs into arrays, guarding against nullish/false and plain object values.
+ * Space-separated atomic class names, or a dynamic tuple with class names + CSS variable map.
  *
- * I.e. `...asStyleArray(xss)` stays safe when destructured `xss` is `undefined`.
+ * In debug mode, the transform appends a TrussDebugInfo as an extra tuple element:
+ * - static with debug: `[classNames, debugInfo]`
+ * - dynamic with debug: `[classNames, vars, debugInfo]`
  */
-export function asStyleArray(styles: unknown): ReadonlyArray<unknown> {
-  if (Array.isArray(styles)) {
-    return styles;
-  }
-  if (styles && typeof styles === "object" && Object.keys(styles).length > 0) {
-    console.error(
-      "[truss] asStyleArray received a non-empty object — this likely means a style value was not rewritten to an array. " +
-        "Use a style array (e.g. Css.df.$) or an empty array [] instead of {}.",
-    );
-  }
-  return styles ? [styles] : [];
-}
+export type TrussStyleValue =
+  | string
+  | [classNames: string, vars: Record<string, string>]
+  | [classNames: string, debugInfo: TrussDebugInfo]
+  | [classNames: string, vars: Record<string, string>, debugInfo: TrussDebugInfo];
 
-/** Collect Truss debug info while preserving the original StyleX argument order. */
-function splitDebugInfo(styles: ReadonlyArray<unknown>): {
-  debugSources: string[];
-  styleArgs: StylexPropArg[];
-} {
+/** A property-keyed style hash where each key owns one logical CSS property. */
+export type TrussStyleHash = Record<string, TrussStyleValue>;
+
+/** Merge one or more Truss style hashes into `{ className, style?, data-truss-src? }`. */
+export function trussProps(
+  ...hashes: ReadonlyArray<TrussStyleHash | false | null | undefined>
+): Record<string, unknown> {
+  const merged: Record<string, TrussStyleValue> = {};
+
+  for (const hash of hashes) {
+    if (!hash || typeof hash !== "object") continue;
+    Object.assign(merged, hash);
+  }
+
+  const classNames: string[] = [];
+  const inlineStyle: Record<string, string> = {};
   const debugSources: string[] = [];
-  const styleArgs: StylexPropArg[] = [];
 
-  for (const style of styles) {
-    if (style instanceof TrussDebugInfo) {
-      debugSources.push(style.src);
-    } else {
-      styleArgs.push(style as StylexPropArg);
+  for (const value of Object.values(merged)) {
+    if (typeof value === "string") {
+      // I.e. "df" or "black blue_h"
+      classNames.push(value);
+      continue;
+    }
+
+    // Tuple: [classNames, varsOrDebug?, maybeDebug?]
+    classNames.push(value[0]);
+
+    for (let i = 1; i < value.length; i++) {
+      const el = value[i];
+      if (el instanceof TrussDebugInfo) {
+        debugSources.push(el.src);
+      } else if (typeof el === "object" && el !== null) {
+        Object.assign(inlineStyle, el);
+      }
     }
   }
 
-  return { debugSources, styleArgs };
-}
+  const props: Record<string, unknown> = {
+    className: classNames.join(" "),
+  };
 
-/** Deduplicate and attach compact Truss source labels to emitted props. */
-function applyDebugSources(
-  props: Record<string, unknown>,
-  debugSources: ReadonlyArray<string>,
-): Record<string, unknown> {
-  if (debugSources.length === 0) {
-    return props;
+  if (Object.keys(inlineStyle).length > 0) {
+    props.style = inlineStyle;
   }
 
-  const uniqueSources = Array.from(new Set(debugSources));
-  return {
-    ...props,
-    "data-truss-src": uniqueSources.join("; "),
-  };
+  if (debugSources.length > 0) {
+    props["data-truss-src"] = [...new Set(debugSources)].join("; ");
+  }
+
+  return props;
+}
+
+/** Merge explicit className/style with Truss style hashes. */
+export function mergeProps(
+  explicitClassName: string | undefined,
+  explicitStyle: Record<string, unknown> | undefined,
+  ...hashes: ReadonlyArray<TrussStyleHash | false | null | undefined>
+): Record<string, unknown> {
+  const result = trussProps(...hashes);
+
+  if (explicitClassName) {
+    result.className = `${explicitClassName} ${result.className ?? ""}`.trim();
+  }
+
+  if (explicitStyle) {
+    result.style = { ...explicitStyle, ...(result.style as Record<string, unknown> | undefined) };
+  }
+
+  return result;
+}
+
+/**
+ * Inject CSS text into the document for jsdom/test environments.
+ *
+ * In browser dev mode, CSS is served via the Vite virtual endpoint instead.
+ */
+export function __injectTrussCSS(cssText: string): void {
+  if (typeof document === "undefined") return;
+
+  const id = "data-truss";
+  let style = document.querySelector(`style[${id}]`) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement("style");
+    style.setAttribute(id, "");
+    document.head.appendChild(style);
+  }
+
+  // Append if not already present (dedupe across HMR re-executions)
+  if (!style.textContent?.includes(cssText)) {
+    style.textContent = (style.textContent ?? "") + cssText;
+  }
 }
