@@ -845,10 +845,42 @@ describe("transform", () => {
   });
 
   test("conditional same-property replacement does not merge base class into branch", () => {
-    // Css.bgBlue700.if(selected).bgWhite.$ — when selected, bgWhite replaces bgBlue700 entirely.
+    // Css.bgBlue.if(selected).bgWhite.$ — when selected, bgWhite replaces bgBlue entirely.
     // The base class should NOT be merged into the then branch.
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.if(selected).bgWhite.$;`)!)).toBe(
       n(`const s = { backgroundColor: "bgBlue", ...(selected ? { backgroundColor: "bgWhite" } : {}) };`),
+    );
+  });
+
+  test("conditional replacement preserves preceding non-overlapping properties", () => {
+    // Css.df.aic.bgBlue.if(selected).bgWhite.$ — df and aic should survive the conditional
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.df.aic.bgBlue.if(selected).bgWhite.$;`)!)).toBe(
+      n(
+        `const s = { display: "df", alignItems: "aic", backgroundColor: "bgBlue", ...(selected ? { backgroundColor: "bgWhite" } : {}) };`,
+      ),
+    );
+  });
+
+  test("conditional replacement with many preceding properties and delegates preserves all base classes", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const el = <div css={Css.absolute.bottomPx(4).wPx(4).hPx(4).bgBlue.br4.if(selected && !range_middle).bgWhite.$} />;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({
+          position: "absolute",
+          bottom: "bottom_4px",
+          width: "w_4px",
+          height: "h_4px",
+          backgroundColor: "bgBlue",
+          borderRadius: "br4",
+          ...(selected && !range_middle ? { backgroundColor: "bgWhite" } : {})
+        })} />;
+      `),
     );
   });
 
