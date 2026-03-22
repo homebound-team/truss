@@ -327,12 +327,11 @@ So Truss should define two global ordering tables and emit CSS in that order.
 
 Truss should maintain a fixed pseudo precedence table, from weakest to strongest, for same-property conflicts:
 
-1. `:link` / `:visited`
-2. `:hover`
-3. `:focus`
-4. `:focus-visible`
-5. `:active`
-6. `:disabled`
+1. `:hover`
+2. `:focus`
+3. `:focus-visible`
+4. `:active`
+5. `:disabled`
 
 The exact table can be adjusted, but it must be global and deterministic. When two same-property pseudo rules of equal specificity can both match, later-emitted rules win.
 
@@ -885,11 +884,9 @@ The doubled selector trick for media queries follows StyleX's approach. This mea
 
 1. A media-query-only rule always beats a base rule when the media query matches.
 2. A media+pseudo rule always beats a standalone pseudo rule when both the media query and pseudo-class match.
-3. Within the same tier, conflicts cannot happen at runtime because object spread already resolved which atomic classes are applied to the element.
+3. Within the same tier, two classes targeting _different_ logical properties cannot conflict because object spread already resolved which atomic classes are applied to the element. Two classes targeting the _same_ property at the same tier (e.g. `:hover` and `:focus` both active) are resolved by stable global emission order as defined in the "Condition precedence" section.
 
 Since all shorthands are expanded to longhands (see "Shorthand expansion"), there is no shorthand-vs-longhand specificity concern.
-
-Within a specificity tier, Truss still relies on stable global emission order as defined in the condition precedence section above. That ordering is what resolves cases like `:hover` and `:focus` being active at the same time.
 
 ## Test Strategy
 
