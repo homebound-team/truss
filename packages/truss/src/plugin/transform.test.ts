@@ -1382,10 +1382,18 @@ describe("transform", () => {
       `),
     );
     expect(
-      css(
-        `import { Css } from "./Css"; const row = Css.newMarker(); const a = Css.markerOf(row).$; const b = Css.when("ancestor", row, ":hover").blue.$;`,
+      n(
+        css(
+          `import { Css } from "./Css"; const row = Css.newMarker(); const a = Css.markerOf(row).$; const b = Css.when("ancestor", row, ":hover").blue.$;`,
+        )!,
       ),
-    ).toBe(`.__truss_m_row:hover .wh_anc_h_row_blue {\n  color: #526675;\n}`);
+    ).toBe(
+      n(`
+      .__truss_m_row:hover .wh_anc_h_row_blue {
+        color: #526675;
+      }
+    `),
+    );
   });
 
   // ── when() generic API tests ──────────────────────────────────────
@@ -1394,8 +1402,12 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)!)).toBe(
       n(`const s = { color: "wh_anc_h_blue" };`),
     );
-    expect(css(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)).toBe(
-      `.__truss_m:hover .wh_anc_h_blue {\n  color: #526675;\n}`,
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)!)).toBe(
+      n(`
+        .__truss_m:hover .wh_anc_h_blue {
+          color: #526675;
+        }
+      `),
     );
   });
 
@@ -1418,8 +1430,12 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)!)).toBe(
       n(`const s = { color: "wh_desc_f_blue" };`),
     );
-    expect(css(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)).toBe(
-      `.wh_desc_f_blue:has(.__truss_m:focus) {\n  color: #526675;\n}`,
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)!)).toBe(
+      n(`
+        .wh_desc_f_blue:has(.__truss_m:focus) {
+          color: #526675;
+        }
+      `),
     );
   });
 
@@ -1427,8 +1443,12 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)!)).toBe(
       n(`const s = { color: "wh_sibA_h_blue" };`),
     );
-    expect(css(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)).toBe(
-      `.wh_sibA_h_blue:has(~ .__truss_m:hover) {\n  color: #526675;\n}`,
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)!)).toBe(
+      n(`
+        .wh_sibA_h_blue:has(~ .__truss_m:hover) {
+          color: #526675;
+        }
+      `),
     );
   });
 
@@ -1436,8 +1456,12 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)!)).toBe(
       n(`const s = { color: "wh_sibB_h_blue" };`),
     );
-    expect(css(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)).toBe(
-      `.__truss_m:hover ~ .wh_sibB_h_blue {\n  color: #526675;\n}`,
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)!)).toBe(
+      n(`
+        .__truss_m:hover ~ .wh_sibB_h_blue {
+          color: #526675;
+        }
+      `),
     );
   });
 
@@ -1541,16 +1565,20 @@ describe("transform", () => {
 
     expect(n(transform(input)!)).toBe(n(`const s = { color: "sm_black mdandup_white" };`));
 
-    expect(css(input)).toEqual(`@media screen and (max-width: 599px) {
-  .sm_black.sm_black {
-    color: #353535;
-  }
-}
-@media screen and (min-width: 600px) {
-  .mdandup_white.mdandup_white {
-    color: #fcfcfa;
-  }
-}`);
+    expect(n(css(input)!)).toEqual(
+      n(`
+      @media screen and (max-width: 599px) {
+        .sm_black.sm_black {
+          color: #353535;
+        }
+      }
+      @media screen and (min-width: 600px) {
+        .mdandup_white.mdandup_white {
+          color: #fcfcfa;
+        }
+      }
+    `),
+    );
   });
 
   test("raw media else uses the complementary screen query", () => {
@@ -1687,6 +1715,53 @@ describe("transform", () => {
   test("add mixed with other chain segments: Css.df.add('wordBreak', 'break-word').black.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.add("wordBreak", "break-word").black.$;`)!)).toBe(
       n(`const s = { display: "df", wordBreak: "add_wordBreak_break_word", color: "black" };`),
+    );
+  });
+
+  test("add keeps explicit add_ prefix in jsx output and generated css", () => {
+    const code = `import { Css } from "./Css"; const el = <div css={Css.mt2.add("transition", "all 240ms").$} />;`;
+
+    expect(n(transform(code)!)).toBe(
+      n(`
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ marginTop: "mt2", transition: "add_transition_all_240ms" })} />;
+      `),
+    );
+    expect(n(css(code)!)).toBe(
+      n(`
+      .mt2 {
+        margin-top: 16px;
+      }
+      .add_transition_all_240ms {
+        transition: all 240ms;
+      }
+    `),
+    );
+  });
+
+  test("later add color spread overrides earlier static color spread", () => {
+    const code = `import { Css, Palette } from "./Css"; const el = <div css={{ ...Css.white.$, ...Css.add("color", Palette.Black).$ }} />;`;
+
+    expect(n(transform(code)!)).toBe(
+      n(`
+        import { Palette } from "./Css";
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["add_color_var", { "--color": Palette.Black }] } })} />;
+      `),
+    );
+    expect(n(css(code)!)).toBe(
+      n(`
+      .white {
+        color: #fcfcfa;
+      }
+      .add_color_var {
+        color: var(--color);
+      }
+      @property --color {
+        syntax: "*";
+        inherits: false;
+      }
+    `),
     );
   });
 
