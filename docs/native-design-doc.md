@@ -82,8 +82,8 @@ Example:
 
 ```ts
 Css.ba.$ -> {
-  borderStyle: "ba_borderStyle",
-  borderWidth: "ba_borderWidth",
+  borderStyle: "bsSolid",
+  borderWidth: "bw1",
 }
 ```
 
@@ -91,10 +91,10 @@ And:
 
 ```ts
 Css.p1.$ -> {
-  paddingTop: "p1_paddingTop",
-  paddingRight: "p1_paddingRight",
-  paddingBottom: "p1_paddingBottom",
-  paddingLeft: "p1_paddingLeft",
+  paddingTop: "pt1",
+  paddingRight: "pr1",
+  paddingBottom: "pb1",
+  paddingLeft: "pl1",
 }
 ```
 
@@ -106,6 +106,32 @@ This preserves the desired override behavior:
 
 can replace only `borderStyle` while leaving `borderWidth` intact.
 
+### Shorthand expansion
+
+CSS shorthands (`margin`, `padding`, `border`, etc.) should **never** produce shorthand CSS classes. Instead, all shorthand abbreviations expand to their longhand equivalents at build time.
+
+For example, `Css.m1.$` does not produce `{ margin: "m1" }`. It expands to:
+
+```ts
+Css.m1.$ -> {
+  marginTop: "mt1",
+  marginRight: "mr1",
+  marginBottom: "mb1",
+  marginLeft: "ml1",
+}
+```
+
+This eliminates the shorthand/longhand specificity problem entirely. In standard CSS, if both `margin: 10px` and `margin-top: 5px` are applied, the longhand wins only because of careful priority ordering. By expanding shorthands to longhands at build time, there is only one specificity tier for property values, and object spread handles conflicts naturally:
+
+```ts
+{ ...Css.m1.$, ...Css.mt2.$ }
+// -> { marginTop: "mt2", marginRight: "mr1", marginBottom: "mb1", marginLeft: "ml1" }
+```
+
+`marginTop` is overridden by the later spread while the other three sides are preserved. No CSS specificity tricks needed.
+
+This applies to all shorthand abbreviations: `p1` expands to `pt1`/`pr1`/`pb1`/`pl1`, `ba` expands to `bsSolid`/`bw1`, `br` expands to the individual border-radius longhands, etc. The emitted CSS only ever contains longhand property declarations.
+
 ### Dynamic style hash
 
 Dynamic values should follow the StyleX approach: a static class points at a CSS variable, and runtime sets the variable.
@@ -114,7 +140,7 @@ Example:
 
 ```ts
 Css.mt(x).$ -> {
-  marginTop: ["mt_dyn", "--mt_dyn", __maybeInc(x)],
+  marginTop: ["mt_dyn", { "--mt_dyn": __maybeInc(x) }],
 }
 ```
 
@@ -135,6 +161,25 @@ At runtime, `trussProps` will turn that into:
 - `className: "mt_dyn"`
 - `style: { "--mt_dyn": "16px" }`
 
+The tuple format is `[classNames: string, vars: Record<string, string>]` where `classNames` is space-separated (just like static values) and `vars` maps CSS variable names to runtime values. This naturally supports multiple dynamic values within one property bundle:
+
+```ts
+Css.bc(x).onHover.bc(y).$ -> {
+  borderColor: ["bc_dyn bc_dyn_h", { "--bc_dyn": x, "--bc_dyn_h": y }],
+}
+```
+
+with CSS:
+
+```css
+.bc_dyn {
+  border-color: var(--bc_dyn);
+}
+.bc_dyn_h:hover {
+  border-color: var(--bc_dyn_h);
+}
+```
+
 Literal dynamic calls still fold at build time when possible:
 
 ```ts
@@ -146,41 +191,28 @@ Css.bc("red").$ -> { borderColor: "bc_red" }
 
 Like StyleX, ownership should be at the logical property level.
 
-If base and hover both target `color`, they should collapse into one `color` entry with one class name.
-
-Example:
+If base and hover both target `color`, they should collapse into one `color` entry. Each condition produces a **separate atomic class**, and the hash value is a **space-separated string** of all classes in the bundle:
 
 ```ts
 Css.black.onHover.blue.$ -> {
-  color: {
-    value: "black",
-    hover: "blue",
-  }
-}
-```
-
-Conceptually that is the right intermediate representation. The emitted runtime hash can be lowered to:
-
-```ts
-{
-  color: "black_h_blue";
+  color: "black blue_h",
 }
 ```
 
 with generated CSS:
 
 ```css
-.black_h_blue {
+.black {
   color: #353535;
 }
-.black_h_blue:hover {
+.blue_h:hover {
   color: #526675;
 }
 ```
 
-This means later spreads replace the entire ownership of `color`, including hover/media parts, which matches StyleX semantics.
+This preserves class reuse: `.black` is the same atomic class everywhere `color: black` appears, regardless of what hover/focus/media behavior accompanies it. The class `.blue_h` is similarly reused anywhere `color: blue` is needed on hover.
 
-For example:
+Later spreads replace the entire ownership of `color`, including hover/media parts, which matches StyleX semantics:
 
 ```ts
 { ...Css.black.onHover.blue.$, ...Css.white.$ }
@@ -190,48 +222,93 @@ becomes:
 
 ```ts
 {
-  color: "white";
+  color: "white",
 }
 ```
 
-and the hover behavior disappears. That is intentional.
+and the hover behavior disappears because the entire `color` key was replaced. That is intentional.
+
+**Why this works (specificity):** When both `.black` and `.blue_h` are applied to the same element, the pseudo-class adds to the selector's specificity. `.black` has specificity `(0,1,0)` while `.blue_h:hover` has specificity `(0,1,1)`. When hovering, both selectors match, but the hover rule wins due to higher specificity. When not hovering, only `.black` matches.
 
 The same principle applies to media queries:
 
 ```ts
-Css.black.ifSm.blue.$ -> { color: "black_sm_blue" }
+Css.black.ifSm.blue.$ -> { color: "black blue_sm" }
 ```
 
 with CSS:
 
 ```css
-.black_sm_blue {
+.black {
   color: #353535;
 }
 @media (max-width: 599px) {
-  .black_sm_blue {
+  .blue_sm.blue_sm {
     color: #526675;
   }
 }
 ```
 
+**Media query specificity:** Media queries do not add specificity, so source order alone would be fragile. Following StyleX's approach, media query classes use a **doubled selector** (`.blue_sm.blue_sm`) to bump specificity to `(0,2,0)`, ensuring they beat base rules `(0,1,0)` regardless of source order.
+
+For stacked conditions (pseudo-class + media query), the doubled selector combines with the pseudo-class:
+
+```ts
+Css.black.ifSm.onHover.blue.$ -> { color: "black blue_sm_h" }
+```
+
+```css
+@media (max-width: 599px) {
+  .blue_sm_h.blue_sm_h:hover {
+    color: #526675;
+  }
+}
+```
+
+This gives specificity `(0,2,1)`, which correctly beats both base `(0,1,0)` and standalone hover `(0,1,1)`.
+
+Multiple pseudo-classes on the same property work the same way:
+
+```ts
+Css.black.onHover.blue.onFocus.red.$ -> { color: "black blue_h red_f" }
+```
+
+Each condition is its own atomic class. `trussProps` splits the space-separated value to build the final `className`.
+
 ### Pseudo-elements
 
-Pseudo-elements should also be part of the logical property's ownership bundle.
+Pseudo-elements are atomic classes like any other condition. The pseudo-element is part of the CSS selector, and the class is reusable wherever that pseudo-element + value combination appears.
 
 Example:
 
 ```ts
-Css.element("::placeholder").blue.$ -> { color: "placeholder_blue" }
+Css.element("::placeholder").blue.$ -> { color: "blue_placeholder" }
 ```
 
 with CSS:
 
 ```css
-.placeholder_blue::placeholder {
+.blue_placeholder::placeholder {
   color: #526675;
 }
 ```
+
+Pseudo-elements can stack with pseudo-classes and media queries within the same property bundle:
+
+```ts
+Css.element("::placeholder").blue.onFocus.red.$ -> { color: "blue_placeholder red_placeholder_f" }
+```
+
+```css
+.blue_placeholder::placeholder {
+  color: #526675;
+}
+.red_placeholder_f:focus::placeholder {
+  color: red;
+}
+```
+
+The `::placeholder` pseudo-element must appear at the end of the selector per CSS spec, so the class ordering is always `.<class>[:<pseudo-class>]::<pseudo-element>`.
 
 ## Runtime API
 
@@ -241,19 +318,20 @@ with CSS:
 
 Instead it should:
 
-1. accept one or more Truss style hashes
-2. merge them in order
-3. produce `className`
-4. produce inline `style` for CSS variable-backed dynamic values
+1. accept one or more Truss style hashes (or falsy values, for `cond && styles` ergonomics)
+2. merge them in order via `Object.assign` (last-write-wins)
+3. split space-separated class name strings to produce the final `className`
+4. collect CSS variable maps from dynamic tuples to produce inline `style`
 5. preserve debug metadata in debug mode
 
 Sketch:
 
 ```ts
-type TrussStyleValue = string | [className: string, cssVarName: string, runtimeValue: string];
+/** Space-separated atomic class names, or a dynamic tuple with class names + CSS variable map. */
+type TrussStyleValue = string | [classNames: string, vars: Record<string, string>];
 type TrussStyleHash = Record<string, TrussStyleValue>;
 
-export function trussProps(...hashes: unknown[]): Record<string, unknown> {
+export function trussProps(...hashes: (TrussStyleHash | false | null | undefined)[]): Record<string, unknown> {
   const merged: Record<string, TrussStyleValue> = {};
 
   for (const hash of hashes) {
@@ -266,12 +344,14 @@ export function trussProps(...hashes: unknown[]): Record<string, unknown> {
 
   for (const value of Object.values(merged)) {
     if (typeof value === "string") {
+      // Space-separated atomic classes, i.e. "black blue_h"
       classNames.push(value);
       continue;
     }
 
+    // Dynamic tuple: [classNames, varsMap]
     classNames.push(value[0]);
-    inlineStyle[value[1]] = value[2];
+    Object.assign(inlineStyle, value[1]);
   }
 
   const props: Record<string, unknown> = {
@@ -285,6 +365,8 @@ export function trussProps(...hashes: unknown[]): Record<string, unknown> {
   return props;
 }
 ```
+
+Note: because each value is already space-separated (e.g. `"black blue_h"`), the final `classNames.join(" ")` produces correct output like `"df aic black blue_h"` without any splitting step. The space-separated values pass through directly.
 
 ## `mergeProps`
 
@@ -335,40 +417,82 @@ The Vite plugin should collect all generated atomic rules globally during transf
 
 ## Naming Strategy
 
-### Static classes
+Every atomic rule gets a deterministic, human-readable class name. Since each class maps to exactly one `(selector, declaration)` pair, names encode both the value and the condition.
 
-- single-property abbreviation uses the abbreviation directly
-  - `df`
-  - `black`
-  - `bgBlue`
+### Base classes
 
-- multi-property abbreviation uses `abbrev_cssProperty`
-  - `ba_borderStyle`
-  - `ba_borderWidth`
-  - `p1_paddingTop`
+Single-property abbreviation uses the abbreviation directly:
+
+- `df` -> `.df { display: flex }`
+- `black` -> `.black { color: #353535 }`
+- `bgBlue` -> `.bgBlue { background-color: #526675 }`
+
+Multi-property abbreviations expand to longhand classes (see "Shorthand expansion"):
+
+- `Css.p1.$` reuses `pt1`, `pr1`, `pb1`, `pl1`
+- `Css.ba.$` reuses the same classes that standalone `bsSolid` and `bw1` would produce
+
+### Pseudo-class suffixes
+
+Append a short suffix for the pseudo-class:
+
+- `_h` for `:hover`
+- `_f` for `:focus`
+- `_fv` for `:focus-visible`
+- `_a` for `:active`
+- `_d` for `:disabled`
+
+Examples:
+
+- `blue_h` -> `.blue_h:hover { color: #526675 }`
+- `black_f` -> `.black_f:focus { color: #353535 }`
+
+### Media query suffixes
+
+Append the breakpoint abbreviation:
+
+- `_sm` for the small breakpoint
+- `_md` for medium
+- `_lg` for large
+
+Examples:
+
+- `blue_sm` -> `@media (...) { .blue_sm.blue_sm { color: #526675 } }`
+
+### Stacked conditions
+
+When pseudo-class and media query combine, concatenate both suffixes:
+
+- `blue_sm_h` -> `@media (...) { .blue_sm_h.blue_sm_h:hover { color: #526675 } }`
+
+### Pseudo-element suffixes
+
+Use the pseudo-element name (without `::`) as a suffix:
+
+- `blue_placeholder` -> `.blue_placeholder::placeholder { color: #526675 }`
+- `red_placeholder_f` -> `.red_placeholder_f:focus::placeholder { color: red }`
 
 ### Dynamic classes
 
-- use `abbrev_dyn`
-  - `mt_dyn`
-  - `bc_dyn`
+Use `abbrev_dyn` with the same condition suffixes:
 
-with CSS variables named to match:
+- `mt_dyn` -> `.mt_dyn { margin-top: var(--mt_dyn) }`
+- `bc_dyn_h` -> `.bc_dyn_h:hover { border-color: var(--bc_dyn_h) }`
+
+CSS variables are named to match their class:
 
 - `--mt_dyn`
-- `--bc_dyn`
+- `--bc_dyn_h`
 
-### Pseudo / media bundles
+### `add()` classes
 
-Prefer readable deterministic names based on the ownership bundle:
+`add()` always takes string literal arguments, so it reuses the dynamic class infrastructure. `Css.add("color", "red").$` compiles to a dynamic-style tuple using the CSS property name as the class basis:
 
-- `black_h_blue`
-- `blue_f_black`
-- `black_sm_blue`
-- `placeholder_blue`
-- `bc_dyn_hover`
+```ts
+Css.add("color", "red").$ -> { color: ["color_dyn", { "--color_dyn": "red" }] }
+```
 
-These names should come from the resolved property bundle, not from random hashes.
+This reuses the same `.color_dyn { color: var(--color_dyn) }` class that any other dynamic `color` value would use. The literal value is passed through as an inline style variable, just like a runtime dynamic call. No hashes needed.
 
 ## Transform Behavior
 
@@ -524,40 +648,53 @@ The old `asStyleArray` helper should disappear in Phase 1 because style arrays a
 
 ## CSS Generation Model
 
-Each logical property bundle should emit exactly one class name.
+Each atomic class maps to exactly one CSS rule (one selector + one declaration). Classes are fully independent and reusable across any property bundle.
 
 Examples:
 
 ```css
+/* Base classes */
 .df {
   display: flex;
 }
 .aic {
   align-items: center;
 }
-.ba_borderStyle {
-  border-style: solid;
+.pt1 {
+  padding-top: 8px;
 }
-.ba_borderWidth {
-  border-width: 1px;
-}
-
-.black_h_blue {
+.black {
   color: #353535;
 }
-.black_h_blue:hover {
+
+/* Pseudo-class classes */
+.blue_h:hover {
   color: #526675;
 }
-
-.sm_blue {
-  color: inherit;
+.red_f:focus {
+  color: red;
 }
+
+/* Media query classes (doubled selector for specificity) */
 @media (max-width: 599px) {
-  .sm_blue {
+  .blue_sm.blue_sm {
     color: #526675;
   }
 }
 
+/* Stacked: media + pseudo (doubled selector + pseudo-class) */
+@media (max-width: 599px) {
+  .blue_sm_h.blue_sm_h:hover {
+    color: #526675;
+  }
+}
+
+/* Pseudo-element classes */
+.blue_placeholder::placeholder {
+  color: #526675;
+}
+
+/* Dynamic classes */
 .mt_dyn {
   margin-top: var(--mt_dyn);
 }
@@ -565,29 +702,34 @@ Examples:
   syntax: "*";
   inherits: false;
 }
-```
 
-Note: for media-only or pseudo-only rules with no default value, we should emit only the conditional rule instead of inventing fake base declarations.
-
-Example:
-
-```css
-@media (max-width: 599px) {
-  .sm_blue {
-    color: #526675;
-  }
+.bc_dyn_h:hover {
+  border-color: var(--bc_dyn_h);
+}
+@property --bc_dyn_h {
+  syntax: "*";
+  inherits: false;
 }
 ```
 
-not:
+## Specificity and Rule Ordering
 
-```css
-.sm_blue {
-  color: inherit;
-}
-```
+The stylesheet uses three specificity tiers to ensure correct cascade behavior without relying on source order:
 
-unless a real fallback value is explicitly part of the bundle.
+| Tier           | Specificity | Selector pattern      | Example                              |
+| -------------- | ----------- | --------------------- | ------------------------------------ |
+| Base           | `(0,1,0)`   | `.class`              | `.black { color: #353535 }`          |
+| Pseudo-class   | `(0,1,1)`   | `.class:pseudo`       | `.blue_h:hover { color: #526675 }`   |
+| Media query    | `(0,2,0)`   | `.class.class`        | `.blue_sm.blue_sm { ... }`           |
+| Media + pseudo | `(0,2,1)`   | `.class.class:pseudo` | `.blue_sm_h.blue_sm_h:hover { ... }` |
+
+The doubled selector trick for media queries follows StyleX's approach. This means:
+
+1. A media-query-only rule always beats a base rule when the media query matches.
+2. A media+pseudo rule always beats a standalone pseudo rule when both the media query and pseudo-class match.
+3. Within the same tier, conflicts cannot happen at runtime because object spread already resolved which atomic classes are applied to the element.
+
+Since all shorthands are expanded to longhands (see "Shorthand expansion"), there is no shorthand-vs-longhand specificity concern.
 
 ## Test Strategy
 
