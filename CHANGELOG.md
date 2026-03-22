@@ -1,3 +1,9 @@
+## [2.1.0-next.6](https://github.com/homebound-team/truss/compare/v2.1.0-next.5...v2.1.0-next.6) (2026-03-22)
+
+### Bug Fixes
+
+* Keep source lines. ([7d4ae7d](https://github.com/homebound-team/truss/commit/7d4ae7df0708cb5436ecc51b82255ba3b28766d4))
+
 ## [2.1.0-next.5](https://github.com/homebound-team/truss/compare/v2.1.0-next.4...v2.1.0-next.5) (2026-03-22)
 
 ### Bug Fixes
