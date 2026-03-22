@@ -8,13 +8,13 @@
   <hr />
 </div>
 
-Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) in React/JSX, dedicated to [StyleX](https://stylexjs.com/), Facebook's build-time CSS-in-JS library, on web and React Native on mobile.
+Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) in React/JSX, with a build-time Vite plugin that compiles to atomic CSS on web and plain style objects on React Native for mobile.
 
 ## Quick Features
 
 Truss lets you:
 
-- Write `<div css={Css.mt1.black.$}>`, which Truss compiles through StyleX into static CSS output on web.
+- Write `<div css={Css.mt1.black.$}>`, which Truss compiles into atomic CSS classes at build time.
 
 - Setup your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below)
 
@@ -50,19 +50,15 @@ const css = Css.mx2.black.$;
 
 Where `Css.` signals "the start of your CSS styling", and `.$` signals "the end of your CSS styling".
 
-In between, you can chain as many abbreviations/methods as you want, and they will all be statically typed and compile through StyleX on web or resolve to a plain style object on mobile.
+In between, you can chain as many abbreviations/methods as you want, and they will all be statically typed and compiled into atomic CSS classes at build time.
 
 ```typescript
-const css = {
-  // added by .mx2
-  marginLeft: "16px",
-  marginRight: "16px",
-  // added by .black
-  color: "#000000",
-};
+// Css.mx2.black.$ compiles to:
+{ marginLeft: "ml2", marginRight: "mr2", color: "black" }
+// where "ml2", "mr2", "black" are atomic class names
 ```
 
-On web, Truss is used with StyleX; you can write:
+On web, Truss is used with its Vite plugin; you can write:
 
 ```tsx
 function MyReactComponent(props: MyProps) {
@@ -70,7 +66,7 @@ function MyReactComponent(props: MyProps) {
 }
 ```
 
-At build time, Truss + StyleX transform this into static CSS rules.
+At build time, the Truss plugin transforms this into `trussProps(...)` calls and emits a single `truss.css` stylesheet with all atomic rules.
 
 On mobile, the same chain gives a plain style object for React Native:
 
@@ -82,7 +78,7 @@ function MyNativeComponent() {
 
 ## Installation
 
-For v2 web usage, StyleX is the default target, so you can use the `truss` command to generate `Css.ts` (+ `Css.json`) from your `truss-config.ts`:
+For v2 web usage, you can use the `truss` command to generate `Css.ts` (+ `Css.json`) from your `truss-config.ts`:
 
 - `npm i --save-dev @homebound/truss`
 - Add a `truss` command to your `package.json`:
@@ -97,7 +93,7 @@ For v2 web usage, StyleX is the default target, so you can use the `truss` comma
   - `wget https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts`
 - Run `npm run truss`
   - Re-run `npm run truss` anytime you change `truss-config.ts`
-- Start using `Css.mt1.etc.$` in your project and wire `trussPlugin(...)` + `stylex.vite(...)` in Vite (see StyleX section below)
+- Start using `Css.mt1.etc.$` in your project and wire `trussPlugin(...)` in Vite (see setup below)
 
 We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
@@ -109,29 +105,27 @@ Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it, a
 
 If you are targeting React Native/mobile runtime objects instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
 
-### StyleX (compile-in-app libraries)
+### Vite Plugin Setup (compile-in-app libraries)
 
-By default (`target: "stylex"`), Truss generates both `Css.ts` and `Css.json`:
+Truss generates both `Css.ts` and `Css.json`:
 
 - `Css.ts` is the typed `Css.*.$` DSL to use in your component code,
 - `Css.json` is a metadata file consumed by the Truss Vite plugin at build time.
 
 These dual outputs enable a compile-in-app model where component libraries can ship untransformed `Css.*.$` usage and the consuming app compiles both the library's `Css` styles + application's `Css` styles into a single unified output.
 
-Install the StyleX build dependencies in the app:
+Install the build dependency in the app:
 
 ```bash
-npm install @stylexjs/stylex
-npm install --save-dev @stylexjs/unplugin @homebound/truss
+npm install --save-dev @homebound/truss
 ```
 
-1. In the **library** package (i.e. your shared, company-wide component library) that defines your Truss styles/design system tokens, set `target: "stylex"` and run codegen.
+1. In the **library** package (i.e. your shared, company-wide component library) that defines your Truss styles/design system tokens, run codegen.
 
    ```ts
    // truss-config.ts
    export default defineConfig({
      outputPath: "./src/Css.ts",
-     target: "stylex",
      // optional: defaults to ./src/Css.json based on outputPath
      mappingOutputPath: "./src/Css.json",
      // ...palette/fonts/increment/etc
@@ -139,17 +133,16 @@ npm install --save-dev @stylexjs/unplugin @homebound/truss
    ```
 
    Notes:
-   - Do **not** run `trussPlugin(...)` in the library build; leave `Css.*.$` untransformed, as they'll be rewritten by each downstream applications' build.
+   - Do **not** run `trussPlugin(...)` in the library build; leave `Css.*.$` untransformed, as they'll be rewritten by each downstream application's build.
    - If the library runs Vitest, use `trussPlugin(...)` there (tests only):
 
      ```ts
      // vitest.config.ts (library package)
      import { defineConfig } from "vitest/config";
-     import stylex from "@stylexjs/unplugin";
      import { trussPlugin } from "@homebound/truss/plugin";
 
      export default defineConfig({
-       plugins: [trussPlugin({ mapping: "./src/Css.json" }), stylex.vite({ runtimeInjection: true })],
+       plugins: [trussPlugin({ mapping: "./src/Css.json" })],
        test: {
          environment: "jsdom",
        },
@@ -159,12 +152,11 @@ npm install --save-dev @stylexjs/unplugin @homebound/truss
 2. Publish the design system library's `Css` module and generated `Css.json` (for example in `dist/`), along with library files that contain `Css.*.$` usage, to npm/other repository. Then:
    - Application code can import the design system styles directly, e.g. `import { Css } from "@company/library"`.
    - The application does **not** need to run its own Truss codegen step
-   - In the application's Vite config, run Truss plugin before StyleX, and configure both plugins with the same external package list:
+   - In the application's Vite config, run the Truss plugin before React:
 
      ```ts
      import { defineConfig } from "vite";
      import react from "@vitejs/plugin-react";
-     import stylex from "@stylexjs/unplugin";
      import { trussPlugin } from "@homebound/truss/plugin";
 
      // Any upstream libraries (if any) that are using our `Css.*.$` syntax
@@ -178,7 +170,6 @@ npm install --save-dev @stylexjs/unplugin @homebound/truss
            mapping: "./node_modules/@company/library/dist/Css.json",
            externalPackages,
          }),
-         stylex.vite({ externalPackages, useCSSLayers: true }),
          react(),
        ],
      });
@@ -186,14 +177,13 @@ npm install --save-dev @stylexjs/unplugin @homebound/truss
 
 Notes:
 
-- Keep `trussPlugin(...)` before `stylex.vite(...)`, and both before `react()`.
+- Keep `trussPlugin(...)` before `react()`.
 - `mapping` is required and should point to the single `Css.json` you want to compile against.
-- `externalPackages` should match in both plugins.
-- `useCSSLayers` controls precedence with existing app CSS (`false` if StyleX should win over existing custom styles; otherwise `true`).
+- `externalPackages` tells the plugin which `node_modules` packages contain `Css.*.$` usage that needs to be transformed.
 
 ### Arbitrary Selectors with `.css.ts` Files
 
-StyleX intentionally limits the selectors you can use (no descendant combinators, no `:nth-child`, etc.). When you need complex selectors that StyleX can't express, you can use a `.css.ts` file to write plain CSS while still using Truss's design tokens and abbreviations.
+Truss intentionally limits the selectors you can use in `Css.*.$` chains to keep atomic class output deterministic. When you need complex selectors (descendant combinators, `:nth-child`, etc.), you can use a `.css.ts` file to write plain CSS while still using Truss's design tokens and abbreviations.
 
 Create a file with the `.css.ts` extension:
 
@@ -435,7 +425,7 @@ And, even if so, the coupling between Truss and your application code is limited
 
 Truss's approach is "Tachyons-ish" (or Tailwinds-ish), insofar as having short/cute utility class definitions.
 
-On web, those abbreviations compile through the Truss + StyleX pipeline into static CSS output. On mobile, they resolve to plain React Native style objects.
+On web, those abbreviations compile through the Truss Vite plugin into atomic CSS classes. On mobile, they resolve to plain React Native style objects.
 
 The benefits of this approach are:
 
@@ -449,7 +439,7 @@ The benefits of this approach are:
 
   I.e. we don't need to suffix `-nl` for "not large" onto every single abbreviation.
 
-- You can still mix in regular StyleX or React Native styles for the places where utility abbreviations are not the best fit.
+- You can still mix in regular CSS for the places where utility abbreviations are not the best fit (see `.css.ts` files).
 
 - Projects can easily tweak their preferred styles/abbreviations.
 
@@ -496,11 +486,28 @@ Several libraries influenced Truss, specifically:
 
   In particular, the babel-plugin-tailwind-components insight of "if you just make `csstype`-compliant object literals, you can build a typed utility DSL on top" was a very useful/inspirational insight.
 
-- Facebook's StyleX for the "typed extension" idea
+- Facebook's [XStyles](https://www.youtube.com/watch?v=9JZHodNR184) for the "typed extension" idea
+
+- Facebook's [StyleX](https://stylexjs.com/) heavily influenced Truss's 2.x build-time approach--i.e. we copied nearly everything about it. 😅 
+
+  StyleX solved the hard problems of atomic CSS:
+  - property-level last-write-wins semantics,
+  - specificity tiers via doubled selectors for media queries,
+  - CSS custom properties for runtime values, and
+  - deterministic class generation.
+
+  The only reasons we don't use StyleX directly are:
+
+  - The `stylex.create` values are "arrays of tuple data", instead of object hashes, and so didn't work
+    with Truss's extremely common object literal spreads of `css={{ ...Css.mt2.$, ...someOtherStyles }}`.
+
+  - Given we already have "basically unique" abbreviations, we can make class names that aren't esoteric hashes.
+    We are probably giving up some small-percentage of output size/performance, that matters at Facebook scale,
+    but for Truss we prioritize readability and debuggability of the emitted CSS classes.
 
 ## Contributing
 
-The Truss repository is set up as a Yarn workspace, although really the core package is just `packages/truss`, and the other packages are primarily examples/tests for web (StyleX) and mobile (React Native) output.
+The Truss repository is set up as a Yarn workspace, although really the core package is just `packages/truss`, and the other packages are primarily examples/tests for web output and mobile (React Native) output.
 
 A basic development flow is:
 
@@ -515,7 +522,5 @@ A basic development flow is:
 
 - `npx -p @homebound/truss init` type experience for setup - inspired by [Storybook](https://storybook.js.org/docs/guides/quick-start-guide/)
 - Support `number[]` increments as config
-- Babel plugin that evaluates `Css...$` expressions at build-time
-  - I.e. see babel-plugin-tailwind-components and [typed.tw's implementation](https://github.com/dvkndn/typed.tw/tree/master/webpack-loader)
 - Server-side generation; in theory this should just work?
-- Add more real-world StyleX + React Native examples
+- Add more real-world React Native examples
