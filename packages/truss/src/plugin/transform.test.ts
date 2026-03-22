@@ -18,6 +18,31 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`)!)).toBe(n(`const s = { display: "df" };`));
   });
 
+  test("keeps runtime import rewrites on the former Css import line", () => {
+    const output = transform(`
+      import { keepMe } from "./other";
+      import { Css } from "./Css";
+
+      const el = <div css={Css.black.$} />;
+      const value = keepMe();
+    `)!;
+
+    expect(lineOf(output, 'import { trussProps } from "@homebound/truss/runtime";')).toBe(2);
+    expect(lineOf(output, "const el =")).toBe(4);
+  });
+
+  test("returns a source map for rewritten files", () => {
+    const result = transformTruss(
+      `import { Css } from "./Css"; const el = <div css={Css.black.$} />;`,
+      "test.tsx",
+      mapping,
+    );
+
+    expect(result?.map).toMatchObject({
+      sources: ["test.tsx"],
+    });
+  });
+
   test("multi-getter chain: Css.df.aic.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.aic.$;`)!)).toBe(
       n(`const s = { display: "df", alignItems: "aic" };`),
@@ -1510,4 +1535,12 @@ function css(code: string, options?: { debug?: boolean }): string | null {
 /** Normalize whitespace so we can write readable multi-line expectations. */
 function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
+}
+
+function lineOf(source: string, search: string): number {
+  return (
+    source.split("\n").findIndex(function (line) {
+      return line.includes(search);
+    }) + 1
+  );
 }

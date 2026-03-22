@@ -246,6 +246,39 @@ export function findNamedImportBinding(ast: t.File, source: string, importedName
   return null;
 }
 
+export function findImportDeclaration(ast: t.File, source: string): t.ImportDeclaration | null {
+  for (const node of ast.program.body) {
+    if (t.isImportDeclaration(node) && node.source.value === source) {
+      return node;
+    }
+  }
+  return null;
+}
+
+export function replaceCssImportWithNamedImports(
+  ast: t.File,
+  cssBinding: string,
+  source: string,
+  imports: Array<{ importedName: string; localName: string }>,
+): boolean {
+  for (const node of ast.program.body) {
+    if (!t.isImportDeclaration(node)) continue;
+
+    const cssSpecIndex = node.specifiers.findIndex(function (spec) {
+      return t.isImportSpecifier(spec) && spec.local.name === cssBinding;
+    });
+    if (cssSpecIndex === -1 || node.specifiers.length !== 1) continue;
+
+    node.source = t.stringLiteral(source);
+    node.specifiers = imports.map(function (entry) {
+      return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
+    });
+    return true;
+  }
+
+  return false;
+}
+
 export function upsertNamedImports(
   ast: t.File,
   source: string,

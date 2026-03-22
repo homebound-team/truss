@@ -13,6 +13,8 @@ import {
   removeCssImport,
   hasCssMethodCall,
   findNamedImportBinding,
+  findImportDeclaration,
+  replaceCssImportWithNamedImports,
   upsertNamedImports,
   extractChain,
 } from "./ast-utils";
@@ -145,10 +147,7 @@ export function transformTruss(
     runtimeLookupNames,
   });
 
-  // Step 6: Remove Css import now that all usages were rewritten
-  removeCssImport(ast, cssBindingName);
-
-  // Step 7: Inject runtime imports
+  // Step 6: Prepare runtime imports before removing the Css import.
   const runtimeImports: Array<{ importedName: string; localName: string }> = [];
   if (needsTrussPropsHelper.current) {
     runtimeImports.push({ importedName: "trussProps", localName: trussPropsHelperName });
@@ -162,8 +161,21 @@ export function transformTruss(
   if (options.injectCss) {
     runtimeImports.push({ importedName: "__injectTrussCSS", localName: "__injectTrussCSS" });
   }
+
+  // Step 7: Remove/replace the Css import and inject runtime imports.
+  const reusedCssImportLine =
+    runtimeImports.length > 0 &&
+    findImportDeclaration(ast, "@homebound/truss/runtime") === null &&
+    replaceCssImportWithNamedImports(ast, cssBindingName, "@homebound/truss/runtime", runtimeImports);
+
+  if (!reusedCssImportLine) {
+    removeCssImport(ast, cssBindingName);
+  }
+
   if (runtimeImports.length > 0) {
-    upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
+    if (!reusedCssImportLine) {
+      upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
+    }
   }
 
   // Step 8: Insert helper declarations after imports
@@ -208,10 +220,13 @@ export function transformTruss(
 
   const output = generate(ast, {
     sourceFileName: filename,
+    sourceMaps: true,
     retainLines: false,
   });
 
-  return { code: output.code, map: output.map, css: cssText, rules };
+  const outputCode = preserveBlankLineAfterImports(code, output.code);
+
+  return { code: outputCode, map: output.map, css: cssText, rules };
 }
 
 /** Collect typography runtime lookups from all resolved chains. */
@@ -232,4 +247,34 @@ function collectRuntimeLookups(
     }
   }
   return lookups;
+}
+
+function preserveBlankLineAfterImports(input: string, output: string): string {
+  const inputLines = input.split("\n");
+  const outputLines = output.split("\n");
+  const lastInputImportLine = findLastImportLine(inputLines);
+  const lastOutputImportLine = findLastImportLine(outputLines);
+
+  if (lastInputImportLine === -1 || lastOutputImportLine === -1) {
+    return output;
+  }
+
+  const inputHasBlankLineAfterImports = inputLines[lastInputImportLine + 1]?.trim() === "";
+  const outputHasBlankLineAfterImports = outputLines[lastOutputImportLine + 1]?.trim() === "";
+  if (!inputHasBlankLineAfterImports || outputHasBlankLineAfterImports) {
+    return output;
+  }
+
+  outputLines.splice(lastOutputImportLine + 1, 0, "");
+  return outputLines.join("\n");
+}
+
+function findLastImportLine(lines: string[]): number {
+  let lastImportLine = -1;
+  for (let index = 0; index < lines.length; index++) {
+    if (lines[index].trimStart().startsWith("import ")) {
+      lastImportLine = index;
+    }
+  }
+  return lastImportLine;
 }
