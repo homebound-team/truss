@@ -427,8 +427,18 @@ Instead it should:
 Sketch:
 
 ```ts
-/** Space-separated atomic class names, or a dynamic tuple with class names + CSS variable map. */
-type TrussStyleValue = string | [classNames: string, vars: Record<string, string>];
+/**
+ * Space-separated atomic class names, or a dynamic tuple with class names + CSS variable map.
+ *
+ * In debug mode, the transform appends a TrussDebugInfo as an extra tuple element:
+ * - static with debug: [classNames: string, debugInfo: TrussDebugInfo]
+ * - dynamic with debug: [classNames: string, vars: Record<string, string>, debugInfo: TrussDebugInfo]
+ */
+type TrussStyleValue =
+  | string
+  | [classNames: string, vars: Record<string, string>]
+  | [classNames: string, debugInfo: TrussDebugInfo]
+  | [classNames: string, vars: Record<string, string>, debugInfo: TrussDebugInfo];
 type TrussStyleHash = Record<string, TrussStyleValue>;
 
 export function trussProps(...hashes: (TrussStyleHash | false | null | undefined)[]): Record<string, unknown> {
@@ -442,6 +452,8 @@ export function trussProps(...hashes: (TrussStyleHash | false | null | undefined
   const classNames: string[] = [];
   const inlineStyle: Record<string, string> = {};
 
+  const debugSources: string[] = [];
+
   for (const value of Object.values(merged)) {
     if (typeof value === "string") {
       // Space-separated atomic classes, i.e. "black blue_h"
@@ -449,9 +461,17 @@ export function trussProps(...hashes: (TrussStyleHash | false | null | undefined
       continue;
     }
 
-    // Dynamic tuple: [classNames, varsMap]
+    // Tuple: [classNames, varsOrDebug, maybeDebug]
     classNames.push(value[0]);
-    Object.assign(inlineStyle, value[1]);
+
+    for (let i = 1; i < value.length; i++) {
+      const el = value[i];
+      if (el instanceof TrussDebugInfo) {
+        debugSources.push(el.src);
+      } else if (typeof el === "object" && el !== null) {
+        Object.assign(inlineStyle, el);
+      }
+    }
   }
 
   const props: Record<string, unknown> = {
@@ -462,11 +482,56 @@ export function trussProps(...hashes: (TrussStyleHash | false | null | undefined
     props.style = inlineStyle;
   }
 
+  if (debugSources.length > 0) {
+    props["data-truss-src"] = [...new Set(debugSources)].join("; ");
+  }
+
   return props;
 }
 ```
 
 Note: because each value is already space-separated (e.g. `"black blue_h"`), the final `classNames.join(" ")` produces correct output like `"df aic black blue_h"` without any splitting step. The space-separated values pass through directly.
+
+### Debug mode (`TrussDebugInfo`)
+
+When the plugin runs with `debug: true`, the transform appends a `TrussDebugInfo` instance into the first property's tuple value. This carries a compact `"FileName.tsx:line"` source label through the style hash.
+
+`TrussDebugInfo` is a simple class:
+
+```ts
+export class TrussDebugInfo {
+  readonly src: string;
+  constructor(src: string) {
+    this.src = src;
+  }
+}
+```
+
+In debug mode, the transform emits tuples with the debug info as an extra element. For static values this means promoting the bare string to a tuple:
+
+```ts
+// Without debug:
+{ display: "df", color: "black blue_h" }
+
+// With debug:
+{ display: ["df", new TrussDebugInfo("MyComponent.tsx:5")], color: "black blue_h" }
+```
+
+Only the first property in the hash needs the debug info (it's per-expression, not per-property). For dynamic values the debug info is appended as a third element:
+
+```ts
+{
+  marginTop: ["mt_dyn", { "--mt_dyn": x }, new TrussDebugInfo("MyComponent.tsx:12")];
+}
+```
+
+At runtime, `trussProps` collects all `TrussDebugInfo` instances, deduplicates them, and emits a `data-truss-src` attribute on the resulting props:
+
+```ts
+{ className: "df aic black blue_h", "data-truss-src": "MyComponent.tsx:5; OtherFile.tsx:10" }
+```
+
+This lets developers inspect any element in the DOM and immediately see which Truss expressions contributed to its styles.
 
 ## `mergeProps`
 
@@ -515,25 +580,31 @@ If there is no explicit style prop, the transform can pass `undefined`.
 
 ## CSS Delivery
 
-### Development
+### Development: virtual CSS endpoint + HMR
 
-Use runtime injection into a `<style>` tag.
+In dev mode, the Vite plugin should serve the collected CSS via a virtual endpoint and use Vite's HMR to push updates to the browser. This follows the same approach as the [StyleX Vite plugin](https://github.com/facebook/stylex/blob/main/packages/%40stylexjs/unplugin/src/vite.js).
 
-Reason: jsdom only sees actual CSS rules in the document, and current black-box tests rely on that behavior.
+The mechanism has three parts:
 
-Truss runtime should expose an internal helper like:
+**1. CSS endpoint middleware.** The plugin registers a `configureServer` middleware that serves the current collected CSS at a virtual path (e.g. `/virtual:truss.css`). Each request calls a `collectCss()` function that returns the full CSS string from the global rule registry. The response uses `Cache-Control: no-store` so the browser always gets fresh content.
 
-```ts
-export function __injectTrussCSS(cssText: string): void;
-```
+**2. Virtual runtime script.** The plugin injects a `<script type="module">` tag into the HTML via `transformIndexHtml` that points to a virtual module (e.g. `virtual:truss:runtime`). This script:
 
-The dev transform should inject calls that register the transformed file's CSS into a shared `<style data-truss>` tag.
+- Creates a `<style id="__truss_virtual__">` element in `<head>`
+- Fetches CSS from the virtual endpoint and sets it as the style's `textContent`
+- Listens for a custom HMR event (`truss:css-update`) to re-fetch and update
+- Also listens for `vite:afterUpdate` as a fallback (with a small delay) to catch cases where the HMR event fires before the transform completes
 
-Requirements:
+**3. HMR event dispatch.** The plugin maintains a version counter in its shared state. Each time a file is transformed and new CSS rules are collected, the version increments. A `configureServer` interval (or `handleHotUpdate` hook) detects version changes and sends the `truss:css-update` custom event via `server.ws.send()`. The `handleHotUpdate` hook also fires the event on any file change for safety.
 
-- dedupe repeated injection
-- work in browser and jsdom
-- no-op in SSR/non-DOM environments
+This approach means:
+
+- No per-file `__injectTrussCSS()` calls are needed in transformed JS modules
+- The browser always has the complete, correctly-ordered stylesheet
+- HMR updates are near-instant (just a CSS re-fetch, no full page reload)
+- jsdom environments for tests can use a simpler `__injectTrussCSS()` helper that writes to a `<style>` tag directly, since jsdom doesn't have Vite's dev server
+
+**jsdom / test environment.** For unit tests running in jsdom (without Vite's dev server), the transform should still inject `__injectTrussCSS(cssText)` calls so that `document.styleSheets` reflects the CSS rules. This is a test-only code path gated on the environment.
 
 ### Production
 
@@ -546,7 +617,12 @@ This gives:
 - better browser caching
 - simpler mental model for atomic class generation
 
-The Vite plugin should collect all generated atomic rules globally during transform and then write a single `truss.css` in `generateBundle`.
+The Vite plugin should collect all generated atomic rules globally during transform. In `generateBundle`, it should either:
+
+- Append the collected CSS to an existing CSS asset in the bundle (matching StyleX's `pickCssAssetFromRollupBundle` approach)
+- Or emit a standalone `truss.css` asset if no existing CSS asset is found
+
+The `writeBundle` hook should also write the CSS to disk as a fallback, in case `generateBundle` didn't find a suitable target asset.
 
 ## Naming Strategy
 
@@ -678,7 +754,7 @@ Input:
 Output:
 
 ```tsx
-<div {...mergeProps("existing", { display: "df" })} />
+<div {...mergeProps("existing", undefined, { display: "df" })} />
 ```
 
 ### Non-JSX style values
@@ -951,7 +1027,21 @@ The plugin should own CSS generation end-to-end.
 - emit one `truss.css` file during bundle generation
 - ensure the app includes that stylesheet
 
-The existing `.css.ts` machinery in `transform-css.ts` is already close in spirit and can likely inform or share lower-level CSS formatting helpers.
+### `.css.ts` files
+
+`.css.ts` files provide a way to write Truss-styled CSS rules with explicit selectors, for cases where `css=` prop usage isn't appropriate (e.g. global overrides, third-party component styling).
+
+The existing pipeline works as follows:
+
+1. `transform-css.ts` parses the `.css.ts` file and resolves `Css.*.$` chains into CSS declarations, producing a raw CSS string.
+2. `rewrite-css-ts-imports.ts` rewrites imports of `.css.ts` modules to inject a `?truss-css` side-effect import that pipes the generated CSS through Vite's native CSS pipeline.
+3. Named exports from `.css.ts` files (e.g. class name constants) remain available as normal TypeScript imports.
+
+In the new native model, this pipeline stays largely the same. The key change is that `transform-css.ts` should use the same atomic class generation and CSS formatting helpers as the main emitter, so that `.css.ts` output is consistent with `truss.css`.
+
+In production, `.css.ts` output should be **appended to the global `truss.css`** file rather than emitted as separate CSS assets. This gives a single stylesheet for the entire app, maximizing cache efficiency and eliminating any ordering concerns between Truss atomic classes and `.css.ts` rules.
+
+In dev mode, `.css.ts` files can continue using Vite's native CSS injection via the `?truss-css` virtual module pipeline, since Vite handles HMR for those modules automatically.
 
 ## Phase 2: `marker` and `when()`
 
