@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/homebound-team/truss/compare/v2.0.13...v2.1.0) (2026-03-22)
+
+### Features
+
+* Truss native ([#172](https://github.com/homebound-team/truss/issues/172)) ([ec4147f](https://github.com/homebound-team/truss/commit/ec4147f0c115d55c1cd1ab180bcafd827fedfc1c))
+
 ## [2.1.0-next.10](https://github.com/homebound-team/truss/compare/v2.1.0-next.9...v2.1.0-next.10) (2026-03-22)
 
 ### Bug Fixes
