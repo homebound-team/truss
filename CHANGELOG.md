@@ -1,3 +1,9 @@
+## [2.1.0-next.3](https://github.com/homebound-team/truss/compare/v2.1.0-next.2...v2.1.0-next.3) (2026-03-22)
+
+### Bug Fixes
+
+* Don't inject /truss.css in dev mode. ([1e0321b](https://github.com/homebound-team/truss/commit/1e0321b9f03141c4bca5e928fb9428c29e9b2b3b))
+
 ## [2.1.0-next.2](https://github.com/homebound-team/truss/compare/v2.1.0-next.1...v2.1.0-next.2) (2026-03-22)
 
 ### Bug Fixes
