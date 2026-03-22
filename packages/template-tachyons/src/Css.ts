@@ -2647,25 +2647,25 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: "@media print" });
   }
   get ifSm() {
-    return this.newCss({ selector: "@media (max-width: 599px)" });
+    return this.newCss({ selector: "@media screen and (max-width: 599px)" });
   }
   get ifMd() {
-    return this.newCss({ selector: "@media (min-width: 600px) and (max-width: 959px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 600px) and (max-width: 959px)" });
   }
   get ifSmOrMd() {
-    return this.newCss({ selector: "@media (max-width: 959px)" });
+    return this.newCss({ selector: "@media screen and (max-width: 959px)" });
   }
   get ifMdAndUp() {
-    return this.newCss({ selector: "@media (min-width: 600px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 600px)" });
   }
   get ifMdAndDown() {
-    return this.newCss({ selector: "@media (max-width: 959px)" });
+    return this.newCss({ selector: "@media screen and (max-width: 959px)" });
   }
   get ifLg() {
-    return this.newCss({ selector: "@media (min-width: 960px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 960px)" });
   }
   get ifMdOrLg() {
-    return this.newCss({ selector: "@media (min-width: 600px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 600px)" });
   }
 
   /** Conditionally apply styles when `cond` is true. */
@@ -2754,11 +2754,11 @@ export type Padding = "padding" | "paddingTop" | "paddingRight" | "paddingBottom
 export type Breakpoint = "print" | "sm" | "md" | "smOrMd" | "mdAndUp" | "mdAndDown" | "lg" | "mdOrLg";
 export enum Breakpoints {
   print = "@media print",
-  sm = "@media (max-width: 599px)",
-  md = "@media (min-width: 600px) and (max-width: 959px)",
-  smOrMd = "@media (max-width: 959px)",
-  mdAndUp = "@media (min-width: 600px)",
-  mdAndDown = "@media (max-width: 959px)",
-  lg = "@media (min-width: 960px)",
-  mdOrLg = "@media (min-width: 600px)",
+  sm = "@media screen and (max-width: 599px)",
+  md = "@media screen and (min-width: 600px) and (max-width: 959px)",
+  smOrMd = "@media screen and (max-width: 959px)",
+  mdAndUp = "@media screen and (min-width: 600px)",
+  mdAndDown = "@media screen and (max-width: 959px)",
+  lg = "@media screen and (min-width: 960px)",
+  mdOrLg = "@media screen and (min-width: 600px)",
 }
