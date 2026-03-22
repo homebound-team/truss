@@ -1475,22 +1475,26 @@ describe("transform", () => {
 
   // ── Breakpoint / media query tests ──────────────────────────────────
 
-  test("if(mediaQuery) as pseudo: Css.if('@media (max-width: 599px)').df.$", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (max-width: 599px)").df.$;`)!)).toBe(
-      n(`const s = { display: "sm_df" };`),
-    );
+  test("if(mediaQuery) as pseudo: Css.if('@media screen and (max-width: 599px)').df.$", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (max-width: 599px)").df.$;`)!),
+    ).toBe(n(`const s = { display: "sm_df" };`));
   });
 
-  test("if(mediaQuery) merges with base: Css.bgBlue.if('@media (max-width: 599px)').bgBlack.$", () => {
+  test("if(mediaQuery) merges with base: Css.bgBlue.if('@media screen and (max-width: 599px)').bgBlack.$", () => {
     expect(
-      n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.if("@media (max-width: 599px)").bgBlack.$;`)!),
+      n(
+        transform(
+          `import { Css } from "./Css"; const s = Css.bgBlue.if("@media screen and (max-width: 599px)").bgBlack.$;`,
+        )!,
+      ),
     ).toBe(n(`const s = { backgroundColor: "bgBlue sm_bgBlack" };`));
   });
 
   test("if(Breakpoints.sm) works like if('@media...')", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (min-width: 960px)").df.$;`)!)).toBe(
-      n(`const s = { display: "lg_df" };`),
-    );
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (min-width: 960px)").df.$;`)!),
+    ).toBe(n(`const s = { display: "lg_df" };`));
   });
 
   test("breakpoint + pseudo combination: Css.ifSm.onHover.blue.$", () => {
