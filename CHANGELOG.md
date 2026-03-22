@@ -1,3 +1,9 @@
+## [2.1.0-next.9](https://github.com/homebound-team/truss/compare/v2.1.0-next.8...v2.1.0-next.9) (2026-03-22)
+
+### Bug Fixes
+
+* Use stylex's priority system. ([9de204c](https://github.com/homebound-team/truss/commit/9de204c73833784a7ba11e87b976bc615377cc31))
+
 ## [2.1.0-next.8](https://github.com/homebound-team/truss/compare/v2.1.0-next.7...v2.1.0-next.8) (2026-03-22)
 
 ### Bug Fixes
