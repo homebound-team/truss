@@ -588,27 +588,52 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   return lines.join("\n");
 }
 
+/**
+ * Reorder rules within a tier so that variable rules (`var(--...)`) for a given
+ * CSS property always appear after all static rules for that same property.
+ *
+ * A simple comparison sort can't do this because it creates intransitive orderings
+ * when unrelated properties are interleaved. Instead we do two passes:
+ * 1. Emit all rules except variable rules whose property also has a static rule
+ * 2. Append the deferred variable rules at the end
+ */
 function sortRulesWithinPropertyTier(rules: AtomicRule[]): void {
-  const indexedRules = rules.map(function (rule, index) {
-    return { rule, index };
-  });
-
-  indexedRules.sort(function (left, right) {
-    if (left.rule.cssProperty !== right.rule.cssProperty) {
-      return left.index - right.index;
+  // Find properties that have both static and variable rules
+  const staticProps = new Set<string>();
+  const variableProps = new Set<string>();
+  for (const rule of rules) {
+    if (isVariableRule(rule)) {
+      variableProps.add(rule.cssProperty);
+    } else {
+      staticProps.add(rule.cssProperty);
     }
+  }
 
-    const leftIsVariable = isVariableRule(left.rule);
-    const rightIsVariable = isVariableRule(right.rule);
-    if (leftIsVariable !== rightIsVariable) {
-      return leftIsVariable ? 1 : -1;
+  // Properties that need reordering: have both static and variable rules
+  const conflictingProps = new Set<string>();
+  for (const prop of variableProps) {
+    if (staticProps.has(prop)) {
+      conflictingProps.add(prop);
     }
+  }
 
-    return left.index - right.index;
-  });
+  if (conflictingProps.size === 0) return;
 
-  for (let i = 0; i < indexedRules.length; i++) {
-    rules[i] = indexedRules[i].rule;
+  // Pass 1: keep everything except variable rules for conflicting properties
+  const kept: AtomicRule[] = [];
+  const deferred: AtomicRule[] = [];
+  for (const rule of rules) {
+    if (conflictingProps.has(rule.cssProperty) && isVariableRule(rule)) {
+      deferred.push(rule);
+    } else {
+      kept.push(rule);
+    }
+  }
+
+  // Rebuild: static rules in original order, then deferred variable rules
+  const result = [...kept, ...deferred];
+  for (let i = 0; i < result.length; i++) {
+    rules[i] = result[i];
   }
 }
 
