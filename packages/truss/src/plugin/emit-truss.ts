@@ -285,9 +285,10 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
 /** Collect atomic rules for a variable segment. */
 function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
-  const baseKey = seg.key.split("__")[0];
+  const segmentBaseKey = seg.key.split("__")[0];
 
   for (const prop of seg.variableProps!) {
+    const baseKey = variableBaseKey(seg, prop);
     const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
     const varName = toCssVariableName(className, baseKey, prop);
     const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
@@ -326,7 +327,7 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
   // Extra static defs alongside variable props
   if (seg.variableExtraDefs) {
     for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-      const extraBase = `${baseKey}_${cssProp}`;
+      const extraBase = `${segmentBaseKey}_${cssProp}`;
       const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
       if (!rules.has(extraName)) {
         rules.set(extraName, {
@@ -376,10 +377,11 @@ function collectWhenStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSeg
 function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const wp = seg.whenPseudo!;
   const prefix = whenPrefix(wp);
-  const baseKey = seg.key.split("__")[0];
+  const segmentBaseKey = seg.key.split("__")[0];
   const mClass = markerClassName(wp.markerNode);
 
   for (const prop of seg.variableProps!) {
+    const baseKey = variableBaseKey(seg, prop);
     const className = `${prefix}${baseKey}_var`;
     const varName = toCssVariableName(className, baseKey, prop);
     const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
@@ -419,7 +421,7 @@ function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedS
 
   if (seg.variableExtraDefs) {
     for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-      const extraName = `${prefix}${baseKey}_${cssProp}`;
+      const extraName = `${prefix}${segmentBaseKey}_${cssProp}`;
       if (!rules.has(extraName)) {
         rules.set(extraName, {
           className: extraName,
@@ -685,9 +687,10 @@ export function buildStyleHashProperties(
       const prefix = seg.whenPseudo
         ? whenPrefix(seg.whenPseudo)
         : conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
-      const baseKey = seg.key.split("__")[0];
+      const segmentBaseKey = seg.key.split("__")[0];
 
       for (const prop of seg.variableProps) {
+        const baseKey = variableBaseKey(seg, prop);
         const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
         const varName = toCssVariableName(className, baseKey, prop);
 
@@ -705,7 +708,7 @@ export function buildStyleHashProperties(
       // Extra static defs
       if (seg.variableExtraDefs) {
         for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-          const extraBase = `${baseKey}_${cssProp}`;
+          const extraBase = `${segmentBaseKey}_${cssProp}`;
           const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
           if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
           propGroups.get(cssProp)!.push({ className: extraName, isVariable: false });
@@ -766,6 +769,13 @@ export function buildStyleHashProperties(
   }
 
   return properties;
+}
+
+function variableBaseKey(seg: ResolvedSegment, cssProp: string): string {
+  if (seg.key.startsWith("add_")) {
+    return cssProp;
+  }
+  return seg.key.split("__")[0];
 }
 
 /** Build a CSS variable name from the real CSS property and class condition prefix. */

@@ -1707,7 +1707,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         const shadow = getShadow();
-        const s = { boxShadow: ["add_boxShadow_var", { "--boxShadow": shadow }] };
+        const s = { boxShadow: ["boxShadow_var", { "--boxShadow": shadow }] };
       `),
     );
   });
@@ -1739,14 +1739,22 @@ describe("transform", () => {
     );
   });
 
-  test("later add color spread overrides earlier static color spread", () => {
-    const code = `import { Css, Palette } from "./Css"; const el = <div css={{ ...Css.white.$, ...Css.add("color", Palette.Black).$ }} />;`;
+  test("later color spreads override earlier color spreads", () => {
+    const code = `
+      import { Css, Palette } from "./Css";
+      const el = <div css={{
+        ...Css.white.$,
+        ...Css.color(Palette.Blue).$,
+         ...Css.add("color", Palette.Black).$ }
+        }
+      />;
+    `;
 
     expect(n(transform(code)!)).toBe(
       n(`
         import { Palette } from "./Css";
         import { trussProps } from "@homebound/truss/runtime";
-        const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["add_color_var", { "--color": Palette.Black }] } })} />;
+        const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["color_var", { "--color": Palette.Blue }] }, ...{ color: ["color_var", { "--color": Palette.Black }] } })} />;
       `),
     );
     expect(n(css(code)!)).toBe(
@@ -1754,7 +1762,7 @@ describe("transform", () => {
       .white {
         color: #fcfcfa;
       }
-      .add_color_var {
+      .color_var {
         color: var(--color);
       }
       @property --color {
