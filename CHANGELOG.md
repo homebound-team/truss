@@ -1,3 +1,10 @@
+## [2.1.0-next.5](https://github.com/homebound-team/truss/compare/v2.1.0-next.4...v2.1.0-next.5) (2026-03-22)
+
+### Bug Fixes
+
+* Don't drop earlier values in if/else expressions. ([c1a1418](https://github.com/homebound-team/truss/commit/c1a14180d0fbec14e1a03e9ab28fd62173614301))
+* Remove add_ prefix again. ([0ed1dc5](https://github.com/homebound-team/truss/commit/0ed1dc54272ef00004ab2fd3c8798bb5e6a28c00))
+
 ## [2.1.0-next.4](https://github.com/homebound-team/truss/compare/v2.1.0-next.3...v2.1.0-next.4) (2026-03-22)
 
 ### Bug Fixes
