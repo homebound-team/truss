@@ -1,3 +1,11 @@
+## [2.1.0-next.2](https://github.com/homebound-team/truss/compare/v2.1.0-next.1...v2.1.0-next.2) (2026-03-22)
+
+### Bug Fixes
+
+* Fix error. ([5d36cf5](https://github.com/homebound-team/truss/commit/5d36cf5bffe714c9382421b06beb1248b4e13741))
+* Fix variable abbreviations with multiple keys. ([d01171c](https://github.com/homebound-team/truss/commit/d01171c5e55598cdf0f71a9ddd15bc6caf99fde9))
+* More fully fix breakpoint negation. ([ec386a5](https://github.com/homebound-team/truss/commit/ec386a59244e8ebde8c2c2e4624cde5e47128108))
+
 ## [2.1.0-next.1](https://github.com/homebound-team/truss/compare/v2.0.13...v2.1.0-next.1) (2026-03-22)
 
 ### Features
