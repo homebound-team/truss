@@ -74,6 +74,32 @@ This is the heart of the design: object spread now naturally provides property-l
 
 No array flattening, no special spread rewrite, no `asStyleArray` fallback.
 
+Importantly, the value for each property key is the full ownership bundle for that logical property. In the simplest case that bundle is a single atomic class name:
+
+```ts
+{
+  display: "df";
+}
+```
+
+But for pseudo/media/pseudo-element cases it can be a space-separated bundle of reusable atoms:
+
+```ts
+{
+  color: "black blue_h";
+}
+```
+
+And for dynamic values it can be a tuple of class bundle + CSS variable map:
+
+```ts
+{
+  marginTop: ["mt_dyn", { "--mt_dyn": "16px" }];
+}
+```
+
+The key invariant is that each object key owns one logical CSS property, and later spreads replace that ownership entirely.
+
 ### Multi-property abbreviations
 
 Abbreviations that expand to multiple CSS properties must still become atomic at the property level.
@@ -187,6 +213,16 @@ Css.mt(2).$ -> { marginTop: "mt_16px" }
 Css.bc("red").$ -> { borderColor: "bc_red" }
 ```
 
+When a property bundle has multiple dynamic conditions, the tuple carries the full atomic class bundle plus all CSS variables needed by those classes:
+
+```ts
+Css.bc(x).onHover.bc(y).$ -> {
+  borderColor: ["bc_dyn bc_dyn_h", { "--bc_dyn": x, "--bc_dyn_h": y }],
+}
+```
+
+That keeps the runtime model uniform: one logical property key, one value, last spread wins.
+
 ### Pseudo and media ownership
 
 Like StyleX, ownership should be at the logical property level.
@@ -275,6 +311,63 @@ Css.black.onHover.blue.onFocus.red.$ -> { color: "black blue_h red_f" }
 
 Each condition is its own atomic class. `trussProps` splits the space-separated value to build the final `className`.
 
+### Condition precedence
+
+Reusable conditional atoms are only safe if we define a deterministic precedence model for situations where multiple conditions match at once.
+
+Examples:
+
+- an element can be both `:hover` and `:focus`
+- two custom media queries can overlap
+- a media+hover rule can compete with a plain hover rule
+
+So Truss should define two global ordering tables and emit CSS in that order.
+
+#### Pseudo-class precedence
+
+Truss should maintain a fixed pseudo precedence table, from weakest to strongest, for same-property conflicts:
+
+1. `:link` / `:visited`
+2. `:hover`
+3. `:focus`
+4. `:focus-visible`
+5. `:active`
+6. `:disabled`
+
+The exact table can be adjusted, but it must be global and deterministic. When two same-property pseudo rules of equal specificity can both match, later-emitted rules win.
+
+Example:
+
+```ts
+Css.black.onHover.blue.onFocus.red.$ -> { color: "black blue_h red_f" }
+```
+
+If the element is both hovered and focused, both `.blue_h:hover` and `.red_f:focus` match. Since they have equal specificity, the emitted CSS order decides the winner. Under the table above, focus comes after hover, so focus wins.
+
+#### Media precedence
+
+Named breakpoint helpers like `ifSm`, `ifMd`, and `ifLg` should also have a fixed precedence order, from weakest to strongest, based on Truss's breakpoint model.
+
+For custom string media queries from `Css.if("@media ...")`, Phase 1 should avoid pretending we can always infer the right ordering. Two options are valid:
+
+- support them, but emit them in first-seen order and document that overlapping custom media on the same property are order-sensitive
+- or mark overlapping custom media on the same property as unsupported in Phase 1
+
+The second option is safer unless there is strong existing usage.
+
+#### Combined precedence
+
+The stylesheet should be emitted in stable tiers:
+
+1. base atoms
+2. pseudo-class atoms, ordered by pseudo precedence table
+3. pseudo-element atoms
+4. media atoms, ordered by media precedence table
+5. media+pseudo atoms, ordered first by media precedence and then pseudo precedence
+6. media+pseudo-element and media+pseudo+pseudo-element atoms using the same ordering principles
+
+This keeps rule ordering deterministic while still allowing maximum atom reuse.
+
 ### Pseudo-elements
 
 Pseudo-elements are atomic classes like any other condition. The pseudo-element is part of the CSS selector, and the class is reusable wherever that pseudo-element + value combination appears.
@@ -309,6 +402,14 @@ Css.element("::placeholder").blue.onFocus.red.$ -> { color: "blue_placeholder re
 ```
 
 The `::placeholder` pseudo-element must appear at the end of the selector per CSS spec, so the class ordering is always `.<class>[:<pseudo-class>]::<pseudo-element>`.
+
+Pseudo-elements should follow the same ordering model as other conditional atoms. In particular:
+
+- plain pseudo-element atoms should emit after base atoms
+- pseudo-class + pseudo-element atoms should emit with the pseudo-class tier for that same precedence level
+- media + pseudo-element atoms should emit in the media tier
+
+This avoids underspecifying cases like `::placeholder` plus `:focus::placeholder`.
 
 ## Runtime API
 
@@ -375,6 +476,39 @@ Note: because each value is already space-separated (e.g. `"black blue_h"`), the
 - explicit `className`
 - `trussProps(...)` output
 - any generated debug data attribute
+
+It also needs to merge inline `style` props, because dynamic Truss styles emit CSS variables.
+
+Example:
+
+```tsx
+<div style={{ color: "red" }} css={Css.mt(n).$} />
+```
+
+should become something equivalent to:
+
+```tsx
+<div {...mergeProps(undefined, { color: "red" }, Css.mt(n).$)} />
+```
+
+and produce:
+
+- `className` from Truss styles
+- `style={{ color: "red", "--mt_dyn": "16px" }}`
+
+So in practice `mergeProps` should be a small React-prop merge helper, not just a className concatenator.
+
+Suggested shape:
+
+```ts
+export function mergeProps(
+  explicitClassName: string | undefined,
+  explicitStyle: Record<string, unknown> | undefined,
+  ...hashes: Array<TrussStyleHash | false | null | undefined>
+): Record<string, unknown>;
+```
+
+If there is no explicit style prop, the transform can pass `undefined`.
 
 ## `Css.props`
 
@@ -486,13 +620,37 @@ CSS variables are named to match their class:
 
 ### `add()` classes
 
-`add()` always takes string literal arguments, so it reuses the dynamic class infrastructure. `Css.add("color", "red").$` compiles to a dynamic-style tuple using the CSS property name as the class basis:
+`add()` should reuse the dynamic class infrastructure because it accepts arbitrary property names and values at the callsite.
+
+For a runtime value:
+
+```ts
+Css.add("color", color).$ -> { color: ["color_dyn", { "--color_dyn": color }] }
+```
+
+For a literal value, Phase 1 has two possible behaviors:
+
+- fold to a static atom when we want maximal CSS reuse and smaller inline styles
+- or still use the dynamic class path for implementation simplicity
+
+The preferred behavior is to fold literals to static atoms when both the property and value are string literals, because that better matches the rest of Truss's compile-time folding.
+
+So the ideal behavior is:
+
+```ts
+Css.add("color", "red").$ -> { color: "color_red" }
+Css.add("color", color).$ -> { color: ["color_dyn", { "--color_dyn": color }] }
+```
+
+If implementation simplicity forces Phase 1 to make all `add()` calls dynamic, the doc and tests should say so explicitly. What matters most is that the behavior is deliberate and documented.
+
+Dynamic example:
 
 ```ts
 Css.add("color", "red").$ -> { color: ["color_dyn", { "--color_dyn": "red" }] }
 ```
 
-This reuses the same `.color_dyn { color: var(--color_dyn) }` class that any other dynamic `color` value would use. The literal value is passed through as an inline style variable, just like a runtime dynamic call. No hashes needed.
+This reuses the same `.color_dyn { color: var(--color_dyn) }` class that any other dynamic `color` value would use.
 
 ## Transform Behavior
 
@@ -730,6 +888,8 @@ The doubled selector trick for media queries follows StyleX's approach. This mea
 3. Within the same tier, conflicts cannot happen at runtime because object spread already resolved which atomic classes are applied to the element.
 
 Since all shorthands are expanded to longhands (see "Shorthand expansion"), there is no shorthand-vs-longhand specificity concern.
+
+Within a specificity tier, Truss still relies on stable global emission order as defined in the condition precedence section above. That ordering is what resolves cases like `:hover` and `:focus` being active at the same time.
 
 ## Test Strategy
 
