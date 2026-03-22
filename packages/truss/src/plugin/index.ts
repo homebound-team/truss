@@ -48,7 +48,7 @@ const RESOLVED_VIRTUAL_RUNTIME_ID = "\0" + VIRTUAL_RUNTIME_ID;
  * `export const css = { ".selector": Css.blue.$ }` can keep other runtime exports,
  * while imports are supplemented with a virtual CSS side-effect module.
  *
- * In dev mode, serves CSS via a virtual endpoint with HMR updates.
+ * In dev mode, serves CSS via a virtual endpoint that the injected runtime keeps in sync.
  * In production, emits a single `truss.css` asset with all atomic rules.
  */
 export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
@@ -133,11 +133,8 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
     transformIndexHtml(html: string) {
       if (isBuild) return html;
-      // Inject the virtual runtime script and stylesheet link for dev mode
-      const tags = [
-        `<link rel="stylesheet" href="${VIRTUAL_CSS_ENDPOINT}">`,
-        `<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`,
-      ].join("\n    ");
+      // Inject the virtual runtime script for dev mode; it owns style updates.
+      const tags = [`<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`].join("\n    ");
       return html.replace("</head>", `    ${tags}\n  </head>`);
     },
 

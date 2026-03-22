@@ -105,6 +105,21 @@ describe("trussPlugin", function () {
       `),
     );
   });
+
+  test("dev html injects the runtime without a stylesheet link", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+
+    const html = invokeHook(plugin.transformIndexHtml, {} as any, "<html><head></head><body></body></html>") as any;
+    expect(html).toBeTypeOf("string");
+    expect(html.includes('<script type="module" src="/virtual:truss:runtime"></script>')).toBe(true);
+    expect(html.includes("/virtual:truss.css")).toBe(false);
+  });
 });
 
 function n(s: string): string {
