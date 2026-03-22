@@ -907,6 +907,13 @@ describe("transform", () => {
     );
   });
 
+  test("later base-level property replaces earlier base-level property", () => {
+    // Css.ba sets borderWidth: "1px", then add("borderWidth", "3px") should replace it, not accumulate
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.ba.add("borderWidth", "3px").$;`)!)).toBe(
+      n(`const s = { borderStyle: "bss", borderWidth: "borderWidth_3px" };`),
+    );
+  });
+
   test("negative increment: Css.mt(-1).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(-1).$;`)!)).toBe(
       n(`const s = { marginTop: "mt_neg8px" };`),
@@ -919,11 +926,11 @@ describe("transform", () => {
     );
   });
 
-  test("static increment getters: Css.mt0.mt1.p1.$", () => {
+  test("static increment getters: Css.mt0.mt1.p1.$ — later mt1 replaces mt0", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt0.mt1.p1.$;`)!)).toBe(
       n(`
         const s = {
-          marginTop: "mt0 mt1",
+          marginTop: "mt1",
           paddingTop: "pt1",
           paddingBottom: "pb1",
           paddingRight: "pr1",

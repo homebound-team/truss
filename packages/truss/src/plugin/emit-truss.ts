@@ -484,12 +484,14 @@ export function buildStyleHashProperties(
   mapping: TrussMapping,
   maybeIncHelperName?: string | null,
 ): t.ObjectProperty[] {
-  // Group: cssProperty -> list of { className, isVariable, varName, argNode, incremented, appendPx }
+  // Group: cssProperty -> list of { className, isVariable, isConditional, varName, argNode, incremented, appendPx }
   const propGroups = new Map<
     string,
     Array<{
       className: string;
       isVariable: boolean;
+      /** Whether this entry has a condition prefix (pseudo/media/when). */
+      isConditional: boolean;
       varName?: string;
       argNode?: unknown;
       incremented?: boolean;
@@ -497,20 +499,37 @@ export function buildStyleHashProperties(
     }>
   >();
 
+  /** Push an entry, replacing earlier base-level entries when a new base-level entry overrides the same property. */
+  function pushEntry(cssProp: string, entry: typeof propGroups extends Map<string, Array<infer E>> ? E : never): void {
+    if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
+    const entries = propGroups.get(cssProp)!;
+    // A later base-level entry replaces earlier base-level entries for the same property.
+    // Conditional entries (hover/media) always accumulate alongside base entries.
+    if (!entry.isConditional) {
+      for (let i = entries.length - 1; i >= 0; i--) {
+        if (!entries[i].isConditional) {
+          entries.splice(i, 1);
+        }
+      }
+    }
+    entries.push(entry);
+  }
+
   for (const seg of segments) {
     if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
 
     const { prefix } = segmentContext(seg, mapping);
+    const isConditional = prefix !== "";
 
     if (seg.variableProps) {
       for (const prop of seg.variableProps) {
         const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
         const varName = toCssVariableName(className, seg.abbr, prop);
 
-        if (!propGroups.has(prop)) propGroups.set(prop, []);
-        propGroups.get(prop)!.push({
+        pushEntry(prop, {
           className,
           isVariable: true,
+          isConditional,
           varName,
           argNode: seg.argNode,
           incremented: seg.incremented,
@@ -523,8 +542,7 @@ export function buildStyleHashProperties(
         for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
           const extraBase = `${seg.abbr}_${cssProp}`;
           const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
-          if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
-          propGroups.get(cssProp)!.push({ className: extraName, isVariable: false });
+          pushEntry(cssProp, { className: extraName, isVariable: false, isConditional });
         }
       }
     } else {
@@ -534,8 +552,7 @@ export function buildStyleHashProperties(
         const baseName = computeStaticBaseName(seg, cssProp, String(val), isMultiProp, mapping);
         const className = prefix ? `${prefix}${baseName}` : baseName;
 
-        if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
-        propGroups.get(cssProp)!.push({ className, isVariable: false });
+        pushEntry(cssProp, { className, isVariable: false, isConditional });
       }
     }
   }
