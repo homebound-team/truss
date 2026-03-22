@@ -6,8 +6,8 @@ import type { ResolvedChain } from "./resolve-chain";
 const testMapping: TrussMapping = {
   increment: 8,
   breakpoints: {
-    ifSm: "@media (max-width: 599px)",
-    ifMd: "@media (min-width: 600px) and (max-width: 959px)",
+    ifSm: "@media screen and (max-width: 599px)",
+    ifMd: "@media screen and (min-width: 600px) and (max-width: 959px)",
   },
   abbreviations: {},
 };
@@ -64,15 +64,15 @@ describe("collectAtomicRules", () => {
   test("static with media query", () => {
     const seg: ResolvedSegment = {
       key: "blue__sm",
-      defs: { color: { default: null, "@media (max-width: 599px)": "#526675" } },
-      mediaQuery: "@media (max-width: 599px)",
+      defs: { color: { default: null, "@media screen and (max-width: 599px)": "#526675" } },
+      mediaQuery: "@media screen and (max-width: 599px)",
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("sm_blue")).toMatchObject({
       className: "sm_blue",
       cssProperty: "color",
       cssValue: "#526675",
-      mediaQuery: "@media (max-width: 599px)",
+      mediaQuery: "@media screen and (max-width: 599px)",
     });
   });
 
@@ -151,12 +151,12 @@ describe("generateCssText", () => {
           className: "sm_blue",
           cssProperty: "color",
           cssValue: "#526675",
-          mediaQuery: "@media (max-width: 599px)",
+          mediaQuery: "@media screen and (max-width: 599px)",
         },
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain("@media (max-width: 599px) {\n  .sm_blue.sm_blue {\n    color: #526675;\n  }\n}");
+    expect(css).toContain("@media screen and (max-width: 599px) {\n  .sm_blue.sm_blue {\n    color: #526675;\n  }\n}");
   });
 
   test("media + pseudo uses doubled selector + pseudo", () => {
@@ -167,13 +167,15 @@ describe("generateCssText", () => {
           className: "sm_h_blue",
           cssProperty: "color",
           cssValue: "#526675",
-          mediaQuery: "@media (max-width: 599px)",
+          mediaQuery: "@media screen and (max-width: 599px)",
           pseudoClass: ":hover",
         },
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain("@media (max-width: 599px) {\n  .sm_h_blue.sm_h_blue:hover {\n    color: #526675;\n  }\n}");
+    expect(css).toContain(
+      "@media screen and (max-width: 599px) {\n  .sm_h_blue.sm_h_blue:hover {\n    color: #526675;\n  }\n}",
+    );
   });
 
   test("pseudo-element rule", () => {
@@ -213,7 +215,12 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "sm_blue",
-        { className: "sm_blue", cssProperty: "color", cssValue: "blue", mediaQuery: "@media (max-width: 599px)" },
+        {
+          className: "sm_blue",
+          cssProperty: "color",
+          cssValue: "blue",
+          mediaQuery: "@media screen and (max-width: 599px)",
+        },
       ],
       ["black", { className: "black", cssProperty: "color", cssValue: "black" }],
       ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],

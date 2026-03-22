@@ -8,6 +8,7 @@ export function makeBreakpoints(breakpoints: Record<string, number>): Record<str
   const r: Record<string, string> = {
     print: "@media print",
   };
+  const screenMedia = "@media screen and";
   const bps = Object.keys(breakpoints);
   Object.entries(breakpoints).forEach(([bp, px], i) => {
     const isFirst = i === 0;
@@ -19,12 +20,12 @@ export function makeBreakpoints(breakpoints: Record<string, number>): Record<str
     // Make a rule for exactly this breakpoint, i.e. "just sm" or "just md".
     if (isFirst) {
       // Don't bother with min-width on the smallest bp
-      r[bp] = `@media (max-width: ${max})`;
+      r[bp] = `${screenMedia} (max-width: ${max})`;
     } else if (isLast) {
       // Don't bother with max-width on the largest bp
-      r[bp] = `@media (min-width: ${min})`;
+      r[bp] = `${screenMedia} (min-width: ${min})`;
     } else {
-      r[bp] = `@media (min-width: ${min}) and (max-width: ${max})`;
+      r[bp] = `${screenMedia} (min-width: ${min}) and (max-width: ${max})`;
     }
 
     // Make combinations of neighbors, i.e. smOrMd or mdOrLg. We could go further, like smOrMdOrLg, but that seems excessive.
@@ -42,14 +43,14 @@ export function makeBreakpoints(breakpoints: Record<string, number>): Record<str
       if (!isLast) {
         parts.push(`(max-width: ${max})`);
       }
-      r[name] = `@media ${parts.join(" and ")}`;
+      r[name] = `${screenMedia} ${parts.join(" and ")}`;
     }
 
     // Make up/down variants for any "middle" breakpoints, i.e. `smUp` is "everything" and
     // `smDown` is "just sm", so skip both of those, and same for largest `lgUp`/`lgDown` bp.
     if (!isFirst && !isLast) {
-      r[`${bp}AndUp`] = `@media (min-width: ${min})`;
-      r[`${bp}AndDown`] = `@media (max-width: ${max})`;
+      r[`${bp}AndUp`] = `${screenMedia} (min-width: ${min})`;
+      r[`${bp}AndDown`] = `${screenMedia} (max-width: ${max})`;
     }
   });
   return r;
