@@ -4,6 +4,7 @@ import type { TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import { extractChain, findCssImportBinding } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
+import { camelToKebab } from "./emit-truss";
 
 /**
  * Transform a `.css.ts` file into a plain CSS string.
@@ -210,12 +211,6 @@ function resolveCssExpression(
   }
 
   return { declarations };
-}
-
-/** Convert a camelCase CSS property name to kebab-case. */
-export function camelToKebab(s: string): string {
-  // Handle vendor prefixes like WebkitTransform → -webkit-transform
-  return s.replace(/^(Webkit|Moz|Ms|O)/, (m) => `-${m.toLowerCase()}`).replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }
 
 /** Format a CSS rule block. */

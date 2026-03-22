@@ -30,7 +30,6 @@ export interface RewriteSitesOptions {
   needsTrussPropsHelper: { current: boolean };
   trussDebugInfoName: string;
   needsTrussDebugInfo: { current: boolean };
-  skippedCssPropMessages: Array<{ message: string; line: number | null }>;
   runtimeLookupNames: Map<string, string>;
 }
 
@@ -326,17 +325,6 @@ function injectDebugInfo(
   }
 }
 
-/** Build the `new TrussDebugInfo("File.tsx:line")` expression for a site. */
-function buildDebugExpr(
-  line: number | null,
-  options: Pick<RewriteSitesOptions, "debug" | "trussDebugInfoName" | "needsTrussDebugInfo" | "filename">,
-): t.NewExpression | null {
-  if (!options.debug || line === null) return null;
-
-  options.needsTrussDebugInfo.current = true;
-  return t.newExpression(t.identifier(options.trussDebugInfoName), [t.stringLiteral(`${options.filename}:${line}`)]);
-}
-
 // ---------------------------------------------------------------------------
 // JSX css= attribute handling
 // ---------------------------------------------------------------------------
@@ -528,9 +516,4 @@ function extractSiblingClassName(callPath: NodePath<t.CallExpression>): t.Expres
 /** Match static object property names. */
 function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName, name: string): boolean {
   return (t.isIdentifier(key) && key.name === name) || (t.isStringLiteral(key) && key.value === name);
-}
-
-/** Generate a compact code snippet for diagnostics. */
-function formatNodeSnippet(node: t.Node): string {
-  return generate(node, { compact: true, comments: true }).code;
 }

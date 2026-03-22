@@ -134,8 +134,8 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     transformIndexHtml(html: string) {
       if (isBuild) return html;
       // Inject the virtual runtime script for dev mode; it owns style updates.
-      const tags = [`<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`].join("\n    ");
-      return html.replace("</head>", `    ${tags}\n  </head>`);
+      const tag = `<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`;
+      return html.replace("</head>", `    ${tag}\n  </head>`);
     },
 
     handleHotUpdate(ctx: any) {

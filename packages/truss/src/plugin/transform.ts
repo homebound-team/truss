@@ -142,7 +142,6 @@ export function transformTruss(
     needsTrussPropsHelper,
     trussDebugInfoName,
     needsTrussDebugInfo,
-    skippedCssPropMessages: errorMessages,
     runtimeLookupNames,
   });
 

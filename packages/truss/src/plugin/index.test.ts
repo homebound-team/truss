@@ -165,7 +165,7 @@ function n(s: string): string {
 }
 
 function createTempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "truss-stylex-"));
+  const root = mkdtempSync(join(tmpdir(), "truss-test-"));
   tempDirs.push(root);
   return root;
 }

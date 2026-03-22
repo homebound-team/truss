@@ -111,9 +111,9 @@ function conditionPrefix(
   return parts.join("");
 }
 
-/** Convert camelCase CSS property to kebab-case. */
-function camelToKebab(s: string): string {
-  return s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`).replace(/^(webkit|moz|ms)-/, "-$1-");
+/** Convert camelCase CSS property to kebab-case (handles vendor prefixes like WebkitTransform). */
+export function camelToKebab(s: string): string {
+  return s.replace(/^(Webkit|Moz|Ms|O)/, (m) => `-${m.toLowerCase()}`).replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }
 
 /** Clean a CSS value for use in a class name. */
@@ -232,17 +232,8 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
       const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
       for (const seg of segs) {
         if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
-        if (seg.whenPseudo) {
-          if (seg.variableProps) {
-            if (seg.incremented) needsMaybeInc = true;
-            collectWhenVariableRules(rules, seg, mapping);
-          } else {
-            collectWhenStaticRules(rules, seg, mapping);
-          }
-          continue;
-        }
+        if (seg.incremented) needsMaybeInc = true;
         if (seg.variableProps) {
-          if (seg.incremented) needsMaybeInc = true;
           collectVariableRules(rules, seg, mapping);
         } else {
           collectStaticRules(rules, seg, mapping);
@@ -254,14 +245,41 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
   return { rules, needsMaybeInc };
 }
 
+/** Compute the class name prefix and optional whenSelector for a segment. */
+function segmentContext(
+  seg: ResolvedSegment,
+  mapping: TrussMapping,
+): { prefix: string; whenSelector?: AtomicRule["whenSelector"] } {
+  if (seg.whenPseudo) {
+    const wp = seg.whenPseudo;
+    return {
+      prefix: whenPrefix(wp),
+      whenSelector: {
+        relationship: wp.relationship ?? "ancestor",
+        markerClass: markerClassName(wp.markerNode),
+        pseudo: wp.pseudo,
+      },
+    };
+  }
+  return { prefix: conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints) };
+}
+
+/** Build the base AtomicRule fields (non-when conditions). */
+function baseRuleFields(seg: ResolvedSegment): Pick<AtomicRule, "pseudoClass" | "mediaQuery" | "pseudoElement"> {
+  return {
+    pseudoClass: seg.pseudoClass ?? undefined,
+    mediaQuery: seg.mediaQuery ?? undefined,
+    pseudoElement: seg.pseudoElement ?? undefined,
+  };
+}
+
 /** Collect atomic rules for a static segment (may have multiple CSS properties). */
 function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+  const { prefix, whenSelector } = segmentContext(seg, mapping);
   const isMultiProp = Object.keys(seg.defs).length > 1;
 
   for (const [cssProp, value] of Object.entries(seg.defs)) {
     const cssValue = String(value);
-
     const baseName = computeStaticBaseName(seg, cssProp, cssValue, isMultiProp, mapping);
     const className = prefix ? `${prefix}${baseName}` : baseName;
 
@@ -270,9 +288,8 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
         className,
         cssProperty: camelToKebab(cssProp),
         cssValue,
-        pseudoClass: seg.pseudoClass ?? undefined,
-        mediaQuery: seg.mediaQuery ?? undefined,
-        pseudoElement: seg.pseudoElement ?? undefined,
+        ...(!whenSelector && baseRuleFields(seg)),
+        whenSelector,
       });
     }
   }
@@ -280,7 +297,7 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
 
 /** Collect atomic rules for a variable segment. */
 function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+  const { prefix, whenSelector } = segmentContext(seg, mapping);
 
   for (const prop of seg.variableProps!) {
     const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
@@ -294,10 +311,9 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
         cssProperty: declaration.cssProperty,
         cssValue: declaration.cssValue,
         declarations: [declaration],
-        pseudoClass: seg.pseudoClass ?? undefined,
-        mediaQuery: seg.mediaQuery ?? undefined,
-        pseudoElement: seg.pseudoElement ?? undefined,
         cssVarName: varName,
+        ...(!whenSelector && baseRuleFields(seg)),
+        whenSelector,
       });
       continue;
     }
@@ -328,100 +344,8 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
           className: extraName,
           cssProperty: camelToKebab(cssProp),
           cssValue: String(value),
-          pseudoClass: seg.pseudoClass ?? undefined,
-          mediaQuery: seg.mediaQuery ?? undefined,
-          pseudoElement: seg.pseudoElement ?? undefined,
-        });
-      }
-    }
-  }
-}
-
-/** Collect atomic rules for a static when() segment. */
-function collectWhenStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  const wp = seg.whenPseudo!;
-  const prefix = whenPrefix(wp);
-  const isMultiProp = Object.keys(seg.defs).length > 1;
-  const mClass = markerClassName(wp.markerNode);
-
-  for (const [cssProp, value] of Object.entries(seg.defs)) {
-    const cssValue = String(value);
-
-    const baseName = computeStaticBaseName(seg, cssProp, cssValue, isMultiProp, mapping);
-    const className = `${prefix}${baseName}`;
-
-    if (!rules.has(className)) {
-      rules.set(className, {
-        className,
-        cssProperty: camelToKebab(cssProp),
-        cssValue,
-        whenSelector: {
-          relationship: wp.relationship ?? "ancestor",
-          markerClass: mClass,
-          pseudo: wp.pseudo,
-        },
-      });
-    }
-  }
-}
-
-/** Collect atomic rules for a variable when() segment. */
-function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  const wp = seg.whenPseudo!;
-  const prefix = whenPrefix(wp);
-  const mClass = markerClassName(wp.markerNode);
-
-  for (const prop of seg.variableProps!) {
-    const className = `${prefix}${seg.abbr}_var`;
-    const varName = toCssVariableName(className, seg.abbr, prop);
-    const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
-
-    const existingRule = rules.get(className);
-    if (!existingRule) {
-      rules.set(className, {
-        className,
-        cssProperty: declaration.cssProperty,
-        cssValue: declaration.cssValue,
-        declarations: [declaration],
-        cssVarName: varName,
-        whenSelector: {
-          relationship: wp.relationship ?? "ancestor",
-          markerClass: mClass,
-          pseudo: wp.pseudo,
-        },
-      });
-      continue;
-    }
-
-    existingRule.declarations ??= [
-      {
-        cssProperty: existingRule.cssProperty,
-        cssValue: existingRule.cssValue,
-        cssVarName: existingRule.cssVarName,
-      },
-    ];
-    if (
-      !existingRule.declarations.some(function (entry) {
-        return entry.cssProperty === declaration.cssProperty;
-      })
-    ) {
-      existingRule.declarations.push(declaration);
-    }
-  }
-
-  if (seg.variableExtraDefs) {
-    for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-      const extraName = `${prefix}${seg.abbr}_${cssProp}`;
-      if (!rules.has(extraName)) {
-        rules.set(extraName, {
-          className: extraName,
-          cssProperty: camelToKebab(cssProp),
-          cssValue: String(value),
-          whenSelector: {
-            relationship: wp.relationship ?? "ancestor",
-            markerClass: mClass,
-            pseudo: wp.pseudo,
-          },
+          ...(!whenSelector && baseRuleFields(seg)),
+          whenSelector,
         });
       }
     }
@@ -698,11 +622,9 @@ export function buildStyleHashProperties(
   for (const seg of segments) {
     if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
 
-    if (seg.variableProps) {
-      const prefix = seg.whenPseudo
-        ? whenPrefix(seg.whenPseudo)
-        : conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+    const { prefix } = segmentContext(seg, mapping);
 
+    if (seg.variableProps) {
       for (const prop of seg.variableProps) {
         const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
         const varName = toCssVariableName(className, seg.abbr, prop);
@@ -728,9 +650,6 @@ export function buildStyleHashProperties(
         }
       }
     } else {
-      const prefix = seg.whenPseudo
-        ? whenPrefix(seg.whenPseudo)
-        : conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
       const isMultiProp = Object.keys(seg.defs).length > 1;
 
       for (const [cssProp, val] of Object.entries(seg.defs)) {

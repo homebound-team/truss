@@ -2,7 +2,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { tmpdir } from "os";
-import { transformCssTs, camelToKebab } from "./transform-css";
+import { transformCssTs } from "./transform-css";
+import { camelToKebab } from "./emit-truss";
 import { loadMapping, trussPlugin } from "./index";
 import { resolve } from "path";
 

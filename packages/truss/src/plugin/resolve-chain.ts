@@ -533,7 +533,7 @@ function resolveEntry(
   }
 }
 
-/** Resolve a variable (parameterized) call like mt(2) or mt(x). Defs are always flat. */
+/** Resolve a variable (parameterized) call like mt(2) or mt(x). */
 function resolveVariableCall(
   abbr: string,
   entry: { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> },
@@ -547,56 +547,22 @@ function resolveVariableCall(
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
   }
-
-  const argAst = node.args[0];
-  const literalValue = tryEvaluateLiteral(argAst, entry.incremented, mapping.increment);
-
-  if (whenPseudo) {
-    if (literalValue !== null) {
-      const defs: Record<string, unknown> = {};
-      for (const prop of entry.props) {
-        defs[prop] = literalValue;
-      }
-      if (entry.extraDefs) Object.assign(defs, entry.extraDefs);
-      return { abbr, defs, whenPseudo, argResolved: literalValue };
-    } else {
-      return {
-        abbr,
-        defs: {},
-        whenPseudo,
-        variableProps: entry.props,
-        incremented: entry.incremented,
-        variableExtraDefs: entry.extraDefs,
-        argNode: argAst,
-      };
-    }
-  }
-
-  if (literalValue !== null) {
-    const defs: Record<string, unknown> = {};
-    for (const prop of entry.props) {
-      defs[prop] = literalValue;
-    }
-    if (entry.extraDefs) {
-      Object.assign(defs, entry.extraDefs);
-    }
-    return { abbr, defs, mediaQuery, pseudoClass, pseudoElement, argResolved: literalValue };
-  } else {
-    return {
-      abbr,
-      defs: {},
-      mediaQuery,
-      pseudoClass,
-      pseudoElement,
-      variableProps: entry.props,
-      incremented: entry.incremented,
-      variableExtraDefs: entry.extraDefs,
-      argNode: argAst,
-    };
-  }
+  const literalValue = tryEvaluateLiteral(node.args[0], entry.incremented, mapping.increment);
+  return buildParameterizedSegment({
+    abbr,
+    props: entry.props,
+    incremented: entry.incremented,
+    extraDefs: entry.extraDefs,
+    argAst: node.args[0],
+    literalValue,
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  });
 }
 
-/** Resolve a delegate call like mtPx(12). Defs are always flat. */
+/** Resolve a delegate call like mtPx(12). */
 function resolveDelegateCall(
   abbr: string,
   entry: { kind: "delegate"; target: string },
@@ -611,62 +577,78 @@ function resolveDelegateCall(
   if (!targetEntry || targetEntry.kind !== "variable") {
     throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a variable entry`);
   }
-
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
   }
-
-  const argAst = node.args[0];
-  const literalValue = tryEvaluatePxLiteral(argAst);
-
+  const literalValue = tryEvaluatePxLiteral(node.args[0]);
   // Use the target abbreviation name for delegate segments (i.e. mtPx → mt)
-  const resolvedAbbr = entry.target;
+  return buildParameterizedSegment({
+    abbr: entry.target,
+    props: targetEntry.props,
+    incremented: false,
+    appendPx: true,
+    extraDefs: targetEntry.extraDefs,
+    argAst: node.args[0],
+    literalValue,
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  });
+}
 
-  if (whenPseudo) {
-    if (literalValue !== null) {
-      const defs: Record<string, unknown> = {};
-      for (const prop of targetEntry.props) {
-        defs[prop] = literalValue;
-      }
-      if (targetEntry.extraDefs) Object.assign(defs, targetEntry.extraDefs);
-      return { abbr: resolvedAbbr, defs, whenPseudo, argResolved: literalValue };
-    } else {
-      return {
-        abbr: resolvedAbbr,
-        defs: {},
-        whenPseudo,
-        variableProps: targetEntry.props,
-        incremented: false,
-        appendPx: true,
-        variableExtraDefs: targetEntry.extraDefs,
-        argNode: argAst,
-      };
-    }
-  }
+/** Shared builder for variable and delegate call segments. */
+function buildParameterizedSegment(params: {
+  abbr: string;
+  props: string[];
+  incremented: boolean;
+  appendPx?: boolean;
+  extraDefs?: Record<string, unknown>;
+  argAst: t.Expression | t.SpreadElement;
+  literalValue: string | null;
+  mediaQuery: string | null;
+  pseudoClass: string | null;
+  pseudoElement: string | null;
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null;
+}): ResolvedSegment {
+  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, whenPseudo } = params;
 
   if (literalValue !== null) {
     const defs: Record<string, unknown> = {};
-    for (const prop of targetEntry.props) {
+    for (const prop of props) {
       defs[prop] = literalValue;
     }
-    if (targetEntry.extraDefs) {
-      Object.assign(defs, targetEntry.extraDefs);
+    if (extraDefs) Object.assign(defs, extraDefs);
+    if (whenPseudo) {
+      return { abbr, defs, whenPseudo, argResolved: literalValue };
     }
-    return { abbr: resolvedAbbr, defs, mediaQuery, pseudoClass, pseudoElement, argResolved: literalValue };
-  } else {
     return {
-      abbr: resolvedAbbr,
-      defs: {},
-      mediaQuery,
-      pseudoClass,
-      pseudoElement,
-      variableProps: targetEntry.props,
-      incremented: false,
-      appendPx: true,
-      variableExtraDefs: targetEntry.extraDefs,
-      argNode: argAst,
+      abbr,
+      defs,
+      mediaQuery: params.mediaQuery,
+      pseudoClass: params.pseudoClass,
+      pseudoElement: params.pseudoElement,
+      argResolved: literalValue,
     };
   }
+
+  const base: ResolvedSegment = {
+    abbr,
+    defs: {},
+    variableProps: props,
+    incremented,
+    variableExtraDefs: extraDefs,
+    argNode: argAst,
+  };
+  if (appendPx) base.appendPx = true;
+  if (whenPseudo) {
+    base.whenPseudo = whenPseudo;
+  } else {
+    base.mediaQuery = params.mediaQuery;
+    base.pseudoClass = params.pseudoClass;
+    base.pseudoElement = params.pseudoElement;
+  }
+  return base;
 }
 
 /**
