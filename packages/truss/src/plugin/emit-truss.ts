@@ -65,6 +65,38 @@ function camelToKebab(s: string): string {
   return s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`).replace(/^(webkit|moz|ms)-/, "-$1-");
 }
 
+/** Clean a CSS value for use in a class name. */
+function cleanValueForClassName(value: string): string {
+  // I.e. -8px → neg8px, 16px → 16px, "0 0 0 1px blue" → 0_0_0_1px_blue
+  let cleaned = value;
+  if (cleaned.startsWith("-")) {
+    cleaned = "neg" + cleaned.slice(1);
+  }
+  return cleaned
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+/**
+ * Compute the base class name for a static segment.
+ *
+ * For literal-folded dynamics (argResolved set), includes the value:
+ * I.e. `mt(2)` → `mt_16px`, `bc("red")` → `bc_red`.
+ * For multi-property abbreviations, includes the CSS property:
+ * I.e. `ba` → `ba_borderStyle`, `ba_borderWidth`.
+ */
+function computeStaticBaseName(seg: ResolvedSegment, cssProp: string, isMultiProp: boolean): string {
+  const abbrev = seg.key.split("__")[0];
+
+  if (seg.argResolved !== undefined) {
+    const valuePart = cleanValueForClassName(seg.argResolved);
+    return isMultiProp ? `${abbrev}_${valuePart}_${cssProp}` : `${abbrev}_${valuePart}`;
+  }
+
+  return isMultiProp ? `${abbrev}_${cssProp}` : abbrev;
+}
+
 // -- Collecting atomic rules from resolved chains --
 
 export interface CollectedRules {
@@ -112,7 +144,7 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
     const cssValue = extractLeafValue(value);
     if (cssValue === null) continue;
 
-    const baseName = isMultiProp ? `${seg.key.split("__")[0]}_${cssProp}` : seg.key.split("__")[0];
+    const baseName = computeStaticBaseName(seg, cssProp, isMultiProp);
     const className = suffix ? `${baseName}${suffix}` : baseName;
 
     if (!rules.has(className)) {
@@ -334,7 +366,11 @@ function formatMediaPseudoElementRule(rule: AtomicRule): string {
  * Groups segments by CSS property and builds space-separated class bundles.
  * Returns an array of ObjectProperty nodes for `{ display: "df", color: "black blue_h" }`.
  */
-export function buildStyleHashProperties(segments: ResolvedSegment[], mapping: TrussMapping): t.ObjectProperty[] {
+export function buildStyleHashProperties(
+  segments: ResolvedSegment[],
+  mapping: TrussMapping,
+  maybeIncHelperName?: string | null,
+): t.ObjectProperty[] {
   // Group: cssProperty → list of { className, isDynamic, varName, argNode, incremented, appendPx }
   const propGroups = new Map<
     string,
@@ -388,7 +424,7 @@ export function buildStyleHashProperties(segments: ResolvedSegment[], mapping: T
         const val = extractLeafValue(rawDefs[cssProp]);
         if (val === null) continue;
 
-        const baseName = isMultiProp ? `${seg.key.split("__")[0]}_${cssProp}` : seg.key.split("__")[0];
+        const baseName = computeStaticBaseName(seg, cssProp, isMultiProp);
         const className = suffix ? `${baseName}${suffix}` : baseName;
 
         if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
@@ -410,8 +446,8 @@ export function buildStyleHashProperties(segments: ResolvedSegment[], mapping: T
       for (const dyn of dynamicEntries) {
         let valueExpr: t.Expression = dyn.argNode as t.Expression;
         if (dyn.incremented) {
-          // Wrap with __maybeInc
-          valueExpr = t.callExpression(t.identifier("__maybeInc"), [valueExpr]);
+          // Wrap with __maybeInc (or whatever name was reserved to avoid collisions)
+          valueExpr = t.callExpression(t.identifier(maybeIncHelperName ?? "__maybeInc"), [valueExpr]);
         } else if (dyn.appendPx) {
           // Wrap with `${v}px`
           valueExpr = t.templateLiteral(
@@ -434,7 +470,7 @@ export function buildStyleHashProperties(segments: ResolvedSegment[], mapping: T
   return properties;
 }
 
-// -- Helpers carried forward from emit-stylex.ts --
+// -- Helper declarations --
 
 /** Build the per-file increment helper: `const __maybeInc = (inc) => typeof inc === "string" ? inc : \`${inc * N}px\`` */
 export function buildMaybeIncDeclaration(helperName: string, increment: number): t.VariableDeclaration {
@@ -464,4 +500,20 @@ function toPropertyKey(key: string): t.Identifier | t.StringLiteral {
 
 function isValidIdentifier(s: string): boolean {
   return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(s);
+}
+
+/** Build a runtime lookup table declaration: `const __typography = { f24: { fontSize: "f24" }, ... }`. */
+export function buildRuntimeLookupDeclaration(
+  lookupName: string,
+  segmentsByName: Record<string, ResolvedSegment[]>,
+  mapping: TrussMapping,
+): t.VariableDeclaration {
+  const properties: t.ObjectProperty[] = [];
+  for (const [name, segs] of Object.entries(segmentsByName)) {
+    const hashProps = buildStyleHashProperties(segs, mapping);
+    properties.push(t.objectProperty(t.identifier(name), t.objectExpression(hashProps)));
+  }
+  return t.variableDeclaration("const", [
+    t.variableDeclarator(t.identifier(lookupName), t.objectExpression(properties)),
+  ]);
 }

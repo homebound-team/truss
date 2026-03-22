@@ -167,3 +167,39 @@ Key test categories:
 - The `emit-stylex.ts` file can be deleted (replaced by `emit-truss.ts`)
 - `transform.ts` no longer imports or references StyleX
 - CSS output is deterministic and correctly ordered by specificity tiers
+
+## Completion
+
+Phase 1 is done. All definition-of-done criteria are met:
+
+- **179 tests pass** across `transform.test.ts`, `emit-truss.test.ts`, `runtime.test.ts`, and `index.test.ts`. 13 marker/when tests are skipped (deferred to Phase 2). 3 jsdom-dependent runtime tests are skipped in non-browser environments.
+- `runtime.test.ts` passes with full coverage of `trussProps`, `mergeProps`, debug info, and `__injectTrussCSS`.
+- The transform output contains zero references to `stylex.create`, `stylex.props`, `asStyleArray`, or style arrays. All output uses `trussProps({...})`, `mergeProps(...)`, and plain object expressions.
+- `emit-stylex.ts` has been deleted and fully replaced by `emit-truss.ts`.
+- `transform.ts` no longer imports or references StyleX in any way.
+- CSS output is deterministic, ordered by specificity tiers (base → pseudo → pseudo-element → media → media+pseudo → media+pseudo-element → @property).
+
+### Files changed
+
+| File                 | Change                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `runtime.ts`         | Rewritten with `trussProps`, `mergeProps`, `TrussDebugInfo`, `__injectTrussCSS`       |
+| `runtime.test.ts`    | New test suite for native runtime                                                     |
+| `emit-truss.ts`      | New emitter replacing `emit-stylex.ts` — atomic rules, CSS generation, style-hash AST |
+| `emit-truss.test.ts` | New test suite for emitter                                                            |
+| `resolve-chain.ts`   | Added `skipMerge` option so segments retain individual condition fields               |
+| `rewrite-sites.ts`   | Rewritten from 1087 → ~340 lines — emits objects instead of arrays                    |
+| `transform.ts`       | Rewritten — no StyleX, uses `emit-truss`, returns `{ code, map, css }`                |
+| `transform.test.ts`  | All 115 expectations rewritten for new output shape                                   |
+| `index.test.ts`      | 3 expectations updated                                                                |
+| `emit-stylex.ts`     | Deleted                                                                               |
+
+### Key design decisions made during implementation
+
+1. **`skipMerge` in `resolveFullChain`**: The old `mergeOverlappingConditions` pass collapsed same-property segments into one entry with nested condition defs. The new model needs individual segments with their own `pseudoClass`/`mediaQuery` fields so `buildStyleHashProperties` can generate space-separated class bundles. Added a `skipMerge` option rather than removing the merge logic (which is still used for `.css.ts` pipeline).
+
+2. **Class naming for literal-folded dynamics**: `computeStaticBaseName` derives class names from abbreviation + cleaned resolved value (e.g. `mt_16px`, `bc_red`, `mt_neg8px`). Negative values use a `neg` prefix to avoid ambiguity.
+
+3. **No CSS injection by default**: Added `injectCss` option to `TransformTrussOptions`. When false (default), no `__injectTrussCSS` call is emitted — the CSS text is available via the `css` field on the result for the Vite plugin to collect in Phase 2.
+
+4. **Second-pass simplification**: The old second pass had ~500 lines of array detection, normalization, and flattening. The new second pass is ~20 lines — any remaining `css={expr}` just gets wrapped in `trussProps(expr)`.

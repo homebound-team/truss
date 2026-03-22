@@ -63,7 +63,11 @@ export type ResolvedChainPart =
  * set by `ifSm` persists through `onHover` (they stack). A new `if(bool)`
  * resets all contexts for its branches.
  */
-export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): ResolvedChain {
+export function resolveFullChain(
+  chain: ChainNode[],
+  mapping: TrussMapping,
+  options?: { skipMerge?: boolean },
+): ResolvedChain {
   const parts: ResolvedChainPart[] = [];
   const markers: MarkerSegment[] = [];
 
@@ -106,9 +110,10 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 
       // Flush any accumulated unconditional nodes
       if (currentNodes.length > 0) {
+        const unconditionalSegs = resolveChain(currentNodes, mapping);
         parts.push({
           type: "unconditional",
-          segments: mergeOverlappingConditions(resolveChain(currentNodes, mapping)),
+          segments: options?.skipMerge ? unconditionalSegs : mergeOverlappingConditions(unconditionalSegs),
         });
         currentNodes = [];
       }
@@ -134,11 +139,13 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
         }
         i++;
       }
+      const thenSegs = resolveChain(thenNodes, mapping);
+      const elseSegs = resolveChain(elseNodes, mapping);
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
-        thenSegments: mergeOverlappingConditions(resolveChain(thenNodes, mapping)),
-        elseSegments: mergeOverlappingConditions(resolveChain(elseNodes, mapping)),
+        thenSegments: options?.skipMerge ? thenSegs : mergeOverlappingConditions(thenSegs),
+        elseSegments: options?.skipMerge ? elseSegs : mergeOverlappingConditions(elseSegs),
       });
     } else {
       currentNodes.push(node);
@@ -148,7 +155,11 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 
   // Flush remaining unconditional nodes
   if (currentNodes.length > 0) {
-    parts.push({ type: "unconditional", segments: mergeOverlappingConditions(resolveChain(currentNodes, mapping)) });
+    const remainingSegs = resolveChain(currentNodes, mapping);
+    parts.push({
+      type: "unconditional",
+      segments: options?.skipMerge ? remainingSegs : mergeOverlappingConditions(remainingSegs),
+    });
   }
 
   // Collect error messages from all resolved segments

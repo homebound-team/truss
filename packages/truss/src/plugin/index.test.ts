@@ -32,9 +32,8 @@ describe("trussPlugin", function () {
     // Then it is rewritten
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
   });
@@ -75,9 +74,8 @@ describe("trussPlugin", function () {
     );
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
   });
@@ -102,9 +100,8 @@ describe("trussPlugin", function () {
     // Then it gets transformed
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
   });
