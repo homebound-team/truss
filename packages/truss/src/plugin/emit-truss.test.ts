@@ -109,6 +109,27 @@ describe("collectAtomicRules", () => {
     });
   });
 
+  test("variable segment with multiple props keeps one class and multiple declarations", () => {
+    const seg: ResolvedSegment = {
+      key: "sq",
+      defs: {},
+      variableProps: ["height", "width"],
+      appendPx: true,
+      argNode: { type: "Identifier", name: "x" },
+    };
+    const result = collectAtomicRules([chain([seg])], testMapping);
+    expect(result.rules.get("sq_var")).toMatchObject({
+      className: "sq_var",
+      cssProperty: "height",
+      cssValue: "var(--height)",
+      cssVarName: "--height",
+      declarations: [
+        { cssProperty: "height", cssValue: "var(--height)", cssVarName: "--height" },
+        { cssProperty: "width", cssValue: "var(--width)", cssVarName: "--width" },
+      ],
+    });
+  });
+
   test("variable with hover", () => {
     const seg: ResolvedSegment = {
       key: "bc__hover",
@@ -209,6 +230,28 @@ describe("generateCssText", () => {
     const css = generateCssText(rules);
     expect(css).toContain(".mt_var {\n  margin-top: var(--marginTop);\n}");
     expect(css).toContain('@property --marginTop {\n  syntax: "*";\n  inherits: false;\n}');
+  });
+
+  test("multi-prop variable rule includes all declarations and @property entries", () => {
+    const rules = new Map<string, AtomicRule>([
+      [
+        "sq_var",
+        {
+          className: "sq_var",
+          cssProperty: "height",
+          cssValue: "var(--height)",
+          cssVarName: "--height",
+          declarations: [
+            { cssProperty: "height", cssValue: "var(--height)", cssVarName: "--height" },
+            { cssProperty: "width", cssValue: "var(--width)", cssVarName: "--width" },
+          ],
+        },
+      ],
+    ]);
+    const css = generateCssText(rules);
+    expect(css).toContain(".sq_var {\n  height: var(--height);\n  width: var(--width);\n}");
+    expect(css).toContain('@property --height {\n  syntax: "*";\n  inherits: false;\n}');
+    expect(css).toContain('@property --width {\n  syntax: "*";\n  inherits: false;\n}');
   });
 
   test("ordering: base before pseudo before media", () => {

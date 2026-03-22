@@ -4,11 +4,16 @@ import type { ResolvedSegment, TrussMapping } from "./types";
 
 // -- Atomic CSS rule model --
 
-/** A single atomic CSS rule: one class, one selector, one declaration. */
+/** A single atomic CSS rule: one class, one selector, one or more declarations. */
 export interface AtomicRule {
   className: string;
   cssProperty: string;
   cssValue: string;
+  declarations?: Array<{
+    cssProperty: string;
+    cssValue: string;
+    cssVarName?: string;
+  }>;
   pseudoClass?: string;
   mediaQuery?: string;
   pseudoElement?: string;
@@ -285,17 +290,36 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
   for (const prop of seg.variableProps!) {
     const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
     const varName = toCssVariableName(className, baseKey, prop);
+    const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
 
-    if (!rules.has(className)) {
+    const existingRule = rules.get(className);
+    if (!existingRule) {
       rules.set(className, {
         className,
-        cssProperty: camelToKebab(prop),
-        cssValue: `var(${varName})`,
+        cssProperty: declaration.cssProperty,
+        cssValue: declaration.cssValue,
+        declarations: [declaration],
         pseudoClass: seg.pseudoClass ?? undefined,
         mediaQuery: seg.mediaQuery ?? undefined,
         pseudoElement: seg.pseudoElement ?? undefined,
         cssVarName: varName,
       });
+      continue;
+    }
+
+    existingRule.declarations ??= [
+      {
+        cssProperty: existingRule.cssProperty,
+        cssValue: existingRule.cssValue,
+        cssVarName: existingRule.cssVarName,
+      },
+    ];
+    if (
+      !existingRule.declarations.some(function (entry) {
+        return entry.cssProperty === declaration.cssProperty;
+      })
+    ) {
+      existingRule.declarations.push(declaration);
     }
   }
 
@@ -358,12 +382,15 @@ function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedS
   for (const prop of seg.variableProps!) {
     const className = `${prefix}${baseKey}_var`;
     const varName = toCssVariableName(className, baseKey, prop);
+    const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
 
-    if (!rules.has(className)) {
+    const existingRule = rules.get(className);
+    if (!existingRule) {
       rules.set(className, {
         className,
-        cssProperty: camelToKebab(prop),
-        cssValue: `var(${varName})`,
+        cssProperty: declaration.cssProperty,
+        cssValue: declaration.cssValue,
+        declarations: [declaration],
         cssVarName: varName,
         whenSelector: {
           relationship: wp.relationship ?? "ancestor",
@@ -371,6 +398,22 @@ function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedS
           pseudo: wp.pseudo,
         },
       });
+      continue;
+    }
+
+    existingRule.declarations ??= [
+      {
+        cssProperty: existingRule.cssProperty,
+        cssValue: existingRule.cssValue,
+        cssVarName: existingRule.cssVarName,
+      },
+    ];
+    if (
+      !existingRule.declarations.some(function (entry) {
+        return entry.cssProperty === declaration.cssProperty;
+      })
+    ) {
+      existingRule.declarations.push(declaration);
     }
   }
 
@@ -523,8 +566,10 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
 
   // @property declarations for variable rules
   for (const rule of allRules) {
-    if (rule.cssVarName) {
-      lines.push(`@property ${rule.cssVarName} {\n  syntax: "*";\n  inherits: false;\n}`);
+    for (const declaration of getRuleDeclarations(rule)) {
+      if (declaration.cssVarName) {
+        lines.push(`@property ${declaration.cssVarName} {\n  syntax: "*";\n  inherits: false;\n}`);
+      }
     }
   }
 
@@ -532,16 +577,16 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
 }
 
 function formatBaseRule(rule: AtomicRule): string {
-  return `.${rule.className} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  return formatRuleBlock(`.${rule.className}`, rule);
 }
 
 function formatPseudoRule(rule: AtomicRule): string {
   const pe = rule.pseudoElement ? rule.pseudoElement : "";
-  return `.${rule.className}${rule.pseudoClass}${pe} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  return formatRuleBlock(`.${rule.className}${rule.pseudoClass}${pe}`, rule);
 }
 
 function formatPseudoElementRule(rule: AtomicRule): string {
-  return `.${rule.className}${rule.pseudoElement} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  return formatRuleBlock(`.${rule.className}${rule.pseudoElement}`, rule);
 }
 
 function formatWhenRule(rule: AtomicRule): string {
@@ -554,35 +599,57 @@ function formatWhenRule(rule: AtomicRule): string {
   const targetSelector = `.${rule.className}`;
 
   if (whenSelector.relationship === "ancestor") {
-    return `${markerSelector} ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+    return formatRuleBlock(`${markerSelector} ${targetSelector}`, rule);
   }
   if (whenSelector.relationship === "descendant") {
-    return `${targetSelector}:has(${markerSelector}) {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+    return formatRuleBlock(`${targetSelector}:has(${markerSelector})`, rule);
   }
   if (whenSelector.relationship === "siblingAfter") {
-    return `${targetSelector}:has(~ ${markerSelector}) {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+    return formatRuleBlock(`${targetSelector}:has(~ ${markerSelector})`, rule);
   }
   if (whenSelector.relationship === "siblingBefore") {
-    return `${markerSelector} ~ ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+    return formatRuleBlock(`${markerSelector} ~ ${targetSelector}`, rule);
   }
   if (whenSelector.relationship === "anySibling") {
-    return `${targetSelector}:has(~ ${markerSelector}), ${markerSelector} ~ ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+    return formatRuleBlock(`${targetSelector}:has(~ ${markerSelector}), ${markerSelector} ~ ${targetSelector}`, rule);
   }
 
-  return `${markerSelector} ${targetSelector} {\n  ${rule.cssProperty}: ${rule.cssValue};\n}`;
+  return formatRuleBlock(`${markerSelector} ${targetSelector}`, rule);
 }
 
 function formatMediaRule(rule: AtomicRule): string {
-  return `${rule.mediaQuery} {\n  .${rule.className}.${rule.className} {\n    ${rule.cssProperty}: ${rule.cssValue};\n  }\n}`;
+  return formatNestedRuleBlock(rule.mediaQuery!, `.${rule.className}.${rule.className}`, rule);
 }
 
 function formatMediaPseudoRule(rule: AtomicRule): string {
-  return `${rule.mediaQuery} {\n  .${rule.className}.${rule.className}${rule.pseudoClass} {\n    ${rule.cssProperty}: ${rule.cssValue};\n  }\n}`;
+  return formatNestedRuleBlock(rule.mediaQuery!, `.${rule.className}.${rule.className}${rule.pseudoClass}`, rule);
 }
 
 function formatMediaPseudoElementRule(rule: AtomicRule): string {
   const pe = rule.pseudoElement ?? "";
-  return `${rule.mediaQuery} {\n  .${rule.className}.${rule.className}${pe} {\n    ${rule.cssProperty}: ${rule.cssValue};\n  }\n}`;
+  return formatNestedRuleBlock(rule.mediaQuery!, `.${rule.className}.${rule.className}${pe}`, rule);
+}
+
+function getRuleDeclarations(rule: AtomicRule): Array<{ cssProperty: string; cssValue: string; cssVarName?: string }> {
+  return rule.declarations ?? [{ cssProperty: rule.cssProperty, cssValue: rule.cssValue, cssVarName: rule.cssVarName }];
+}
+
+function formatRuleBlock(selector: string, rule: AtomicRule): string {
+  const body = getRuleDeclarations(rule)
+    .map(function (declaration) {
+      return `  ${declaration.cssProperty}: ${declaration.cssValue};`;
+    })
+    .join("\n");
+  return `${selector} {\n${body}\n}`;
+}
+
+function formatNestedRuleBlock(wrapper: string, selector: string, rule: AtomicRule): string {
+  const body = getRuleDeclarations(rule)
+    .map(function (declaration) {
+      return `    ${declaration.cssProperty}: ${declaration.cssValue};`;
+    })
+    .join("\n");
+  return `${wrapper} {\n  ${selector} {\n${body}\n  }\n}`;
 }
 
 // -- AST generation for style hash objects --

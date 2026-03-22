@@ -201,6 +201,17 @@ describe("Truss CssBuilder", () => {
       const el = r.container.firstChild as HTMLElement;
       expect(el.style.getPropertyValue("--marginTop")).toBe("16px");
     });
+
+    test("Css.sqPx(n) with variable exposes width/height and CSS vars in computed style", () => {
+      const n = 16;
+      const r = render(<div css={Css.sqPx(n).$} />);
+      const el = r.container.firstChild as HTMLElement;
+      const style = getComputedStyle(el);
+      expect(style.getPropertyValue("width")).toBe("var(--width)");
+      expect(style.getPropertyValue("height")).toBe("var(--height)");
+      expect(style.getPropertyValue("--width")).toBe("16px");
+      expect(style.getPropertyValue("--height")).toBe("16px");
+    });
   });
 
   describe("composing multiple styles", () => {
