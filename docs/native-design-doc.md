@@ -86,7 +86,7 @@ But for pseudo/media/pseudo-element cases it can be a space-separated bundle of 
 
 ```ts
 {
-  color: "black blue_h";
+  color: "black h_blue";
 }
 ```
 
@@ -191,7 +191,7 @@ The tuple format is `[classNames: string, vars: Record<string, string>]` where `
 
 ```ts
 Css.bc(x).onHover.bc(y).$ -> {
-  borderColor: ["bc_dyn bc_dyn_h", { "--bc_dyn": x, "--bc_dyn_h": y }],
+  borderColor: ["bc_dyn h_bc_dyn", { "--bc_dyn": x, "--h_bc_dyn": y }],
 }
 ```
 
@@ -201,8 +201,8 @@ with CSS:
 .bc_dyn {
   border-color: var(--bc_dyn);
 }
-.bc_dyn_h:hover {
-  border-color: var(--bc_dyn_h);
+.h_bc_dyn:hover {
+  border-color: var(--h_bc_dyn);
 }
 ```
 
@@ -217,7 +217,7 @@ When a property bundle has multiple dynamic conditions, the tuple carries the fu
 
 ```ts
 Css.bc(x).onHover.bc(y).$ -> {
-  borderColor: ["bc_dyn bc_dyn_h", { "--bc_dyn": x, "--bc_dyn_h": y }],
+  borderColor: ["bc_dyn h_bc_dyn", { "--bc_dyn": x, "--h_bc_dyn": y }],
 }
 ```
 
@@ -231,7 +231,7 @@ If base and hover both target `color`, they should collapse into one `color` ent
 
 ```ts
 Css.black.onHover.blue.$ -> {
-  color: "black blue_h",
+  color: "black h_blue",
 }
 ```
 
@@ -241,12 +241,12 @@ with generated CSS:
 .black {
   color: #353535;
 }
-.blue_h:hover {
+.h_blue:hover {
   color: #526675;
 }
 ```
 
-This preserves class reuse: `.black` is the same atomic class everywhere `color: black` appears, regardless of what hover/focus/media behavior accompanies it. The class `.blue_h` is similarly reused anywhere `color: blue` is needed on hover.
+This preserves class reuse: `.black` is the same atomic class everywhere `color: black` appears, regardless of what hover/focus/media behavior accompanies it. The class `.h_blue` is similarly reused anywhere `color: blue` is needed on hover.
 
 Later spreads replace the entire ownership of `color`, including hover/media parts, which matches StyleX semantics:
 
@@ -264,12 +264,12 @@ becomes:
 
 and the hover behavior disappears because the entire `color` key was replaced. That is intentional.
 
-**Why this works (specificity):** When both `.black` and `.blue_h` are applied to the same element, the pseudo-class adds to the selector's specificity. `.black` has specificity `(0,1,0)` while `.blue_h:hover` has specificity `(0,1,1)`. When hovering, both selectors match, but the hover rule wins due to higher specificity. When not hovering, only `.black` matches.
+**Why this works (specificity):** When both `.black` and `.h_blue` are applied to the same element, the pseudo-class adds to the selector's specificity. `.black` has specificity `(0,1,0)` while `.h_blue:hover` has specificity `(0,1,1)`. When hovering, both selectors match, but the hover rule wins due to higher specificity. When not hovering, only `.black` matches.
 
 The same principle applies to media queries:
 
 ```ts
-Css.black.ifSm.blue.$ -> { color: "black blue_sm" }
+Css.black.ifSm.blue.$ -> { color: "black sm_blue" }
 ```
 
 with CSS:
@@ -279,23 +279,23 @@ with CSS:
   color: #353535;
 }
 @media (max-width: 599px) {
-  .blue_sm.blue_sm {
+  .sm_blue.sm_blue {
     color: #526675;
   }
 }
 ```
 
-**Media query specificity:** Media queries do not add specificity, so source order alone would be fragile. Following StyleX's approach, media query classes use a **doubled selector** (`.blue_sm.blue_sm`) to bump specificity to `(0,2,0)`, ensuring they beat base rules `(0,1,0)` regardless of source order.
+**Media query specificity:** Media queries do not add specificity, so source order alone would be fragile. Following StyleX's approach, media query classes use a **doubled selector** (`.sm_blue.sm_blue`) to bump specificity to `(0,2,0)`, ensuring they beat base rules `(0,1,0)` regardless of source order.
 
 For stacked conditions (pseudo-class + media query), the doubled selector combines with the pseudo-class:
 
 ```ts
-Css.black.ifSm.onHover.blue.$ -> { color: "black blue_sm_h" }
+Css.black.ifSm.onHover.blue.$ -> { color: "black sm_h_blue" }
 ```
 
 ```css
 @media (max-width: 599px) {
-  .blue_sm_h.blue_sm_h:hover {
+  .sm_h_blue.sm_h_blue:hover {
     color: #526675;
   }
 }
@@ -306,7 +306,7 @@ This gives specificity `(0,2,1)`, which correctly beats both base `(0,1,0)` and 
 Multiple pseudo-classes on the same property work the same way:
 
 ```ts
-Css.black.onHover.blue.onFocus.red.$ -> { color: "black blue_h red_f" }
+Css.black.onHover.blue.onFocus.red.$ -> { color: "black h_blue f_red" }
 ```
 
 Each condition is its own atomic class. `trussProps` splits the space-separated value to build the final `className`.
@@ -338,10 +338,10 @@ The exact table can be adjusted, but it must be global and deterministic. When t
 Example:
 
 ```ts
-Css.black.onHover.blue.onFocus.red.$ -> { color: "black blue_h red_f" }
+Css.black.onHover.blue.onFocus.red.$ -> { color: "black h_blue f_red" }
 ```
 
-If the element is both hovered and focused, both `.blue_h:hover` and `.red_f:focus` match. Since they have equal specificity, the emitted CSS order decides the winner. Under the table above, focus comes after hover, so focus wins.
+If the element is both hovered and focused, both `.h_blue:hover` and `.f_red:focus` match. Since they have equal specificity, the emitted CSS order decides the winner. Under the table above, focus comes after hover, so focus wins.
 
 #### Media precedence
 
@@ -374,13 +374,13 @@ Pseudo-elements are atomic classes like any other condition. The pseudo-element 
 Example:
 
 ```ts
-Css.element("::placeholder").blue.$ -> { color: "blue_placeholder" }
+Css.element("::placeholder").blue.$ -> { color: "placeholder_blue" }
 ```
 
 with CSS:
 
 ```css
-.blue_placeholder::placeholder {
+.placeholder_blue::placeholder {
   color: #526675;
 }
 ```
@@ -388,14 +388,14 @@ with CSS:
 Pseudo-elements can stack with pseudo-classes and media queries within the same property bundle:
 
 ```ts
-Css.element("::placeholder").blue.onFocus.red.$ -> { color: "blue_placeholder red_placeholder_f" }
+Css.element("::placeholder").blue.onFocus.red.$ -> { color: "placeholder_blue placeholder_f_red" }
 ```
 
 ```css
-.blue_placeholder::placeholder {
+.placeholder_blue::placeholder {
   color: #526675;
 }
-.red_placeholder_f:focus::placeholder {
+.placeholder_f_red:focus::placeholder {
   color: red;
 }
 ```
@@ -456,7 +456,7 @@ export function trussProps(...hashes: (TrussStyleHash | false | null | undefined
 
   for (const value of Object.values(merged)) {
     if (typeof value === "string") {
-      // Space-separated atomic classes, i.e. "black blue_h"
+      // Space-separated atomic classes, i.e. "black h_blue"
       classNames.push(value);
       continue;
     }
@@ -490,7 +490,7 @@ export function trussProps(...hashes: (TrussStyleHash | false | null | undefined
 }
 ```
 
-Note: because each value is already space-separated (e.g. `"black blue_h"`), the final `classNames.join(" ")` produces correct output like `"df aic black blue_h"` without any splitting step. The space-separated values pass through directly.
+Note: because each value is already space-separated (e.g. `"black h_blue"`), the final `classNames.join(" ")` produces correct output like `"df aic black h_blue"` without any splitting step. The space-separated values pass through directly.
 
 ### Debug mode (`TrussDebugInfo`)
 
@@ -511,10 +511,10 @@ In debug mode, the transform emits tuples with the debug info as an extra elemen
 
 ```ts
 // Without debug:
-{ display: "df", color: "black blue_h" }
+{ display: "df", color: "black h_blue" }
 
 // With debug:
-{ display: ["df", new TrussDebugInfo("MyComponent.tsx:5")], color: "black blue_h" }
+{ display: ["df", new TrussDebugInfo("MyComponent.tsx:5")], color: "black h_blue" }
 ```
 
 Only the first property in the hash needs the debug info (it's per-expression, not per-property). For dynamic values the debug info is appended as a third element:
@@ -528,7 +528,7 @@ Only the first property in the hash needs the debug info (it's per-expression, n
 At runtime, `trussProps` collects all `TrussDebugInfo` instances, deduplicates them, and emits a `data-truss-src` attribute on the resulting props:
 
 ```ts
-{ className: "df aic black blue_h", "data-truss-src": "MyComponent.tsx:5; OtherFile.tsx:10" }
+{ className: "df aic black h_blue", "data-truss-src": "MyComponent.tsx:5; OtherFile.tsx:10" }
 ```
 
 This lets developers inspect any element in the DOM and immediately see which Truss expressions contributed to its styles.
@@ -641,57 +641,57 @@ Multi-property abbreviations expand to longhand classes (see "Shorthand expansio
 - `Css.p1.$` reuses `pt1`, `pr1`, `pb1`, `pl1`
 - `Css.ba.$` reuses the same classes that standalone `bsSolid` and `bw1` would produce
 
-### Pseudo-class suffixes
+### Pseudo-class prefixes
 
-Append a short suffix for the pseudo-class:
+Prepend a short prefix for the pseudo-class. Conditions are prefixed so class names read naturally in the DOM (e.g. `h_blue` reads as "on hover, blue"):
 
-- `_h` for `:hover`
-- `_f` for `:focus`
-- `_fv` for `:focus-visible`
-- `_a` for `:active`
-- `_d` for `:disabled`
-
-Examples:
-
-- `blue_h` -> `.blue_h:hover { color: #526675 }`
-- `black_f` -> `.black_f:focus { color: #353535 }`
-
-### Media query suffixes
-
-Append the breakpoint abbreviation:
-
-- `_sm` for the small breakpoint
-- `_md` for medium
-- `_lg` for large
+- `h_` for `:hover`
+- `f_` for `:focus`
+- `fv_` for `:focus-visible`
+- `a_` for `:active`
+- `d_` for `:disabled`
 
 Examples:
 
-- `blue_sm` -> `@media (...) { .blue_sm.blue_sm { color: #526675 } }`
+- `h_blue` -> `.h_blue:hover { color: #526675 }`
+- `f_black` -> `.f_black:focus { color: #353535 }`
+
+### Media query prefixes
+
+Prepend the breakpoint abbreviation:
+
+- `sm_` for the small breakpoint
+- `md_` for medium
+- `lg_` for large
+
+Examples:
+
+- `sm_blue` -> `@media (...) { .sm_blue.sm_blue { color: #526675 } }`
 
 ### Stacked conditions
 
-When pseudo-class and media query combine, concatenate both suffixes:
+When pseudo-class and media query combine, concatenate both prefixes:
 
-- `blue_sm_h` -> `@media (...) { .blue_sm_h.blue_sm_h:hover { color: #526675 } }`
+- `sm_h_blue` -> `@media (...) { .sm_h_blue.sm_h_blue:hover { color: #526675 } }`
 
-### Pseudo-element suffixes
+### Pseudo-element prefixes
 
-Use the pseudo-element name (without `::`) as a suffix:
+Use the pseudo-element name (without `::`) as a prefix:
 
-- `blue_placeholder` -> `.blue_placeholder::placeholder { color: #526675 }`
-- `red_placeholder_f` -> `.red_placeholder_f:focus::placeholder { color: red }`
+- `placeholder_blue` -> `.placeholder_blue::placeholder { color: #526675 }`
+- `placeholder_f_red` -> `.placeholder_f_red:focus::placeholder { color: red }`
 
 ### Dynamic classes
 
-Use `abbrev_dyn` with the same condition suffixes:
+Use `abbrev_dyn` with the same condition prefixes:
 
 - `mt_dyn` -> `.mt_dyn { margin-top: var(--mt_dyn) }`
-- `bc_dyn_h` -> `.bc_dyn_h:hover { border-color: var(--bc_dyn_h) }`
+- `h_bc_dyn` -> `.h_bc_dyn:hover { border-color: var(--h_bc_dyn) }`
 
 CSS variables are named to match their class:
 
 - `--mt_dyn`
-- `--bc_dyn_h`
+- `--h_bc_dyn`
 
 ### `add()` classes
 
@@ -901,29 +901,29 @@ Examples:
 }
 
 /* Pseudo-class classes */
-.blue_h:hover {
+.h_blue:hover {
   color: #526675;
 }
-.red_f:focus {
+.f_red:focus {
   color: red;
 }
 
 /* Media query classes (doubled selector for specificity) */
 @media (max-width: 599px) {
-  .blue_sm.blue_sm {
+  .sm_blue.sm_blue {
     color: #526675;
   }
 }
 
 /* Stacked: media + pseudo (doubled selector + pseudo-class) */
 @media (max-width: 599px) {
-  .blue_sm_h.blue_sm_h:hover {
+  .sm_h_blue.sm_h_blue:hover {
     color: #526675;
   }
 }
 
 /* Pseudo-element classes */
-.blue_placeholder::placeholder {
+.placeholder_blue::placeholder {
   color: #526675;
 }
 
@@ -936,10 +936,10 @@ Examples:
   inherits: false;
 }
 
-.bc_dyn_h:hover {
-  border-color: var(--bc_dyn_h);
+.h_bc_dyn:hover {
+  border-color: var(--h_bc_dyn);
 }
-@property --bc_dyn_h {
+@property --h_bc_dyn {
   syntax: "*";
   inherits: false;
 }
@@ -952,9 +952,9 @@ The stylesheet uses three specificity tiers to ensure correct cascade behavior w
 | Tier           | Specificity | Selector pattern      | Example                              |
 | -------------- | ----------- | --------------------- | ------------------------------------ |
 | Base           | `(0,1,0)`   | `.class`              | `.black { color: #353535 }`          |
-| Pseudo-class   | `(0,1,1)`   | `.class:pseudo`       | `.blue_h:hover { color: #526675 }`   |
-| Media query    | `(0,2,0)`   | `.class.class`        | `.blue_sm.blue_sm { ... }`           |
-| Media + pseudo | `(0,2,1)`   | `.class.class:pseudo` | `.blue_sm_h.blue_sm_h:hover { ... }` |
+| Pseudo-class   | `(0,1,1)`   | `.class:pseudo`       | `.h_blue:hover { color: #526675 }`   |
+| Media query    | `(0,2,0)`   | `.class.class`        | `.sm_blue.sm_blue { ... }`           |
+| Media + pseudo | `(0,2,1)`   | `.class.class:pseudo` | `.sm_h_blue.sm_h_blue:hover { ... }` |
 
 The doubled selector trick for media queries follows StyleX's approach. This means:
 

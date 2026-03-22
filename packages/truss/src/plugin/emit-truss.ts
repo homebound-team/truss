@@ -28,8 +28,13 @@ const PSEUDO_SUFFIX: Record<string, string> = {
 /** Pseudo-class precedence order (weakest to strongest). */
 const PSEUDO_ORDER: string[] = [":hover", ":focus", ":focus-visible", ":active", ":disabled"];
 
-/** Build a condition suffix string for class naming. */
-function conditionSuffix(
+/**
+ * Build a condition prefix string for class naming.
+ *
+ * Conditions are prefixed so class names read naturally in the DOM:
+ * I.e. `h_bgBlack` reads as "on hover, bgBlack".
+ */
+function conditionPrefix(
   pseudoClass: string | null | undefined,
   mediaQuery: string | null | undefined,
   pseudoElement: string | null | undefined,
@@ -37,25 +42,26 @@ function conditionSuffix(
 ): string {
   const parts: string[] = [];
   if (pseudoElement) {
-    // I.e. "::placeholder" → "_placeholder"
-    parts.push(`_${pseudoElement.replace(/^::/, "")}`);
+    // I.e. "::placeholder" → "placeholder_"
+    parts.push(`${pseudoElement.replace(/^::/, "")}_`);
   }
   if (mediaQuery && breakpoints) {
-    // Find breakpoint name, i.e. "ifSm" → "sm"
+    // Find breakpoint name, i.e. "ifSm" → "sm_"
     const bpKey = Object.entries(breakpoints).find(([, v]) => v === mediaQuery)?.[0];
     if (bpKey) {
       const shortName = bpKey.replace(/^if/, "").toLowerCase();
-      parts.push(`_${shortName}`);
+      parts.push(`${shortName}_`);
     } else {
-      parts.push("_mq");
+      parts.push("mq_");
     }
   } else if (mediaQuery) {
-    parts.push("_mq");
+    parts.push("mq_");
   }
   if (pseudoClass) {
-    const suffix = PSEUDO_SUFFIX[pseudoClass];
-    if (suffix) parts.push(suffix);
-    else parts.push(`_${pseudoClass.replace(/^:/, "")}`);
+    const tag = PSEUDO_SUFFIX[pseudoClass];
+    // PSEUDO_SUFFIX values still have a leading underscore; strip it and add trailing
+    if (tag) parts.push(`${tag.replace(/^_/, "")}_`);
+    else parts.push(`${pseudoClass.replace(/^:/, "")}_`);
   }
   return parts.join("");
 }
@@ -199,7 +205,7 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
   // The segment's defs may be wrapped with StyleX-style condition nesting from
   // wrapDefsWithConditions. We use the segment's raw condition fields instead.
   const rawDefs = unwrapDefs(seg.defs, seg.pseudoElement);
-  const suffix = conditionSuffix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+  const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
   const isMultiProp = Object.keys(rawDefs).length > 1;
 
   for (const [cssProp, value] of Object.entries(rawDefs)) {
@@ -207,7 +213,7 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
     if (cssValue === null) continue;
 
     const baseName = computeStaticBaseName(seg, cssProp, String(cssValue), isMultiProp, mapping);
-    const className = suffix ? `${baseName}${suffix}` : baseName;
+    const className = prefix ? `${prefix}${baseName}` : baseName;
 
     if (!rules.has(className)) {
       rules.set(className, {
@@ -224,12 +230,11 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
 
 /** Collect atomic rules for a dynamic segment. */
 function collectDynamicRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  const suffix = conditionSuffix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+  const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
   const baseKey = seg.key.split("__")[0];
 
   for (const prop of seg.dynamicProps!) {
-    const dynSuffix = suffix ? `_dyn${suffix}` : "_dyn";
-    const className = `${baseKey}${dynSuffix}`;
+    const className = prefix ? `${prefix}${baseKey}_dyn` : `${baseKey}_dyn`;
     const varName = `--${className}`;
 
     if (!rules.has(className)) {
@@ -248,10 +253,11 @@ function collectDynamicRules(rules: Map<string, AtomicRule>, seg: ResolvedSegmen
   // Extra static defs alongside dynamic props
   if (seg.dynamicExtraDefs) {
     for (const [cssProp, value] of Object.entries(seg.dynamicExtraDefs)) {
-      const extraSuffix = suffix ? `${baseKey}_${cssProp}${suffix}` : `${baseKey}_${cssProp}`;
-      if (!rules.has(extraSuffix)) {
-        rules.set(extraSuffix, {
-          className: extraSuffix,
+      const extraBase = `${baseKey}_${cssProp}`;
+      const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
+      if (!rules.has(extraName)) {
+        rules.set(extraName, {
+          className: extraName,
           cssProperty: camelToKebab(cssProp),
           cssValue: String(value),
           pseudoClass: seg.pseudoClass ?? undefined,
@@ -450,12 +456,11 @@ export function buildStyleHashProperties(
     if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.whenPseudo) continue;
 
     if (seg.dynamicProps) {
-      const suffix = conditionSuffix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+      const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
       const baseKey = seg.key.split("__")[0];
 
       for (const prop of seg.dynamicProps) {
-        const dynSuffix = suffix ? `_dyn${suffix}` : "_dyn";
-        const className = `${baseKey}${dynSuffix}`;
+        const className = prefix ? `${prefix}${baseKey}_dyn` : `${baseKey}_dyn`;
         const varName = `--${className}`;
 
         if (!propGroups.has(prop)) propGroups.set(prop, []);
@@ -472,14 +477,15 @@ export function buildStyleHashProperties(
       // Extra static defs
       if (seg.dynamicExtraDefs) {
         for (const [cssProp, value] of Object.entries(seg.dynamicExtraDefs)) {
-          const extraName = suffix ? `${baseKey}_${cssProp}${suffix}` : `${baseKey}_${cssProp}`;
+          const extraBase = `${baseKey}_${cssProp}`;
+          const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
           if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
           propGroups.get(cssProp)!.push({ className: extraName, isDynamic: false });
         }
       }
     } else {
       const rawDefs = unwrapDefs(seg.defs, seg.pseudoElement);
-      const suffix = conditionSuffix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
+      const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
       const isMultiProp = Object.keys(rawDefs).length > 1;
 
       for (const cssProp of Object.keys(rawDefs)) {
@@ -487,7 +493,7 @@ export function buildStyleHashProperties(
         if (val === null) continue;
 
         const baseName = computeStaticBaseName(seg, cssProp, String(val), isMultiProp, mapping);
-        const className = suffix ? `${baseName}${suffix}` : baseName;
+        const className = prefix ? `${prefix}${baseName}` : baseName;
 
         if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
         propGroups.get(cssProp)!.push({ className, isDynamic: false });

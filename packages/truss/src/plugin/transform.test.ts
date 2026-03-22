@@ -247,12 +247,12 @@ describe("transform", () => {
           f10: { fontSize: "f10_fontSize", fontWeight: "fw5" }
         };
         const __typography__sm = {
-          f24: { fontSize: "f24_sm" },
-          f18: { fontSize: "f18_sm" },
-          f16: { fontSize: "f16_sm" },
-          f14: { fontSize: "f14_sm" },
-          f12: { fontSize: "f12_sm" },
-          f10: { fontSize: "f10_fontSize_sm", fontWeight: "fw5_sm" }
+          f24: { fontSize: "sm_f24" },
+          f18: { fontSize: "sm_f18" },
+          f16: { fontSize: "sm_f16" },
+          f14: { fontSize: "sm_f14" },
+          f12: { fontSize: "sm_f12" },
+          f10: { fontSize: "sm_f10_fontSize", fontWeight: "sm_fw5" }
         };
         const key: Typography = pickType();
         const otherKey: Typography = pickOtherType();
@@ -289,25 +289,25 @@ describe("transform", () => {
 
   test("onHover pseudo: Css.black.onHover.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.black.onHover.blue.$;`)!)).toBe(
-      n(`const s = { color: "black blue_h" };`),
+      n(`const s = { color: "black h_blue" };`),
     );
   });
 
   test("onHover with multi-property: Css.onHover.ba.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onHover.ba.$;`)!)).toBe(
-      n(`const s = { borderStyle: "bss_h", borderWidth: "bw1_h" };`),
+      n(`const s = { borderStyle: "h_bss", borderWidth: "h_bw1" };`),
     );
   });
 
   test("onFocus pseudo: Css.onFocus.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onFocus.blue.$;`)!)).toBe(
-      n(`const s = { color: "blue_f" };`),
+      n(`const s = { color: "f_blue" };`),
     );
   });
 
   test("onHover with dynamic literal: Css.onHover.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onHover.bc("red").$;`)!)).toBe(
-      n(`const s = { borderColor: "bc_red_h" };`),
+      n(`const s = { borderColor: "h_bc_red" };`),
     );
   });
 
@@ -317,7 +317,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         const color = getColor();
-        const s = { borderColor: ["bc_dyn_h", { "--bc_dyn_h": color }] };
+        const s = { borderColor: ["h_bc_dyn", { "--h_bc_dyn": color }] };
       `),
     );
   });
@@ -325,13 +325,13 @@ describe("transform", () => {
   test("container query pseudo: Css.ifContainer({ gt, lt }).gc('span 2').$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.ifContainer({ gt: 600, lt: 960 }).gc("span 2").$;`)!),
-    ).toBe(n(`const s = { gridColumn: "gc_span_2_mq" };`));
+    ).toBe(n(`const s = { gridColumn: "mq_gc_span_2" };`));
   });
 
   test("container query merges overlapping property", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.black.ifContainer({ gt: 600, lt: 960 }).blue.$;`)!),
-    ).toBe(n(`const s = { color: "black blue_mq" };`));
+    ).toBe(n(`const s = { color: "black mq_blue" };`));
   });
 
   test("container query with named container", () => {
@@ -341,7 +341,7 @@ describe("transform", () => {
           `import { Css } from "./Css"; const s = Css.ifContainer({ name: "grid", gt: 600, lt: 960 }).blue.$;`,
         )!,
       ),
-    ).toBe(n(`const s = { color: "blue_mq" };`));
+    ).toBe(n(`const s = { color: "mq_blue" };`));
   });
 
   test("container query requires literal bounds: emits console.error and preserves valid segments", () => {
@@ -897,7 +897,7 @@ describe("transform", () => {
           const fieldStyles = {
             input: {
               ...{ width: "w100", minWidth: "mw0", outline: "outline0", flexGrow: "fg1" },
-              ...(contrast && !inputStylePalette && { backgroundColor: "bgBlue_selection" })
+              ...(contrast && !inputStylePalette && { backgroundColor: "selection_bgBlue" })
             }
           };
           return <div {...trussProps({ ...fieldStyles.input })} />;
@@ -1308,13 +1308,13 @@ describe("transform", () => {
 
   test("onHover on same property merges base+pseudo into single entry", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.onHover.bgBlack.$;`)!)).toBe(
-      n(`const s = { backgroundColor: "bgBlue bgBlack_h" };`),
+      n(`const s = { backgroundColor: "bgBlue h_bgBlack" };`),
     );
   });
 
   test("onHover merge: non-overlapping properties kept separate", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.onHover.blue.$;`)!)).toBe(
-      n(`const s = { display: "df", color: "blue_h" };`),
+      n(`const s = { display: "df", color: "h_blue" };`),
     );
   });
 
@@ -1352,79 +1352,79 @@ describe("transform", () => {
 
   test("if(mediaQuery) as pseudo: Css.if('@media (max-width: 599px)').df.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (max-width: 599px)").df.$;`)!)).toBe(
-      n(`const s = { display: "df_sm" };`),
+      n(`const s = { display: "sm_df" };`),
     );
   });
 
   test("if(mediaQuery) merges with base: Css.bgBlue.if('@media (max-width: 599px)').bgBlack.$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.if("@media (max-width: 599px)").bgBlack.$;`)!),
-    ).toBe(n(`const s = { backgroundColor: "bgBlue bgBlack_sm" };`));
+    ).toBe(n(`const s = { backgroundColor: "bgBlue sm_bgBlack" };`));
   });
 
   test("if(Breakpoints.sm) works like if('@media...')", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (min-width: 960px)").df.$;`)!)).toBe(
-      n(`const s = { display: "df_lg" };`),
+      n(`const s = { display: "lg_df" };`),
     );
   });
 
   test("breakpoint + pseudo combination: Css.ifSm.onHover.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.onHover.blue.$;`)!)).toBe(
-      n(`const s = { color: "blue_sm_h" };`),
+      n(`const s = { color: "sm_h_blue" };`),
     );
   });
 
   test("base + breakpoint + pseudo: Css.black.ifSm.onHover.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.black.ifSm.onHover.blue.$;`)!)).toBe(
-      n(`const s = { color: "black blue_sm_h" };`),
+      n(`const s = { color: "black sm_h_blue" };`),
     );
   });
 
   test("base + breakpoint color + breakpoint+pseudo color: Css.black.ifSm.white.onHover.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.black.ifSm.white.onHover.blue.$;`)!)).toBe(
-      n(`const s = { color: "black white_sm blue_sm_h" };`),
+      n(`const s = { color: "black sm_white sm_h_blue" };`),
     );
   });
 
   test("breakpoint only: Css.ifSm.df.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.df.$;`)!)).toBe(
-      n(`const s = { display: "df_sm" };`),
+      n(`const s = { display: "sm_df" };`),
     );
   });
 
   test("breakpoint after base style: Css.df.ifMd.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.ifMd.blue.$;`)!)).toBe(
-      n(`const s = { display: "df", color: "blue_md" };`),
+      n(`const s = { display: "df", color: "md_blue" };`),
     );
   });
 
   test("breakpoint merges overlapping property: Css.bgBlue.ifSm.bgBlack.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.ifSm.bgBlack.$;`)!)).toBe(
-      n(`const s = { backgroundColor: "bgBlue bgBlack_sm" };`),
+      n(`const s = { backgroundColor: "bgBlue sm_bgBlack" };`),
     );
   });
 
   test("breakpoint with large: Css.ifLg.df.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifLg.df.$;`)!)).toBe(
-      n(`const s = { display: "df_lg" };`),
+      n(`const s = { display: "lg_df" };`),
     );
   });
 
   test("breakpoint with combination: Css.ifSmOrMd.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSmOrMd.blue.$;`)!)).toBe(
-      n(`const s = { color: "blue_smormd" };`),
+      n(`const s = { color: "smormd_blue" };`),
     );
   });
 
   test("breakpoint with dynamic literal: Css.ifSm.mt(2).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.mt(2).$;`)!)).toBe(
-      n(`const s = { marginTop: "mt_16px_sm" };`),
+      n(`const s = { marginTop: "sm_mt_16px" };`),
     );
   });
 
   test("breakpoint with multi-property: Css.ifSm.ba.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.ba.$;`)!)).toBe(
-      n(`const s = { borderStyle: "bss_sm", borderWidth: "bw1_sm" };`),
+      n(`const s = { borderStyle: "sm_bss", borderWidth: "sm_bw1" };`),
     );
   });
 
@@ -1432,7 +1432,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.ifSm.df.$} />;`)!)).toBe(
       n(`
         import { trussProps } from "@homebound/truss/runtime";
-        const el = <div {...trussProps({ display: "df_sm" })} />;
+        const el = <div {...trussProps({ display: "sm_df" })} />;
       `),
     );
   });
@@ -1441,25 +1441,25 @@ describe("transform", () => {
 
   test("element('::placeholder').blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").blue.$;`)!)).toBe(
-      n(`const s = { color: "blue_placeholder" };`),
+      n(`const s = { color: "placeholder_blue" };`),
     );
   });
 
   test("element('::selection') with static styles", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::selection").bgBlue.white.$;`)!)).toBe(
-      n(`const s = { backgroundColor: "bgBlue_selection", color: "white_selection" };`),
+      n(`const s = { backgroundColor: "selection_bgBlue", color: "selection_white" };`),
     );
   });
 
   test("element with dynamic literal: element('::placeholder').bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").bc("red").$;`)!)).toBe(
-      n(`const s = { borderColor: "bc_red_placeholder" };`),
+      n(`const s = { borderColor: "placeholder_bc_red" };`),
     );
   });
 
   test("element + onHover: Css.element('::placeholder').onHover.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").onHover.blue.$;`)!)).toBe(
-      n(`const s = { color: "blue_placeholder_h" };`),
+      n(`const s = { color: "placeholder_h_blue" };`),
     );
   });
 
@@ -1522,7 +1522,7 @@ describe("transform", () => {
   test("add with pseudo: Css.onHover.add('textDecoration', 'underline').$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.onHover.add("textDecoration", "underline").$;`)!),
-    ).toBe(n(`const s = { textDecoration: "add_textDecoration_underline_h" };`));
+    ).toBe(n(`const s = { textDecoration: "h_add_textDecoration_underline" };`));
   });
 
   test("add with CssProp argument composes inline as spread", () => {

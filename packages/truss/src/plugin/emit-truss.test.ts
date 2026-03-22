@@ -53,8 +53,8 @@ describe("collectAtomicRules", () => {
       pseudoClass: ":hover",
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
-    expect(rules.get("blue_h")).toMatchObject({
-      className: "blue_h",
+    expect(rules.get("h_blue")).toMatchObject({
+      className: "h_blue",
       cssProperty: "color",
       cssValue: "#526675",
       pseudoClass: ":hover",
@@ -68,8 +68,8 @@ describe("collectAtomicRules", () => {
       mediaQuery: "@media (max-width: 599px)",
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
-    expect(rules.get("blue_sm")).toMatchObject({
-      className: "blue_sm",
+    expect(rules.get("sm_blue")).toMatchObject({
+      className: "sm_blue",
       cssProperty: "color",
       cssValue: "#526675",
       mediaQuery: "@media (max-width: 599px)",
@@ -83,8 +83,8 @@ describe("collectAtomicRules", () => {
       pseudoElement: "::placeholder",
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
-    expect(rules.get("blue_placeholder")).toMatchObject({
-      className: "blue_placeholder",
+    expect(rules.get("placeholder_blue")).toMatchObject({
+      className: "placeholder_blue",
       cssProperty: "color",
       cssValue: "#526675",
       pseudoElement: "::placeholder",
@@ -118,12 +118,12 @@ describe("collectAtomicRules", () => {
       argNode: { type: "Identifier", name: "y" },
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
-    expect(rules.get("bc_dyn_h")).toMatchObject({
-      className: "bc_dyn_h",
+    expect(rules.get("h_bc_dyn")).toMatchObject({
+      className: "h_bc_dyn",
       cssProperty: "border-color",
-      cssValue: "var(--bc_dyn_h)",
+      cssValue: "var(--h_bc_dyn)",
       pseudoClass: ":hover",
-      cssVarName: "--bc_dyn_h",
+      cssVarName: "--h_bc_dyn",
     });
   });
 });
@@ -137,18 +137,18 @@ describe("generateCssText", () => {
 
   test("pseudo-class rule", () => {
     const rules = new Map<string, AtomicRule>([
-      ["blue_h", { className: "blue_h", cssProperty: "color", cssValue: "#526675", pseudoClass: ":hover" }],
+      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "#526675", pseudoClass: ":hover" }],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".blue_h:hover {\n  color: #526675;\n}");
+    expect(css).toContain(".h_blue:hover {\n  color: #526675;\n}");
   });
 
   test("media query rule uses doubled selector", () => {
     const rules = new Map<string, AtomicRule>([
       [
-        "blue_sm",
+        "sm_blue",
         {
-          className: "blue_sm",
+          className: "sm_blue",
           cssProperty: "color",
           cssValue: "#526675",
           mediaQuery: "@media (max-width: 599px)",
@@ -156,15 +156,15 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain("@media (max-width: 599px) {\n  .blue_sm.blue_sm {\n    color: #526675;\n  }\n}");
+    expect(css).toContain("@media (max-width: 599px) {\n  .sm_blue.sm_blue {\n    color: #526675;\n  }\n}");
   });
 
   test("media + pseudo uses doubled selector + pseudo", () => {
     const rules = new Map<string, AtomicRule>([
       [
-        "blue_sm_h",
+        "sm_h_blue",
         {
-          className: "blue_sm_h",
+          className: "sm_h_blue",
           cssProperty: "color",
           cssValue: "#526675",
           mediaQuery: "@media (max-width: 599px)",
@@ -173,15 +173,15 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain("@media (max-width: 599px) {\n  .blue_sm_h.blue_sm_h:hover {\n    color: #526675;\n  }\n}");
+    expect(css).toContain("@media (max-width: 599px) {\n  .sm_h_blue.sm_h_blue:hover {\n    color: #526675;\n  }\n}");
   });
 
   test("pseudo-element rule", () => {
     const rules = new Map<string, AtomicRule>([
       [
-        "blue_placeholder",
+        "placeholder_blue",
         {
-          className: "blue_placeholder",
+          className: "placeholder_blue",
           cssProperty: "color",
           cssValue: "#526675",
           pseudoElement: "::placeholder",
@@ -189,7 +189,7 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".blue_placeholder::placeholder {\n  color: #526675;\n}");
+    expect(css).toContain(".placeholder_blue::placeholder {\n  color: #526675;\n}");
   });
 
   test("dynamic rule includes @property", () => {
@@ -212,30 +212,30 @@ describe("generateCssText", () => {
   test("ordering: base before pseudo before media", () => {
     const rules = new Map<string, AtomicRule>([
       [
-        "blue_sm",
-        { className: "blue_sm", cssProperty: "color", cssValue: "blue", mediaQuery: "@media (max-width: 599px)" },
+        "sm_blue",
+        { className: "sm_blue", cssProperty: "color", cssValue: "blue", mediaQuery: "@media (max-width: 599px)" },
       ],
       ["black", { className: "black", cssProperty: "color", cssValue: "black" }],
-      ["blue_h", { className: "blue_h", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
+      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
     ]);
     const css = generateCssText(rules);
     const baseIdx = css.indexOf(".black {");
-    const pseudoIdx = css.indexOf(".blue_h:hover {");
-    const mediaIdx = css.indexOf(".blue_sm.blue_sm {");
+    const pseudoIdx = css.indexOf(".h_blue:hover {");
+    const mediaIdx = css.indexOf(".sm_blue.sm_blue {");
     expect(baseIdx).toBeLessThan(pseudoIdx);
     expect(pseudoIdx).toBeLessThan(mediaIdx);
   });
 
   test("pseudo ordering: hover before focus before active", () => {
     const rules = new Map<string, AtomicRule>([
-      ["red_a", { className: "red_a", cssProperty: "color", cssValue: "red", pseudoClass: ":active" }],
-      ["blue_h", { className: "blue_h", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
-      ["green_f", { className: "green_f", cssProperty: "color", cssValue: "green", pseudoClass: ":focus" }],
+      ["a_red", { className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" }],
+      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
+      ["f_green", { className: "f_green", cssProperty: "color", cssValue: "green", pseudoClass: ":focus" }],
     ]);
     const css = generateCssText(rules);
-    const hoverIdx = css.indexOf(".blue_h:hover");
-    const focusIdx = css.indexOf(".green_f:focus");
-    const activeIdx = css.indexOf(".red_a:active");
+    const hoverIdx = css.indexOf(".h_blue:hover");
+    const focusIdx = css.indexOf(".f_green:focus");
+    const activeIdx = css.indexOf(".a_red:active");
     expect(hoverIdx).toBeLessThan(focusIdx);
     expect(focusIdx).toBeLessThan(activeIdx);
   });
