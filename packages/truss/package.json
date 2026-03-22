@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss",
-  "version": "2.0.13",
+  "version": "2.1.0-next.10",
   "type": "module",
   "main": "build/index.js",
   "bin": "cli.js",
@@ -27,10 +27,14 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@babel/generator": "^7.29.0",
+    "@babel/parser": "^7.29.0",
+    "@babel/traverse": "^7.29.0",
+    "@babel/types": "^7.29.0",
     "change-case": "^5.4.4",
     "csstype": "^3.2.3",
-    "ts-poet": "^6.12.0",
-    "tsx": "^4.19.0"
+    "jiti": "^2.6.1",
+    "ts-poet": "^6.12.0"
   },
   "devDependencies": {
     "@homebound/tsconfig": "^1.1.1",

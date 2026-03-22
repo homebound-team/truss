@@ -191,26 +191,6 @@ export function removeCssImport(ast: t.File, cssBinding: string): void {
   }
 }
 
-/**
- * Find an existing namespace import for `@stylexjs/stylex`, if present.
- *
- * Reusing an existing namespace avoids duplicate imports and ensures generated
- * calls use the same local alias as handwritten code (e.g. `sx`).
- */
-export function findStylexNamespaceImport(ast: t.File): string | null {
-  for (const node of ast.program.body) {
-    if (!t.isImportDeclaration(node)) continue;
-    if (node.source.value !== "@stylexjs/stylex") continue;
-
-    for (const spec of node.specifiers) {
-      if (t.isImportNamespaceSpecifier(spec)) {
-        return spec.local.name;
-      }
-    }
-  }
-  return null;
-}
-
 /** Return the index of the last import declaration in the module. */
 export function findLastImportIndex(ast: t.File): number {
   let lastImportIndex = -1;
@@ -220,18 +200,6 @@ export function findLastImportIndex(ast: t.File): number {
     }
   }
   return lastImportIndex;
-}
-
-/**
- * Insert `import * as <localName> from "@stylexjs/stylex"` after existing imports.
- */
-export function insertStylexNamespaceImport(ast: t.File, localName: string): void {
-  const stylexImport = t.importDeclaration(
-    [t.importNamespaceSpecifier(t.identifier(localName))],
-    t.stringLiteral("@stylexjs/stylex"),
-  );
-  const idx = findLastImportIndex(ast);
-  ast.program.body.splice(idx + 1, 0, stylexImport);
 }
 
 export function findNamedImportBinding(ast: t.File, source: string, importedName: string): string | null {
@@ -244,6 +212,39 @@ export function findNamedImportBinding(ast: t.File, source: string, importedName
     }
   }
   return null;
+}
+
+export function findImportDeclaration(ast: t.File, source: string): t.ImportDeclaration | null {
+  for (const node of ast.program.body) {
+    if (t.isImportDeclaration(node) && node.source.value === source) {
+      return node;
+    }
+  }
+  return null;
+}
+
+export function replaceCssImportWithNamedImports(
+  ast: t.File,
+  cssBinding: string,
+  source: string,
+  imports: Array<{ importedName: string; localName: string }>,
+): boolean {
+  for (const node of ast.program.body) {
+    if (!t.isImportDeclaration(node)) continue;
+
+    const cssSpecIndex = node.specifiers.findIndex(function (spec) {
+      return t.isImportSpecifier(spec) && spec.local.name === cssBinding;
+    });
+    if (cssSpecIndex === -1 || node.specifiers.length !== 1) continue;
+
+    node.source = t.stringLiteral(source);
+    node.specifiers = imports.map(function (entry) {
+      return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
+    });
+    return true;
+  }
+
+  return false;
 }
 
 export function upsertNamedImports(

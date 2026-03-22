@@ -7,8 +7,3 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>,
 );
-
-// Import stylex runtime for dev HMR
-import("virtual:stylex:runtime").catch(() => {
-  // Ignore in test environments where virtual modules aren't available
-});

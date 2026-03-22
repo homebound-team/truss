@@ -1,13 +1,13 @@
 {
   "name": "truss",
-  "version": "2.0.13",
+  "version": "2.1.0-next.10",
   "license": "ISC",
   "private": true,
   "scripts": {
     "build": "tspc --build && yarn workspace @homebound/truss run build",
     "test": "yarn workspaces foreach --all run test",
     "semantic-release": "semantic-release",
-    "codegen": "yarn workspaces foreach run codegen"
+    "codegen": "yarn workspaces foreach -A run codegen"
   },
   "workspaces": [
     "packages/truss",

@@ -1,3 +1,66 @@
+## [2.1.0-next.10](https://github.com/homebound-team/truss/compare/v2.1.0-next.9...v2.1.0-next.10) (2026-03-22)
+
+### Bug Fixes
+
+* Fix `if` keeping overriden properties. ([175887c](https://github.com/homebound-team/truss/commit/175887c9027a45b1af43d676ee2918c714223225))
+
+## [2.1.0-next.9](https://github.com/homebound-team/truss/compare/v2.1.0-next.8...v2.1.0-next.9) (2026-03-22)
+
+### Bug Fixes
+
+* Use stylex's priority system. ([9de204c](https://github.com/homebound-team/truss/commit/9de204c73833784a7ba11e87b976bc615377cc31))
+
+## [2.1.0-next.8](https://github.com/homebound-team/truss/compare/v2.1.0-next.7...v2.1.0-next.8) (2026-03-22)
+
+### Bug Fixes
+
+* Another attempt at ordering fix. ([ba9fc8a](https://github.com/homebound-team/truss/commit/ba9fc8a868d90df10101afc8515c1c81e4f8d596))
+
+## [2.1.0-next.7](https://github.com/homebound-team/truss/compare/v2.1.0-next.6...v2.1.0-next.7) (2026-03-22)
+
+### Bug Fixes
+
+* Fix variable rules emit after static. ([ceb5e52](https://github.com/homebound-team/truss/commit/ceb5e521013c5538cb396817f43e1ad73b0cc511))
+
+## [2.1.0-next.6](https://github.com/homebound-team/truss/compare/v2.1.0-next.5...v2.1.0-next.6) (2026-03-22)
+
+### Bug Fixes
+
+* Keep source lines. ([7d4ae7d](https://github.com/homebound-team/truss/commit/7d4ae7df0708cb5436ecc51b82255ba3b28766d4))
+
+## [2.1.0-next.5](https://github.com/homebound-team/truss/compare/v2.1.0-next.4...v2.1.0-next.5) (2026-03-22)
+
+### Bug Fixes
+
+* Don't drop earlier values in if/else expressions. ([c1a1418](https://github.com/homebound-team/truss/commit/c1a14180d0fbec14e1a03e9ab28fd62173614301))
+* Remove add_ prefix again. ([0ed1dc5](https://github.com/homebound-team/truss/commit/0ed1dc54272ef00004ab2fd3c8798bb5e6a28c00))
+
+## [2.1.0-next.4](https://github.com/homebound-team/truss/compare/v2.1.0-next.3...v2.1.0-next.4) (2026-03-22)
+
+### Bug Fixes
+
+* Use the same variable names for `add`. ([bdae3f9](https://github.com/homebound-team/truss/commit/bdae3f9c4022d73819dfb343cf553dd5424d28b2))
+
+## [2.1.0-next.3](https://github.com/homebound-team/truss/compare/v2.1.0-next.2...v2.1.0-next.3) (2026-03-22)
+
+### Bug Fixes
+
+* Don't inject /truss.css in dev mode. ([1e0321b](https://github.com/homebound-team/truss/commit/1e0321b9f03141c4bca5e928fb9428c29e9b2b3b))
+
+## [2.1.0-next.2](https://github.com/homebound-team/truss/compare/v2.1.0-next.1...v2.1.0-next.2) (2026-03-22)
+
+### Bug Fixes
+
+* Fix error. ([5d36cf5](https://github.com/homebound-team/truss/commit/5d36cf5bffe714c9382421b06beb1248b4e13741))
+* Fix variable abbreviations with multiple keys. ([d01171c](https://github.com/homebound-team/truss/commit/d01171c5e55598cdf0f71a9ddd15bc6caf99fde9))
+* More fully fix breakpoint negation. ([ec386a5](https://github.com/homebound-team/truss/commit/ec386a59244e8ebde8c2c2e4624cde5e47128108))
+
+## [2.1.0-next.1](https://github.com/homebound-team/truss/compare/v2.0.13...v2.1.0-next.1) (2026-03-22)
+
+### Features
+
+* Phase 1 done. ([14c7b95](https://github.com/homebound-team/truss/commit/14c7b95b52f40e169e625891e7af5783139f7066))
+
 ## [2.0.13](https://github.com/homebound-team/truss/compare/v2.0.12...v2.0.13) (2026-03-21)
 
 ### Bug Fixes

@@ -29,9 +29,9 @@ export function App() {
 
       {/* Marker example: hovering the parent card reveals the child text */}
       <div css={Css.mt2.df.gap1.$}>
-        <div css={Css.marker.ba.bcBlack.p2.br2.cursorPointer.$}>
+        <div css={Css.marker.ba.bcBlack.p3.br2.cursorPointer.$}>
           <span>Hover this card</span>
-          <span css={Css.when("ancestor", ":hover").blue.$}> — I turn blue on parent hover</span>
+          <span css={Css.when("ancestor", ":hover").white.$}> — I turn white on parent hover</span>
         </div>
       </div>
 

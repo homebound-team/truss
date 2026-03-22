@@ -1,5 +1,9 @@
 module.exports = {
-  branches: ["main"],
+  // Disable CI environment detection so that semantic-release doesn't skip publishing
+  // when an open PR exists targeting the current branch (e.g. feat/v2 <- main), which
+  // causes CircleCI to set CIRCLE_PULL_REQUEST on every build for that branch.
+  ci: false,
+  branches: ["main", { name: "truss-native", prerelease: "next", channel: "next" }],
   plugins: [
     // Use conventionalcommits preset (not the default angular) so that
     // `feat!:` / `fix!:` commits are recognized as breaking changes.

@@ -96,7 +96,7 @@ describe("Css", () => {
   it("can use generated breakpoints with if dsl", () => {
     expect(Css.pb2.white.ifSm.pb3.black.$).toMatchInlineSnapshot(`
       {
-        "@media (max-width: 599px)": {
+        "@media screen and (max-width: 599px)": {
           "color": "#353535",
           "paddingBottom": "24px",
         },
@@ -109,7 +109,7 @@ describe("Css", () => {
   it("can use generated breakpoints with if dsl string", () => {
     expect(Css.pb2.white.if("sm").pb3.black.$).toMatchInlineSnapshot(`
       {
-        "@media (max-width: 599px)": {
+        "@media screen and (max-width: 599px)": {
           "color": "#353535",
           "paddingBottom": "24px",
         },
@@ -127,11 +127,11 @@ describe("Css", () => {
   it("can use 'else' when using `ifSm`", () => {
     expect(Css.ifSm.black.else.white.$).toMatchInlineSnapshot(`
       {
-        "@media (max-width: 599px)": {
-          "color": "#353535",
-        },
-        "@media not (max-width: 599px)": {
+        "@media not screen and (max-width: 599px)": {
           "color": "#fcfcfa",
+        },
+        "@media screen and (max-width: 599px)": {
+          "color": "#353535",
         },
       }
     `);
@@ -140,11 +140,11 @@ describe("Css", () => {
   it("can use 'else' when using `ifMdAndUp`", () => {
     expect(Css.ifMdAndUp.black.else.white.$).toMatchInlineSnapshot(`
       {
-        "@media (min-width: 600px)": {
-          "color": "#353535",
-        },
-        "@media not (min-width: 600px)": {
+        "@media not screen and (min-width: 600px)": {
           "color": "#fcfcfa",
+        },
+        "@media screen and (min-width: 600px)": {
+          "color": "#353535",
         },
       }
     `);
@@ -157,17 +157,17 @@ describe("Css", () => {
   it.skip("can use 'else' twice for conditional then breakpoint use 'else' twice when using `ifMdAndUp`", () => {
     expect(Css.if(true).ifSm.black.else.blue.else.midGray.$).toMatchInlineSnapshot(`
       {
-        "@media not screen and (max-width:599px)": {
+        "@media screen and (min-width: 600px)": {
           "color": "#526675",
         },
-        "@media screen and (max-width:599px)": {
+        "@media screen and (max-width: 599px)": {
           "color": "#353535",
         },
       }
     `);
     expect(Css.if(false).ifSm.black.else.blue.else.midGray.$).toMatchInlineSnapshot(`
       {
-        "@media not screen and (max-width:599px)": {
+        "@media screen and (min-width: 600px)": {
           "color": "#888888",
         },
       }
@@ -260,7 +260,7 @@ describe("Css", () => {
   it("can use breakpoints via ifs", () => {
     expect(Css.black.ifMd.blue.$).toMatchInlineSnapshot(`
       {
-        "@media (min-width: 600px) and (max-width: 959px)": {
+        "@media screen and (min-width: 600px) and (max-width: 959px)": {
           "color": "#526675",
         },
         "color": "#353535",

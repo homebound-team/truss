@@ -10,7 +10,29 @@ export type Properties = Properties1<string | 0, string>;
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
-type Opts<T> = { rules: T; enabled: boolean; important: boolean; selector: string | undefined };
+type Opts<T> = { rules: T; enabled: boolean; important: boolean; selector: string | undefined; elseApplied: boolean };
+
+function invertMediaQuery(query: string): string {
+  const screenPrefix = "@media screen and ";
+  if (query.startsWith(screenPrefix)) {
+    const conditions = query.slice(screenPrefix.length).trim();
+    const rangeMatch = conditions.match(/^(min-width: (d+)px) and (max-width: (d+)px)$/);
+    if (rangeMatch) {
+      const min = Number(rangeMatch[1]);
+      const max = Number(rangeMatch[2]);
+      return `@media screen and (max-width: ${min - 1}px), screen and (min-width: ${max + 1}px)`;
+    }
+    const minMatch = conditions.match(/^(min-width: (d+)px)$/);
+    if (minMatch) {
+      return `@media screen and (max-width: ${Number(minMatch[1]) - 1}px)`;
+    }
+    const maxMatch = conditions.match(/^(max-width: (d+)px)$/);
+    if (maxMatch) {
+      return `@media screen and (min-width: ${Number(maxMatch[1]) + 1}px)`;
+    }
+  }
+  return query.replace("@media", "@media not");
+}
 
 class CssBuilder<T extends Properties> {
   constructor(private opts: Opts<T>) {}
@@ -531,36 +553,40 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: "@media print" });
   }
   get ifSm() {
-    return this.newCss({ selector: "@media screen and (max-width:599px)" });
+    return this.newCss({ selector: "@media screen and (max-width: 599px)" });
   }
   get ifMd() {
-    return this.newCss({ selector: "@media screen and (min-width:600px) and (max-width:959px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 600px) and (max-width: 959px)" });
   }
   get ifSmOrMd() {
-    return this.newCss({ selector: "@media screen and (max-width:959px)" });
+    return this.newCss({ selector: "@media screen and (max-width: 959px)" });
   }
   get ifMdAndUp() {
-    return this.newCss({ selector: "@media screen and (min-width:600px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 600px)" });
   }
   get ifMdAndDown() {
-    return this.newCss({ selector: "@media screen and (max-width:959px)" });
+    return this.newCss({ selector: "@media screen and (max-width: 959px)" });
   }
   get ifLg() {
-    return this.newCss({ selector: "@media screen and (min-width:960px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 960px)" });
   }
   get ifMdOrLg() {
-    return this.newCss({ selector: "@media screen and (min-width:600px)" });
+    return this.newCss({ selector: "@media screen and (min-width: 600px)" });
+  }
+
+  typography(key: Typography): CssBuilder<T> {
+    return (this as any)[key];
   }
 
   get else() {
     if (this.selector !== undefined) {
-      if (this.selector.includes("not")) {
+      if (this.opts.elseApplied) {
         throw new Error("else was already called");
       } else {
-        return this.newCss({ selector: this.selector.replace("@media", "@media not") });
+        return this.newCss({ selector: invertMediaQuery(this.selector), elseApplied: true });
       }
     }
-    return this.newCss({ enabled: !this.enabled });
+    return this.newCss({ enabled: !this.enabled, elseApplied: true });
   }
 
   get important() {
@@ -605,7 +631,7 @@ class CssBuilder<T extends Properties> {
   }
 }
 
-/** Emotion treats the same rules, ordered differently as different classes, but naively they can be the same. */
+/** Sort keys so equivalent rule objects have deterministic shape. */
 function sortObject<T extends object>(obj: T): T {
   return Object.keys(obj).sort().reduce((acc, key) => {
     acc[key as keyof T] = obj[key as keyof T];
@@ -651,7 +677,13 @@ export enum Palette {
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({ rules: {}, enabled: true, important: false, selector: undefined });
+export const Css = new CssBuilder({
+  rules: {},
+  enabled: true,
+  important: false,
+  selector: undefined,
+  elseApplied: false,
+});
 
 export type Margin = "margin" | "marginTop" | "marginRight" | "marginBottom" | "marginLeft";
 
@@ -660,13 +692,13 @@ export type Padding = "padding" | "paddingTop" | "paddingRight" | "paddingBottom
 export type Breakpoint = "print" | "sm" | "md" | "smOrMd" | "mdAndUp" | "mdAndDown" | "lg" | "mdOrLg";
 export enum Breakpoints {
   print = "@media print",
-  sm = "@media screen and (max-width:599px)",
-  md = "@media screen and (min-width:600px) and (max-width:959px)",
-  smOrMd = "@media screen and (max-width:959px)",
-  mdAndUp = "@media screen and (min-width:600px)",
-  mdAndDown = "@media screen and (max-width:959px)",
-  lg = "@media screen and (min-width:960px)",
-  mdOrLg = "@media screen and (min-width:600px)",
+  sm = "@media screen and (max-width: 599px)",
+  md = "@media screen and (min-width: 600px) and (max-width: 959px)",
+  smOrMd = "@media screen and (max-width: 959px)",
+  mdAndUp = "@media screen and (min-width: 600px)",
+  mdAndDown = "@media screen and (max-width: 959px)",
+  lg = "@media screen and (min-width: 960px)",
+  mdOrLg = "@media screen and (min-width: 600px)",
 }
 
 /**

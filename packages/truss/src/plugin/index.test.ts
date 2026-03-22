@@ -32,9 +32,8 @@ describe("trussPlugin", function () {
     // Then it is rewritten
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
   });
@@ -75,9 +74,8 @@ describe("trussPlugin", function () {
     );
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
   });
@@ -102,11 +100,63 @@ describe("trussPlugin", function () {
     // Then it gets transformed
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
+  });
+
+  test("dev html injects the runtime without a stylesheet link", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+
+    const html = invokeHook(plugin.transformIndexHtml, {} as any, "<html><head></head><body></body></html>") as any;
+    expect(html).toBeTypeOf("string");
+    expect(html.includes('<script type="module" src="/virtual:truss:runtime"></script>')).toBe(true);
+    expect(html.includes("/virtual:truss.css")).toBe(false);
+  });
+
+  test("dev virtual CSS orders static base rules before variable rules for the same property", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      w100: { kind: "static", defs: { width: "100%" } },
+      w: { kind: "variable", props: ["width"], incremented: true },
+      df: { kind: "static", defs: { display: "flex" } },
+      fg1: { kind: "static", defs: { flexGrow: "1" } },
+      aic: { kind: "static", defs: { alignItems: "center" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    // Configure as dev server so the global registry is used
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    // File 1: introduces w_var first, along with other unrelated rules
+    runTransform(
+      plugin,
+      `import { Css } from "./Css"; const x = getWidth(); const s = Css.df.w(x).$;`,
+      join(root, "src", "DynamicWidth.tsx"),
+    );
+    // File 2: introduces fg1 and aic — these go between w_var and w100 in insertion order
+    runTransform(plugin, `import { Css } from "./Css"; const s = Css.fg1.aic.$;`, join(root, "src", "Layout.tsx"));
+    // File 3: introduces w100 AFTER several other rules were already registered
+    runTransform(plugin, `import { Css } from "./Css"; const s = Css.w100.$;`, join(root, "src", "StaticWidth.tsx"));
+
+    // Simulate the dev middleware fetching CSS
+    const css = getVirtualCss(plugin);
+
+    // The static w100 rule must appear before the variable w_var rule,
+    // even though w_var was registered first and many rules were inserted between them
+    const w100Idx = css.indexOf(".w100 {");
+    const wVarIdx = css.indexOf(".w_var {");
+    expect(w100Idx).toBeGreaterThan(-1);
+    expect(wVarIdx).toBeGreaterThan(-1);
+    expect(w100Idx).toBeLessThan(wVarIdx);
   });
 });
 
@@ -115,15 +165,12 @@ function n(s: string): string {
 }
 
 function createTempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "truss-stylex-"));
+  const root = mkdtempSync(join(tmpdir(), "truss-test-"));
   tempDirs.push(root);
   return root;
 }
 
-function writeMapping(
-  path: string,
-  abbreviations: Record<string, { kind: string; defs?: Record<string, unknown> }>,
-): void {
+function writeMapping(path: string, abbreviations: Record<string, Record<string, unknown>>): void {
   mkdirSync(dirname(path), { recursive: true });
   const mapping = {
     increment: 8,
@@ -147,6 +194,38 @@ function runTransform(
     return null;
   }
   return result as { code: string; map: any };
+}
+
+/** Simulate the dev virtual CSS endpoint by invoking configureServer and calling the middleware. */
+function getVirtualCss(plugin: ReturnType<typeof trussPlugin>): string {
+  let css = "";
+  const middlewares: Array<(req: unknown, res: unknown, next: unknown) => void> = [];
+  const fakeServer = {
+    middlewares: {
+      use(fn: (req: unknown, res: unknown, next: unknown) => void) {
+        middlewares.push(fn);
+      },
+    },
+    httpServer: { on() {} },
+  };
+
+  // Register the middleware
+  invokeHook(plugin.configureServer, {} as unknown, fakeServer);
+
+  // Call each middleware with a matching request
+  const fakeReq = { url: "/virtual:truss.css" };
+  const fakeRes = {
+    setHeader() {},
+    end(content: string) {
+      css = content;
+    },
+  };
+
+  for (const mw of middlewares) {
+    mw(fakeReq, fakeRes, function () {});
+  }
+
+  return css;
 }
 
 function invokeHook(hook: unknown, thisArg: unknown, ...args: unknown[]): unknown {

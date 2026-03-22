@@ -4,27 +4,26 @@ import type { NodePath } from "@babel/traverse";
 import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import { basename } from "path";
-import type { TrussMapping } from "./types";
-import { resolveFullChain } from "./resolve-chain";
+import type { TrussMapping, ResolvedSegment } from "./types";
+import { resolveFullChain, type ResolvedChain } from "./resolve-chain";
 import {
   collectTopLevelBindings,
   reservePreferredName,
   findCssImportBinding,
   removeCssImport,
   hasCssMethodCall,
-  findStylexNamespaceImport,
-  insertStylexNamespaceImport,
   findNamedImportBinding,
+  findImportDeclaration,
+  replaceCssImportWithNamedImports,
   upsertNamedImports,
   extractChain,
 } from "./ast-utils";
 import {
-  collectCreateData,
-  buildCreateProperties,
+  collectAtomicRules,
+  generateCssText,
   buildMaybeIncDeclaration,
-  buildCreateDeclaration,
   buildRuntimeLookupDeclaration,
-} from "./emit-stylex";
+} from "./emit-truss";
 import { rewriteExpressionSites, type ExpressionSite } from "./rewrite-sites";
 
 // Babel packages are CJS today; normalize default interop across loaders.
@@ -34,16 +33,22 @@ const generate = ((_generate as unknown as { default?: typeof _generate }).defau
 export interface TransformResult {
   code: string;
   map?: unknown;
+  /** The generated CSS text for this file's Truss usages. */
+  css: string;
+  /** The atomic CSS rules collected during this transform, keyed by class name. */
+  rules: Map<string, import("./emit-truss").AtomicRule>;
 }
 
 export interface TransformTrussOptions {
   debug?: boolean;
+  /** When true, inject `__injectTrussCSS(cssText)` call for jsdom/test environments. */
+  injectCss?: boolean;
 }
 
 /**
  * The core transform function. Given a source file's code and the truss mapping,
- * finds all `Css.*.$` expressions and rewrites them into file-local
- * `stylex.create()` + `stylex.props()` calls.
+ * finds all `Css.*.$` expressions and rewrites them into Truss-native style hash
+ * objects and `trussProps()`/`mergeProps()` runtime calls.
  *
  * Returns null if the file doesn't use Css.
  */
@@ -68,7 +73,6 @@ export function transformTruss(
 
   // Step 2: Collect all Css expression sites
   const sites: ExpressionSite[] = [];
-  /** Error messages with source location info, to be emitted as console.error calls. */
   const errorMessages: Array<{ message: string; line: number | null }> = [];
 
   traverse(ast, {
@@ -87,7 +91,6 @@ export function transformTruss(
       const resolvedChain = resolveFullChain(chain, mapping);
       sites.push({ path, resolvedChain });
 
-      // Collect any errors from this chain with source location
       const line = path.node.loc?.start.line ?? null;
       for (const err of resolvedChain.errors) {
         errorMessages.push({ message: err, line });
@@ -95,50 +98,43 @@ export function transformTruss(
     },
   });
 
-  // Also check for Css.props(...) calls which need rewriting even without Css.$  sites
+  // Also check for Css.props(...) calls which need rewriting even without Css.$ sites
   const hasCssPropsCall = hasCssMethodCall(ast, cssBindingName, "props");
   if (sites.length === 0 && !hasCssPropsCall) return null;
 
-  // Step 3: Collect stylex.create entries and helper needs
-  const { createEntries, runtimeLookups, needsMaybeInc } = collectCreateData(sites.map((s) => s.resolvedChain));
+  // Step 3: Collect atomic rules for CSS generation
+  const chains = sites.map((s) => s.resolvedChain);
+  const { rules, needsMaybeInc } = collectAtomicRules(chains, mapping);
+  const cssText = generateCssText(rules);
 
-  // Reserve local names we might inject at the top level
-  // We do this up front so helper/style variable names are deterministic and
-  // cannot collide with user code in the same module.
+  // Step 4: Reserve local names for injected helpers
   const usedTopLevelNames = collectTopLevelBindings(ast);
-  const existingStylexNamespace = findStylexNamespaceImport(ast);
-  const stylexNamespaceName = existingStylexNamespace ?? reservePreferredName(usedTopLevelNames, "stylex");
-  const createVarName = reservePreferredName(usedTopLevelNames, "css", "css_");
   const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
   const existingMergePropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "mergeProps");
   const mergePropsHelperName = existingMergePropsHelperName ?? reservePreferredName(usedTopLevelNames, "mergeProps");
   const needsMergePropsHelper = { current: false };
-  const existingAsStyleArrayHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "asStyleArray");
-  const asStyleArrayHelperName =
-    existingAsStyleArrayHelperName ?? reservePreferredName(usedTopLevelNames, "asStyleArray");
-  const needsAsStyleArrayHelper = { current: false };
   const existingTrussPropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "trussProps");
   const trussPropsHelperName = existingTrussPropsHelperName ?? reservePreferredName(usedTopLevelNames, "trussProps");
   const needsTrussPropsHelper = { current: false };
   const existingTrussDebugInfoName = findNamedImportBinding(ast, "@homebound/truss/runtime", "TrussDebugInfo");
   const trussDebugInfoName = existingTrussDebugInfoName ?? reservePreferredName(usedTopLevelNames, "TrussDebugInfo");
   const needsTrussDebugInfo = { current: false };
+
+  // Collect typography runtime lookups
   const runtimeLookupNames = new Map<string, string>();
+  const runtimeLookups = collectRuntimeLookups(chains);
   for (const [lookupKey] of runtimeLookups) {
     runtimeLookupNames.set(lookupKey, reservePreferredName(usedTopLevelNames, `__${lookupKey}`));
   }
 
-  const createProperties = buildCreateProperties(createEntries, stylexNamespaceName);
-
-  // Step 4: Rewrite Css sites in-place
+  // Step 5: Rewrite Css sites in-place
   rewriteExpressionSites({
     ast,
     sites,
     cssBindingName,
     filename: basename(filename),
     debug: options.debug ?? false,
-    createVarName,
-    stylexNamespaceName,
+    mapping,
     maybeIncHelperName,
     mergePropsHelperName,
     needsMergePropsHelper,
@@ -146,73 +142,71 @@ export function transformTruss(
     needsTrussPropsHelper,
     trussDebugInfoName,
     needsTrussDebugInfo,
-    asStyleArrayHelperName,
-    needsAsStyleArrayHelper,
-    skippedCssPropMessages: errorMessages,
     runtimeLookupNames,
   });
 
-  // Step 5: Remove Css import now that all usages were rewritten
-  removeCssImport(ast, cssBindingName);
-
-  // Step 6: Ensure namespace stylex import exists
-  if (!findStylexNamespaceImport(ast)) {
-    insertStylexNamespaceImport(ast, stylexNamespaceName);
+  // Step 6: Prepare runtime imports before removing the Css import.
+  const runtimeImports: Array<{ importedName: string; localName: string }> = [];
+  if (needsTrussPropsHelper.current) {
+    runtimeImports.push({ importedName: "trussProps", localName: trussPropsHelperName });
   }
-  if (
-    needsMergePropsHelper.current ||
-    needsAsStyleArrayHelper.current ||
-    needsTrussPropsHelper.current ||
-    needsTrussDebugInfo.current
-  ) {
-    const runtimeImports: Array<{ importedName: string; localName: string }> = [];
-    if (needsMergePropsHelper.current) {
-      runtimeImports.push({ importedName: "mergeProps", localName: mergePropsHelperName });
-    }
-    if (needsAsStyleArrayHelper.current) {
-      runtimeImports.push({ importedName: "asStyleArray", localName: asStyleArrayHelperName });
-    }
-    if (needsTrussPropsHelper.current) {
-      runtimeImports.push({ importedName: "trussProps", localName: trussPropsHelperName });
-    }
-    if (needsTrussDebugInfo.current) {
-      runtimeImports.push({ importedName: "TrussDebugInfo", localName: trussDebugInfoName });
-    }
-    upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
+  if (needsMergePropsHelper.current) {
+    runtimeImports.push({ importedName: "mergeProps", localName: mergePropsHelperName });
+  }
+  if (needsTrussDebugInfo.current) {
+    runtimeImports.push({ importedName: "TrussDebugInfo", localName: trussDebugInfoName });
+  }
+  if (options.injectCss) {
+    runtimeImports.push({ importedName: "__injectTrussCSS", localName: "__injectTrussCSS" });
   }
 
-  // Step 7: Hoist marker declarations that are referenced in stylex.create entries.
-  // stylex.create uses computed keys like `[stylex.when.ancestor(":hover", row)]`
-  // which reference marker variables — these must be declared before stylex.create.
-  const markerVarNames = collectReferencedMarkerNames(createEntries);
-  const hoistedMarkerDecls = hoistMarkerDeclarations(ast, markerVarNames);
+  // Step 7: Remove/replace the Css import and inject runtime imports.
+  const reusedCssImportLine =
+    runtimeImports.length > 0 &&
+    findImportDeclaration(ast, "@homebound/truss/runtime") === null &&
+    replaceCssImportWithNamedImports(ast, cssBindingName, "@homebound/truss/runtime", runtimeImports);
+
+  if (!reusedCssImportLine) {
+    removeCssImport(ast, cssBindingName);
+  }
+
+  if (runtimeImports.length > 0) {
+    if (!reusedCssImportLine) {
+      upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
+    }
+  }
 
   // Step 8: Insert helper declarations after imports
   const declarationsToInsert: t.Statement[] = [];
   if (maybeIncHelperName) {
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName, mapping.increment));
   }
-  // Hoisted marker declarations go before stylex.create so they're in scope
-  declarationsToInsert.push(...hoistedMarkerDecls);
-  if (createProperties.length > 0) {
-    declarationsToInsert.push(buildCreateDeclaration(createVarName, stylexNamespaceName, createProperties));
-    for (const [lookupKey, lookup] of runtimeLookups) {
-      const lookupName = runtimeLookupNames.get(lookupKey);
-      if (!lookupName) continue;
-      declarationsToInsert.push(buildRuntimeLookupDeclaration(lookupName, createVarName, lookup));
-    }
+
+  // Insert runtime lookup tables for typography
+  for (const [lookupKey, lookup] of runtimeLookups) {
+    const lookupName = runtimeLookupNames.get(lookupKey);
+    if (!lookupName) continue;
+    declarationsToInsert.push(buildRuntimeLookupDeclaration(lookupName, lookup.segmentsByName, mapping));
   }
 
-  // Step 8: Emit console.error calls for any unsupported patterns
+  // Inject __injectTrussCSS call if requested
+  if (options.injectCss && cssText.length > 0) {
+    declarationsToInsert.push(
+      t.expressionStatement(t.callExpression(t.identifier("__injectTrussCSS"), [t.stringLiteral(cssText)])),
+    );
+  }
+
+  // Emit console.error calls for any unsupported patterns
   for (const { message, line } of errorMessages) {
     const location = line !== null ? `${filename}:${line}` : filename;
     const logMessage = `${message} (${location})`;
-    const consoleError = t.expressionStatement(
-      t.callExpression(t.memberExpression(t.identifier("console"), t.identifier("error")), [
-        t.stringLiteral(logMessage),
-      ]),
+    declarationsToInsert.push(
+      t.expressionStatement(
+        t.callExpression(t.memberExpression(t.identifier("console"), t.identifier("error")), [
+          t.stringLiteral(logMessage),
+        ]),
+      ),
     );
-    declarationsToInsert.push(consoleError);
   }
 
   if (declarationsToInsert.length > 0) {
@@ -224,74 +218,61 @@ export function transformTruss(
 
   const output = generate(ast, {
     sourceFileName: filename,
+    sourceMaps: true,
     retainLines: false,
   });
 
-  return { code: output.code, map: output.map };
+  const outputCode = preserveBlankLineAfterImports(code, output.code);
+
+  return { code: outputCode, map: output.map, css: cssText, rules };
 }
 
-/**
- * Collect the names of marker variables referenced in `whenPseudo.markerNode`
- * across all stylex.create entries. These need to be hoisted above stylex.create.
- */
-function collectReferencedMarkerNames(
-  createEntries: Map<string, { whenPseudo?: { markerNode?: t.Node } }>,
-): Set<string> {
-  const names = new Set<string>();
-  for (const [, entry] of createEntries) {
-    if (entry.whenPseudo?.markerNode && entry.whenPseudo.markerNode.type === "Identifier") {
-      names.add(entry.whenPseudo.markerNode.name);
-    }
-  }
-  return names;
-}
-
-/**
- * Find top-level variable declarations for the given names, remove them from
- * their original position in the AST, and return them for reinsertion above
- * the stylex.create call.
- *
- * This handles `const row = stylex.defineMarker()` being declared after code
- * that uses it in a Css.when() chain — the stylex.create computed key
- * `[stylex.when.ancestor(":hover", row)]` needs `row` to be in scope.
- */
-function hoistMarkerDeclarations(ast: t.File, names: Set<string>): t.Statement[] {
-  if (names.size === 0) return [];
-  const hoisted: t.Statement[] = [];
-  const remaining = new Set(names);
-
-  for (let i = ast.program.body.length - 1; i >= 0; i--) {
-    if (remaining.size === 0) break;
-    const node = ast.program.body[i];
-
-    if (!t.isVariableDeclaration(node)) continue;
-
-    // Check if any declarator in this statement matches a marker name
-    const matchingDeclarators: t.VariableDeclarator[] = [];
-    const otherDeclarators: t.VariableDeclarator[] = [];
-    for (const decl of node.declarations) {
-      if (t.isIdentifier(decl.id) && remaining.has(decl.id.name)) {
-        matchingDeclarators.push(decl);
-        remaining.delete(decl.id.name);
-      } else {
-        otherDeclarators.push(decl);
+/** Collect typography runtime lookups from all resolved chains. */
+function collectRuntimeLookups(
+  chains: ResolvedChain[],
+): Map<string, { segmentsByName: Record<string, ResolvedSegment[]> }> {
+  const lookups = new Map<string, { segmentsByName: Record<string, ResolvedSegment[]> }>();
+  for (const chain of chains) {
+    for (const part of chain.parts) {
+      const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
+      for (const seg of segs) {
+        if (seg.typographyLookup && !lookups.has(seg.typographyLookup.lookupKey)) {
+          lookups.set(seg.typographyLookup.lookupKey, {
+            segmentsByName: seg.typographyLookup.segmentsByName,
+          });
+        }
       }
     }
+  }
+  return lookups;
+}
 
-    if (matchingDeclarators.length === 0) continue;
+function preserveBlankLineAfterImports(input: string, output: string): string {
+  const inputLines = input.split("\n");
+  const outputLines = output.split("\n");
+  const lastInputImportLine = findLastImportLine(inputLines);
+  const lastOutputImportLine = findLastImportLine(outputLines);
 
-    if (otherDeclarators.length === 0) {
-      // Entire statement is marker declarations — remove it
-      ast.program.body.splice(i, 1);
-      hoisted.push(node);
-    } else {
-      // Split: keep non-marker declarators in place, hoist the marker ones
-      node.declarations = otherDeclarators;
-      hoisted.push(t.variableDeclaration(node.kind, matchingDeclarators));
-    }
+  if (lastInputImportLine === -1 || lastOutputImportLine === -1) {
+    return output;
   }
 
-  // Reverse so they appear in original source order
-  hoisted.reverse();
-  return hoisted;
+  const inputHasBlankLineAfterImports = inputLines[lastInputImportLine + 1]?.trim() === "";
+  const outputHasBlankLineAfterImports = outputLines[lastOutputImportLine + 1]?.trim() === "";
+  if (!inputHasBlankLineAfterImports || outputHasBlankLineAfterImports) {
+    return output;
+  }
+
+  outputLines.splice(lastOutputImportLine + 1, 0, "");
+  return outputLines.join("\n");
+}
+
+function findLastImportLine(lines: string[]): number {
+  let lastImportLine = -1;
+  for (let index = 0; index < lines.length; index++) {
+    if (lines[index].trimStart().startsWith("import ")) {
+      lastImportLine = index;
+    }
+  }
+  return lastImportLine;
 }

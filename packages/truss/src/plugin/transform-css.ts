@@ -4,6 +4,7 @@ import type { TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import { extractChain, findCssImportBinding } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
+import { camelToKebab } from "./emit-truss";
 
 /**
  * Transform a `.css.ts` file into a plain CSS string.
@@ -172,9 +173,9 @@ function resolveCssExpression(
         return { error: seg.error };
       }
 
-      // Reject segments that require runtime (dynamic with variable args)
-      if (seg.dynamicProps && !seg.argResolved) {
-        return { error: `dynamic value with variable argument is not supported in .css.ts files` };
+      // Reject segments that require runtime (variable with variable args)
+      if (seg.variableProps && !seg.argResolved) {
+        return { error: `variable value with variable argument is not supported in .css.ts files` };
       }
       if (seg.typographyLookup) {
         return { error: `typography() with a runtime key is not supported in .css.ts files` };
@@ -210,12 +211,6 @@ function resolveCssExpression(
   }
 
   return { declarations };
-}
-
-/** Convert a camelCase CSS property name to kebab-case. */
-export function camelToKebab(s: string): string {
-  // Handle vendor prefixes like WebkitTransform → -webkit-transform
-  return s.replace(/^(Webkit|Moz|Ms|O)/, (m) => `-${m.toLowerCase()}`).replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }
 
 /** Format a CSS rule block. */

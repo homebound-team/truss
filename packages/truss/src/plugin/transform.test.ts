@@ -15,34 +15,45 @@ describe("transform", () => {
   });
 
   test("static chain: Css.df.$", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const s = [css.df];
-      `),
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`)!)).toBe(n(`const s = { display: "df" };`));
+  });
+
+  test("keeps runtime import rewrites on the former Css import line", () => {
+    const output = transform(`
+      import { keepMe } from "./other";
+      import { Css } from "./Css";
+
+      const el = <div css={Css.black.$} />;
+      const value = keepMe();
+    `)!;
+
+    expect(lineOf(output, 'import { trussProps } from "@homebound/truss/runtime";')).toBe(2);
+    expect(lineOf(output, "const el =")).toBe(4);
+  });
+
+  test("returns a source map for rewritten files", () => {
+    const result = transformTruss(
+      `import { Css } from "./Css"; const el = <div css={Css.black.$} />;`,
+      "test.tsx",
+      mapping,
     );
+
+    expect(result?.map).toMatchObject({
+      sources: ["test.tsx"],
+    });
   });
 
   test("multi-getter chain: Css.df.aic.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.aic.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const s = [css.df, css.aic];
-      `),
+      n(`const s = { display: "df", alignItems: "aic" };`),
     );
   });
 
   test("css prop on JSX: css={Css.df.$}", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.df.$} />;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
   });
@@ -50,13 +61,8 @@ describe("transform", () => {
   test("css prop with multi-getter: css={Css.df.aic.black.$}", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.df.aic.black.$} />;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          black: { color: "#353535" }
-        });
-        const el = <div {...stylex.props(css.df, css.aic, css.black)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "df", alignItems: "aic", color: "black" })} />;
       `),
     );
   });
@@ -64,24 +70,17 @@ describe("transform", () => {
   test("debug mode rewrites jsx css props through trussProps", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.df.aic.$} />;`, { debug: true })!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         import { trussProps, TrussDebugInfo } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const el = <div {...trussProps(stylex, new TrussDebugInfo("test.tsx:1"), css.df, css.aic)} />;
+        const el = <div {...trussProps({ display: ["df", new TrussDebugInfo("test.tsx:1")], alignItems: "aic" })} />;
       `),
     );
   });
 
-  test("debug mode keeps debug info in non-jsx style arrays", () => {
+  test("debug mode keeps debug info in non-jsx style objects", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`, { debug: true })!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         import { TrussDebugInfo } from "@homebound/truss/runtime";
-        const css = stylex.create({ df: { display: "flex" } });
-        const s = [new TrussDebugInfo("test.tsx:1"), css.df];
+        const s = { display: ["df", new TrussDebugInfo("test.tsx:1")] };
       `),
     );
   });
@@ -95,63 +94,45 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         import { mergeProps, TrussDebugInfo } from "@homebound/truss/runtime";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...mergeProps(stylex, "existing", new TrussDebugInfo("test.tsx:1"), css.df)} />;
+        const el = <div {...mergeProps("existing", undefined, { display: ["df", new TrussDebugInfo("test.tsx:1")] })} />;
       `),
     );
   });
 
-  test("dynamic with literal arg: Css.mt(2).$", () => {
+  test("variable with literal arg: Css.mt(2).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(2).$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ mt__16px: { marginTop: "16px" } });
-        const s = [css.mt__16px];
-      `),
+      n(`const s = { marginTop: "mt_16px" };`),
     );
   });
 
-  test("dynamic with string literal: Css.mt('10px').$", () => {
+  test("variable with string literal: Css.mt('10px').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt("10px").$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ mt__10px: { marginTop: "10px" } });
-        const s = [css.mt__10px];
-      `),
+      n(`const s = { marginTop: "mt_10px" };`),
     );
   });
 
-  test("dynamic with variable arg: Css.mt(x).$", () => {
+  test("variable with variable arg: Css.mt(x).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.mt(x).$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
-        const css = stylex.create({ mt: v => ({ marginTop: v }) });
         const x = getSomeValue();
-        const s = [css.mt(__maybeInc(x))];
+        const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] };
       `),
     );
   });
 
   test("delegate with literal: Css.mtPx(12).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mtPx(12).$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ mt__12px: { marginTop: "12px" } });
-        const s = [css.mt__12px];
-      `),
+      n(`const s = { marginTop: "mt_12px" };`),
     );
   });
 
   test("delegate with variable arg appends px: Css.mtPx(x).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.mtPx(x).$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ mt: v => ({ marginTop: v }) });
         const x = getSomeValue();
-        const s = [css.mt(String(x) + "px")];
+        const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
       `),
     );
   });
@@ -159,10 +140,8 @@ describe("transform", () => {
   test("delegate shorthand with multiple props appends px: Css.pxPx(x).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.pxPx(x).$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ px: v => ({ paddingLeft: v, paddingRight: v }) });
         const x = getSomeValue();
-        const s = [css.px(String(x) + "px")];
+        const s = { paddingLeft: ["px_var", { "--paddingLeft": \`\${x}px\` }], paddingRight: ["px_var", { "--paddingRight": \`\${x}px\` }] };
       `),
     );
   });
@@ -170,70 +149,54 @@ describe("transform", () => {
   test("delegate shorthand with multiple props supports sqPx: Css.sqPx(x).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.sqPx(x).$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ sq: v => ({ height: v, width: v }) });
         const x = getSomeValue();
-        const s = [css.sq(String(x) + "px")];
+        const s = { height: ["sq_var", { "--height": \`\${x}px\` }], width: ["sq_var", { "--width": \`\${x}px\` }] };
       `),
     );
   });
 
-  test("non-incremented dynamic: Css.bc('red').$", () => {
+  test("non-incremented variable: Css.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bc("red").$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ bc__red: { borderColor: "red" } });
-        const s = [css.bc__red];
-      `),
+      n(`const s = { borderColor: "bc_red" };`),
     );
   });
 
-  test("non-incremented dynamic with variable: Css.bc(color).$", () => {
+  test("non-incremented variable with variable: Css.bc(color).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const color = getColor(); const s = Css.bc(color).$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ bc: v => ({ borderColor: v }) });
         const color = getColor();
-        const s = [css.bc(String(color))];
+        const s = { borderColor: ["bc_var", { "--borderColor": color }] };
       `),
     );
   });
 
-  test("dynamic method keeps extra defs: Css.lineClamp(lines).$", () => {
+  test("variable method keeps extra defs: Css.lineClamp(lines).$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const lines = getLineCount(); const s = Css.lineClamp(lines).$;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          lineClamp: v => ({
-            WebkitLineClamp: v,
-            overflow: "hidden",
-            display: "-webkit-box",
-            WebkitBoxOrient: "vertical",
-            textOverflow: "ellipsis"
-          })
-        });
         const lines = getLineCount();
-        const s = [css.lineClamp(String(lines))];
+        const s = {
+          WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": lines }],
+          overflow: "lineClamp_overflow",
+          display: "lineClamp_display",
+          WebkitBoxOrient: "lineClamp_WebkitBoxOrient",
+          textOverflow: "lineClamp_textOverflow"
+        };
       `),
     );
   });
 
-  test("dynamic literal keeps extra defs: Css.lineClamp('3').$", () => {
+  test("variable literal keeps extra defs: Css.lineClamp('3').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.lineClamp("3").$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          lineClamp__3: {
-            WebkitLineClamp: "3",
-            overflow: "hidden",
-            display: "-webkit-box",
-            WebkitBoxOrient: "vertical",
-            textOverflow: "ellipsis"
-          }
-        });
-        const s = [css.lineClamp__3];
+        const s = {
+          WebkitLineClamp: "lineClamp_3_WebkitLineClamp",
+          overflow: "oh",
+          display: "lineClamp_3_display",
+          WebkitBoxOrient: "lineClamp_3_WebkitBoxOrient",
+          textOverflow: "lineClamp_3_textOverflow"
+        };
       `),
     );
   });
@@ -247,37 +210,22 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const a = <div {...stylex.props(css.df)} />;
-        const b = <div {...stylex.props(css.df, css.aic)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const a = <div {...trussProps({ display: "df" })} />;
+        const b = <div {...trussProps({ display: "df", alignItems: "aic" })} />;
       `),
     );
   });
 
   test("alias expansion: Css.bodyText.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bodyText.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          f14: { fontSize: "14px" },
-          black: { color: "#353535" }
-        });
-        const s = [css.f14, css.black];
-      `),
+      n(`const s = { fontSize: "f14", color: "black" };`),
     );
   });
 
   test("typography literal: Css.typography('f14').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.typography("f14").$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ f14: { fontSize: "14px" } });
-        const s = [css.f14];
-      `),
+      n(`const s = { fontSize: "f14" };`),
     );
   });
 
@@ -291,25 +239,16 @@ describe("transform", () => {
     ).toBe(
       n(`
         import { type Typography } from "./Css";
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          f24: { fontSize: "24px" },
-          f18: { fontSize: "18px" },
-          f16: { fontSize: "16px" },
-          f14: { fontSize: "14px" },
-          f12: { fontSize: "12px" },
-          f10: { fontSize: "10px", fontWeight: 500 }
-        });
         const __typography = {
-          f24: [css.f24],
-          f18: [css.f18],
-          f16: [css.f16],
-          f14: [css.f14],
-          f12: [css.f12],
-          f10: [css.f10]
+          f24: { fontSize: "f24" },
+          f18: { fontSize: "f18" },
+          f16: { fontSize: "f16" },
+          f14: { fontSize: "f14" },
+          f12: { fontSize: "f12" },
+          f10: { fontSize: "f10_fontSize", fontWeight: "fw5" }
         };
         const key: Typography = pickType();
-        const s = [...(__typography[key] ?? [])];
+        const s = { ...(__typography[key] ?? {}) };
       `),
     );
   });
@@ -324,64 +263,38 @@ describe("transform", () => {
     ).toBe(
       n(`
         import { type Typography } from "./Css";
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          f24: { fontSize: "24px" },
-          f18: { fontSize: "18px" },
-          f16: { fontSize: "16px" },
-          f14: { fontSize: "14px" },
-          f12: { fontSize: "12px" },
-          f10: { fontSize: "10px", fontWeight: 500 },
-          f24__sm: { fontSize: { default: null, "@media (max-width: 599px)": "24px" } },
-          f18__sm: { fontSize: { default: null, "@media (max-width: 599px)": "18px" } },
-          f16__sm: { fontSize: { default: null, "@media (max-width: 599px)": "16px" } },
-          f14__sm: { fontSize: { default: null, "@media (max-width: 599px)": "14px" } },
-          f12__sm: { fontSize: { default: null, "@media (max-width: 599px)": "12px" } },
-          f10__sm: {
-            fontSize: { default: null, "@media (max-width: 599px)": "10px" },
-            fontWeight: { default: null, "@media (max-width: 599px)": 500 }
-          }
-        });
         const __typography = {
-          f24: [css.f24],
-          f18: [css.f18],
-          f16: [css.f16],
-          f14: [css.f14],
-          f12: [css.f12],
-          f10: [css.f10]
+          f24: { fontSize: "f24" },
+          f18: { fontSize: "f18" },
+          f16: { fontSize: "f16" },
+          f14: { fontSize: "f14" },
+          f12: { fontSize: "f12" },
+          f10: { fontSize: "f10_fontSize", fontWeight: "fw5" }
         };
         const __typography__sm = {
-          f24: [css.f24__sm],
-          f18: [css.f18__sm],
-          f16: [css.f16__sm],
-          f14: [css.f14__sm],
-          f12: [css.f12__sm],
-          f10: [css.f10__sm]
+          f24: { fontSize: "sm_f24" },
+          f18: { fontSize: "sm_f18" },
+          f16: { fontSize: "sm_f16" },
+          f14: { fontSize: "sm_f14" },
+          f12: { fontSize: "sm_f12" },
+          f10: { fontSize: "sm_f10_fontSize", fontWeight: "sm_fw5" }
         };
         const key: Typography = pickType();
         const otherKey: Typography = pickOtherType();
-        const s = [...(__typography[key] ?? []), ...(__typography__sm[otherKey] ?? [])];
+        const s = { ...(__typography[key] ?? {}), ...(__typography__sm[otherKey] ?? {}) };
       `),
     );
   });
 
   test("Css import is removed when only Css is imported", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const s = [css.df];
-      `),
-    );
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.df.$;`)!)).toBe(n(`const s = { display: "df" };`));
   });
 
   test("Css specifier removed but Palette kept", () => {
     expect(n(transform(`import { Css, Palette } from "./Css"; const s = Css.df.$; const c = Palette.Black;`)!)).toBe(
       n(`
         import { Palette } from "./Css";
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const s = [css.df];
+        const s = { display: "df" };
         const c = Palette.Black;
       `),
     );
@@ -389,91 +302,47 @@ describe("transform", () => {
 
   test("multi-property static: Css.ba.$ (border)", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ba.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ ba: { borderStyle: "solid", borderWidth: "1px" } });
-        const s = [css.ba];
-      `),
+      n(`const s = { borderStyle: "bss", borderWidth: "bw1" };`),
     );
   });
 
-  test("mixed static and dynamic: Css.df.mt(2).black.$", () => {
+  test("mixed static and variable: Css.df.mt(2).black.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.mt(2).black.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          mt__16px: { marginTop: "16px" },
-          black: { color: "#353535" }
-        });
-        const s = [css.df, css.mt__16px, css.black];
-      `),
+      n(`const s = { display: "df", marginTop: "mt_16px", color: "black" };`),
     );
   });
 
   test("onHover pseudo: Css.black.onHover.blue.$", () => {
-    // base `black` and hover `blue` both set `color` — merged into one entry
     expect(n(transform(`import { Css } from "./Css"; const s = Css.black.onHover.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          black_blue__hover: { color: { default: "#353535", ":hover": "#526675" } }
-        });
-        const s = [css.black_blue__hover];
-      `),
+      n(`const s = { color: "black h_blue" };`),
     );
   });
 
   test("onHover with multi-property: Css.onHover.ba.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onHover.ba.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          ba__hover: {
-            borderStyle: { default: null, ":hover": "solid" },
-            borderWidth: { default: null, ":hover": "1px" }
-          }
-        });
-        const s = [css.ba__hover];
-      `),
+      n(`const s = { borderStyle: "h_bss", borderWidth: "h_bw1" };`),
     );
   });
 
   test("onFocus pseudo: Css.onFocus.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onFocus.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__focus: { color: { default: null, ":focus": "#526675" } }
-        });
-        const s = [css.blue__focus];
-      `),
+      n(`const s = { color: "f_blue" };`),
     );
   });
 
-  test("onHover with dynamic literal: Css.onHover.bc('red').$", () => {
+  test("onHover with variable literal: Css.onHover.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onHover.bc("red").$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          bc__red__hover: { borderColor: { default: null, ":hover": "red" } }
-        });
-        const s = [css.bc__red__hover];
-      `),
+      n(`const s = { borderColor: "h_bc_red" };`),
     );
   });
 
-  test("onHover with variable dynamic: Css.onHover.bc(color).$", () => {
+  test("onHover with variable variable: Css.onHover.bc(color).$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const color = getColor(); const s = Css.onHover.bc(color).$;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          bc__hover: v => ({ borderColor: { default: null, ":hover": v } })
-        });
         const color = getColor();
-        const s = [css.bc__hover(String(color))];
+        const s = { borderColor: ["h_bc_var", { "--h_borderColor": color }] };
       `),
     );
   });
@@ -481,39 +350,13 @@ describe("transform", () => {
   test("container query pseudo: Css.ifContainer({ gt, lt }).gc('span 2').$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.ifContainer({ gt: 600, lt: 960 }).gc("span 2").$;`)!),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          gc__span_2__container_min_width_601px_and_max_width_960px: {
-            gridColumn: {
-              default: null,
-              "@container (min-width: 601px) and (max-width: 960px)": "span 2"
-            }
-          }
-        });
-        const s = [css.gc__span_2__container_min_width_601px_and_max_width_960px];
-      `),
-    );
+    ).toBe(n(`const s = { gridColumn: "mq_gc_span_2" };`));
   });
 
   test("container query merges overlapping property", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.black.ifContainer({ gt: 600, lt: 960 }).blue.$;`)!),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          black_blue__container_min_width_601px_and_max_width_960px: {
-            color: {
-              default: "#353535",
-              "@container (min-width: 601px) and (max-width: 960px)": "#526675"
-            }
-          }
-        });
-        const s = [css.black_blue__container_min_width_601px_and_max_width_960px];
-      `),
-    );
+    ).toBe(n(`const s = { color: "black mq_blue" };`));
   });
 
   test("container query with named container", () => {
@@ -523,20 +366,7 @@ describe("transform", () => {
           `import { Css } from "./Css"; const s = Css.ifContainer({ name: "grid", gt: 600, lt: 960 }).blue.$;`,
         )!,
       ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__container_grid_min_width_601px_and_max_width_960px: {
-            color: {
-              default: null,
-              "@container grid (min-width: 601px) and (max-width: 960px)": "#526675"
-            }
-          }
-        });
-        const s = [css.blue__container_grid_min_width_601px_and_max_width_960px];
-      `),
-    );
+    ).toBe(n(`const s = { color: "mq_blue" };`));
   });
 
   test("container query requires literal bounds: emits console.error and preserves valid segments", () => {
@@ -548,33 +378,15 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ blue: { color: "#526675" } });
         console.error("[truss] Unsupported pattern: ifContainer().gt must be a numeric literal (test.tsx:1)");
         const minWidth = getMinWidth();
         const maxWidth = getMaxWidth();
-        const s = [css.blue];
+        const s = { color: "blue" };
       `),
     );
   });
 
-  test("spread pattern: css={[...Css.df.$, ...xss]}", () => {
-    expect(
-      n(
-        transform(
-          `import { Css } from "./Css"; function Box({ xss }) { return <div css={[...Css.df.$, ...xss]} />; }`,
-        )!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        function Box({ xss }) { return <div {...stylex.props(css.df, ...xss)} />; }
-      `),
-    );
-  });
-
-  test("object spread composition rewrites to style array", () => {
+  test("object spread composition uses native object spread", () => {
     expect(
       n(
         transform(
@@ -584,7 +396,6 @@ describe("transform", () => {
             const styles = {
               wrapper: {
                 ...Css.df.aic.$,
-                // An inline comment
                 ...(someCondition ? Css.black.$ : Css.blue.$),
                 ...(!compound ? Css.ba.$ : {}),
               },
@@ -597,26 +408,21 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          black: { color: "#353535" },
-          blue: { color: "#526675" },
-          ba: { borderStyle: "solid", borderWidth: "1px" },
-          bgBlue: { backgroundColor: "#526675" }
-        });
+        import { trussProps } from "@homebound/truss/runtime";
         const styles = {
-          wrapper: [css.df, css.aic, ...(someCondition ? [css.black] : [css.blue]), ...(!compound ? [css.ba] : [])],
-          hover: [css.bgBlue]
+          wrapper: {
+            ...{ display: "df", alignItems: "aic" },
+            ...(someCondition ? { color: "black" } : { color: "blue" }),
+            ...(!compound ? { borderStyle: "bss", borderWidth: "bw1" } : {})
+          },
+          hover: { backgroundColor: "bgBlue" }
         };
-        const el = <div {...stylex.props(...asStyleArray(styles.wrapper), ...asStyleArray(isHovered ? styles.hover : []))} />;
+        const el = <div {...trussProps({ ...styles.wrapper, ...(isHovered ? styles.hover : {}) })} />;
       `),
     );
   });
 
-  test("Css.spread legacy helper is erased and lowered to style arrays", () => {
+  test("native object composition stays as-is", () => {
     expect(
       n(
         transform(`
@@ -624,15 +430,15 @@ describe("transform", () => {
 
           function Button(props) {
             const { active, isHovered } = props;
-            const baseStyles = Css.spread({
+            const baseStyles = {
               ...Css.df.aic.$,
-            });
-            const activeStyles = Css.spread({
+            };
+            const activeStyles = {
               ...Css.black.$,
-            });
-            const hoverStyles = Css.spread({
+            };
+            const hoverStyles = {
               ...Css.blue.$,
-            });
+            };
 
             return <div css={{
               ...baseStyles,
@@ -644,26 +450,19 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          black: { color: "#353535" },
-          blue: { color: "#526675" }
-        });
+        import { trussProps } from "@homebound/truss/runtime";
         function Button(props) {
           const { active, isHovered } = props;
-          const baseStyles = [css.df, css.aic];
-          const activeStyles = [css.black];
-          const hoverStyles = [css.blue];
-          return <div {...stylex.props(...asStyleArray(baseStyles), ...asStyleArray(active ? activeStyles : []), ...asStyleArray(isHovered ? hoverStyles : []))} />;
+          const baseStyles = { ...{ display: "df", alignItems: "aic" } };
+          const activeStyles = { ...{ color: "black" } };
+          const hoverStyles = { ...{ color: "blue" } };
+          return <div {...trussProps({ ...baseStyles, ...(active && activeStyles), ...(isHovered && hoverStyles) })} />;
         }
       `),
     );
   });
 
-  test("Css.props is rewritten to stylex.props spread", () => {
+  test("Css.props is rewritten to trussProps spread", () => {
     expect(
       n(
         transform(`
@@ -680,14 +479,11 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue: { color: "#526675" }
-        });
+        import { trussProps } from "@homebound/truss/runtime";
         function Button() {
           const attrs = {
             "data-testid": "button",
-            ...stylex.props(...[css.blue])
+            ...trussProps({ color: "blue" })
           };
           return <button {...attrs}>Click me</button>;
         }
@@ -714,15 +510,10 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         import { trussProps, TrussDebugInfo } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
         function Button() {
           const attrs = {
-            ...trussProps(stylex, new TrussDebugInfo("test.tsx:6"), ...[new TrussDebugInfo("test.tsx:6"), css.df, css.aic])
+            ...trussProps({ display: ["df", new TrussDebugInfo("test.tsx:6")], alignItems: "aic" })
           };
           return <button {...attrs}>Click me</button>;
         }
@@ -730,7 +521,7 @@ describe("transform", () => {
     );
   });
 
-  test("Css.props with object literal flattens to style array", () => {
+  test("Css.props with object literal passes through to trussProps", () => {
     expect(
       n(
         transform(`
@@ -750,12 +541,11 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
+        import { trussProps } from "@homebound/truss/runtime";
         function Button({ active, styles }) {
           const attrs = {
             "data-testid": "button",
-            ...stylex.props(...asStyleArray(styles.baseStyles), ...asStyleArray(active ? styles.activeStyles : []))
+            ...trussProps({ ...styles.baseStyles, ...(active && styles.activeStyles) })
           };
           return <button {...attrs}>Click me</button>;
         }
@@ -780,15 +570,10 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { mergeProps } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
+        import { trussProps, mergeProps } from "@homebound/truss/runtime";
         function Button({ asLink, navLink }) {
           const attrs = {
-            ...mergeProps(stylex, asLink ? navLink : undefined, ...[css.df, css.aic])
+            ...mergeProps(asLink ? navLink : undefined, undefined, { display: "df", alignItems: "aic" })
           };
           return <button {...attrs}>Click me</button>;
         }
@@ -817,14 +602,10 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { mergeProps, asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" }
-        });
+        import { trussProps, mergeProps } from "@homebound/truss/runtime";
         function Button({ asLink, navLink, baseStyles, active, hoverStyles }) {
           const attrs = {
-            ...mergeProps(stylex, asLink ? navLink : undefined, css.df, ...asStyleArray(baseStyles), ...asStyleArray(active ? hoverStyles : []))
+            ...mergeProps(asLink ? navLink : undefined, undefined, { ...{ display: "df" }, ...baseStyles, ...(active && hoverStyles) })
           };
           return <button {...attrs}>Click me</button>;
         }
@@ -832,121 +613,14 @@ describe("transform", () => {
     );
   });
 
-  test("inline css object supports nested object spread branch", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          const el = <div css={{
-            ...Css.df.aic.oa.wsnw.gap1.$,
-            ...(includeBottomBorder ? { ...Css.bb.black.$ } : {}),
-          }} />;
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          oa: { overflow: "auto" },
-          wsnw: { whiteSpace: "nowrap" },
-          gap1: { gap: "8px" },
-          bb: { borderBottomStyle: "solid", borderBottomWidth: "1px" },
-          black: { color: "#353535" }
-        });
-        const el = <div {...stylex.props(css.df, css.aic, css.oa, css.wsnw, css.gap1, ...(includeBottomBorder ? [css.bb, css.black] : []))} />;
-      `),
-    );
-  });
-
-  // Previously unsupported before generalized `css={...}` style-array lowering.
-
-  test("style-array variable in css prop is lowered to stylex.props", () => {
+  test("style object variable in css prop is lowered to trussProps", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const base = Css.df.aic.$; const el = <div css={base} />;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const base = [css.df, css.aic];
-        const el = <div {...stylex.props(...base)} />;
-      `),
-    );
-  });
-
-  test("style-array variable named css can be spread inside css prop object", () => {
-    expect(
-      n(transform(`import { Css } from "./Css"; const css = Css.df.aic.$; const el = <div css={{ ...css }} />;`)!),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css_ = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const css = [css_.df, css_.aic];
-        const el = <div {...stylex.props(...asStyleArray(css))} />;
-      `),
-    );
-  });
-
-  test("nested render function param named css is lowered from css={{ ...css }}", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          export const headerRenderFn =
-            () =>
-            (key, css, content, classNames) => {
-              return <div key={key} css={{ ...css }} className={classNames}><span css={Css.blue.$}>{content}</span></div>;
-            };
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { mergeProps, asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({ blue: { color: "#526675" } });
-        export const headerRenderFn =
-          () =>
-          (key, css, content, classNames) => {
-            return <div key={key} {...mergeProps(stylex, classNames, ...asStyleArray(css))}><span {...stylex.props(css.blue)}>{content}</span></div>;
-          };
-      `),
-    );
-  });
-
-  test("non-css prop object spread is not rewritten to style array", () => {
-    expect(
-      n(
-        transform(`
-          import { mergeProps } from "react-aria";
-          import { Css } from "./Css";
-
-          function Example() {
-            return <div inputProps={{
-              ...mergeProps(inputProps, { "aria-invalid": Boolean(errorMsg), onInput: () => state.open() }),
-            }}><span css={Css.df.$} /></div>;
-          }
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import { mergeProps } from "react-aria";
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        function Example() {
-          return <div inputProps={{
-            ...mergeProps(inputProps, { "aria-invalid": Boolean(errorMsg), onInput: () => state.open() })
-          }}><span {...stylex.props(css.df)} /></div>;
-        }
+        import { trussProps } from "@homebound/truss/runtime";
+        const base = { display: "df", alignItems: "aic" };
+        const el = <div {...trussProps(base)} />;
       `),
     );
   });
@@ -960,408 +634,13 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({ df: { display: "flex" } });
-        function Box({ cssProp }) { return <div {...stylex.props(...asStyleArray(cssProp), css.df)} />; }
+        import { trussProps } from "@homebound/truss/runtime";
+        function Box({ cssProp }) { return <div {...trussProps({ ...cssProp, ...{ display: "df" } })} />; }
       `),
     );
   });
 
-  test("imported spread plus inline Css spread is lowered", () => {
-    expect(
-      n(
-        transform(`
-          import { importedStyles } from "./other";
-          import { Css } from "./Css";
-
-          const el = <div css={{ ...importedStyles, ...Css.blue.$ }} />;
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import { importedStyles } from "./other";
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({ blue: { color: "#526675" } });
-        const el = <div {...stylex.props(...asStyleArray(importedStyles), css.blue)} />;
-      `),
-    );
-  });
-
-  test("props spread plus inline Css spread uses safe fallback when xss is undefined", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          function Box(props) {
-            const { xss } = props;
-            return <div css={{ ...xss, ...Css.blue.$ }} />;
-          }
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({ blue: { color: "#526675" } });
-        function Box(props) {
-          const { xss } = props;
-          return <div {...stylex.props(...asStyleArray(xss), css.blue)} />;
-        }
-      `),
-    );
-  });
-
-  test("css object with conditional style spread and xss fallback is parenthesized correctly", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          function Example(props) {
-            const { multiline, wrap, xss, BorderHoverChild } = props;
-            const fieldStyles = {
-              inputWrapperReadOnly: Css.df.$,
-            };
-            return <div css={{
-              ...fieldStyles.inputWrapperReadOnly,
-              ...(multiline ? Css.fdc.aifs.gap2.$ : Css.if(wrap === false).truncate.$),
-              ...xss,
-            }} className={BorderHoverChild} />;
-          }
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { mergeProps, asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          fdc: { flexDirection: "column" },
-          aifs: { alignItems: "flex-start" },
-          gap2: { gap: "16px" },
-          truncate: { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }
-        });
-        function Example(props) {
-          const { multiline, wrap, xss, BorderHoverChild } = props;
-          const fieldStyles = {
-            inputWrapperReadOnly: [css.df]
-          };
-          return <div {...mergeProps(stylex, BorderHoverChild, ...asStyleArray(fieldStyles.inputWrapperReadOnly), ...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])]), ...asStyleArray(xss))} />;
-        }
-      `),
-    );
-  });
-
-  test("mergeProps keeps parenthesized spread args from css object rewrites", () => {
-    const result = transform(`
-      import { Css } from "./Css";
-
-      function Example(props) {
-        const { multiline, wrap, xss, BorderHoverChild } = props;
-        const fieldStyles = {
-          inputWrapperReadOnly: Css.df.$,
-        };
-        return <div css={{
-          ...fieldStyles.inputWrapperReadOnly,
-          ...(multiline ? Css.fdc.aifs.gap2.$ : Css.if(wrap === false).truncate.$),
-          ...xss,
-        }} className={BorderHoverChild} />;
-      }
-    `)!;
-
-    expect(
-      result.includes("...(multiline ? [css.fdc, css.aifs, css.gap2] : [...(wrap === false ? [css.truncate] : [])])"),
-    ).toBe(true);
-    expect(result.includes("...asStyleArray(xss)")).toBe(true);
-  });
-
-  test("css prop object with only intermediate style-array spreads is lowered", () => {
-    expect(
-      n(
-        transform(
-          `
-            import { Css } from "./Css";
-
-            function MyComponent({ disabled, someConst }) {
-              const styles = {
-                wrapper: {
-                  ...Css.df.aic.ba.$,
-                  ...(disabled ? Css.black.$ : {}),
-                },
-                hover: Css.bgBlue.$,
-              };
-
-              return <div className={someConst} css={{ ...styles.wrapper, ...(disabled ? styles.hover : {}) }}>Hello</div>;
-            }
-          `,
-        )!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { mergeProps, asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          ba: { borderStyle: "solid", borderWidth: "1px" },
-          black: { color: "#353535" },
-          bgBlue: { backgroundColor: "#526675" }
-        });
-        function MyComponent({ disabled, someConst }) {
-          const styles = {
-            wrapper: [css.df, css.aic, css.ba, ...(disabled ? [css.black] : [])],
-            hover: [css.bgBlue]
-          };
-          return <div {...mergeProps(stylex, someConst, ...asStyleArray(styles.wrapper), ...asStyleArray(disabled ? styles.hover : []))}>Hello</div>;
-        }
-      `),
-    );
-  });
-
-  test("css prop object with intermediate style-array spreads using && is lowered", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          function MyComponent({ borderOnHover, compound, isHovered }) {
-            const fieldStyles = {
-              inputWrapper: {
-                ...Css.df.aic.ba.$,
-                ...(!compound ? Css.br4.$ : {}),
-                ...(borderOnHover && Css.black.$),
-                ...(isHovered && Css.blue.$),
-              },
-            };
-
-            return <div css={{ ...fieldStyles.inputWrapper }} />;
-          }
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          ba: { borderStyle: "solid", borderWidth: "1px" },
-          br4: { borderRadius: "1rem" },
-          black: { color: "#353535" },
-          blue: { color: "#526675" }
-        });
-        function MyComponent({ borderOnHover, compound, isHovered }) {
-          const fieldStyles = {
-            inputWrapper: [css.df, css.aic, css.ba, ...(!compound ? [css.br4] : []), ...(borderOnHover ? [css.black] : []), ...(isHovered ? [css.blue] : [])]
-          };
-          return <div {...stylex.props(...asStyleArray(fieldStyles.inputWrapper))} />;
-        }
-      `),
-    );
-  });
-
-  test("css prop object with chained && style-array spreads is lowered", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          function MyComponent({ contrast, inputStylePalette }) {
-            const fieldStyles = {
-              input: {
-                ...Css.w100.mw0.outline0.fg1.$,
-                ...(contrast && !inputStylePalette && Css.element("::selection").bgBlue.$),
-              },
-            };
-
-            return <div css={{ ...fieldStyles.input }} />;
-          }
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          w100: { width: "100%" },
-          mw0: { minWidth: 0 },
-          outline0: { outline: "0" },
-          fg1: { flexGrow: 1 },
-          bgBlue__selection: { "::selection": { backgroundColor: "#526675" } }
-        });
-        function MyComponent({ contrast, inputStylePalette }) {
-          const fieldStyles = {
-            input: [css.w100, css.mw0, css.outline0, css.fg1, ...(contrast && !inputStylePalette ? [css.bgBlue__selection] : [])]
-          };
-          return <div {...stylex.props(...asStyleArray(fieldStyles.input))} />;
-        }
-      `),
-    );
-  });
-
-  test("css prop object with style-array spreads using || is lowered", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          const base = Css.df.$;
-          const hover = Css.blue.$;
-          const el = <div css={{ ...(hover || base) }} />;
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          blue: { color: "#526675" }
-        });
-        const base = [css.df];
-        const hover = [css.blue];
-        const el = <div {...stylex.props(...asStyleArray(hover || base))} />;
-      `),
-    );
-  });
-
-  test("css prop object with style-array spreads using ?? is lowered", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          const base = Css.df.$;
-          const hover = Css.blue.$;
-          const el = <div css={{ ...(hover ?? base) }} />;
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          blue: { color: "#526675" }
-        });
-        const base = [css.df];
-        const hover = [css.blue];
-        const el = <div {...stylex.props(...asStyleArray(hover ?? base))} />;
-      `),
-    );
-  });
-
-  test("css prop object with computed intermediate member spread is lowered", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          const key = "wrapper";
-          const styles = { wrapper: Css.df.aic.$ };
-          const el = <div css={{ ...styles[key] }} />;
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const key = "wrapper";
-        const styles = { wrapper: [css.df, css.aic] };
-        const el = <div {...stylex.props(...asStyleArray(styles[key]))} />;
-      `),
-    );
-  });
-
-  test("css prop object with function-returned style-array spread is lowered", () => {
-    expect(
-      n(
-        transform(`
-          import { Css } from "./Css";
-
-          function getStyles() {
-            return Css.df.aic.$;
-          }
-
-          const el = <div css={{ ...getStyles() }} />;
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        function getStyles() {
-          return [css.df, css.aic];
-        }
-        const el = <div {...stylex.props(...asStyleArray(getStyles()))} />;
-      `),
-    );
-  });
-
-  test("useMemo-composed styles identifier is lowered in css prop", () => {
-    expect(
-      n(
-        transform(`
-          import { useMemo } from "react";
-          import { Css } from "./Css";
-
-          function chipBaseStyles(compact) {
-            return compact ? Css.df.$ : Css.aic.$;
-          }
-
-          function Chip(props) {
-            const { xss, compact } = props;
-            const type = "primary";
-            const typeStyles = { primary: Css.blue.$ };
-            const styles = useMemo(
-              () => ({
-                ...chipBaseStyles(compact),
-                ...typeStyles[type],
-                ...xss,
-              }),
-              [type, xss, compact],
-            );
-
-            return <span css={styles} />;
-          }
-        `)!,
-      ),
-    ).toBe(
-      n(`
-        import { useMemo } from "react";
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          blue: { color: "#526675" }
-        });
-        function chipBaseStyles(compact) {
-          return compact ? [css.df] : [css.aic];
-        }
-        function Chip(props) {
-          const { xss, compact } = props;
-          const type = "primary";
-          const typeStyles = { primary: [css.blue] };
-          const styles = useMemo(() => [...asStyleArray(chipBaseStyles(compact)), ...asStyleArray(typeStyles[type]), ...asStyleArray(xss)], [type, xss, compact]);
-          return <span {...stylex.props(...styles)} />;
-        }
-      `),
-    );
-  });
-
-  test("external call expression in css prop is assumed style-array-like", () => {
+  test("external call expression in css prop is wrapped in trussProps", () => {
     expect(
       n(
         transform(`
@@ -1376,16 +655,15 @@ describe("transform", () => {
     ).toBe(
       n(`
         import { getFromAnotherFile } from "./other";
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ blue: { color: "#526675" } });
+        import { trussProps } from "@homebound/truss/runtime";
         function Example({ param, content }) {
-          return <div {...stylex.props(...getFromAnotherFile(param))}><span {...stylex.props(css.blue)}>{content}</span></div>;
+          return <div {...trussProps(getFromAnotherFile(param))}><span {...trussProps({ color: "blue" })}>{content}</span></div>;
         }
       `),
     );
   });
 
-  test("skipped css prop rewrite emits console.error with reason and location", () => {
+  test("css prop with non-spread property is still wrapped in trussProps", () => {
     expect(
       n(
         transform(`
@@ -1398,58 +676,15 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        console.error("[truss] Unsupported pattern: Could not rewrite css prop: object contains a non-spread property ({...cssProp,foo:true}) (test.tsx:6)");
-        const base = [css.df];
+        import { trussProps } from "@homebound/truss/runtime";
+        const base = { display: "df" };
         const cssProp = getCssProp();
-        const el = <div css={{ ...cssProp, foo: true }} />;
+        const el = <div {...trussProps({ ...cssProp, foo: true })} />;
       `),
     );
   });
 
-  test("style-array object member in css prop is lowered to stylex.props", () => {
-    expect(
-      n(
-        transform(
-          `import { Css } from "./Css"; const styles = { wrapper: Css.df.aic.$ }; const el = <div css={styles.wrapper} />;`,
-        )!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" }
-        });
-        const styles = { wrapper: [css.df, css.aic] };
-        const el = <div {...stylex.props(...styles.wrapper)} />;
-      `),
-    );
-  });
-
-  test("conditional style-array expression in css prop is lowered to stylex.props", () => {
-    expect(
-      n(
-        transform(
-          `import { Css } from "./Css"; const base = Css.df.$; const active = Css.black.$; const el = <div css={isActive ? active : base} />;`,
-        )!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          black: { color: "#353535" }
-        });
-        const base = [css.df];
-        const active = [css.black];
-        const el = <div {...stylex.props(...(isActive ? active : base))} />;
-      `),
-    );
-  });
-
-  test("conditional css prop with undefined branch normalizes to empty style array", () => {
+  test("conditional css prop with undefined branch is still wrapped", () => {
     expect(
       n(
         transform(`
@@ -1462,10 +697,9 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ pb2: { paddingBottom: "16px" } });
+        import { trussProps } from "@homebound/truss/runtime";
         function Repro(props: { enabled: boolean; }) {
-          return <div {...stylex.props(...(props.enabled ? [css.pb2] : []))}>hello</div>;
+          return <div {...trussProps(props.enabled ? { paddingBottom: "pb2" } : undefined)}>hello</div>;
         }
       `),
     );
@@ -1474,15 +708,13 @@ describe("transform", () => {
   test("ordinary object spreads stay objects", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = { foo: true, ...other }; const t = Css.df.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
         const s = { foo: true, ...other };
-        const t = [css.df];
+        const t = { display: "df" };
       `),
     );
   });
 
-  test("style composition objects drop non-spread props with warning", () => {
+  test("style composition objects stay as native object spread", () => {
     expect(
       n(
         transform(
@@ -1491,15 +723,8 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          bb: { borderBottomStyle: "solid", borderBottomWidth: "1px" },
-          black: { color: "#353535" }
-        });
-        console.error("[truss] Unsupported pattern: Dropped non-spread properties from style composition object (foo) (test.tsx:1)");
-        const borderBottomStyles = [css.bb];
-        const styles = { activeStyles: [css.black, ...asStyleArray(borderBottomStyles)] };
+        const borderBottomStyles = { borderBottomStyle: "bb_borderBottomStyle", borderBottomWidth: "bb_borderBottomWidth" };
+        const styles = { activeStyles: { ...{ color: "black" }, foo: true, ...borderBottomStyles } };
       `),
     );
   });
@@ -1513,11 +738,8 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({ black: { color: "#353535" } });
         const borderBottomStyles = maybeStyles();
-        const styles = { activeStyles: [css.black, ...asStyleArray(borderBottomStyles)] };
+        const styles = { activeStyles: { ...{ color: "black" }, ...borderBottomStyles } };
       `),
     );
   });
@@ -1543,30 +765,15 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          h__32px: { height: "32px" },
-          px1: { paddingLeft: "8px", paddingRight: "8px" },
-          outline0: { outline: "0" },
-          black: { color: "#353535" },
-          cursorPointer: { cursor: "pointer" },
-          br4: { borderRadius: "1rem" },
-          blue: { color: "#526675" },
-          cursorNotAllowed: { cursor: "not-allowed" },
-          ba: { borderStyle: "solid", borderWidth: "1px" }
-        });
         function getTabStyles() {
           const borderBottomStyles = maybeBorderStyles();
           return {
-            baseStyles: [css.df, css.aic, css.h__32px, css.px1, css.outline0, css.black, css.cursorPointer],
-            activeStyles: [css.black, css.br4, ...asStyleArray(borderBottomStyles)],
-            disabledStyles: [css.blue, css.cursorNotAllowed],
-            focusRingStyles: [css.ba],
-            hoverStyles: [css.blue, ...asStyleArray(borderBottomStyles)],
-            activeHoverStyles: [css.ba, css.black, ...asStyleArray(borderBottomStyles)]
+            baseStyles: { display: "df", alignItems: "aic", height: "h_32px", paddingLeft: "pl1", paddingRight: "pr1", outline: "outline0", color: "black", cursor: "cursorPointer" },
+            activeStyles: { ...{ color: "black", borderRadius: "br4" }, ...borderBottomStyles },
+            disabledStyles: { color: "blue", cursor: "cursorNotAllowed" },
+            focusRingStyles: { borderStyle: "bss", borderWidth: "bw1" },
+            hoverStyles: { ...{ color: "blue" }, ...borderBottomStyles },
+            activeHoverStyles: { ...{ borderStyle: "bss", borderWidth: "bw1", color: "black" }, ...borderBottomStyles }
           };
         }
       `),
@@ -1575,75 +782,121 @@ describe("transform", () => {
 
   test("conditional: Css.if(cond).df.else.db.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.if(isActive).df.else.db.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          db: { display: "block" }
-        });
-        const s = [isActive ? css.df : css.db];
-      `),
+      n(`const s = { ...(isActive ? { display: "df" } : { display: "db" }) };`),
     );
   });
 
   test("conditional with preceding styles: Css.p1.if(cond).df.else.db.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.p1.if(isActive).df.else.db.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          p1: { paddingTop: "8px", paddingBottom: "8px", paddingRight: "8px", paddingLeft: "8px" },
-          df: { display: "flex" },
-          db: { display: "block" }
-        });
-        const s = [css.p1, isActive ? css.df : css.db];
+        const s = {
+          paddingTop: "pt1",
+          paddingBottom: "pb1",
+          paddingRight: "pr1",
+          paddingLeft: "pl1",
+          ...(isActive ? { display: "df" } : { display: "db" })
+        };
       `),
     );
   });
 
   test("else branch includes trailing styles: Css.if(cond).df.else.db.mt1.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.if(isActive).df.else.db.mt1.$;`)!)).toBe(
+      n(`const s = { ...(isActive ? { display: "df" } : { display: "db", marginTop: "mt1" }) };`),
+    );
+  });
+
+  test("conditional pseudo branch keeps earlier base class on the same property", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.black.if(isActive).onHover.white.$;`)!)).toBe(
+      n(`const s = { color: "black", ...(isActive ? { color: "black h_white" } : {}) };`),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.black.if(isActive).onHover.white.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          db: { display: "block" },
-          mt1: { marginTop: "8px" }
-        });
-        const s = [...(isActive ? [css.df] : [css.db, css.mt1])];
+        .black {
+          color: #353535;
+        }
+        .h_white:hover {
+          color: #fcfcfa;
+        }
+      `),
+    );
+  });
+
+  test("conditional else pseudo branch keeps earlier base class on the same property", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.black.if(isActive).bgBlue.else.onHover.white.$;`)!),
+    ).toBe(
+      n(`const s = { color: "black", ...(isActive ? { backgroundColor: "bgBlue" } : { color: "black h_white" }) };`),
+    );
+    // bgBlue sorts before black alphabetically (both are priority 3000 longhands)
+    expect(n(css(`import { Css } from "./Css"; const s = Css.black.if(isActive).bgBlue.else.onHover.white.$;`)!)).toBe(
+      n(`
+        .bgBlue {
+          background-color: #526675;
+        }
+        .black {
+          color: #353535;
+        }
+        .h_white:hover {
+          color: #fcfcfa;
+        }
+      `),
+    );
+  });
+
+  test("conditional same-property replacement does not merge base class into branch", () => {
+    // Css.bgBlue700.if(selected).bgWhite.$ — when selected, bgWhite replaces bgBlue700 entirely.
+    // The base class should NOT be merged into the then branch.
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.if(selected).bgWhite.$;`)!)).toBe(
+      n(`const s = { backgroundColor: "bgBlue", ...(selected ? { backgroundColor: "bgWhite" } : {}) };`),
+    );
+  });
+
+  test("conditional variable branch replaces base class on the same property", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.w100.if(isActive).w(getWidth()).$;`)!)).toBe(
+      n(`
+        const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+        const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": __maybeInc(getWidth()) }] } : {}) };
+      `),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.w100.if(isActive).w(getWidth()).$;`)!)).toBe(
+      n(`
+        .w100 {
+          width: 100%;
+        }
+        .w_var {
+          width: var(--width);
+        }
+        @property --width {
+          syntax: "*";
+          inherits: false;
+        }
       `),
     );
   });
 
   test("negative increment: Css.mt(-1).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(-1).$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ mt___8px: { marginTop: "-8px" } });
-        const s = [css.mt___8px];
-      `),
+      n(`const s = { marginTop: "mt_neg8px" };`),
     );
   });
 
   test("increment zero: Css.mt(0).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt(0).$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ mt__0px: { marginTop: "0px" } });
-        const s = [css.mt__0px];
-      `),
+      n(`const s = { marginTop: "mt_0px" };`),
     );
   });
 
   test("static increment getters: Css.mt0.mt1.p1.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.mt0.mt1.p1.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          mt0: { marginTop: "0px" },
-          mt1: { marginTop: "8px" },
-          p1: { paddingTop: "8px", paddingBottom: "8px", paddingRight: "8px", paddingLeft: "8px" }
-        });
-        const s = [css.mt0, css.mt1, css.p1];
+        const s = {
+          marginTop: "mt0 mt1",
+          paddingTop: "pt1",
+          paddingBottom: "pb1",
+          paddingRight: "pr1",
+          paddingLeft: "pl1"
+        };
       `),
     );
   });
@@ -1651,15 +904,13 @@ describe("transform", () => {
   test("className merging: css + className on same element", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div className="existing" css={Css.df.$} />;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         import { mergeProps } from "@homebound/truss/runtime";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...mergeProps(stylex, "existing", css.df)} />;
+        const el = <div {...mergeProps("existing", undefined, { display: "df" })} />;
       `),
     );
   });
 
-  test("className merging: css + dynamic className expression", () => {
+  test("className merging: css + variable className expression", () => {
     expect(
       n(
         transform(
@@ -1668,68 +919,24 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         import { mergeProps } from "@homebound/truss/runtime";
-        const css = stylex.create({ df: { display: "flex" } });
         const cls = getClass();
-        const el = <div {...mergeProps(stylex, cls, css.df)} />;
+        const el = <div {...mergeProps(cls, undefined, { display: "df" })} />;
       `),
     );
   });
 
-  test("falls back to css_ when css is already a binding", () => {
-    expect(n(transform(`import { Css } from "./Css"; const css = someOtherThing(); const s = Css.df.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css_ = stylex.create({ df: { display: "flex" } });
-        const css = someOtherThing();
-        const s = [css_.df];
-      `),
-    );
-  });
-
-  test("falls back to css__1 when css and css_ are already bindings", () => {
+  test("style merging: css + style on same element", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; const css = someOtherThing(); const css_ = anotherThing(); const s = Css.df.$;`,
+          `import { Css } from "./Css"; const el = <div style={{ minWidth: "fit-content" }} css={Css.blue.$} />;`,
         )!,
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css__1 = stylex.create({ df: { display: "flex" } });
-        const css = someOtherThing();
-        const css_ = anotherThing();
-        const s = [css__1.df];
-      `),
-    );
-  });
-
-  test("reuses existing stylex namespace import", () => {
-    expect(
-      n(
-        transform(
-          `import * as stylex from "@stylexjs/stylex"; import { Css } from "./Css"; const el = <div css={Css.df.$} />;`,
-        )!,
-      ),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        const el = <div {...stylex.props(css.df)} />;
-      `),
-    );
-  });
-
-  test("reuses existing stylex namespace alias", () => {
-    expect(
-      n(transform(`import * as sx from "@stylexjs/stylex"; import { Css } from "./Css"; const s = Css.df.$;`)!),
-    ).toBe(
-      n(`
-        import * as sx from "@stylexjs/stylex";
-        const css = sx.create({ df: { display: "flex" } });
-        const s = [css.df];
+        import { mergeProps } from "@homebound/truss/runtime";
+        const el = <div {...mergeProps(undefined, { minWidth: "fit-content" }, { color: "blue" })} />;
       `),
     );
   });
@@ -1742,197 +949,179 @@ describe("transform", () => {
         )!,
       ),
     ).toBe(
-      n(
-        `
-        import * as stylex from "@stylexjs/stylex";
+      n(`
         const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
-        const css = stylex.create({ mt: v => ({ marginTop: v }) });
         const __maybeInc = keepMe();
         const x = getSomeValue();
-        const s = [css.mt(__maybeInc_1(x))];
-      `,
-      ),
+        const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc_1(x) }] };
+      `),
     );
   });
 
   test("onHover on same property merges base+pseudo into single entry", () => {
-    // Css.bgBlue.onHover.bgBlack.$ — both set `backgroundColor`
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.onHover.bgBlack.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          bgBlue_bgBlack__hover: { backgroundColor: { default: "#526675", ":hover": "#353535" } }
-        });
-        const s = [css.bgBlue_bgBlack__hover];
-      `),
+      n(`const s = { backgroundColor: "bgBlue h_bgBlack" };`),
     );
   });
 
   test("onHover merge: non-overlapping properties kept separate", () => {
-    // Css.df.onHover.blue.$ — df sets display, blue sets color — no overlap
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.onHover.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          blue__hover: { color: { default: null, ":hover": "#526675" } }
-        });
-        const s = [css.df, css.blue__hover];
-      `),
+      n(`const s = { display: "df", color: "h_blue" };`),
     );
   });
 
   // ── Marker tests ────────────────────────────────────────────────────
 
-  test("Css.marker.$ emits stylex.defaultMarker()", () => {
+  test("Css.marker.$ emits a default marker class", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.marker.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const s = [stylex.defaultMarker()];
-      `),
+      n(`const s = { __marker: "__truss_m" };`),
     );
   });
 
-  test("Css.marker.$ in JSX css prop emits stylex.props(stylex.defaultMarker())", () => {
-    expect(n(transform(`import { Css } from "./Css"; function C() { return <div css={Css.marker.$} />; }`)!)).toBe(
+  test("Css.marker.$ in JSX css prop emits trussProps with marker metadata", () => {
+    expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.marker.$} />;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        function C() { return <div {...stylex.props(stylex.defaultMarker())} />; }
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ __marker: "__truss_m" })} />;
       `),
     );
   });
 
   test("Css.marker.df.$ combines marker with styles", () => {
-    expect(n(transform(`import { Css } from "./Css"; function C() { return <div css={Css.marker.df.$} />; }`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ df: { display: "flex" } });
-        function C() { return <div {...stylex.props(stylex.defaultMarker(), css.df)} />; }
-      `),
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.marker.df.$;`)!)).toBe(
+      n(`const s = { __marker: "__truss_m", display: "df" };`),
     );
   });
 
   test("Css.markerOf(row).$ passes marker variable through", () => {
     expect(
-      n(
-        transform(
-          `import { Css } from "./Css"; const row = stylex.defineMarker(); function C() { return <div css={Css.markerOf(row).$} />; }`,
-        )!,
-      ),
+      n(transform(`import { Css } from "./Css"; const row = Css.newMarker(); const s = Css.markerOf(row).$;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const row = stylex.defineMarker();
-        function C() { return <div {...stylex.props(row)} />; }
+        const row = Css.newMarker();
+        const s = { __marker: "__truss_m_row" };
       `),
     );
   });
 
   test("marker and when('ancestor') in same file use same user-defined marker variable", () => {
-    const code = `
-      import { Css } from "./Css";
-      const card = stylex.defineMarker();
-      function Parent() { return <div css={Css.markerOf(card).df.$} />; }
-      function Child() { return <div css={Css.when("ancestor", card, ":hover").blue.$} />; }
-    `;
-    const result = n(transform(code)!);
-    expect(result).toBe(
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const row = Css.newMarker(); const a = Css.markerOf(row).$; const b = Css.when("ancestor", row, ":hover").blue.$;`,
+        )!,
+      ),
+    ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const card = stylex.defineMarker();
-        const css = stylex.create({
-          df: { display: "flex" },
-          blue__ancestorHover_card: { color: { default: null, [stylex.when.ancestor(":hover", card)]: "#526675" } }
-        });
-        function Parent() { return <div {...stylex.props(card, css.df)} />; }
-        function Child() { return <div {...stylex.props(css.blue__ancestorHover_card)} />; }
+        const row = Css.newMarker();
+        const a = { __marker: "__truss_m_row" };
+        const b = { color: "wh_anc_h_row_blue" };
       `),
+    );
+    expect(
+      n(
+        css(
+          `import { Css } from "./Css"; const row = Css.newMarker(); const a = Css.markerOf(row).$; const b = Css.when("ancestor", row, ":hover").blue.$;`,
+        )!,
+      ),
+    ).toBe(
+      n(`
+      .__truss_m_row:hover .wh_anc_h_row_blue {
+        color: #526675;
+      }
+    `),
     );
   });
 
-  // ── when() generic API tests ─────────────────────────────────────────
+  // ── when() generic API tests ──────────────────────────────────────
 
-  test("Css.when('ancestor', ':hover').blue.$ — same as onHoverOf()", () => {
+  test("Css.when('ancestor', ':hover').blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_anc_h_blue" };`),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__ancestorHover: { color: { default: null, [stylex.when.ancestor(":hover")]: "#526675" } }
-        });
-        const s = [css.blue__ancestorHover];
+        .__truss_m:hover .wh_anc_h_blue {
+          color: #526675;
+        }
       `),
     );
   });
 
-  test("Css.when('ancestor', marker, ':hover').blue.$ — with marker", () => {
+  test("Css.when('ancestor', marker, ':hover').blue.$", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; const row = stylex.defineMarker(); const s = Css.when("ancestor", row, ":hover").blue.$;`,
+          `import { Css } from "./Css"; const marker = Css.newMarker(); const s = Css.when("ancestor", marker, ":hover").blue.$;`,
         )!,
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const row = stylex.defineMarker();
-        const css = stylex.create({
-          blue__ancestorHover_row: { color: { default: null, [stylex.when.ancestor(":hover", row)]: "#526675" } }
-        });
-        const s = [css.blue__ancestorHover_row];
+        const marker = Css.newMarker();
+        const s = { color: "wh_anc_h_marker_blue" };
       `),
     );
   });
 
-  test("Css.when('descendant', ':focus').blue.$ — descendant relationship", () => {
+  test("Css.when('descendant', ':focus').blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_desc_f_blue" };`),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__descendantFocus: { color: { default: null, [stylex.when.descendant(":focus")]: "#526675" } }
-        });
-        const s = [css.blue__descendantFocus];
+        .wh_desc_f_blue:has(.__truss_m:focus) {
+          color: #526675;
+        }
       `),
     );
   });
 
-  test("Css.when('siblingAfter', ':hover').blue.$ — siblingAfter relationship", () => {
+  test("Css.when('siblingAfter', ':hover').blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_sibA_h_blue" };`),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__siblingAfterHover: { color: { default: null, [stylex.when.siblingAfter(":hover")]: "#526675" } }
-        });
-        const s = [css.blue__siblingAfterHover];
+        .wh_sibA_h_blue:has(~ .__truss_m:hover) {
+          color: #526675;
+        }
       `),
     );
   });
 
-  test("Css.when('anySibling', marker, ':hover').blue.$ — anySibling with marker", () => {
+  test("Css.when('siblingBefore', ':hover').blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)!)).toBe(
+      n(`const s = { color: "wh_sibB_h_blue" };`),
+    );
+    expect(n(css(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)!)).toBe(
+      n(`
+        .__truss_m:hover ~ .wh_sibB_h_blue {
+          color: #526675;
+        }
+      `),
+    );
+  });
+
+  test("Css.when('anySibling', marker, ':hover').blue.$", () => {
     expect(
       n(
         transform(
-          `import { Css } from "./Css"; const m = stylex.defineMarker(); const s = Css.when("anySibling", m, ":hover").blue.$;`,
+          `import { Css } from "./Css"; const row = Css.newMarker(); const s = Css.when("anySibling", row, ":hover").blue.$;`,
         )!,
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const m = stylex.defineMarker();
-        const css = stylex.create({
-          blue__anySiblingHover_m: { color: { default: null, [stylex.when.anySibling(":hover", m)]: "#526675" } }
-        });
-        const s = [css.blue__anySiblingHover_m];
+        const row = Css.newMarker();
+        const s = { color: "wh_anyS_h_row_blue" };
       `),
     );
   });
 
   test("Css.when with invalid relationship emits console.error", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("parent", ":hover").blue.$;`)!)).toBe(
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.when("bogus", ":hover").blue.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ blue: { color: "#526675" } });
-        console.error("[truss] Unsupported pattern: when() relationship must be one of: ancestor, descendant, anySibling, siblingBefore, siblingAfter -- got \\"parent\\" (test.tsx:1)");
-        const s = [css.blue];
+        console.error("[truss] Unsupported pattern: when() relationship must be one of: ancestor, descendant, anySibling, siblingBefore, siblingAfter -- got \\\"bogus\\\" (test.tsx:1)");
+        const s = { color: "blue" };
       `),
     );
   });
@@ -1942,208 +1131,145 @@ describe("transform", () => {
       n(transform(`import { Css } from "./Css"; const rel = "ancestor"; const s = Css.when(rel, ":hover").blue.$;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ blue: { color: "#526675" } });
         console.error("[truss] Unsupported pattern: when() first argument must be a string literal relationship (test.tsx:1)");
         const rel = "ancestor";
-        const s = [css.blue];
+        const s = { color: "blue" };
+      `),
+    );
+  });
+
+  test("markerOf accepts a variable argument", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const row = getMarker(); const s = Css.markerOf(row).df.$;`)!),
+    ).toBe(
+      n(`
+        const row = getMarker();
+        const s = { __marker: "__truss_m_row", display: "df" };
       `),
     );
   });
 
   // ── Breakpoint / media query tests ──────────────────────────────────
 
-  test("if(mediaQuery) as pseudo: Css.if('@media (max-width: 599px)').df.$", () => {
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (max-width: 599px)").df.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df__sm: { display: { default: null, "@media (max-width: 599px)": "flex" } }
-        });
-        const s = [css.df__sm];
-      `),
-    );
+  test("if(mediaQuery) as pseudo: Css.if('@media screen and (max-width: 599px)').df.$", () => {
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (max-width: 599px)").df.$;`)!),
+    ).toBe(n(`const s = { display: "sm_df" };`));
   });
 
-  test("if(mediaQuery) merges with base: Css.bgBlue.if('@media (max-width: 599px)').bgBlack.$", () => {
+  test("if(mediaQuery) merges with base: Css.bgBlue.if('@media screen and (max-width: 599px)').bgBlack.$", () => {
     expect(
-      n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.if("@media (max-width: 599px)").bgBlack.$;`)!),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          bgBlue_bgBlack__sm: { backgroundColor: { default: "#526675", "@media (max-width: 599px)": "#353535" } }
-        });
-        const s = [css.bgBlue_bgBlack__sm];
-      `),
-    );
+      n(
+        transform(
+          `import { Css } from "./Css"; const s = Css.bgBlue.if("@media screen and (max-width: 599px)").bgBlack.$;`,
+        )!,
+      ),
+    ).toBe(n(`const s = { backgroundColor: "bgBlue sm_bgBlack" };`));
   });
 
   test("if(Breakpoints.sm) works like if('@media...')", () => {
-    // Breakpoints.sm resolves to the string literal at call site; the plugin sees a string literal
-    expect(n(transform(`import { Css } from "./Css"; const s = Css.if("@media (min-width: 960px)").df.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df__lg: { display: { default: null, "@media (min-width: 960px)": "flex" } }
-        });
-        const s = [css.df__lg];
-      `),
-    );
+    expect(
+      n(transform(`import { Css } from "./Css"; const s = Css.if("@media screen and (min-width: 960px)").df.$;`)!),
+    ).toBe(n(`const s = { display: "lg_df" };`));
   });
 
   test("breakpoint + pseudo combination: Css.ifSm.onHover.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.onHover.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__sm_hover: {
-            color: {
-              default: null,
-              ":hover": { default: null, "@media (max-width: 599px)": "#526675" }
-            }
-          }
-        });
-        const s = [css.blue__sm_hover];
-      `),
+      n(`const s = { color: "sm_h_blue" };`),
     );
   });
 
   test("base + breakpoint + pseudo: Css.black.ifSm.onHover.blue.$", () => {
-    // black (base color) + ifSm.onHover.blue (hover color within small screen)
-    // Both set `color` so they merge: base default + nested media-in-pseudo for hover
     expect(n(transform(`import { Css } from "./Css"; const s = Css.black.ifSm.onHover.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          black_blue__sm_hover: {
-            color: {
-              default: "#353535",
-              ":hover": { default: null, "@media (max-width: 599px)": "#526675" }
-            }
-          }
-        });
-        const s = [css.black_blue__sm_hover];
-      `),
+      n(`const s = { color: "black sm_h_blue" };`),
     );
   });
 
   test("base + breakpoint color + breakpoint+pseudo color: Css.black.ifSm.white.onHover.blue.$", () => {
-    // black (default color), ifSm.white (color on small), ifSm.onHover.blue (hover color on small)
-    // All three set `color` → merged into one entry with stacked conditions
     expect(n(transform(`import { Css } from "./Css"; const s = Css.black.ifSm.white.onHover.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          black_white__sm_blue__sm_hover: {
-            color: {
-              default: "#353535",
-              "@media (max-width: 599px)": "#fcfcfa",
-              ":hover": { default: null, "@media (max-width: 599px)": "#526675" }
-            }
-          }
-        });
-        const s = [css.black_white__sm_blue__sm_hover];
-      `),
+      n(`const s = { color: "black sm_white sm_h_blue" };`),
     );
   });
 
   test("breakpoint only: Css.ifSm.df.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.df.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df__sm: { display: { default: null, "@media (max-width: 599px)": "flex" } }
-        });
-        const s = [css.df__sm];
-      `),
+      n(`const s = { display: "sm_df" };`),
     );
+  });
+
+  test("breakpoint else uses the complementary screen query", () => {
+    const input = `import { Css } from "./Css"; const s = Css.ifSm.black.else.white.$;`;
+
+    expect(n(transform(input)!)).toBe(n(`const s = { color: "sm_black mdandup_white" };`));
+
+    // mdandup sorts before sm alphabetically (both are priority 3200 = longhand + @media)
+    expect(n(css(input)!)).toEqual(
+      n(`
+      @media screen and (min-width: 600px) {
+        .mdandup_white.mdandup_white {
+          color: #fcfcfa;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_black.sm_black {
+          color: #353535;
+        }
+      }
+    `),
+    );
+  });
+
+  test("raw media else uses the complementary screen query", () => {
+    expect(
+      n(
+        transform(
+          `import { Css } from "./Css"; const s = Css.if("@media screen and (max-width: 599px)").black.else.white.$;`,
+        )!,
+      ),
+    ).toBe(n(`const s = { color: "sm_black mdandup_white" };`));
   });
 
   test("breakpoint after base style: Css.df.ifMd.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.ifMd.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          blue__md: { color: { default: null, "@media (min-width: 600px) and (max-width: 959px)": "#526675" } }
-        });
-        const s = [css.df, css.blue__md];
-      `),
+      n(`const s = { display: "df", color: "md_blue" };`),
     );
   });
 
   test("breakpoint merges overlapping property: Css.bgBlue.ifSm.bgBlack.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.bgBlue.ifSm.bgBlack.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          bgBlue_bgBlack__sm: { backgroundColor: { default: "#526675", "@media (max-width: 599px)": "#353535" } }
-        });
-        const s = [css.bgBlue_bgBlack__sm];
-      `),
+      n(`const s = { backgroundColor: "bgBlue sm_bgBlack" };`),
     );
   });
 
   test("breakpoint with large: Css.ifLg.df.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifLg.df.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df__lg: { display: { default: null, "@media (min-width: 960px)": "flex" } }
-        });
-        const s = [css.df__lg];
-      `),
+      n(`const s = { display: "lg_df" };`),
     );
   });
 
   test("breakpoint with combination: Css.ifSmOrMd.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSmOrMd.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__smOrMd: { color: { default: null, "@media (max-width: 959px)": "#526675" } }
-        });
-        const s = [css.blue__smOrMd];
-      `),
+      n(`const s = { color: "smormd_blue" };`),
     );
   });
 
-  test("breakpoint with dynamic literal: Css.ifSm.mt(2).$", () => {
+  test("breakpoint with variable literal: Css.ifSm.mt(2).$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.mt(2).$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          mt__16px__sm: { marginTop: { default: null, "@media (max-width: 599px)": "16px" } }
-        });
-        const s = [css.mt__16px__sm];
-      `),
+      n(`const s = { marginTop: "sm_mt_16px" };`),
     );
   });
 
   test("breakpoint with multi-property: Css.ifSm.ba.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.ifSm.ba.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          ba__sm: {
-            borderStyle: { default: null, "@media (max-width: 599px)": "solid" },
-            borderWidth: { default: null, "@media (max-width: 599px)": "1px" }
-          }
-        });
-        const s = [css.ba__sm];
-      `),
+      n(`const s = { borderStyle: "sm_bss", borderWidth: "sm_bw1" };`),
     );
   });
 
   test("breakpoint in JSX: css={Css.ifSm.df.$}", () => {
     expect(n(transform(`import { Css } from "./Css"; const el = <div css={Css.ifSm.df.$} />;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df__sm: { display: { default: null, "@media (max-width: 599px)": "flex" } }
-        });
-        const el = <div {...stylex.props(css.df__sm)} />;
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ display: "sm_df" })} />;
       `),
     );
   });
@@ -2152,52 +1278,25 @@ describe("transform", () => {
 
   test("element('::placeholder').blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__placeholder: { "::placeholder": { color: "#526675" } }
-        });
-        const s = [css.blue__placeholder];
-      `),
+      n(`const s = { color: "placeholder_blue" };`),
     );
   });
 
   test("element('::selection') with static styles", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::selection").bgBlue.white.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          bgBlue__selection: { "::selection": { backgroundColor: "#526675" } },
-          white__selection: { "::selection": { color: "#fcfcfa" } }
-        });
-        const s = [css.bgBlue__selection, css.white__selection];
-      `),
+      n(`const s = { backgroundColor: "selection_bgBlue", color: "selection_white" };`),
     );
   });
 
-  test("element with dynamic literal: element('::placeholder').bc('red').$", () => {
+  test("element with variable literal: element('::placeholder').bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").bc("red").$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          bc__red__placeholder: { "::placeholder": { borderColor: "red" } }
-        });
-        const s = [css.bc__red__placeholder];
-      `),
+      n(`const s = { borderColor: "placeholder_bc_red" };`),
     );
   });
 
   test("element + onHover: Css.element('::placeholder').onHover.blue.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.element("::placeholder").onHover.blue.$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          blue__placeholder_hover: {
-            "::placeholder": { color: { default: null, ":hover": "#526675" } }
-          }
-        });
-        const s = [css.blue__placeholder_hover];
-      `),
+      n(`const s = { color: "placeholder_h_blue" };`),
     );
   });
 
@@ -2206,36 +1305,18 @@ describe("transform", () => {
       n(transform(`import { Css } from "./Css"; const pe = "::placeholder"; const s = Css.element(pe).blue.$;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ blue: { color: "#526675" } });
         console.error("[truss] Unsupported pattern: element() requires exactly one string literal argument (e.g. \\"::placeholder\\") (test.tsx:1)");
         const pe = "::placeholder";
-        const s = [css.blue];
+        const s = { color: "blue" };
       `),
     );
   });
 
-  test("unsupported patterns emit console.error and produce empty array", () => {
+  test("unsupported patterns emit console.error and produce empty object", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.notReal.$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         console.error("[truss] Unsupported pattern: Unknown abbreviation \\"notReal\\" (test.tsx:1)");
-        const s = [];
-      `),
-    );
-  });
-
-  test("markerOf accepts a variable argument", () => {
-    const result = n(
-      transform(
-        `import { Css } from "./Css"; const marker = stylex.defineMarker(); const s = Css.markerOf(marker).$;`,
-      )!,
-    );
-    expect(result).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const marker = stylex.defineMarker();
-        const s = [marker];
+        const s = {};
       `),
     );
   });
@@ -2244,25 +1325,13 @@ describe("transform", () => {
 
   test("add with string literal value: Css.add('boxShadow', '0 0 0 1px blue').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add("boxShadow", "0 0 0 1px blue").$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          add_boxShadow__0_0_0_1px_blue: { boxShadow: "0 0 0 1px blue" }
-        });
-        const s = [css.add_boxShadow__0_0_0_1px_blue];
-      `),
+      n(`const s = { boxShadow: "boxShadow_0_0_0_1px_blue" };`),
     );
   });
 
   test("add with numeric literal value: Css.add('animationDelay', '300ms').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add("animationDelay", "300ms").$;`)!)).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          add_animationDelay__300ms: { animationDelay: "300ms" }
-        });
-        const s = [css.add_animationDelay__300ms];
-      `),
+      n(`const s = { animationDelay: "animationDelay_300ms" };`),
     );
   });
 
@@ -2275,45 +1344,81 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({ add_boxShadow: v => ({ boxShadow: v }) });
         const shadow = getShadow();
-        const s = [css.add_boxShadow(String(shadow))];
+        const s = { boxShadow: ["boxShadow_var", { "--boxShadow": shadow }] };
       `),
     );
   });
 
   test("add mixed with other chain segments: Css.df.add('wordBreak', 'break-word').black.$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.df.add("wordBreak", "break-word").black.$;`)!)).toBe(
+      n(`const s = { display: "df", wordBreak: "wordBreak_break_word", color: "black" };`),
+    );
+  });
+
+  test("add uses property name in jsx output and generated css", () => {
+    const code = `import { Css } from "./Css"; const el = <div css={Css.mt2.add("transition", "all 240ms").$} />;`;
+
+    expect(n(transform(code)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          df: { display: "flex" },
-          add_wordBreak__break_word: { wordBreak: "break-word" },
-          black: { color: "#353535" }
-        });
-        const s = [css.df, css.add_wordBreak__break_word, css.black];
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ marginTop: "mt2", transition: "transition_all_240ms" })} />;
       `),
+    );
+    // transition (shorthand-of-longhands = 2000) sorts before margin-top (physical longhand = 4000)
+    expect(n(css(code)!)).toBe(
+      n(`
+      .transition_all_240ms {
+        transition: all 240ms;
+      }
+      .mt2 {
+        margin-top: 16px;
+      }
+    `),
+    );
+  });
+
+  test("later color spreads override earlier color spreads", () => {
+    const code = `
+      import { Css, Palette } from "./Css";
+      const el = <div css={{
+        ...Css.white.$,
+        ...Css.color(Palette.Blue).$,
+         ...Css.add("color", Palette.Black).$ }
+        }
+      />;
+    `;
+
+    expect(n(transform(code)!)).toBe(
+      n(`
+        import { Palette } from "./Css";
+        import { trussProps } from "@homebound/truss/runtime";
+        const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["color_var", { "--color": Palette.Blue }] }, ...{ color: ["color_var", { "--color": Palette.Black }] } })} />;
+      `),
+    );
+    expect(n(css(code)!)).toBe(
+      n(`
+      .white {
+        color: #fcfcfa;
+      }
+      .color_var {
+        color: var(--color);
+      }
+      @property --color {
+        syntax: "*";
+        inherits: false;
+      }
+    `),
     );
   });
 
   test("add with pseudo: Css.onHover.add('textDecoration', 'underline').$", () => {
     expect(
       n(transform(`import { Css } from "./Css"; const s = Css.onHover.add("textDecoration", "underline").$;`)!),
-    ).toBe(
-      n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          add_textDecoration__underline__hover: {
-            textDecoration: { default: null, ":hover": "underline" }
-          }
-        });
-        const s = [css.add_textDecoration__underline__hover];
-      `),
-    );
+    ).toBe(n(`const s = { textDecoration: "h_textDecoration_underline" };`));
   });
 
-  test("add with CssProp argument composes arrays inline", () => {
+  test("add with CssProp argument composes inline as spread", () => {
     expect(
       n(
         transform(
@@ -2322,15 +1427,9 @@ describe("transform", () => {
       ),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          df: { display: "flex" },
-          black: { color: "#353535" }
-        });
         const base = getBase();
         const sizeStyles = getSize();
-        const s = [css.df, ...asStyleArray(base), ...asStyleArray(sizeStyles), css.black];
+        const s = { display: "df", ...base, ...sizeStyles, color: "black" };
       `),
     );
   });
@@ -2338,9 +1437,8 @@ describe("transform", () => {
   test("add with object literal emits console.error", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add({ wordBreak: "break-word" }).$;`)!)).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         console.error("[truss] Unsupported pattern: add(cssProp) does not accept object literals -- pass an existing CssProp expression instead (test.tsx:1)");
-        const s = [];
+        const s = {};
       `),
     );
   });
@@ -2350,14 +1448,9 @@ describe("transform", () => {
       n(transform(`import { Css } from "./Css"; const foo = getProp(); const s = Css.black.add(foo, "value").df.$;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
-        const css = stylex.create({
-          black: { color: "#353535" },
-          df: { display: "flex" }
-        });
         console.error("[truss] Unsupported pattern: add() first argument must be a string literal property name (test.tsx:1)");
         const foo = getProp();
-        const s = [css.black, css.df];
+        const s = { color: "black", display: "df" };
       `),
     );
   });
@@ -2367,16 +1460,15 @@ describe("transform", () => {
       n(transform(`import { Css } from "./Css"; const prop = "boxShadow"; const s = Css.add(prop, "value").$;`)!),
     ).toBe(
       n(`
-        import * as stylex from "@stylexjs/stylex";
         console.error("[truss] Unsupported pattern: add() first argument must be a string literal property name (test.tsx:1)");
         const prop = "boxShadow";
-        const s = [];
+        const s = {};
       `),
     );
   });
 });
 
-test("Css.spread with indirect style references via useMemo and function calls", () => {
+test("indirect style references via useMemo and function calls", () => {
   expect(
     n(
       transform(`
@@ -2390,10 +1482,10 @@ test("Css.spread with indirect style references via useMemo and function calls",
 
             const attrs = {
               "data-testid": "button",
-              css: Css.spread({
+              css: {
                 ...styles.baseStyles,
                 ...(props.active && styles.activeStyles),
-              }),
+              },
             };
 
             return <button {...attrs}>Click me</button>;
@@ -2411,37 +1503,29 @@ test("Css.spread with indirect style references via useMemo and function calls",
     ),
   ).toBe(
     n(`
-        import { useMemo } from "react";
-        import * as stylex from "@stylexjs/stylex";
-        import { asStyleArray } from "@homebound/truss/runtime";
-        const css = stylex.create({
-          bb: { borderBottomStyle: "solid", borderBottomWidth: "1px" },
-          df: { display: "flex" },
-          aic: { alignItems: "center" },
-          blue: { color: "#526675" }
-        });
-        function SpreadLikeButton(props) {
-          const styles = useMemo(function () {
-            return getSpreadLikeStyles();
-          }, []);
-          const attrs = {
-            "data-testid": "button",
-            css: [...asStyleArray(styles.baseStyles), ...asStyleArray(props.active ? styles.activeStyles : [])]
-          };
-          return <button {...attrs}>Click me</button>;
-        }
-        function getSpreadLikeStyles() {
-          const borderBottomStyles = [css.bb];
-          return {
-            baseStyles: [css.df, css.aic],
-            activeStyles: [css.blue, ...asStyleArray(borderBottomStyles)]
-          };
-        }
-      `),
+      import { useMemo } from "react";
+      function SpreadLikeButton(props) {
+        const styles = useMemo(function () {
+          return getSpreadLikeStyles();
+        }, []);
+        const attrs = {
+          "data-testid": "button",
+          css: { ...styles.baseStyles, ...(props.active && styles.activeStyles) }
+        };
+        return <button {...attrs}>Click me</button>;
+      }
+      function getSpreadLikeStyles() {
+        const borderBottomStyles = { borderBottomStyle: "bb_borderBottomStyle", borderBottomWidth: "bb_borderBottomWidth" };
+        return {
+          baseStyles: { display: "df", alignItems: "aic" },
+          activeStyles: { ...{ color: "blue" }, ...borderBottomStyles }
+        };
+      }
+    `),
   );
 });
 
-test("ternary mixing {} and style array normalizes {} to []", () => {
+test("ternary mixing {} and style object normalizes {} to {}", () => {
   expect(
     n(
       transform(`
@@ -2455,23 +1539,42 @@ test("ternary mixing {} and style array normalizes {} to []", () => {
     ),
   ).toBe(
     n(`
-      import * as stylex from "@stylexjs/stylex";
-      import { asStyleArray } from "@homebound/truss/runtime";
-      const css = stylex.create({ pt3: { paddingTop: "24px" } });
+      import { trussProps } from "@homebound/truss/runtime";
       function TabsContent(props) {
-        const styles = props.hideTabs ? [] : [css.pt3];
-        return <div {...stylex.props(...asStyleArray(styles), ...asStyleArray(props.contentXss))} />;
+        const styles = props.hideTabs ? {} : { paddingTop: "pt3" };
+        return <div {...trussProps({ ...styles, ...props.contentXss })} />;
       }
     `),
   );
 });
 
+test("css helper returns generated CSS text", () => {
+  const result = css(`import { Css } from "./Css"; const s = Css.df.$;`);
+  expect(result).toContain(".df");
+  expect(result).toContain("display: flex");
+});
+
+/** Transform helper — returns the rewritten JS code. */
 function transform(code: string, options?: { debug?: boolean }): string | null {
   const result = transformTruss(code, "test.tsx", mapping, options);
   return result?.code ?? null;
 }
 
+/** CSS helper — returns the generated CSS text. */
+function css(code: string, options?: { debug?: boolean }): string | null {
+  const result = transformTruss(code, "test.tsx", mapping, options);
+  return result?.css ?? null;
+}
+
 /** Normalize whitespace so we can write readable multi-line expectations. */
 function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
+}
+
+function lineOf(source: string, search: string): number {
+  return (
+    source.split("\n").findIndex(function (line) {
+      return line.includes(search);
+    }) + 1
+  );
 }

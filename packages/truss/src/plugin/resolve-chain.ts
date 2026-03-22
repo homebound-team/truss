@@ -41,20 +41,17 @@ export type ResolvedChainPart =
  *
  * - **`ifSm`**, **`ifMd`**, **`ifLg`**, etc. — Breakpoint getters. Set the
  *   media query context. Stacks with pseudo-classes: `ifSm.onHover.blue.$`
- *   produces `{ color: { default: null, ":hover": { default: null, "@media...": value } } }`.
+ *   applies both conditions.
  *
  * - **`onHover`**, **`onFocus`**, etc. — Pseudo-class getters. Set the
  *   pseudo-class context. Stacks with media queries (see above). A new
  *   pseudo-class replaces the previous one.
  *
  * - **`element("::placeholder")`** — Pseudo-element. Sets the pseudo-element
- *   context. Wraps subsequent defs in a top-level namespace key:
- *   `{ "::placeholder": { color: value } }`. Stacks with pseudo-classes
- *   and media queries inside the pseudo-element.
+ *   context for subsequent styles.
  *
- * - **`when("ancestor", ":hover")`** — StyleX `when` API. Resets both media
- *   query and pseudo-class contexts. Uses `stylex.when.<relationship>()`
- *   computed keys.
+ * - **`when("ancestor", ":hover")`** — Relationship pseudo. Resets both media
+ *   query and pseudo-class contexts.
  *
  * - **`ifContainer({ gt, lt })`** — Container query. Sets the media query
  *   context to an `@container` query string.
@@ -92,13 +89,31 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 
   while (i < filteredChain.length) {
     const node = filteredChain[i];
+    const mediaStart = getMediaConditionalStartNode(node, mapping);
+    if (mediaStart) {
+      const elseIndex = findElseIndex(filteredChain, i + 1);
+      if (elseIndex !== -1) {
+        if (currentNodes.length > 0) {
+          parts.push({ type: "unconditional", segments: resolveChain(currentNodes, mapping) });
+          currentNodes = [];
+        }
+
+        const thenNodes = mediaStart.thenNodes
+          ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
+          : filteredChain.slice(i, elseIndex);
+        const elseNodes = [makeMediaQueryNode(mediaStart.inverseMediaQuery), ...filteredChain.slice(elseIndex + 1)];
+        const thenSegs = resolveChain(thenNodes, mapping);
+        const elseSegs = resolveChain(elseNodes, mapping);
+        parts.push({ type: "unconditional", segments: [...thenSegs, ...elseSegs] });
+        i = filteredChain.length;
+        break;
+      }
+    }
+
     if (node.type === "if") {
       // if(stringLiteral) → media query pseudo, not a boolean conditional
       if (node.conditionNode.type === "StringLiteral") {
         const mediaQuery: string = (node.conditionNode as any).value;
-        // Inject a synthetic "media query pseudo" into the current unconditional nodes.
-        // This works by creating a synthetic call node that resolveChain's pseudo handling
-        // can recognize — but it's simpler to just inject it as a special marker.
         currentNodes.push({ type: "__mediaQuery" as any, mediaQuery } as any);
         i++;
         continue;
@@ -106,10 +121,7 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 
       // Flush any accumulated unconditional nodes
       if (currentNodes.length > 0) {
-        parts.push({
-          type: "unconditional",
-          segments: mergeOverlappingConditions(resolveChain(currentNodes, mapping)),
-        });
+        parts.push({ type: "unconditional", segments: resolveChain(currentNodes, mapping) });
         currentNodes = [];
       }
       // Collect "then" nodes until "else" or end
@@ -134,11 +146,13 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
         }
         i++;
       }
+      const thenSegs = resolveChain(thenNodes, mapping);
+      const elseSegs = resolveChain(elseNodes, mapping);
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
-        thenSegments: mergeOverlappingConditions(resolveChain(thenNodes, mapping)),
-        elseSegments: mergeOverlappingConditions(resolveChain(elseNodes, mapping)),
+        thenSegments: thenSegs,
+        elseSegments: elseSegs,
       });
     } else {
       currentNodes.push(node);
@@ -148,7 +162,7 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 
   // Flush remaining unconditional nodes
   if (currentNodes.length > 0) {
-    parts.push({ type: "unconditional", segments: mergeOverlappingConditions(resolveChain(currentNodes, mapping)) });
+    parts.push({ type: "unconditional", segments: resolveChain(currentNodes, mapping) });
   }
 
   // Collect error messages from all resolved segments
@@ -165,11 +179,67 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
   return { parts, markers, errors: [...scanErrors, ...segmentErrors] };
 }
 
+function getMediaConditionalStartNode(
+  node: ChainNode,
+  mapping: TrussMapping,
+): { inverseMediaQuery: string; thenNodes?: ChainNode[] } | null {
+  if (node.type === "if" && node.conditionNode.type === "StringLiteral") {
+    return {
+      inverseMediaQuery: invertMediaQuery(node.conditionNode.value),
+      thenNodes: [makeMediaQueryNode(node.conditionNode.value)],
+    };
+  }
+
+  if (node.type === "getter" && mapping.breakpoints && node.name in mapping.breakpoints) {
+    return { inverseMediaQuery: invertMediaQuery(mapping.breakpoints[node.name]) };
+  }
+
+  return null;
+}
+
+function findElseIndex(chain: ChainNode[], start: number): number {
+  for (let i = start; i < chain.length; i++) {
+    if (chain[i].type === "if") {
+      return -1;
+    }
+    if (chain[i].type === "else") {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function makeMediaQueryNode(mediaQuery: string): ChainNode {
+  return { type: "__mediaQuery" as any, mediaQuery } as any;
+}
+
+function invertMediaQuery(query: string): string {
+  const screenPrefix = "@media screen and ";
+  if (query.startsWith(screenPrefix)) {
+    const conditions = query.slice(screenPrefix.length).trim();
+    const rangeMatch = conditions.match(/^\(min-width: (\d+)px\) and \(max-width: (\d+)px\)$/);
+    if (rangeMatch) {
+      const min = Number(rangeMatch[1]);
+      const max = Number(rangeMatch[2]);
+      return `@media screen and (max-width: ${min - 1}px), screen and (min-width: ${max + 1}px)`;
+    }
+    const minMatch = conditions.match(/^\(min-width: (\d+)px\)$/);
+    if (minMatch) {
+      return `@media screen and (max-width: ${Number(minMatch[1]) - 1}px)`;
+    }
+    const maxMatch = conditions.match(/^\(max-width: (\d+)px\)$/);
+    if (maxMatch) {
+      return `@media screen and (min-width: ${Number(maxMatch[1]) + 1}px)`;
+    }
+  }
+  return query.replace("@media", "@media not");
+}
+
 /**
  * Walks a Css member-expression chain (the AST between `Css` and `.$`) and
  * resolves each segment into CSS property definitions using the truss mapping.
  *
- * Returns an array of ResolvedSegment, or throws if a pattern is unsupported.
+ * Returns an array of ResolvedSegment with flat defs (no condition nesting).
  * Does NOT handle if/else — use resolveFullChain for that.
  */
 export function resolveChain(chain: ChainNode[], mapping: TrussMapping): ResolvedSegment[] {
@@ -234,7 +304,14 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
 
         // add(prop, value) — arbitrary CSS property
         if (abbr === "add") {
-          const seg = resolveAddCall(node, mapping, currentMediaQuery, currentPseudoClass, currentPseudoElement);
+          const seg = resolveAddCall(
+            node,
+            mapping,
+            currentMediaQuery,
+            currentPseudoClass,
+            currentPseudoElement,
+            currentWhenPseudo,
+          );
           segments.push(seg);
           continue;
         }
@@ -288,8 +365,8 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
         }
 
-        if (entry.kind === "dynamic") {
-          const seg = resolveDynamicCall(
+        if (entry.kind === "variable") {
+          const seg = resolveVariableCall(
             abbr,
             entry,
             node,
@@ -297,6 +374,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
             currentMediaQuery,
             currentPseudoClass,
             currentPseudoElement,
+            currentWhenPseudo,
           );
           segments.push(seg);
         } else if (entry.kind === "delegate") {
@@ -308,6 +386,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
             currentMediaQuery,
             currentPseudoClass,
             currentPseudoElement,
+            currentWhenPseudo,
           );
           segments.push(seg);
         } else {
@@ -316,7 +395,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
       }
     } catch (err) {
       if (err instanceof UnsupportedPatternError) {
-        segments.push({ key: "__error", defs: {}, error: err.message });
+        segments.push({ abbr: "__error", defs: {}, error: err.message });
       } else {
         throw err;
       }
@@ -326,17 +405,26 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
   return segments;
 }
 
-/** Build the stylex.create key suffix from mediaQuery, pseudoClass, and/or pseudoElement. */
-export function conditionKeySuffix(
+/**
+ * Build a typography lookup key suffix from condition context.
+ *
+ * I.e. `typography(key)` → `"typography"`, `ifSm.typography(key)` → `"typography__sm"`.
+ */
+function typographyLookupKeySuffix(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
   breakpoints?: Record<string, string>,
 ): string {
   const parts: string[] = [];
-  if (pseudoElement) parts.push(pseudoName(pseudoElement));
-  if (mediaQuery) parts.push(pseudoName(mediaQuery, breakpoints));
-  if (pseudoClass) parts.push(pseudoName(pseudoClass));
+  if (pseudoElement) parts.push(pseudoElement.replace(/^::/, ""));
+  if (mediaQuery && breakpoints) {
+    const bp = Object.entries(breakpoints).find(([, v]) => v === mediaQuery)?.[0];
+    parts.push(bp ? bp.replace(/^if/, "").replace(/^./, (c) => c.toLowerCase()) : "mq");
+  } else if (mediaQuery) {
+    parts.push("mq");
+  }
+  if (pseudoClass) parts.push(pseudoClass.replace(/^:+/, "").replace(/-/g, "_"));
   return parts.join("_");
 }
 
@@ -362,7 +450,7 @@ function resolveTypographyCall(
     throw new UnsupportedPatternError(`typography() is unavailable because no typography abbreviations were generated`);
   }
 
-  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
+  const suffix = typographyLookupKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
   const lookupKey = suffix ? `typography__${suffix}` : "typography";
   const segmentsByName: Record<string, ResolvedSegment[]> = {};
 
@@ -372,7 +460,7 @@ function resolveTypographyCall(
 
   return [
     {
-      key: lookupKey,
+      abbr: lookupKey,
       defs: {},
       typographyLookup: {
         lookupKey,
@@ -402,40 +490,14 @@ function resolveTypographyEntry(
 
   const resolved = resolveEntry(name, entry, mapping, mediaQuery, pseudoClass, pseudoElement, null);
   for (const segment of resolved) {
-    if (segment.dynamicProps || segment.whenPseudo) {
+    if (segment.variableProps || segment.whenPseudo) {
       throw new UnsupportedPatternError(`Typography abbreviation "${name}" cannot require runtime arguments`);
     }
   }
   return resolved;
 }
 
-/**
- * Wrap raw CSS defs with condition nesting for StyleX.
- *
- * - mediaQuery only:    `{ prop: { default: null, "@media...": value } }`
- * - pseudoClass only:   `{ prop: { default: null, ":hover": value } }`
- * - both (stacked):     `{ prop: { default: null, ":hover": { default: null, "@media...": value } } }`
- */
-function wrapDefsWithConditions(
-  defs: Record<string, unknown>,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-): Record<string, unknown> {
-  if (!mediaQuery && !pseudoClass) return defs;
-  const result: Record<string, unknown> = {};
-  for (const [prop, value] of Object.entries(defs)) {
-    if (pseudoClass && mediaQuery) {
-      result[prop] = { default: null, [pseudoClass]: { default: null, [mediaQuery]: value } };
-    } else if (pseudoClass) {
-      result[prop] = { default: null, [pseudoClass]: value };
-    } else {
-      result[prop] = { default: null, [mediaQuery!]: value };
-    }
-  }
-  return result;
-}
-
-/** Resolve a static or alias entry (from a getter access). */
+/** Resolve a static or alias entry (from a getter access). Defs are always flat. */
 function resolveEntry(
   abbr: string,
   entry: TrussMappingEntry,
@@ -448,16 +510,9 @@ function resolveEntry(
   switch (entry.kind) {
     case "static": {
       if (whenPseudo) {
-        const suffix = whenPseudoKeyName(whenPseudo);
-        const key = `${abbr}__${suffix}`;
-        return [{ key, defs: entry.defs, whenPseudo }];
+        return [{ abbr, defs: entry.defs, whenPseudo }];
       }
-      const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
-      const key = suffix ? `${abbr}__${suffix}` : abbr;
-      const defs = pseudoElement
-        ? { [pseudoElement]: wrapDefsWithConditions(entry.defs, mediaQuery, pseudoClass) }
-        : wrapDefsWithConditions(entry.defs, mediaQuery, pseudoClass);
-      return [{ key, defs, mediaQuery, pseudoClass, pseudoElement }];
+      return [{ abbr, defs: entry.defs, mediaQuery, pseudoClass, pseudoElement }];
     }
     case "alias": {
       const result: ResolvedSegment[] = [];
@@ -470,7 +525,7 @@ function resolveEntry(
       }
       return result;
     }
-    case "dynamic":
+    case "variable":
     case "delegate":
       throw new UnsupportedPatternError(`Abbreviation "${abbr}" requires arguments — use ${abbr}() not .${abbr}`);
     default:
@@ -478,56 +533,33 @@ function resolveEntry(
   }
 }
 
-/** Resolve a dynamic (parameterized) call like mt(2) or mt(x). */
-function resolveDynamicCall(
+/** Resolve a variable (parameterized) call like mt(2) or mt(x). */
+function resolveVariableCall(
   abbr: string,
-  entry: { kind: "dynamic"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> },
+  entry: { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> },
   node: CallChainNode,
   mapping: TrussMapping,
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
   }
-
-  const argAst = node.args[0];
-  const literalValue = tryEvaluateLiteral(argAst, entry.incremented, mapping.increment);
-  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
-
-  if (literalValue !== null) {
-    const keySuffix = literalValue.replace(/[^a-zA-Z0-9]/g, "_");
-    const key = suffix ? `${abbr}__${keySuffix}__${suffix}` : `${abbr}__${keySuffix}`;
-    const defs: Record<string, unknown> = {};
-    for (const prop of entry.props) {
-      defs[prop] = literalValue;
-    }
-    if (entry.extraDefs) {
-      Object.assign(defs, entry.extraDefs);
-    }
-    const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
-    return {
-      key,
-      defs: pseudoElement ? { [pseudoElement]: wrappedDefs } : wrappedDefs,
-      mediaQuery,
-      pseudoClass,
-      pseudoElement,
-      argResolved: literalValue,
-    };
-  } else {
-    const key = suffix ? `${abbr}__${suffix}` : abbr;
-    return {
-      key,
-      defs: {},
-      mediaQuery,
-      pseudoClass,
-      dynamicProps: entry.props,
-      incremented: entry.incremented,
-      dynamicExtraDefs: entry.extraDefs,
-      argNode: argAst,
-    };
-  }
+  const literalValue = tryEvaluateLiteral(node.args[0], entry.incremented, mapping.increment);
+  return buildParameterizedSegment({
+    abbr,
+    props: entry.props,
+    incremented: entry.incremented,
+    extraDefs: entry.extraDefs,
+    argAst: node.args[0],
+    literalValue,
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  });
 }
 
 /** Resolve a delegate call like mtPx(12). */
@@ -539,54 +571,84 @@ function resolveDelegateCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment {
   const targetEntry = mapping.abbreviations[entry.target];
-  if (!targetEntry || targetEntry.kind !== "dynamic") {
-    throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a dynamic entry`);
+  if (!targetEntry || targetEntry.kind !== "variable") {
+    throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a variable entry`);
   }
-
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
   }
+  const literalValue = tryEvaluatePxLiteral(node.args[0]);
+  // Use the target abbreviation name for delegate segments (i.e. mtPx → mt)
+  return buildParameterizedSegment({
+    abbr: entry.target,
+    props: targetEntry.props,
+    incremented: false,
+    appendPx: true,
+    extraDefs: targetEntry.extraDefs,
+    argAst: node.args[0],
+    literalValue,
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  });
+}
 
-  const argAst = node.args[0];
-  const literalValue = tryEvaluatePxLiteral(argAst);
-  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
+/** Shared builder for variable and delegate call segments. */
+function buildParameterizedSegment(params: {
+  abbr: string;
+  props: string[];
+  incremented: boolean;
+  appendPx?: boolean;
+  extraDefs?: Record<string, unknown>;
+  argAst: t.Expression | t.SpreadElement;
+  literalValue: string | null;
+  mediaQuery: string | null;
+  pseudoClass: string | null;
+  pseudoElement: string | null;
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null;
+}): ResolvedSegment {
+  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, whenPseudo } = params;
 
   if (literalValue !== null) {
-    const keySuffix = literalValue.replace(/[^a-zA-Z0-9]/g, "_");
-    const key = suffix ? `${entry.target}__${keySuffix}__${suffix}` : `${entry.target}__${keySuffix}`;
     const defs: Record<string, unknown> = {};
-    for (const prop of targetEntry.props) {
+    for (const prop of props) {
       defs[prop] = literalValue;
     }
-    if (targetEntry.extraDefs) {
-      Object.assign(defs, targetEntry.extraDefs);
+    if (extraDefs) Object.assign(defs, extraDefs);
+    if (whenPseudo) {
+      return { abbr, defs, whenPseudo, argResolved: literalValue };
     }
-    const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
-      key,
-      defs: pseudoElement ? { [pseudoElement]: wrappedDefs } : wrappedDefs,
-      mediaQuery,
-      pseudoClass,
-      pseudoElement,
+      abbr,
+      defs,
+      mediaQuery: params.mediaQuery,
+      pseudoClass: params.pseudoClass,
+      pseudoElement: params.pseudoElement,
       argResolved: literalValue,
     };
-  } else {
-    const key = suffix ? `${entry.target}__${suffix}` : entry.target;
-    return {
-      key,
-      defs: {},
-      mediaQuery,
-      pseudoClass,
-      pseudoElement,
-      dynamicProps: targetEntry.props,
-      incremented: false,
-      appendPx: true,
-      dynamicExtraDefs: targetEntry.extraDefs,
-      argNode: argAst,
-    };
   }
+
+  const base: ResolvedSegment = {
+    abbr,
+    defs: {},
+    variableProps: props,
+    incremented,
+    variableExtraDefs: extraDefs,
+    argNode: argAst,
+  };
+  if (appendPx) base.appendPx = true;
+  if (whenPseudo) {
+    base.whenPseudo = whenPseudo;
+  } else {
+    base.mediaQuery = params.mediaQuery;
+    base.pseudoClass = params.pseudoClass;
+    base.pseudoElement = params.pseudoElement;
+  }
+  return base;
 }
 
 /**
@@ -602,6 +664,7 @@ function resolveAddCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment {
   if (node.args.length === 1) {
     const styleArg = node.args[0];
@@ -614,7 +677,7 @@ function resolveAddCall(
       );
     }
     return {
-      key: "__composed_css_prop",
+      abbr: "__composed_css_prop",
       defs: {},
       styleArrayArg: styleArg,
     };
@@ -634,36 +697,33 @@ function resolveAddCall(
   const propName: string = (propArg as any).value;
 
   const valueArg = node.args[1];
-  // Try to evaluate the value as a literal
   const literalValue = tryEvaluateAddLiteral(valueArg);
 
-  const suffix = conditionKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
+  if (whenPseudo) {
+    if (literalValue !== null) {
+      return { abbr: propName, defs: { [propName]: literalValue }, whenPseudo, argResolved: literalValue };
+    } else {
+      return { abbr: propName, defs: {}, whenPseudo, variableProps: [propName], incremented: false, argNode: valueArg };
+    }
+  }
 
   if (literalValue !== null) {
-    const keySuffix = literalValue
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .replace(/_+/g, "_")
-      .replace(/^_|_$/g, "");
-    const key = suffix ? `add_${propName}__${keySuffix}__${suffix}` : `add_${propName}__${keySuffix}`;
-    const defs: Record<string, unknown> = { [propName]: literalValue };
-    const wrappedDefs = wrapDefsWithConditions(defs, mediaQuery, pseudoClass);
     return {
-      key,
-      defs: pseudoElement ? { [pseudoElement]: wrappedDefs } : wrappedDefs,
+      abbr: propName,
+      defs: { [propName]: literalValue },
       mediaQuery,
       pseudoClass,
       pseudoElement,
       argResolved: literalValue,
     };
   } else {
-    const key = suffix ? `add_${propName}__${suffix}` : `add_${propName}`;
     return {
-      key,
+      abbr: propName,
       defs: {},
       mediaQuery,
       pseudoClass,
       pseudoElement,
-      dynamicProps: [propName],
+      variableProps: [propName],
       incremented: false,
       argNode: valueArg,
     };
@@ -747,205 +807,6 @@ function pseudoSelector(name: string): string {
 }
 
 /**
- * Generate the stylex.create key suffix for when/ancestor pseudo segments.
- * e.g. { pseudo: ":hover" } → "ancestorHover"
- * e.g. { pseudo: ":hover", relationship: "descendant" } → "descendantHover"
- * e.g. { pseudo: ":hover", markerNode: Identifier("row") } → "ancestorHover_row"
- */
-function whenPseudoKeyName(ap: { pseudo: string; markerNode?: any; relationship?: string }): string {
-  const rel = ap.relationship ?? "ancestor";
-  const pn = pseudoName(ap.pseudo);
-  const base = `${rel}${pn.charAt(0).toUpperCase()}${pn.slice(1)}`;
-  if (!ap.markerNode) return base;
-  // Use the identifier name for readable keys; fall back to a generic suffix for complex expressions
-  const suffix = ap.markerNode.type === "Identifier" ? ap.markerNode.name : "marker";
-  return `${base}_${suffix}`;
-}
-
-/**
- * Post-process resolved segments to merge entries that target the same CSS
- * properties into a single `stylex.create` entry with stacked conditions.
- *
- * For example, `Css.black.ifSm.white.onHover.blue.$` produces three segments:
- *   1. `black` → `{ color: "#353535" }` (base)
- *   2. `white__sm` → `{ color: { default: null, "@media...": "#fcfcfa" } }` (media-only)
- *   3. `blue__sm_hover` → `{ color: { default: null, ":hover": { default: null, "@media...": "#526675" } } }` (media+pseudo)
- *
- * All three set `color`, so they merge into one entry:
- *   `{ color: { default: "#353535", "@media...": "#fcfcfa", ":hover": { default: null, "@media...": "#526675" } } }`
- */
-export function mergeOverlappingConditions(segments: ResolvedSegment[]): ResolvedSegment[] {
-  // Index: for each CSS property, which segments set it?
-  // Only static segments (no dynamicProps, no styleArrayArg, no whenPseudo, no error) participate in merging.
-  const propToIndices = new Map<string, number[]>();
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-    if (seg.dynamicProps || seg.styleArrayArg || seg.whenPseudo || seg.error) continue;
-    for (const prop of Object.keys(seg.defs)) {
-      if (!propToIndices.has(prop)) propToIndices.set(prop, []);
-      propToIndices.get(prop)!.push(i);
-    }
-  }
-
-  // Find properties where a base (no-condition) segment overlaps with conditional segments.
-  // Two base segments setting the same property is NOT a merge — the later one just overrides.
-  const mergeableProps = new Set<string>();
-  for (const [prop, indices] of propToIndices) {
-    if (indices.length < 2) continue;
-    const hasBase = indices.some((i) => !segments[i].mediaQuery && !segments[i].pseudoClass);
-    const hasConditional = indices.some((i) => !!(segments[i].mediaQuery || segments[i].pseudoClass));
-    if (hasBase && hasConditional) {
-      mergeableProps.add(prop);
-    }
-  }
-
-  if (mergeableProps.size === 0) return segments;
-
-  // For each mergeable property, deep-merge all contributing segments into one defs object.
-  // Track which segment indices have properties consumed by the merge.
-  const consumedProps = new Map<number, Set<string>>(); // segIndex → consumed prop names
-  const mergedPropDefs = new Map<string, { defs: Record<string, unknown>; key: string }>();
-
-  for (const prop of mergeableProps) {
-    const indices = propToIndices.get(prop)!;
-    let merged: Record<string, unknown> = {};
-    const keyParts: string[] = [];
-
-    for (const idx of indices) {
-      const seg = segments[idx];
-      const value = seg.defs[prop];
-      keyParts.push(seg.key);
-
-      if (typeof value === "string" || typeof value === "number") {
-        // Base value → default
-        merged.default = value;
-      } else if (typeof value === "object" && value !== null) {
-        // Conditional value — merge all keys (may include default: null which base will override)
-        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-          if (k === "default" && v === null && merged.default !== undefined) {
-            // Don't let a conditional's `default: null` clobber the base value
-            continue;
-          }
-          merged[k] = v;
-        }
-      }
-
-      // Mark this property as consumed from this segment
-      if (!consumedProps.has(idx)) consumedProps.set(idx, new Set());
-      consumedProps.get(idx)!.add(prop);
-    }
-
-    // If the merged object has only a `default` key, it's just a raw value (no conditions)
-    const finalValue = Object.keys(merged).length === 1 && "default" in merged ? merged.default : merged;
-    const mergedKey = [...new Set(keyParts)].join("_");
-    mergedPropDefs.set(prop, { defs: { [prop]: finalValue }, key: mergedKey });
-  }
-
-  // Group mergeable props that share the exact same set of contributing segments
-  // so they become one stylex.create entry.
-  const groupByIndices = new Map<string, { props: string[]; key: string }>();
-  for (const prop of mergeableProps) {
-    const indices = propToIndices.get(prop)!;
-    const groupKey = indices.join(",");
-    if (!groupByIndices.has(groupKey)) {
-      groupByIndices.set(groupKey, { props: [], key: mergedPropDefs.get(prop)!.key });
-    }
-    groupByIndices.get(groupKey)!.props.push(prop);
-  }
-
-  // Build merged segments
-  const mergedSegments: ResolvedSegment[] = [];
-  for (const [, group] of groupByIndices) {
-    const defs: Record<string, unknown> = {};
-    for (const prop of group.props) {
-      Object.assign(defs, mergedPropDefs.get(prop)!.defs);
-    }
-    mergedSegments.push({ key: group.key, defs });
-  }
-
-  // Rebuild result: emit non-consumed segments (or segments with remaining non-consumed props),
-  // then emit merged segments at the position of the first consumed segment.
-  const result: ResolvedSegment[] = [];
-  const mergedEmitted = new Set<string>();
-
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-    const consumed = consumedProps.get(i);
-
-    if (!consumed) {
-      // Not involved in any merge
-      result.push(seg);
-      continue;
-    }
-
-    // Emit any non-consumed properties from this segment
-    const remainingDefs: Record<string, unknown> = {};
-    for (const [prop, value] of Object.entries(seg.defs)) {
-      if (!consumed.has(prop)) {
-        remainingDefs[prop] = value;
-      }
-    }
-    if (Object.keys(remainingDefs).length > 0) {
-      result.push({ ...seg, defs: remainingDefs });
-    }
-
-    // Emit the merged segment(s) at the position of the first segment that contributed
-    const indices = [...propToIndices.entries()]
-      .filter(([prop]) => consumed.has(prop) && mergeableProps.has(prop))
-      .map(([, idxs]) => idxs.join(","));
-
-    for (const groupKey of new Set(indices)) {
-      if (!mergedEmitted.has(groupKey)) {
-        const group = groupByIndices.get(groupKey);
-        if (group) {
-          const defs: Record<string, unknown> = {};
-          for (const prop of group.props) {
-            Object.assign(defs, mergedPropDefs.get(prop)!.defs);
-          }
-          result.push({ key: group.key, defs });
-          mergedEmitted.add(groupKey);
-        }
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Convert a pseudo/media selector into a short key suffix.
- * ":hover" → "hover", ":focus-visible" → "focus_visible"
- * "@media screen and (max-width:599px)" → "sm" (using breakpoints reverse map)
- * "@container (min-width: 601px)" → "container_min_width_601px"
- */
-export function pseudoName(pseudo: string, breakpoints?: Record<string, string>): string {
-  if (pseudo.startsWith("@media") && breakpoints) {
-    // Reverse lookup: find the breakpoint getter name (e.g. "ifSm") and strip "if" prefix
-    for (const [getterName, mediaQuery] of Object.entries(breakpoints)) {
-      if (mediaQuery === pseudo) {
-        // "ifSm" → "sm", "ifSmOrMd" → "smOrMd", "ifMdAndUp" → "mdAndUp"
-        return getterName.replace(/^if/, "").replace(/^./, (c) => c.toLowerCase());
-      }
-    }
-    // Fallback: create a compact name from the media query
-    return pseudo
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .replace(/_+/g, "_")
-      .replace(/^_|_$/g, "");
-  }
-
-  if (pseudo.startsWith("@container")) {
-    return pseudo
-      .replace(/^@container\s*/, "container ")
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .replace(/_+/g, "_")
-      .replace(/^_|_$/g, "");
-  }
-
-  return pseudo.replace(/^:+/, "").replace(/-/g, "_");
-}
-
-/**
  * Try to evaluate a literal AST node to a string value.
  * For incremented entries, also evaluates `maybeInc(literal)`.
  */
@@ -981,7 +842,7 @@ function tryEvaluatePxLiteral(node: t.Expression | t.SpreadElement): string | nu
   return null;
 }
 
-/** Resolve ifContainer({ gt, lt, name? }) to a StyleX pseudo key. */
+/** Resolve ifContainer({ gt, lt, name? }) to a container query pseudo key. */
 function containerSelectorFromCall(node: CallChainNode): string {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`ifContainer() expects exactly 1 argument, got ${node.args.length}`);

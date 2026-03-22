@@ -19,6 +19,7 @@ workflows:
             branches:
               only:
                 - main
+                - truss-native
 
 jobs:
   build:
