@@ -19,7 +19,7 @@ function chain(segments: ResolvedSegment[]): ResolvedChain {
 
 describe("collectAtomicRules", () => {
   test("static single-property segment", () => {
-    const seg: ResolvedSegment = { key: "df", defs: { display: "flex" } };
+    const seg: ResolvedSegment = { abbr: "df", defs: { display: "flex" } };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("df")).toMatchObject({
       className: "df",
@@ -30,7 +30,7 @@ describe("collectAtomicRules", () => {
 
   test("static multi-property segment", () => {
     const seg: ResolvedSegment = {
-      key: "ba",
+      abbr: "ba",
       defs: { borderStyle: "solid", borderWidth: "1px" },
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
@@ -48,8 +48,8 @@ describe("collectAtomicRules", () => {
 
   test("static with pseudo-class", () => {
     const seg: ResolvedSegment = {
-      key: "blue__hover",
-      defs: { color: { default: null, ":hover": "#526675" } },
+      abbr: "blue",
+      defs: { color: "#526675" },
       pseudoClass: ":hover",
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
@@ -63,8 +63,8 @@ describe("collectAtomicRules", () => {
 
   test("static with media query", () => {
     const seg: ResolvedSegment = {
-      key: "blue__sm",
-      defs: { color: { default: null, "@media screen and (max-width: 599px)": "#526675" } },
+      abbr: "blue",
+      defs: { color: "#526675" },
       mediaQuery: "@media screen and (max-width: 599px)",
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
@@ -78,8 +78,8 @@ describe("collectAtomicRules", () => {
 
   test("static with pseudo-element", () => {
     const seg: ResolvedSegment = {
-      key: "blue__placeholder",
-      defs: { "::placeholder": { color: "#526675" } },
+      abbr: "blue",
+      defs: { color: "#526675" },
       pseudoElement: "::placeholder",
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
@@ -93,7 +93,7 @@ describe("collectAtomicRules", () => {
 
   test("variable segment", () => {
     const seg: ResolvedSegment = {
-      key: "mt",
+      abbr: "mt",
       defs: {},
       variableProps: ["marginTop"],
       incremented: true,
@@ -111,7 +111,7 @@ describe("collectAtomicRules", () => {
 
   test("variable segment with multiple props keeps one class and multiple declarations", () => {
     const seg: ResolvedSegment = {
-      key: "sq",
+      abbr: "sq",
       defs: {},
       variableProps: ["height", "width"],
       appendPx: true,
@@ -132,7 +132,7 @@ describe("collectAtomicRules", () => {
 
   test("variable with hover", () => {
     const seg: ResolvedSegment = {
-      key: "bc__hover",
+      abbr: "bc",
       defs: {},
       variableProps: ["borderColor"],
       pseudoClass: ":hover",

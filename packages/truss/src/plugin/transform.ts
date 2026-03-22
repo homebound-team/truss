@@ -88,8 +88,7 @@ export function transformTruss(
         return;
       }
 
-      // Use skipMerge: true so each segment retains its individual condition fields
-      const resolvedChain = resolveFullChain(chain, mapping, { skipMerge: true });
+      const resolvedChain = resolveFullChain(chain, mapping);
       sites.push({ path, resolvedChain });
 
       const line = path.node.loc?.start.line ?? null;

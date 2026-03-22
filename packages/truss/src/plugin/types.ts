@@ -23,43 +23,44 @@ export type TrussMappingEntry =
 
 /**
  * A resolved chain segment — one abbreviation resolved to its CSS effect.
- * The plugin collects these while walking a `Css.x.y.z.$` chain.
+ *
+ * The `defs` field always contains flat CSS property/value pairs (e.g. `{ color: "#353535" }`).
+ * Condition context (media query, pseudo-class, pseudo-element) is tracked via separate fields,
+ * NOT nested into defs. Consumers use the condition fields for class name prefixing and CSS rule
+ * generation.
  */
 export interface ResolvedSegment {
-  /** The emitted entry key (e.g. "df", "black__hover", "mt__16px") */
-  key: string;
-  /** The CSS property defs for this segment */
+  /** The abbreviation name, i.e. "df", "black", "mt", "ba". */
+  abbr: string;
+  /** Flat CSS property/value defs for this segment (no condition nesting). */
   defs: Record<string, unknown>;
-  /** If inside a media query context (e.g. "@media screen and (max-width:599px)") */
+  /** If inside a media query context (e.g. "@media screen and (max-width:599px)"). */
   mediaQuery?: string | null;
-  /** If inside a pseudo-class context (e.g. ":hover", ":focus") */
+  /** If inside a pseudo-class context (e.g. ":hover", ":focus"). */
   pseudoClass?: string | null;
-  /** If inside a pseudo-element context (e.g. "::placeholder", "::selection") — becomes a top-level key in the stylex.create namespace */
+  /** If inside a pseudo-element context (e.g. "::placeholder", "::selection"). */
   pseudoElement?: string | null;
-  /**
-   * If inside a `when()` relationship selector context, the relationship + pseudo selector info.
-   */
+  /** If inside a `when()` relationship selector context, the relationship + pseudo selector info. */
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
-  /** For variable entries: the CSS prop names */
+  /** For variable entries: the CSS prop names. */
   variableProps?: string[];
-  /** For variable entries: whether the value uses maybeInc */
+  /** For variable entries: whether the value uses maybeInc. */
   incremented?: boolean;
-  /** For variable Px delegates: whether the runtime value must append `px` */
+  /** For variable Px delegates: whether the runtime value must append `px`. */
   appendPx?: boolean;
-  /** For variable entries: additional static defs applied alongside the variable value */
+  /** For variable entries: additional static defs applied alongside the variable value. */
   variableExtraDefs?: Record<string, unknown>;
-  /** For variable entries: the AST node of the argument */
+  /** For variable entries: the AST node of the argument. */
   argNode?: any;
-  /** For composed Css props inserted via `add(cssProp)` */
+  /** For composed Css props inserted via `add(cssProp)`. */
   styleArrayArg?: any;
-  /** Whether the arg was a literal we could evaluate */
+  /** The evaluated literal value of the argument, if it was a compile-time constant. */
   argResolved?: string;
-  /** For runtime typography lookups: the lookup metadata and runtime key node */
+  /** For runtime typography lookups: the lookup metadata and runtime key node. */
   typographyLookup?: {
-    /** I.e. `"typography"` or `"typography__sm_hover"` for `Css.typography(key).$` in a given condition context. */
+    /** I.e. `"typography"` or `"typography__sm"` for `Css.typography(key).$` in a given condition context. */
     lookupKey: string;
     argNode: any;
-    /** I.e. `{ f14: [{ key: "f14", defs: { fontSize: "14px" } }], f10: [{ key: "f10", defs: { fontSize: "10px", fontWeight: 500 } }] }`. */
     segmentsByName: Record<string, ResolvedSegment[]>;
   };
   /**
@@ -78,28 +79,4 @@ export interface MarkerSegment {
   type: "marker";
   /** If set, the AST node of the user-provided marker variable. Otherwise, default marker. */
   markerNode?: any;
-}
-
-/** A fully analyzed Css expression site in the source file. */
-export interface CssExpressionSite {
-  /** The resolved segments for this expression */
-  segments: ResolvedSegment[];
-  /** Whether this is a conditional expression (if/else) */
-  conditional?: {
-    conditionNode: any;
-    thenSegments: ResolvedSegment[];
-    elseSegments: ResolvedSegment[];
-  };
-}
-
-/** Legacy emitted entry shape retained for type compatibility. */
-export interface StylexCreateEntry {
-  key: string;
-  /** For static entries: the CSS defs object (may include pseudo wrapping) */
-  defs?: Record<string, unknown>;
-  /** For variable entries: the param name(s) and whether it has pseudo wrapping */
-  variable?: {
-    props: string[];
-    pseudo: string | null;
-  };
 }

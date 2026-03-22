@@ -185,7 +185,7 @@ function computeStaticBaseName(
   isMultiProp: boolean,
   mapping: TrussMapping,
 ): string {
-  const abbrev = seg.key.split("__")[0];
+  const abbr = seg.abbr;
 
   if (seg.argResolved !== undefined) {
     const valuePart = cleanValueForClassName(seg.argResolved);
@@ -194,9 +194,9 @@ function computeStaticBaseName(
       const lookup = getLonghandLookup(mapping);
       const canonical = lookup.get(`${cssProp}\0${cssValue}`);
       if (canonical) return canonical;
-      return `${abbrev}_${valuePart}_${cssProp}`;
+      return `${abbr}_${valuePart}_${cssProp}`;
     }
-    return `${abbrev}_${valuePart}`;
+    return `${abbr}_${valuePart}`;
   }
 
   if (isMultiProp) {
@@ -204,10 +204,10 @@ function computeStaticBaseName(
     const lookup = getLonghandLookup(mapping);
     const canonical = lookup.get(`${cssProp}\0${cssValue}`);
     if (canonical) return canonical;
-    return `${abbrev}_${cssProp}`;
+    return `${abbr}_${cssProp}`;
   }
 
-  return abbrev;
+  return abbr;
 }
 
 // -- Collecting atomic rules from resolved chains --
@@ -220,8 +220,8 @@ export interface CollectedRules {
 /**
  * Collect all atomic CSS rules from resolved chains.
  *
- * This processes segments BEFORE mergeOverlappingConditions — each segment
- * maps directly to one or more atomic rules based on its condition context.
+ * Each segment maps directly to one or more atomic rules based on its
+ * condition context (mediaQuery, pseudoClass, pseudoElement, whenPseudo).
  */
 export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMapping): CollectedRules {
   const rules = new Map<string, AtomicRule>();
@@ -256,24 +256,20 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
 
 /** Collect atomic rules for a static segment (may have multiple CSS properties). */
 function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  // The segment's defs may be wrapped with StyleX-style condition nesting from
-  // wrapDefsWithConditions. We use the segment's raw condition fields instead.
-  const rawDefs = unwrapDefs(seg.defs, seg.pseudoElement);
   const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
-  const isMultiProp = Object.keys(rawDefs).length > 1;
+  const isMultiProp = Object.keys(seg.defs).length > 1;
 
-  for (const [cssProp, value] of Object.entries(rawDefs)) {
-    const cssValue = extractLeafValue(value);
-    if (cssValue === null) continue;
+  for (const [cssProp, value] of Object.entries(seg.defs)) {
+    const cssValue = String(value);
 
-    const baseName = computeStaticBaseName(seg, cssProp, String(cssValue), isMultiProp, mapping);
+    const baseName = computeStaticBaseName(seg, cssProp, cssValue, isMultiProp, mapping);
     const className = prefix ? `${prefix}${baseName}` : baseName;
 
     if (!rules.has(className)) {
       rules.set(className, {
         className,
         cssProperty: camelToKebab(cssProp),
-        cssValue: String(cssValue),
+        cssValue,
         pseudoClass: seg.pseudoClass ?? undefined,
         mediaQuery: seg.mediaQuery ?? undefined,
         pseudoElement: seg.pseudoElement ?? undefined,
@@ -285,12 +281,10 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
 /** Collect atomic rules for a variable segment. */
 function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const prefix = conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
-  const segmentBaseKey = seg.key.split("__")[0];
 
   for (const prop of seg.variableProps!) {
-    const baseKey = seg.key.split("__")[0];
-    const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
-    const varName = toCssVariableName(className, baseKey, prop);
+    const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
+    const varName = toCssVariableName(className, seg.abbr, prop);
     const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
 
     const existingRule = rules.get(className);
@@ -327,7 +321,7 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
   // Extra static defs alongside variable props
   if (seg.variableExtraDefs) {
     for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-      const extraBase = `${segmentBaseKey}_${cssProp}`;
+      const extraBase = `${seg.abbr}_${cssProp}`;
       const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
       if (!rules.has(extraName)) {
         rules.set(extraName, {
@@ -347,22 +341,20 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
 function collectWhenStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const wp = seg.whenPseudo!;
   const prefix = whenPrefix(wp);
-  const rawDefs = seg.defs;
-  const isMultiProp = Object.keys(rawDefs).length > 1;
+  const isMultiProp = Object.keys(seg.defs).length > 1;
   const mClass = markerClassName(wp.markerNode);
 
-  for (const [cssProp, value] of Object.entries(rawDefs)) {
-    const cssValue = typeof value === "string" || typeof value === "number" ? value : extractLeafValue(value);
-    if (cssValue === null) continue;
+  for (const [cssProp, value] of Object.entries(seg.defs)) {
+    const cssValue = String(value);
 
-    const baseName = computeStaticBaseName(seg, cssProp, String(cssValue), isMultiProp, mapping);
+    const baseName = computeStaticBaseName(seg, cssProp, cssValue, isMultiProp, mapping);
     const className = `${prefix}${baseName}`;
 
     if (!rules.has(className)) {
       rules.set(className, {
         className,
         cssProperty: camelToKebab(cssProp),
-        cssValue: String(cssValue),
+        cssValue,
         whenSelector: {
           relationship: wp.relationship ?? "ancestor",
           markerClass: mClass,
@@ -377,13 +369,11 @@ function collectWhenStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSeg
 function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const wp = seg.whenPseudo!;
   const prefix = whenPrefix(wp);
-  const segmentBaseKey = seg.key.split("__")[0];
   const mClass = markerClassName(wp.markerNode);
 
   for (const prop of seg.variableProps!) {
-    const baseKey = seg.key.split("__")[0];
-    const className = `${prefix}${baseKey}_var`;
-    const varName = toCssVariableName(className, baseKey, prop);
+    const className = `${prefix}${seg.abbr}_var`;
+    const varName = toCssVariableName(className, seg.abbr, prop);
     const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
 
     const existingRule = rules.get(className);
@@ -421,7 +411,7 @@ function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedS
 
   if (seg.variableExtraDefs) {
     for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-      const extraName = `${prefix}${segmentBaseKey}_${cssProp}`;
+      const extraName = `${prefix}${seg.abbr}_${cssProp}`;
       if (!rules.has(extraName)) {
         rules.set(extraName, {
           className: extraName,
@@ -436,46 +426,6 @@ function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedS
       }
     }
   }
-}
-
-/** Unwrap StyleX-style condition nesting and pseudo-element wrapping to get raw defs. */
-function unwrapDefs(defs: Record<string, unknown>, pseudoElement?: string | null): Record<string, unknown> {
-  let result = defs;
-  // Unwrap pseudo-element wrapper: { "::placeholder": { color: ... } } → { color: ... }
-  if (pseudoElement && result[pseudoElement] && typeof result[pseudoElement] === "object") {
-    result = result[pseudoElement] as Record<string, unknown>;
-  }
-  // Unwrap condition nesting: { color: { default: null, ":hover": "blue" } } → { color: "blue" }
-  // For segments with conditions, we want just the leaf value
-  const unwrapped: Record<string, unknown> = {};
-  for (const [prop, val] of Object.entries(result)) {
-    unwrapped[prop] = extractLeafValue(val) ?? val;
-  }
-  return unwrapped;
-}
-
-/**
- * Extract the actual CSS value from a potentially nested condition object.
- * I.e. `{ default: null, ":hover": "blue" }` → `"blue"`,
- * or `{ default: null, ":hover": { default: null, "@media...": "blue" } }` → `"blue"`.
- */
-function extractLeafValue(value: unknown): string | number | null {
-  if (typeof value === "string" || typeof value === "number") return value;
-  if (value === null) return null;
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    // Find the non-default, non-null leaf
-    for (const [k, v] of Object.entries(obj)) {
-      if (k === "default") continue;
-      if (typeof v === "string" || typeof v === "number") return v;
-      if (typeof v === "object" && v !== null) return extractLeafValue(v);
-    }
-    // If only default, return it
-    if ("default" in obj && obj.default !== null) {
-      return extractLeafValue(obj.default);
-    }
-  }
-  return null;
 }
 
 // -- CSS text generation --
@@ -752,12 +702,10 @@ export function buildStyleHashProperties(
       const prefix = seg.whenPseudo
         ? whenPrefix(seg.whenPseudo)
         : conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
-      const segmentBaseKey = seg.key.split("__")[0];
 
       for (const prop of seg.variableProps) {
-        const baseKey = seg.key.split("__")[0];
-        const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
-        const varName = toCssVariableName(className, baseKey, prop);
+        const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
+        const varName = toCssVariableName(className, seg.abbr, prop);
 
         if (!propGroups.has(prop)) propGroups.set(prop, []);
         propGroups.get(prop)!.push({
@@ -773,23 +721,19 @@ export function buildStyleHashProperties(
       // Extra static defs
       if (seg.variableExtraDefs) {
         for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-          const extraBase = `${segmentBaseKey}_${cssProp}`;
+          const extraBase = `${seg.abbr}_${cssProp}`;
           const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
           if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
           propGroups.get(cssProp)!.push({ className: extraName, isVariable: false });
         }
       }
     } else {
-      const rawDefs = seg.whenPseudo ? seg.defs : unwrapDefs(seg.defs, seg.pseudoElement);
       const prefix = seg.whenPseudo
         ? whenPrefix(seg.whenPseudo)
         : conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints);
-      const isMultiProp = Object.keys(rawDefs).length > 1;
+      const isMultiProp = Object.keys(seg.defs).length > 1;
 
-      for (const cssProp of Object.keys(rawDefs)) {
-        const val = extractLeafValue(rawDefs[cssProp]);
-        if (val === null) continue;
-
+      for (const [cssProp, val] of Object.entries(seg.defs)) {
         const baseName = computeStaticBaseName(seg, cssProp, String(val), isMultiProp, mapping);
         const className = prefix ? `${prefix}${baseName}` : baseName;
 
@@ -839,8 +783,8 @@ export function buildStyleHashProperties(
 /** Build a CSS variable name from the real CSS property and class condition prefix. */
 function toCssVariableName(className: string, baseKey: string, cssProp: string): string {
   const baseClassName = `${baseKey}_var`;
-  const conditionPrefix = className.endsWith(baseClassName) ? className.slice(0, -baseClassName.length) : "";
-  return `--${conditionPrefix}${cssProp}`;
+  const cp = className.endsWith(baseClassName) ? className.slice(0, -baseClassName.length) : "";
+  return `--${cp}${cssProp}`;
 }
 
 // -- Helper declarations --
