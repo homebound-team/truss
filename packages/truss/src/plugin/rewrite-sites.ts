@@ -109,10 +109,12 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
       const thenMembers = mergeConditionalBranchMembers(
         buildStyleHashMembers(part.thenSegments, options),
         previousProperties,
+        collectConditionalOnlyProps(part.thenSegments),
       );
       const elseMembers = mergeConditionalBranchMembers(
         buildStyleHashMembers(part.elseSegments, options),
         previousProperties,
+        collectConditionalOnlyProps(part.elseSegments),
       );
       members.push(
         t.spreadElement(
@@ -177,17 +179,51 @@ function buildStyleHashMembers(
   return members;
 }
 
+/**
+ * Collect the set of CSS properties where ALL contributing segments have a condition
+ * (pseudo-class, media query, pseudo-element, or when relationship).
+ *
+ * I.e. `onHover.white` → `color` is conditional-only (needs base merged in),
+ * but `bgWhite` → `backgroundColor` is a plain replacement (should NOT merge).
+ */
+function collectConditionalOnlyProps(segments: ResolvedSegment[]): Set<string> {
+  const allProps = new Map<string, boolean>();
+  for (const seg of segments) {
+    if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
+    const hasCondition = !!(seg.pseudoClass || seg.mediaQuery || seg.pseudoElement || seg.whenPseudo);
+    const props = seg.variableProps ?? Object.keys(seg.defs);
+    for (const prop of props) {
+      const current = allProps.get(prop);
+      // If any segment for this property is unconditional, it's not conditional-only
+      allProps.set(prop, current === undefined ? hasCondition : current && hasCondition);
+    }
+  }
+  const result = new Set<string>();
+  for (const [prop, isConditionalOnly] of allProps) {
+    if (isConditionalOnly) result.add(prop);
+  }
+  return result;
+}
+
+/**
+ * Merge prior base properties into conditional branch members, but only for
+ * properties that are purely conditional (pseudo/media overlays). Plain
+ * base-level replacements should NOT be merged — the spread will correctly
+ * override the base when the condition is true.
+ */
 function mergeConditionalBranchMembers(
   members: (t.ObjectProperty | t.SpreadElement)[],
   previousProperties: Map<string, t.ObjectProperty>,
+  conditionalOnlyProps: Set<string>,
 ): (t.ObjectProperty | t.SpreadElement)[] {
   return members.map(function (member) {
     if (!t.isObjectProperty(member)) {
       return member;
     }
 
-    const prior = previousProperties.get(propertyName(member.key));
-    if (!prior) {
+    const prop = propertyName(member.key);
+    const prior = previousProperties.get(prop);
+    if (!prior || !conditionalOnlyProps.has(prop)) {
       return member;
     }
 
