@@ -27,8 +27,8 @@ void invalidChipElement;
  * `toHaveStyle` works for static (class-based) styles.
  *
  * Variable/parameterized styles (e.g. `Css.mt(n).$` with a variable) use CSS
- * variables: the class sets `margin-top: var(--mt_var)` and the inline style
- * sets `--mt_var: 16px`. jsdom cannot resolve `var()` references, so truly
+ * variables: the class sets `margin-top: var(--marginTop)` and the inline style
+ * sets `--marginTop: 16px`. jsdom cannot resolve `var()` references, so truly
  * variable values must be tested by checking the CSS variable on the element's
  * inline style.
  *
@@ -199,7 +199,7 @@ describe("Truss CssBuilder", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el.style.getPropertyValue("--mt_var")).toBe("16px");
+      expect(el.style.getPropertyValue("--marginTop")).toBe("16px");
     });
   });
 
@@ -386,7 +386,7 @@ describe("Truss CssBuilder", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
-      expect(div.style.getPropertyValue("--mt_var")).toBe("16px");
+      expect(div.style.getPropertyValue("--marginTop")).toBe("16px");
     });
 
     test("css prop applies variable styles with literal", () => {

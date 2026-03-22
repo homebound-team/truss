@@ -92,7 +92,7 @@ describe("transform", () => {
       n(`
         const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
         const x = getSomeValue();
-        const s = { marginTop: ["mt_var", { "--mt_var": __maybeInc(x) }] };
+        const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] };
       `),
     );
   });
@@ -107,7 +107,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.mtPx(x).$;`)!)).toBe(
       n(`
         const x = getSomeValue();
-        const s = { marginTop: ["mt_var", { "--mt_var": \`\${x}px\` }] };
+        const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
       `),
     );
   });
@@ -116,7 +116,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.pxPx(x).$;`)!)).toBe(
       n(`
         const x = getSomeValue();
-        const s = { paddingLeft: ["px_var", { "--px_var": \`\${x}px\` }], paddingRight: ["px_var", { "--px_var": \`\${x}px\` }] };
+        const s = { paddingLeft: ["px_var", { "--paddingLeft": \`\${x}px\` }], paddingRight: ["px_var", { "--paddingRight": \`\${x}px\` }] };
       `),
     );
   });
@@ -125,7 +125,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const x = getSomeValue(); const s = Css.sqPx(x).$;`)!)).toBe(
       n(`
         const x = getSomeValue();
-        const s = { height: ["sq_var", { "--sq_var": \`\${x}px\` }], width: ["sq_var", { "--sq_var": \`\${x}px\` }] };
+        const s = { height: ["sq_var", { "--height": \`\${x}px\` }], width: ["sq_var", { "--width": \`\${x}px\` }] };
       `),
     );
   });
@@ -140,7 +140,7 @@ describe("transform", () => {
     expect(n(transform(`import { Css } from "./Css"; const color = getColor(); const s = Css.bc(color).$;`)!)).toBe(
       n(`
         const color = getColor();
-        const s = { borderColor: ["bc_var", { "--bc_var": color }] };
+        const s = { borderColor: ["bc_var", { "--borderColor": color }] };
       `),
     );
   });
@@ -152,7 +152,7 @@ describe("transform", () => {
       n(`
         const lines = getLineCount();
         const s = {
-          WebkitLineClamp: ["lineClamp_var", { "--lineClamp_var": lines }],
+          WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": lines }],
           overflow: "lineClamp_overflow",
           display: "lineClamp_display",
           WebkitBoxOrient: "lineClamp_WebkitBoxOrient",
@@ -317,7 +317,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         const color = getColor();
-        const s = { borderColor: ["h_bc_var", { "--h_bc_var": color }] };
+        const s = { borderColor: ["h_bc_var", { "--h_borderColor": color }] };
       `),
     );
   });
@@ -1301,7 +1301,7 @@ describe("transform", () => {
         const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
         const __maybeInc = keepMe();
         const x = getSomeValue();
-        const s = { marginTop: ["mt_var", { "--mt_var": __maybeInc_1(x) }] };
+        const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc_1(x) }] };
       `),
     );
   });
@@ -1633,7 +1633,7 @@ describe("transform", () => {
     ).toBe(
       n(`
         const shadow = getShadow();
-        const s = { boxShadow: ["add_boxShadow_var", { "--add_boxShadow_var": shadow }] };
+        const s = { boxShadow: ["add_boxShadow_var", { "--boxShadow": shadow }] };
       `),
     );
   });

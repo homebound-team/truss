@@ -284,7 +284,7 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
 
   for (const prop of seg.variableProps!) {
     const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
-    const varName = `--${className}`;
+    const varName = toCssVariableName(className, baseKey, prop);
 
     if (!rules.has(className)) {
       rules.set(className, {
@@ -357,7 +357,7 @@ function collectWhenVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedS
 
   for (const prop of seg.variableProps!) {
     const className = `${prefix}${baseKey}_var`;
-    const varName = `--${className}`;
+    const varName = toCssVariableName(className, baseKey, prop);
 
     if (!rules.has(className)) {
       rules.set(className, {
@@ -622,7 +622,7 @@ export function buildStyleHashProperties(
 
       for (const prop of seg.variableProps) {
         const className = prefix ? `${prefix}${baseKey}_var` : `${baseKey}_var`;
-        const varName = `--${className}`;
+        const varName = toCssVariableName(className, baseKey, prop);
 
         if (!propGroups.has(prop)) propGroups.set(prop, []);
         propGroups.get(prop)!.push({
@@ -699,6 +699,13 @@ export function buildStyleHashProperties(
   }
 
   return properties;
+}
+
+/** Build a CSS variable name from the real CSS property and class condition prefix. */
+function toCssVariableName(className: string, baseKey: string, cssProp: string): string {
+  const baseClassName = `${baseKey}_var`;
+  const conditionPrefix = className.endsWith(baseClassName) ? className.slice(0, -baseClassName.length) : "";
+  return `--${conditionPrefix}${cssProp}`;
 }
 
 // -- Helper declarations --

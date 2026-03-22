@@ -87,7 +87,7 @@ Replaces `emit-stylex.ts`. Core responsibilities:
 - Media: `@media (...) { .blue_sm.blue_sm { color: ... } }` (doubled selector)
 - Media+pseudo: `@media (...) { .blue_sm_h.blue_sm_h:hover { ... } }`
 - Pseudo-element: `.blue_placeholder::placeholder { ... }`
-- Variable: `.mt_var { margin-top: var(--mt_var) }` + `@property`
+- Variable: `.mt_var { margin-top: var(--marginTop) }` + `@property`
 - Ordered by precedence tiers
 
 **AST generation:**

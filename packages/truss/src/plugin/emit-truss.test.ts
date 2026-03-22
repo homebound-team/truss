@@ -104,8 +104,8 @@ describe("collectAtomicRules", () => {
     expect(result.rules.get("mt_var")).toMatchObject({
       className: "mt_var",
       cssProperty: "margin-top",
-      cssValue: "var(--mt_var)",
-      cssVarName: "--mt_var",
+      cssValue: "var(--marginTop)",
+      cssVarName: "--marginTop",
     });
   });
 
@@ -121,9 +121,9 @@ describe("collectAtomicRules", () => {
     expect(rules.get("h_bc_var")).toMatchObject({
       className: "h_bc_var",
       cssProperty: "border-color",
-      cssValue: "var(--h_bc_var)",
+      cssValue: "var(--h_borderColor)",
       pseudoClass: ":hover",
-      cssVarName: "--h_bc_var",
+      cssVarName: "--h_borderColor",
     });
   });
 });
@@ -199,14 +199,14 @@ describe("generateCssText", () => {
         {
           className: "mt_var",
           cssProperty: "margin-top",
-          cssValue: "var(--mt_var)",
-          cssVarName: "--mt_var",
+          cssValue: "var(--marginTop)",
+          cssVarName: "--marginTop",
         },
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".mt_var {\n  margin-top: var(--mt_var);\n}");
-    expect(css).toContain('@property --mt_var {\n  syntax: "*";\n  inherits: false;\n}');
+    expect(css).toContain(".mt_var {\n  margin-top: var(--marginTop);\n}");
+    expect(css).toContain('@property --marginTop {\n  syntax: "*";\n  inherits: false;\n}');
   });
 
   test("ordering: base before pseudo before media", () => {

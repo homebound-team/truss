@@ -94,7 +94,7 @@ And for variable values it can be a tuple of class bundle + CSS variable map:
 
 ```ts
 {
-  marginTop: ["mt_var", { "--mt_var": "16px" }];
+  marginTop: ["mt_var", { "--marginTop": "16px" }];
 }
 ```
 
@@ -166,7 +166,7 @@ Example:
 
 ```ts
 Css.mt(x).$ -> {
-  marginTop: ["mt_var", { "--mt_var": __maybeInc(x) }],
+  marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }],
 }
 ```
 
@@ -174,9 +174,9 @@ And:
 
 ```css
 .mt_var {
-  margin-top: var(--mt_var);
+  margin-top: var(--marginTop);
 }
-@property --mt_var {
+@property --marginTop {
   syntax: "*";
   inherits: false;
 }
@@ -185,13 +185,13 @@ And:
 At runtime, `trussProps` will turn that into:
 
 - `className: "mt_var"`
-- `style: { "--mt_var": "16px" }`
+- `style: { "--marginTop": "16px" }`
 
 The tuple format is `[classNames: string, vars: Record<string, string>]` where `classNames` is space-separated (just like static values) and `vars` maps CSS variable names to runtime values. This naturally supports multiple variable values within one property bundle:
 
 ```ts
 Css.bc(x).onHover.bc(y).$ -> {
-  borderColor: ["bc_var h_bc_var", { "--bc_var": x, "--h_bc_var": y }],
+  borderColor: ["bc_var h_bc_var", { "--borderColor": x, "--h_borderColor": y }],
 }
 ```
 
@@ -199,10 +199,10 @@ with CSS:
 
 ```css
 .bc_var {
-  border-color: var(--bc_var);
+  border-color: var(--borderColor);
 }
 .h_bc_var:hover {
-  border-color: var(--h_bc_var);
+  border-color: var(--h_borderColor);
 }
 ```
 
@@ -217,7 +217,7 @@ When a property bundle has multiple variable conditions, the tuple carries the f
 
 ```ts
 Css.bc(x).onHover.bc(y).$ -> {
-  borderColor: ["bc_var h_bc_var", { "--bc_var": x, "--h_bc_var": y }],
+  borderColor: ["bc_var h_bc_var", { "--borderColor": x, "--h_borderColor": y }],
 }
 ```
 
@@ -521,7 +521,7 @@ Only the first property in the hash needs the debug info (it's per-expression, n
 
 ```ts
 {
-  marginTop: ["mt_var", { "--mt_var": x }, new TrussDebugInfo("MyComponent.tsx:12")];
+  marginTop: ["mt_var", { "--marginTop": x }, new TrussDebugInfo("MyComponent.tsx:12")];
 }
 ```
 
@@ -558,7 +558,7 @@ should become something equivalent to:
 and produce:
 
 - `className` from Truss styles
-- `style={{ color: "red", "--mt_var": "16px" }}`
+- `style={{ color: "red", "--marginTop": "16px" }}`
 
 So in practice `mergeProps` should be a small React-prop merge helper, not just a className concatenator.
 
@@ -685,13 +685,13 @@ Use the pseudo-element name (without `::`) as a prefix:
 
 Use `abbrev_var` with the same condition prefixes:
 
-- `mt_var` -> `.mt_var { margin-top: var(--mt_var) }`
-- `h_bc_var` -> `.h_bc_var:hover { border-color: var(--h_bc_var) }`
+- `mt_var` -> `.mt_var { margin-top: var(--marginTop) }`
+- `h_bc_var` -> `.h_bc_var:hover { border-color: var(--h_borderColor) }`
 
-CSS variables are named to match their class:
+CSS variables are named to match their CSS property, with any condition prefix preserved:
 
-- `--mt_var`
-- `--h_bc_var`
+- `--marginTop`
+- `--h_borderColor`
 
 ### `add()` classes
 
@@ -700,7 +700,7 @@ CSS variables are named to match their class:
 For a runtime value:
 
 ```ts
-Css.add("color", color).$ -> { color: ["color_var", { "--color_var": color }] }
+Css.add("color", color).$ -> { color: ["color_var", { "--color": color }] }
 ```
 
 For a literal value, Phase 1 has two possible behaviors:
@@ -714,7 +714,7 @@ So the ideal behavior is:
 
 ```ts
 Css.add("color", "red").$ -> { color: "color_red" }
-Css.add("color", color).$ -> { color: ["color_var", { "--color_var": color }] }
+Css.add("color", color).$ -> { color: ["color_var", { "--color": color }] }
 ```
 
 If implementation simplicity forces Phase 1 to make all `add()` calls variable, the doc and tests should say so explicitly. What matters most is that the behavior is deliberate and documented.
@@ -722,10 +722,10 @@ If implementation simplicity forces Phase 1 to make all `add()` calls variable, 
 Variable example:
 
 ```ts
-Css.add("color", "red").$ -> { color: ["color_var", { "--color_var": "red" }] }
+Css.add("color", "red").$ -> { color: ["color_var", { "--color": "red" }] }
 ```
 
-This reuses the same `.color_var { color: var(--color_var) }` class that any other variable `color` value would use.
+This reuses the same `.color_var { color: var(--color) }` class that any other variable `color` value would use.
 
 ## Transform Behavior
 
@@ -929,17 +929,17 @@ Examples:
 
 /* Variable classes */
 .mt_var {
-  margin-top: var(--mt_var);
+  margin-top: var(--marginTop);
 }
-@property --mt_var {
+@property --marginTop {
   syntax: "*";
   inherits: false;
 }
 
 .h_bc_var:hover {
-  border-color: var(--h_bc_var);
+  border-color: var(--h_borderColor);
 }
-@property --h_bc_var {
+@property --h_borderColor {
   syntax: "*";
   inherits: false;
 }
