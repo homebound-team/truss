@@ -21,12 +21,19 @@ describe("transform", () => {
   });
 
   test("static chain: Css.df.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "df" };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("keeps runtime import rewrites on the former Css import line", () => {
@@ -59,62 +66,109 @@ describe("transform", () => {
   });
 
   test("multi-getter chain: Css.df.aic.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.aic.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "df", alignItems: "aic" };
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("css prop on JSX: css={Css.df.$}", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const el = <div css={Css.df.$} />;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({ display: "df" })} />;
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("css prop with multi-getter: css={Css.df.aic.black.$}", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const el = <div css={Css.df.aic.black.$} />;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({ display: "df", alignItems: "aic", color: "black" })} />;
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .black {
+        color: #353535;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("debug mode rewrites jsx css props through trussProps", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const el = <div css={Css.df.aic.$} />;
     `,
       { debug: true },
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { trussProps, TrussDebugInfo } from "@homebound/truss/runtime";
       const el = <div {...trussProps({ display: ["df", new TrussDebugInfo("test.tsx:2")], alignItems: "aic" })} />;
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("debug mode keeps debug info in non-jsx style objects", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const s = Css.df.$;
     `,
       { debug: true },
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { TrussDebugInfo } from "@homebound/truss/runtime";
       const s = { display: ["df", new TrussDebugInfo("test.tsx:2")] };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("debug mode keeps mergeProps for className composition", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const el = <div className="existing" css={Css.df.$} />;
@@ -122,110 +176,211 @@ describe("transform", () => {
       {
         debug: true,
       },
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { mergeProps, TrussDebugInfo } from "@homebound/truss/runtime";
       const el = <div {...mergeProps("existing", undefined, { display: ["df", new TrussDebugInfo("test.tsx:2")] })} />;
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("variable with literal arg: Css.mt(2).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mt(2).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { marginTop: "mt_16px" };
-    `);
+    `,
+      `
+      .mt_16px {
+        margin-top: 16px;
+      }
+    `,
+    );
   });
 
   test("variable with string literal: Css.mt('10px').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mt("10px").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { marginTop: "mt_10px" };
-    `);
+    `,
+      `
+      .mt_10px {
+        margin-top: 10px;
+      }
+    `,
+    );
   });
 
   test("variable with variable arg: Css.mt(x).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const x = getSomeValue();
       const s = Css.mt(x).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
             const x = getSomeValue();
             const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] };
-    `);
+    `,
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("delegate with literal: Css.mtPx(12).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mtPx(12).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { marginTop: "mt_12px" };
-    `);
+    `,
+      `
+      .mt_12px {
+        margin-top: 12px;
+      }
+    `,
+    );
   });
 
   test("delegate with variable arg appends px: Css.mtPx(x).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const x = getSomeValue();
       const s = Css.mtPx(x).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const x = getSomeValue();
       const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
-    `);
+    `,
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("delegate shorthand with multiple props appends px: Css.pxPx(x).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const x = getSomeValue();
       const s = Css.pxPx(x).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const x = getSomeValue();
       const s = { paddingLeft: ["px_var", { "--paddingLeft": \`\${x}px\` }], paddingRight: ["px_var", { "--paddingRight": \`\${x}px\` }] };
-    `);
+    `,
+      `
+      .px_var {
+        padding-left: var(--paddingLeft);
+        padding-right: var(--paddingRight);
+      }
+      @property --paddingLeft {
+        syntax: "*";
+        inherits: false;
+      }
+      @property --paddingRight {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("delegate shorthand with multiple props supports sqPx: Css.sqPx(x).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const x = getSomeValue();
       const s = Css.sqPx(x).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const x = getSomeValue();
       const s = { height: ["sq_var", { "--height": \`\${x}px\` }], width: ["sq_var", { "--width": \`\${x}px\` }] };
-    `);
+    `,
+      `
+      .sq_var {
+        height: var(--height);
+        width: var(--width);
+      }
+      @property --height {
+        syntax: "*";
+        inherits: false;
+      }
+      @property --width {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("non-incremented variable: Css.bc('red').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.bc("red").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { borderColor: "bc_red" };
-    `);
+    `,
+      `
+      .bc_red {
+        border-color: red;
+      }
+    `,
+    );
   });
 
   test("non-incremented variable with variable: Css.bc(color).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const color = getColor();
       const s = Css.bc(color).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const color = getColor();
       const s = { borderColor: ["bc_var", { "--borderColor": color }] };
-    `);
+    `,
+      `
+      .bc_var {
+        border-color: var(--borderColor);
+      }
+      @property --borderColor {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("variable method keeps extra defs: Css.lineClamp(lines).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const lines = getLineCount();
       const s = Css.lineClamp(lines).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const lines = getLineCount();
       const s = {
         WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": lines }],
@@ -234,14 +389,37 @@ describe("transform", () => {
         WebkitBoxOrient: "lineClamp_WebkitBoxOrient",
         textOverflow: "lineClamp_textOverflow"
       };
-    `);
+    `,
+      `
+      .lineClamp_overflow {
+        overflow: hidden;
+      }
+      .lineClamp_WebkitBoxOrient {
+        -webkit-box-orient: vertical;
+      }
+      .lineClamp_display {
+        display: -webkit-box;
+      }
+      .lineClamp_textOverflow {
+        text-overflow: ellipsis;
+      }
+      .lineClamp_var {
+        -webkit-line-clamp: var(--WebkitLineClamp);
+      }
+      @property --WebkitLineClamp {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("variable literal keeps extra defs: Css.lineClamp('3').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.lineClamp("3").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = {
         WebkitLineClamp: "lineClamp_3_WebkitLineClamp",
         overflow: "oh",
@@ -249,39 +427,84 @@ describe("transform", () => {
         WebkitBoxOrient: "lineClamp_3_WebkitBoxOrient",
         textOverflow: "lineClamp_3_textOverflow"
       };
-    `);
+    `,
+      `
+      .oh {
+        overflow: hidden;
+      }
+      .lineClamp_3_WebkitBoxOrient {
+        -webkit-box-orient: vertical;
+      }
+      .lineClamp_3_WebkitLineClamp {
+        -webkit-line-clamp: 3;
+      }
+      .lineClamp_3_display {
+        display: -webkit-box;
+      }
+      .lineClamp_3_textOverflow {
+        text-overflow: ellipsis;
+      }
+    `,
+    );
   });
 
   test("multiple expressions dedup entries", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const a = <div css={Css.df.$} />;
       const b = <div css={Css.df.aic.$} />;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const a = <div {...trussProps({ display: "df" })} />;
       const b = <div {...trussProps({ display: "df", alignItems: "aic" })} />;
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("alias expansion: Css.bodyText.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.bodyText.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { fontSize: "f14", color: "black" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      .f14 {
+        font-size: 14px;
+      }
+    `,
+    );
   });
 
   test("typography literal: Css.typography('f14').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.typography("f14").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { fontSize: "f14" };
-    `);
+    `,
+      `
+      .f14 {
+        font-size: 14px;
+      }
+    `,
+    );
   });
 
   test("typography runtime key: Css.typography(key).$", () => {
@@ -332,14 +555,15 @@ describe("transform", () => {
   });
 
   test("typography runtime keys across breakpoint contexts", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css, type Typography } from "./Css";
       const key: Typography = pickType();
       const otherKey: Typography = pickOtherType();
       const s = Css.typography(key).ifSm.typography(otherKey).$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { type Typography } from "./Css";
       const __typography = {
         f24: { fontSize: "f24" },
@@ -360,151 +584,336 @@ describe("transform", () => {
       const key: Typography = pickType();
       const otherKey: Typography = pickOtherType();
       const s = { ...(__typography[key] ?? {}), ...(__typography__sm[otherKey] ?? {}) };
-    `);
+    `,
+      `
+      .f10_fontSize {
+        font-size: 10px;
+      }
+      .f12 {
+        font-size: 12px;
+      }
+      .f14 {
+        font-size: 14px;
+      }
+      .f16 {
+        font-size: 16px;
+      }
+      .f18 {
+        font-size: 18px;
+      }
+      .f24 {
+        font-size: 24px;
+      }
+      .fw5 {
+        font-weight: 500;
+      }
+      @media screen and (max-width: 599px) {
+        .sm_f10_fontSize.sm_f10_fontSize {
+          font-size: 10px;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_f12.sm_f12 {
+          font-size: 12px;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_f14.sm_f14 {
+          font-size: 14px;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_f16.sm_f16 {
+          font-size: 16px;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_f18.sm_f18 {
+          font-size: 18px;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_f24.sm_f24 {
+          font-size: 24px;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_fw5.sm_fw5 {
+          font-weight: 500;
+        }
+      }
+    `,
+    );
   });
 
   test("Css import is removed when only Css is imported", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "df" };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("Css specifier removed but Palette kept", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css, Palette } from "./Css";
       const s = Css.df.$;
       const c = Palette.Black;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { Palette } from "./Css";
       const s = { display: "df" };
       const c = Palette.Black;
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("multi-property static: Css.ba.$ (border)", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ba.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { borderStyle: "bss", borderWidth: "bw1" };
-    `);
+    `,
+      `
+      .bss {
+        border-style: solid;
+      }
+      .bw1 {
+        border-width: 1px;
+      }
+    `,
+    );
   });
 
   test("mixed static and variable: Css.df.mt(2).black.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.mt(2).black.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "df", marginTop: "mt_16px", color: "black" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      .df {
+        display: flex;
+      }
+      .mt_16px {
+        margin-top: 16px;
+      }
+    `,
+    );
   });
 
   test("onHover pseudo: Css.black.onHover.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.black.onHover.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "black h_blue" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      .h_blue:hover {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("onHover with multi-property: Css.onHover.ba.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.onHover.ba.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { borderStyle: "h_bss", borderWidth: "h_bw1" };
-    `);
+    `,
+      `
+      .h_bss:hover {
+        border-style: solid;
+      }
+      .h_bw1:hover {
+        border-width: 1px;
+      }
+    `,
+    );
   });
 
   test("onFocus pseudo: Css.onFocus.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.onFocus.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "f_blue" };
-    `);
+    `,
+      `
+      .f_blue:focus {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("onFocusWithin pseudo: Css.onFocusWithin.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.onFocusWithin.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "fw_blue" };
-    `);
+    `,
+      `
+      .fw_blue:focus-within {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("onHover with variable literal: Css.onHover.bc('red').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.onHover.bc("red").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { borderColor: "h_bc_red" };
-    `);
+    `,
+      `
+      .h_bc_red:hover {
+        border-color: red;
+      }
+    `,
+    );
   });
 
   test("onHover with variable variable: Css.onHover.bc(color).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const color = getColor();
       const s = Css.onHover.bc(color).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const color = getColor();
       const s = { borderColor: ["h_bc_var", { "--h_borderColor": color }] };
-    `);
+    `,
+      `
+      .h_bc_var:hover {
+        border-color: var(--h_borderColor);
+      }
+      @property --h_borderColor {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("container query pseudo: Css.ifContainer({ gt, lt }).gc('span 2').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ifContainer({ gt: 600, lt: 960 }).gc("span 2").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { gridColumn: "mq_gc_span_2" };
-    `);
+    `,
+      `
+      @container (min-width: 601px) and (max-width: 960px) {
+        .mq_gc_span_2.mq_gc_span_2 {
+          grid-column: span 2;
+        }
+      }
+    `,
+    );
   });
 
   test("container query merges overlapping property", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.black.ifContainer({ gt: 600, lt: 960 }).blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "black mq_blue" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      @container (min-width: 601px) and (max-width: 960px) {
+        .mq_blue.mq_blue {
+          color: #526675;
+        }
+      }
+    `,
+    );
   });
 
   test("container query with named container", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const s = Css.ifContainer({ name: "grid", gt: 600, lt: 960 }).blue.$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const s = { color: "mq_blue" };
-    `);
+    `,
+      `
+      @container grid (min-width: 601px) and (max-width: 960px) {
+        .mq_blue.mq_blue {
+          color: #526675;
+        }
+      }
+    `,
+    );
   });
 
   test("container query requires literal bounds: emits console.error and preserves valid segments", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const minWidth = getMinWidth();
       const maxWidth = getMaxWidth();
       const s = Css.ifContainer({ gt: minWidth, lt: maxWidth }).blue.$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: ifContainer().gt must be a numeric literal (test.tsx:4)");
       const minWidth = getMinWidth();
       const maxWidth = getMaxWidth();
       const s = { color: "blue" };
-    `);
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("object spread composition uses native object spread", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
 
@@ -519,7 +928,8 @@ describe("transform", () => {
 
       const el = <div css={{ ...styles.wrapper, ...(isHovered ? styles.hover : {}) }} />;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const styles = {
         wrapper: {
@@ -530,11 +940,35 @@ describe("transform", () => {
         hover: { backgroundColor: "bgBlue" }
       };
       const el = <div {...trussProps({ ...styles.wrapper, ...(isHovered ? styles.hover : {}) })} />;
-    `);
+    `,
+      `
+      .bss {
+        border-style: solid;
+      }
+      .bw1 {
+        border-width: 1px;
+      }
+      .aic {
+        align-items: center;
+      }
+      .bgBlue {
+        background-color: #526675;
+      }
+      .black {
+        color: #353535;
+      }
+      .blue {
+        color: #526675;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("native object composition stays as-is", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       function Button(props) {
@@ -555,7 +989,8 @@ describe("transform", () => {
           ...(isHovered && hoverStyles),
         }} />;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       function Button(props) {
         const { active, isHovered } = props;
@@ -564,11 +999,26 @@ describe("transform", () => {
         const hoverStyles = { ...{ color: "blue" } };
         return <div {...trussProps({ ...baseStyles, ...(active && activeStyles), ...(isHovered && hoverStyles) })} />;
       }
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .black {
+        color: #353535;
+      }
+      .blue {
+        color: #526675;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("Css.props is rewritten to trussProps spread", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       function Button() {
@@ -578,7 +1028,8 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       function Button() {
         const attrs = {
@@ -587,11 +1038,17 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `);
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("Css.props in debug mode is rewritten to trussProps", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
 
@@ -603,7 +1060,8 @@ describe("transform", () => {
       }
     `,
       { debug: true },
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { trussProps, TrussDebugInfo } from "@homebound/truss/runtime";
       function Button() {
         const attrs = {
@@ -611,11 +1069,20 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("Css.props with object literal passes through to trussProps", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       function Button({ active, styles }) {
@@ -628,7 +1095,8 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       function Button({ active, styles }) {
         const attrs = {
@@ -637,11 +1105,13 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `);
+    `,
+      ``,
+    );
   });
 
   test("Css.props with sibling className merges via mergeProps", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       function Button({ asLink, navLink }) {
@@ -651,7 +1121,8 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps, mergeProps } from "@homebound/truss/runtime";
       function Button({ asLink, navLink }) {
         const attrs = {
@@ -659,11 +1130,20 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("Css.props with sibling className and object literal styles", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       function Button({ asLink, navLink, baseStyles, active, hoverStyles }) {
@@ -677,7 +1157,8 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps, mergeProps } from "@homebound/truss/runtime";
       function Button({ asLink, navLink, baseStyles, active, hoverStyles }) {
         const attrs = {
@@ -685,120 +1166,191 @@ describe("transform", () => {
         };
         return <button {...attrs}>Click me</button>;
       }
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("style object variable in css prop is lowered to trussProps", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const base = Css.df.aic.$;
       const el = <div css={base} />;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const base = { display: "df", alignItems: "aic" };
       const el = <div {...trussProps(base)} />;
-    `);
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("mixed css prop spread and Css chain spread are lowered together", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       function Box({ cssProp }) { return <div css={{ ...cssProp, ...Css.df.$ }} />;
       }
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       function Box({ cssProp }) { return <div {...trussProps({ ...cssProp, ...{ display: "df" } })} />; }
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("external call expression in css prop is wrapped in trussProps", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { getFromAnotherFile } from "./other";
       import { Css } from "./Css";
 
       function Example({ param, content }) {
         return <div css={getFromAnotherFile(param)}><span css={Css.blue.$}>{content}</span></div>;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { getFromAnotherFile } from "./other";
       import { trussProps } from "@homebound/truss/runtime";
       function Example({ param, content }) {
         return <div {...trussProps(getFromAnotherFile(param))}><span {...trussProps({ color: "blue" })}>{content}</span></div>;
       }
-    `);
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("css prop with non-spread property is still wrapped in trussProps", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       const base = Css.df.$;
       const cssProp = getCssProp();
       const el = <div css={{ ...cssProp, foo: true }} />;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const base = { display: "df" };
       const cssProp = getCssProp();
       const el = <div {...trussProps({ ...cssProp, foo: true })} />;
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("conditional css prop with undefined branch is still wrapped", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       function Repro(props: { enabled: boolean }) {
         return <div css={props.enabled ? Css.pb2.$ : undefined}>hello</div>;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       function Repro(props: { enabled: boolean; }) {
         return <div {...trussProps(props.enabled ? { paddingBottom: "pb2" } : undefined)}>hello</div>;
       }
-    `);
+    `,
+      `
+      .pb2 {
+        padding-bottom: 16px;
+      }
+    `,
+    );
   });
 
   test("ordinary object spreads stay objects", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = { foo: true, ...other };
       const t = Css.df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { foo: true, ...other };
       const t = { display: "df" };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("style composition objects stay as native object spread", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const borderBottomStyles = Css.bb.$;
       const styles = { activeStyles: { ...Css.black.$, foo: true, ...borderBottomStyles } };
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const borderBottomStyles = { borderBottomStyle: "bb_borderBottomStyle", borderBottomWidth: "bb_borderBottomWidth" };
       const styles = { activeStyles: { ...{ color: "black" }, foo: true, ...borderBottomStyles } };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      .bb_borderBottomStyle {
+        border-bottom-style: solid;
+      }
+      .bb_borderBottomWidth {
+        border-bottom-width: 1px;
+      }
+    `,
+    );
   });
 
   test("style composition objects can mix Css spreads with external spreads", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const borderBottomStyles = maybeStyles();
       const styles = { activeStyles: { ...Css.black.$, ...borderBottomStyles } };
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const borderBottomStyles = maybeStyles();
       const styles = { activeStyles: { ...{ color: "black" }, ...borderBottomStyles } };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+    `,
+    );
   });
 
   test("style composition objects support active and hover style maps with shared border styles", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
 
       function getTabStyles() {
@@ -812,7 +1364,8 @@ describe("transform", () => {
           activeHoverStyles: { ...Css.ba.black.$, ...borderBottomStyles },
         };
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       function getTabStyles() {
         const borderBottomStyles = maybeBorderStyles();
         return {
@@ -824,23 +1377,76 @@ describe("transform", () => {
           activeHoverStyles: { ...{ borderStyle: "bss", borderWidth: "bw1", color: "black" }, ...borderBottomStyles }
         };
       }
-    `);
+    `,
+      `
+      .br4 {
+        border-radius: 1rem;
+      }
+      .bss {
+        border-style: solid;
+      }
+      .bw1 {
+        border-width: 1px;
+      }
+      .outline0 {
+        outline: 0;
+      }
+      .aic {
+        align-items: center;
+      }
+      .black {
+        color: #353535;
+      }
+      .blue {
+        color: #526675;
+      }
+      .cursorNotAllowed {
+        cursor: not-allowed;
+      }
+      .cursorPointer {
+        cursor: pointer;
+      }
+      .df {
+        display: flex;
+      }
+      .h_32px {
+        height: 32px;
+      }
+      .pl1 {
+        padding-left: 8px;
+      }
+      .pr1 {
+        padding-right: 8px;
+      }
+    `,
+    );
   });
 
   test("conditional: Css.if(cond).df.else.db.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.if(isActive).df.else.db.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { ...(isActive ? { display: "df" } : { display: "db" }) };
-    `);
+    `,
+      `
+      .db {
+        display: block;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("conditional with preceding styles: Css.p1.if(cond).df.else.db.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.p1.if(isActive).df.else.db.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = {
         paddingTop: "pt1",
         paddingBottom: "pb1",
@@ -848,16 +1454,50 @@ describe("transform", () => {
         paddingLeft: "pl1",
         ...(isActive ? { display: "df" } : { display: "db" })
       };
-    `);
+    `,
+      `
+      .db {
+        display: block;
+      }
+      .df {
+        display: flex;
+      }
+      .pb1 {
+        padding-bottom: 8px;
+      }
+      .pl1 {
+        padding-left: 8px;
+      }
+      .pr1 {
+        padding-right: 8px;
+      }
+      .pt1 {
+        padding-top: 8px;
+      }
+    `,
+    );
   });
 
   test("else branch includes trailing styles: Css.if(cond).df.else.db.mt1.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.if(isActive).df.else.db.mt1.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { ...(isActive ? { display: "df" } : { display: "db", marginTop: "mt1" }) };
-    `);
+    `,
+      `
+      .db {
+        display: block;
+      }
+      .df {
+        display: flex;
+      }
+      .mt1 {
+        margin-top: 8px;
+      }
+    `,
+    );
   });
 
   test("conditional pseudo branch keeps earlier base class on the same property", () => {
@@ -904,33 +1544,58 @@ describe("transform", () => {
   test("conditional same-property replacement does not merge base class into branch", () => {
     // Css.bgBlue.if(selected).bgWhite.$ — when selected, bgWhite replaces bgBlue entirely.
     // The base class should NOT be merged into the then branch.
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.bgBlue.if(selected).bgWhite.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { backgroundColor: "bgBlue", ...(selected ? { backgroundColor: "bgWhite" } : {}) };
-    `);
+    `,
+      `
+      .bgBlue {
+        background-color: #526675;
+      }
+      .bgWhite {
+        background-color: #fcfcfa;
+      }
+    `,
+    );
   });
 
   test("conditional replacement preserves preceding non-overlapping properties", () => {
     // Css.df.aic.bgBlue.if(selected).bgWhite.$ — df and aic should survive the conditional
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.aic.bgBlue.if(selected).bgWhite.$;
-    `).toBeNormalized(
+    `).toHaveTrussOutput(
       `
       const s = { display: "df", alignItems: "aic", backgroundColor: "bgBlue", ...(selected ? { backgroundColor: "bgWhite" } : {}) };
+    `,
+      `
+      .aic {
+        align-items: center;
+      }
+      .bgBlue {
+        background-color: #526675;
+      }
+      .bgWhite {
+        background-color: #fcfcfa;
+      }
+      .df {
+        display: flex;
+      }
     `,
     );
   });
 
   test("conditional replacement with many preceding properties and delegates preserves all base classes", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const el = <div css={Css.absolute.bottomPx(4).wPx(4).hPx(4).bgBlue.br4.if(selected && !range_middle).bgWhite.$} />;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({
         position: "absolute",
@@ -941,7 +1606,31 @@ describe("transform", () => {
         borderRadius: "br4",
         ...(selected && !range_middle ? { backgroundColor: "bgWhite" } : {})
       })} />;
-    `);
+    `,
+      `
+      .br4 {
+        border-radius: 1rem;
+      }
+      .absolute {
+        position: absolute;
+      }
+      .bgBlue {
+        background-color: #526675;
+      }
+      .bgWhite {
+        background-color: #fcfcfa;
+      }
+      .bottom_4px {
+        bottom: 4px;
+      }
+      .h_4px {
+        height: 4px;
+      }
+      .w_4px {
+        width: 4px;
+      }
+    `,
+    );
   });
 
   test("conditional variable branch replaces base class on the same property", () => {
@@ -970,37 +1659,65 @@ describe("transform", () => {
 
   test("later base-level property replaces earlier base-level property", () => {
     // Css.ba sets borderWidth: "1px", then add("borderWidth", "3px") should replace it, not accumulate
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ba.add("borderWidth", "3px").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { borderStyle: "bss", borderWidth: "borderWidth_3px" };
-    `);
+    `,
+      `
+      .borderWidth_3px {
+        border-width: 3px;
+      }
+      .bss {
+        border-style: solid;
+      }
+      .bw1 {
+        border-width: 1px;
+      }
+    `,
+    );
   });
 
   test("negative increment: Css.mt(-1).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mt(-1).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { marginTop: "mt_neg8px" };
-    `);
+    `,
+      `
+      .mt_neg8px {
+        margin-top: -8px;
+      }
+    `,
+    );
   });
 
   test("increment zero: Css.mt(0).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mt(0).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { marginTop: "mt_0px" };
-    `);
+    `,
+      `
+      .mt_0px {
+        margin-top: 0px;
+      }
+    `,
+    );
   });
 
   test("static increment getters: Css.mt0.mt1.p1.$ — later mt1 replaces mt0", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mt0.mt1.p1.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = {
         marginTop: "mt1",
         paddingTop: "pt1",
@@ -1008,118 +1725,207 @@ describe("transform", () => {
         paddingRight: "pr1",
         paddingLeft: "pl1"
       };
-    `);
+    `,
+      `
+      .mt0 {
+        margin-top: 0px;
+      }
+      .mt1 {
+        margin-top: 8px;
+      }
+      .pb1 {
+        padding-bottom: 8px;
+      }
+      .pl1 {
+        padding-left: 8px;
+      }
+      .pr1 {
+        padding-right: 8px;
+      }
+      .pt1 {
+        padding-top: 8px;
+      }
+    `,
+    );
   });
 
   test("className merging: css + className on same element", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const el = <div className="existing" css={Css.df.$} />;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { mergeProps } from "@homebound/truss/runtime";
       const el = <div {...mergeProps("existing", undefined, { display: "df" })} />;
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("className merging: css + variable className expression", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const cls = getClass();
       const el = <div className={cls} css={Css.df.$} />;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { mergeProps } from "@homebound/truss/runtime";
       const cls = getClass();
       const el = <div {...mergeProps(cls, undefined, { display: "df" })} />;
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("style merging: css + style on same element", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const el = <div style={{ minWidth: "fit-content" }} css={Css.blue.$} />;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       import { mergeProps } from "@homebound/truss/runtime";
       const el = <div {...mergeProps(undefined, { minWidth: "fit-content" }, { color: "blue" })} />;
-    `);
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("falls back for __maybeInc helper name collisions", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const __maybeInc = keepMe();
       const x = getSomeValue();
       const s = Css.mt(x).$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
             const __maybeInc = keepMe();
             const x = getSomeValue();
             const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc_1(x) }] };
-    `);
+    `,
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("onHover on same property merges base+pseudo into single entry", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.bgBlue.onHover.bgBlack.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { backgroundColor: "bgBlue h_bgBlack" };
-    `);
+    `,
+      `
+      .bgBlue {
+        background-color: #526675;
+      }
+      .h_bgBlack:hover {
+        background-color: #353535;
+      }
+    `,
+    );
   });
 
   test("onHover merge: non-overlapping properties kept separate", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.onHover.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "df", color: "h_blue" };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+      .h_blue:hover {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   // ── Marker tests ────────────────────────────────────────────────────
 
   test("Css.marker.$ emits a default marker class", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.marker.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { __marker: "__truss_m" };
-    `);
+    `,
+      ``,
+    );
   });
 
   test("Css.marker.$ in JSX css prop emits trussProps with marker metadata", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const el = <div css={Css.marker.$} />;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({ __marker: "__truss_m" })} />;
-    `);
+    `,
+      ``,
+    );
   });
 
   test("Css.marker.df.$ combines marker with styles", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.marker.df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { __marker: "__truss_m", display: "df" };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("Css.markerOf(row).$ passes marker variable through", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const row = Css.newMarker();
       const s = Css.markerOf(row).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const row = Css.newMarker();
       const s = { __marker: "__truss_m_row" };
-    `);
+    `,
+      ``,
+    );
   });
 
   test("marker and when('ancestor') in same file use same user-defined marker variable", () => {
@@ -1163,16 +1969,23 @@ describe("transform", () => {
   });
 
   test("Css.when('ancestor', marker, ':hover').blue.$", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const marker = Css.newMarker();
       const s = Css.when("ancestor", marker, ":hover").blue.$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const marker = Css.newMarker();
       const s = { color: "wh_anc_h_marker_blue" };
-    `);
+    `,
+      `
+      .__truss_m_marker:hover .wh_anc_h_marker_blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("Css.when('descendant', ':focus').blue.$", () => {
@@ -1224,116 +2037,221 @@ describe("transform", () => {
   });
 
   test("Css.when('anySibling', marker, ':hover').blue.$", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const row = Css.newMarker();
       const s = Css.when("anySibling", row, ":hover").blue.$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const row = Css.newMarker();
       const s = { color: "wh_anyS_h_row_blue" };
-    `);
+    `,
+      `
+      .wh_anyS_h_row_blue:has(~ .__truss_m_row:hover), .__truss_m_row:hover ~ .wh_anyS_h_row_blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("Css.when with invalid relationship emits console.error", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.when("bogus", ":hover").blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: when() relationship must be one of: ancestor, descendant, anySibling, siblingBefore, siblingAfter -- got \\\"bogus\\\" (test.tsx:2)");
       const s = { color: "blue" };
-    `);
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("Css.when with non-literal relationship emits console.error", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const rel = "ancestor";
       const s = Css.when(rel, ":hover").blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: when() first argument must be a string literal relationship (test.tsx:3)");
       const rel = "ancestor";
       const s = { color: "blue" };
-    `);
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("markerOf accepts a variable argument", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const row = getMarker();
       const s = Css.markerOf(row).df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const row = getMarker();
       const s = { __marker: "__truss_m_row", display: "df" };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   // ── Breakpoint / media query tests ──────────────────────────────────
 
   test("if(mediaQuery) as pseudo: Css.if('@media screen and (max-width: 599px)').df.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.if("@media screen and (max-width: 599px)").df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "sm_df" };
-    `);
+    `,
+      `
+      @media screen and (max-width: 599px) {
+        .sm_df.sm_df {
+          display: flex;
+        }
+      }
+    `,
+    );
   });
 
   test("if(mediaQuery) merges with base: Css.bgBlue.if('@media screen and (max-width: 599px)').bgBlack.$", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const s = Css.bgBlue.if("@media screen and (max-width: 599px)").bgBlack.$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const s = { backgroundColor: "bgBlue sm_bgBlack" };
-    `);
+    `,
+      `
+      .bgBlue {
+        background-color: #526675;
+      }
+      @media screen and (max-width: 599px) {
+        .sm_bgBlack.sm_bgBlack {
+          background-color: #353535;
+        }
+      }
+    `,
+    );
   });
 
   test("if(Breakpoints.sm) works like if('@media...')", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.if("@media screen and (min-width: 960px)").df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "lg_df" };
-    `);
+    `,
+      `
+      @media screen and (min-width: 960px) {
+        .lg_df.lg_df {
+          display: flex;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint + pseudo combination: Css.ifSm.onHover.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ifSm.onHover.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "sm_h_blue" };
-    `);
+    `,
+      `
+      @media screen and (max-width: 599px) {
+        .sm_h_blue.sm_h_blue:hover {
+          color: #526675;
+        }
+      }
+    `,
+    );
   });
 
   test("base + breakpoint + pseudo: Css.black.ifSm.onHover.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.black.ifSm.onHover.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "black sm_h_blue" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      @media screen and (max-width: 599px) {
+        .sm_h_blue.sm_h_blue:hover {
+          color: #526675;
+        }
+      }
+    `,
+    );
   });
 
   test("base + breakpoint color + breakpoint+pseudo color: Css.black.ifSm.white.onHover.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.black.ifSm.white.onHover.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "black sm_white sm_h_blue" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      @media screen and (max-width: 599px) {
+        .sm_white.sm_white {
+          color: #fcfcfa;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_h_blue.sm_h_blue:hover {
+          color: #526675;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint only: Css.ifSm.df.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ifSm.df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "sm_df" };
-    `);
+    `,
+      `
+      @media screen and (max-width: 599px) {
+        .sm_df.sm_df {
+          display: flex;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint else uses the complementary screen query", () => {
@@ -1362,180 +2280,347 @@ describe("transform", () => {
   });
 
   test("raw media else uses the complementary screen query", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const s = Css.if("@media screen and (max-width: 599px)").black.else.white.$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const s = { color: "sm_black mdandup_white" };
-    `);
+    `,
+      `
+      @media screen and (min-width: 600px) {
+        .mdandup_white.mdandup_white {
+          color: #fcfcfa;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_black.sm_black {
+          color: #353535;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint after base style: Css.df.ifMd.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.ifMd.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "df", color: "md_blue" };
-    `);
+    `,
+      `
+      .df {
+        display: flex;
+      }
+      @media screen and (min-width: 600px) and (max-width: 959px) {
+        .md_blue.md_blue {
+          color: #526675;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint merges overlapping property: Css.bgBlue.ifSm.bgBlack.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.bgBlue.ifSm.bgBlack.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { backgroundColor: "bgBlue sm_bgBlack" };
-    `);
+    `,
+      `
+      .bgBlue {
+        background-color: #526675;
+      }
+      @media screen and (max-width: 599px) {
+        .sm_bgBlack.sm_bgBlack {
+          background-color: #353535;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint with large: Css.ifLg.df.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ifLg.df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "lg_df" };
-    `);
+    `,
+      `
+      @media screen and (min-width: 960px) {
+        .lg_df.lg_df {
+          display: flex;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint with combination: Css.ifSmOrMd.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ifSmOrMd.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "smormd_blue" };
-    `);
+    `,
+      `
+      @media screen and (max-width: 959px) {
+        .smormd_blue.smormd_blue {
+          color: #526675;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint with variable literal: Css.ifSm.mt(2).$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ifSm.mt(2).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { marginTop: "sm_mt_16px" };
-    `);
+    `,
+      `
+      @media screen and (max-width: 599px) {
+        .sm_mt_16px.sm_mt_16px {
+          margin-top: 16px;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint with multi-property: Css.ifSm.ba.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.ifSm.ba.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { borderStyle: "sm_bss", borderWidth: "sm_bw1" };
-    `);
+    `,
+      `
+      @media screen and (max-width: 599px) {
+        .sm_bss.sm_bss {
+          border-style: solid;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_bw1.sm_bw1 {
+          border-width: 1px;
+        }
+      }
+    `,
+    );
   });
 
   test("breakpoint in JSX: css={Css.ifSm.df.$}", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const el = <div css={Css.ifSm.df.$} />;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({ display: "sm_df" })} />;
-    `);
+    `,
+      `
+      @media screen and (max-width: 599px) {
+        .sm_df.sm_df {
+          display: flex;
+        }
+      }
+    `,
+    );
   });
 
   // ── Pseudo-element tests ─────────────────────────────────────────────
 
   test("element('::placeholder').blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.element("::placeholder").blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "placeholder_blue" };
-    `);
+    `,
+      `
+      .placeholder_blue::placeholder {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("element('::selection') with static styles", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.element("::selection").bgBlue.white.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { backgroundColor: "selection_bgBlue", color: "selection_white" };
-    `);
+    `,
+      `
+      .selection_bgBlue::selection {
+        background-color: #526675;
+      }
+      .selection_white::selection {
+        color: #fcfcfa;
+      }
+    `,
+    );
   });
 
   test("element with variable literal: element('::placeholder').bc('red').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.element("::placeholder").bc("red").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { borderColor: "placeholder_bc_red" };
-    `);
+    `,
+      `
+      .placeholder_bc_red::placeholder {
+        border-color: red;
+      }
+    `,
+    );
   });
 
   test("element + onHover: Css.element('::placeholder').onHover.blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.element("::placeholder").onHover.blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "placeholder_h_blue" };
-    `);
+    `,
+      `
+      .placeholder_h_blue:hover::placeholder {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("element with non-literal argument errors", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const pe = "::placeholder";
       const s = Css.element(pe).blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: element() requires exactly one string literal argument (e.g. \\\"::placeholder\\\") (test.tsx:3)");
       const pe = "::placeholder";
       const s = { color: "blue" };
-    `);
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
   });
 
   test("unsupported patterns emit console.error and produce empty object", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.notReal.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: Unknown abbreviation \\\"notReal\\\" (test.tsx:2)");
       const s = {};
-    `);
+    `,
+      ``,
+    );
   });
 
   // ── add() tests ─────────────────────────────────────────────────────
 
   test("add with string literal value: Css.add('boxShadow', '0 0 0 1px blue').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.add("boxShadow", "0 0 0 1px blue").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { boxShadow: "boxShadow_0_0_0_1px_blue" };
-    `);
+    `,
+      `
+      .boxShadow_0_0_0_1px_blue {
+        box-shadow: 0 0 0 1px blue;
+      }
+    `,
+    );
   });
 
   test("add with numeric literal value: Css.add('animationDelay', '300ms').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.add("animationDelay", "300ms").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { animationDelay: "animationDelay_300ms" };
-    `);
+    `,
+      `
+      .animationDelay_300ms {
+        animation-delay: 300ms;
+      }
+    `,
+    );
   });
 
   test("add with variable value: Css.add('boxShadow', shadow).$", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const shadow = getShadow();
       const s = Css.add("boxShadow", shadow).$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const shadow = getShadow();
       const s = { boxShadow: ["boxShadow_var", { "--boxShadow": shadow }] };
-    `);
+    `,
+      `
+      .boxShadow_var {
+        box-shadow: var(--boxShadow);
+      }
+      @property --boxShadow {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("add mixed with other chain segments: Css.df.add('wordBreak', 'break-word').black.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.df.add("wordBreak", "break-word").black.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { display: "df", wordBreak: "wordBreak_break_word", color: "black" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      .df {
+        display: flex;
+      }
+      .wordBreak_break_word {
+        word-break: break-word;
+      }
+    `,
+    );
   });
 
   test("add uses property name in jsx output and generated css", () => {
@@ -1593,112 +2678,184 @@ describe("transform", () => {
   });
 
   test("add with pseudo: Css.onHover.add('textDecoration', 'underline').$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.onHover.add("textDecoration", "underline").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { textDecoration: "h_textDecoration_underline" };
-    `);
+    `,
+      `
+      .h_textDecoration_underline:hover {
+        text-decoration: underline;
+      }
+    `,
+    );
   });
 
   test("add with CssProp argument composes inline as spread", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const base = getBase();
       const sizeStyles = getSize();
       const s = Css.df.add(base).add(sizeStyles).black.$;
     `,
-    ).toBeNormalized(`
+    ).toHaveTrussOutput(
+      `
       const base = getBase();
       const sizeStyles = getSize();
       const s = { display: "df", ...base, ...sizeStyles, color: "black" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("addCss with CssProp argument composes inline as spread", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const height = getHeight();
       const s = Css.df.bgBlue.addCss(height).black.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const height = getHeight();
       const s = { display: "df", backgroundColor: "bgBlue", ...height, color: "black" };
-    `);
+    `,
+      `
+      .bgBlue {
+        background-color: #526675;
+      }
+      .black {
+        color: #353535;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("addCss supports destructured fallback expressions", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       function Panel(props) {
         const { height } = props.xss;
         return <div css={Css.h(1).df.bgBlue.addCss({ height }).black.$} />;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       function Panel(props) {
         const { height } = props.xss;
         return <div {...trussProps({ height: "h_8px", display: "df", backgroundColor: "bgBlue", ...(height === undefined ? {} : { height: height }), color: "black" })} />;
       }
-    `);
+    `,
+      `
+      .bgBlue {
+        background-color: #526675;
+      }
+      .black {
+        color: #353535;
+      }
+      .df {
+        display: flex;
+      }
+      .h_8px {
+        height: 8px;
+      }
+    `,
+    );
   });
 
   test("addCss object literals pass through Truss style values", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
        const s = Css.h(1).addCss({ height }).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { height: "h_8px", ...(height === undefined ? {} : { height: height }) };
-    `);
+    `,
+      `
+      .h_8px {
+        height: 8px;
+      }
+    `,
+    );
   });
 
   test("addCss rejects wrong arity", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.addCss("height", "8px").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: addCss() requires exactly 1 argument (an existing CssProp/style hash expression) (test.tsx:2)");
       const s = {};
-    `);
+    `,
+      ``,
+    );
   });
 
   test("add with object literal emits console.error", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.add({ wordBreak: "break-word" }).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: add(cssProp) does not accept object literals -- pass an existing CssProp expression instead (test.tsx:2)");
       const s = {};
-    `);
+    `,
+      ``,
+    );
   });
 
   test("error preserves valid segments: Css.black.add(foo, 'value').df.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const foo = getProp();
       const s = Css.black.add(foo, "value").df.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: add() first argument must be a string literal property name (test.tsx:3)");
       const foo = getProp();
       const s = { color: "black", display: "df" };
-    `);
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+      .df {
+        display: flex;
+      }
+    `,
+    );
   });
 
   test("add with non-string-literal property name emits console.error", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const prop = "boxShadow";
       const s = Css.add(prop, "value").$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       console.error("[truss] Unsupported pattern: add() first argument must be a string literal property name (test.tsx:3)");
       const prop = "boxShadow";
       const s = {};
-    `);
+    `,
+      ``,
+    );
   });
 });
 
 test("indirect style references via useMemo and function calls", () => {
-  expectTransform(`
+  expectTrussTransform(`
       import { useMemo } from "react";
       import { Css } from "./Css";
 
@@ -1726,7 +2883,8 @@ test("indirect style references via useMemo and function calls", () => {
           activeStyles: { ...Css.blue.$, ...borderBottomStyles },
         };
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+    `
       import { useMemo } from "react";
       function SpreadLikeButton(props) {
         const styles = useMemo(function () {
@@ -1745,30 +2903,49 @@ test("indirect style references via useMemo and function calls", () => {
           activeStyles: { ...{ color: "blue" }, ...borderBottomStyles }
         };
       }
-    `);
+    `,
+    `
+      .aic {
+        align-items: center;
+      }
+      .blue {
+        color: #526675;
+      }
+      .df {
+        display: flex;
+      }
+      .bb_borderBottomStyle {
+        border-bottom-style: solid;
+      }
+      .bb_borderBottomWidth {
+        border-bottom-width: 1px;
+      }
+    `,
+  );
 });
 
 test("ternary mixing {} and style object normalizes {} to {}", () => {
-  expectTransform(`
+  expectTrussTransform(`
       import { Css } from "./Css";
 
       function TabsContent(props) {
         const styles = props.hideTabs ? {} : Css.pt3.$;
         return <div css={{ ...styles, ...props.contentXss }} />;
       }
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+    `
       import { trussProps } from "@homebound/truss/runtime";
       function TabsContent(props) {
         const styles = props.hideTabs ? {} : { paddingTop: "pt3" };
         return <div {...trussProps({ ...styles, ...props.contentXss })} />;
       }
-    `);
-});
-
-test("css helper returns generated CSS text", () => {
-  const result = css(`import { Css } from "./Css"; const s = Css.df.$;`);
-  expect(result).toMatch(/\.df/);
-  expect(result).toMatch(/display: flex/);
+    `,
+    `
+      .pt3 {
+        padding-top: 24px;
+      }
+    `,
+  );
 });
 
 /** Transform helper — returns the rewritten JS code. */
@@ -1792,19 +2969,8 @@ function trussOutput(code: string, options?: { debug?: boolean }): { code: strin
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);
   return {
     code: result?.code ? normalize(result.code) : null,
-    css: result?.css ? normalize(result.css) : null,
+    css: normalize(result?.css ?? ""),
   };
-}
-
-/** CSS helper — returns the generated CSS text. */
-function css(code: string, options?: { debug?: boolean }): string | null {
-  const result = transformTruss(snippet(code), "test.tsx", mapping, options);
-  return result?.css ?? null;
-}
-
-/** Normalize whitespace so we can write readable multi-line expectations. */
-function n(s: string): string {
-  return normalize(s);
 }
 
 /** Dedent code snippets so line numbers stay stable. */
