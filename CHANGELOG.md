@@ -1,3 +1,9 @@
+## [2.2.0](https://github.com/homebound-team/truss/compare/v2.1.3...v2.2.0) (2026-03-23)
+
+### Features
+
+* Add addCss method for better xss support. ([#182](https://github.com/homebound-team/truss/issues/182)) ([ffab142](https://github.com/homebound-team/truss/commit/ffab142886d503bb45a355c190ed429389cc6c81))
+
 ## [2.1.3](https://github.com/homebound-team/truss/compare/v2.1.2...v2.1.3) (2026-03-23)
 
 ### Bug Fixes
