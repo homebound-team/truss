@@ -8,16 +8,16 @@ const mapping = loadMapping(resolve(__dirname, "../../../app-stylex/src/Css.json
 
 describe("transform", () => {
   test("returns null for files without Css import", () => {
-    expectTransform(`
+    expectTrussTransform(`
       const x = 1;
-    `).toBeNull();
+    `).toEqual({ code: null, css: "" });
   });
 
   test("returns null for files that import Css but don't use .$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const x = Css.df;
-    `).toBeNull();
+    `).toEqual({ code: null, css: "" });
   });
 
   test("static chain: Css.df.$", () => {
@@ -2860,7 +2860,7 @@ test("indirect style references via useMemo and function calls", () => {
       import { Css } from "./Css";
 
       function SpreadLikeButton(props) {
-        const styles = useMemo(function () {
+        const styles = useMemo(() => {
           return getSpreadLikeStyles();
         }, []);
 
@@ -2887,7 +2887,7 @@ test("indirect style references via useMemo and function calls", () => {
     `
       import { useMemo } from "react";
       function SpreadLikeButton(props) {
-        const styles = useMemo(function () {
+        const styles = useMemo(() => {
           return getSpreadLikeStyles();
         }, []);
         const attrs = {
@@ -2948,58 +2948,29 @@ test("ternary mixing {} and style object normalizes {} to {}", () => {
   );
 });
 
-/** Transform helper — returns the rewritten JS code. */
-function transform(code: string, options?: { debug?: boolean }): string | null {
-  const result = transformTruss(snippet(code), "test.tsx", mapping, options);
-  return result?.code ? normalize(result.code) : null;
-}
-
-/** Expect helper around transform output. */
-function expectTransform(code: string, options?: { debug?: boolean }) {
-  return expect(transform(code, options));
-}
-
 /** Expect helper around transform code and css outputs. */
 function expectTrussTransform(code: string, options?: { debug?: boolean }) {
-  return expect(trussOutput(code, options));
-}
-
-/** Truss output helper for asserting code and css together. */
-function trussOutput(code: string, options?: { debug?: boolean }): { code: string | null; css: string | null } {
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);
-  return {
+  return expect({
     code: result?.code ? normalize(result.code) : null,
     css: normalize(result?.css ?? ""),
-  };
+  });
 }
 
 /** Dedent code snippets so line numbers stay stable. */
 function snippet(code: string): string {
   const lines = code.trim().split("\n");
-  const indentation = lines.reduce(function (min, line) {
+  const indentation = lines.reduce((min, line) => {
     if (line.trim() === "") {
       return min;
     }
-
     const indent = line.match(/^\s*/)?.[0].length ?? 0;
     return Math.min(min, indent);
   }, Number.POSITIVE_INFINITY);
-
-  if (!Number.isFinite(indentation) || indentation === 0) {
-    return lines.join("\n");
-  }
-
-  return lines
-    .map(function (line) {
-      return line.slice(indentation);
-    })
-    .join("\n");
+  if (!Number.isFinite(indentation) || indentation === 0) return lines.join("\n");
+  return lines.map((line) => line.slice(indentation)).join("\n");
 }
 
 function lineOf(source: string, search: string): number {
-  return (
-    source.split("\n").findIndex(function (line) {
-      return line.includes(search);
-    }) + 1
-  );
+  return source.split("\n").findIndex((line) => line.includes(search)) + 1;
 }
