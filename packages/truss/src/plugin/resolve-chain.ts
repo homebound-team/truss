@@ -794,6 +794,7 @@ const PSEUDO_METHODS: Record<string, string> = {
   onHover: ":hover",
   onFocus: ":focus",
   onFocusVisible: ":focus-visible",
+  onFocusWithin: ":focus-within",
   onActive: ":active",
   onDisabled: ":disabled",
 };

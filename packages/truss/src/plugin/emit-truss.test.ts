@@ -465,6 +465,37 @@ describe("computeRulePriority", () => {
     expect(active).toBe(3170);
   });
 
+  test("pseudo-class priority normalizes camelCase and kebab-case names", () => {
+    const focusWithin = computeRulePriority({
+      className: "fw_c",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":focus-within",
+    });
+    const focusWithinCamel = computeRulePriority({
+      className: "fw_c_alt",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":focusWithin",
+    });
+    const focusVisible = computeRulePriority({
+      className: "fv_c",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":focus-visible",
+    });
+    const focusVisibleCamel = computeRulePriority({
+      className: "fv_c_alt",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":focusVisible",
+    });
+    expect(focusWithin).toBe(3140);
+    expect(focusWithinCamel).toBe(3140);
+    expect(focusVisible).toBe(3160);
+    expect(focusVisibleCamel).toBe(3160);
+  });
+
   test("media query adds 200", () => {
     const base = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
     const media = computeRulePriority({

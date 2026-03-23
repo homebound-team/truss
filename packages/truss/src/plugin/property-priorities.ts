@@ -638,9 +638,9 @@ export const PSEUDO_CLASS_PRIORITIES: Readonly<Record<string, number>> = {
   ":past": 126,
   ":future": 127,
   ":hover": 130,
-  ":focusWithin": 140,
+  ":focus-within": 140,
   ":focus": 150,
-  ":focusVisible": 160,
+  ":focus-visible": 160,
   ":active": 170,
 };
 
@@ -665,7 +665,9 @@ export function getPropertyPriority(property: string): number {
 /** Get the priority for a pseudo-class selector. */
 export function getPseudoClassPriority(pseudo: string): number {
   // Strip functional args, i.e. `:nth-child(2)` → `:nth-child`
-  const base = pseudo.split("(")[0];
+  const base = pseudo.split("(")[0].replace(/[A-Z]/g, function (match) {
+    return `-${match.toLowerCase()}`;
+  });
   return PSEUDO_CLASS_PRIORITIES[base] ?? 40;
 }
 
