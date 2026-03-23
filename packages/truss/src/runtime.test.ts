@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { mergeProps, TrussDebugInfo, trussProps, __injectTrussCSS } from "./runtime";
 
 describe("trussProps", () => {
@@ -81,6 +81,37 @@ describe("trussProps", () => {
   test("returns empty className for no inputs", () => {
     const result = trussProps();
     expect(result).toEqual({ className: "" });
+  });
+
+  test("throws for plain object values that are not Truss tuples", () => {
+    expect(function () {
+      trussProps({ color: { bad: true } as unknown as "black" });
+    }).toThrowError(
+      "Invalid Truss style value for `color`. trussProps only accepts generated Truss style hashes; use mergeProps for explicit className/style merging.",
+    );
+  });
+
+  test("throws for tuple values with invalid payloads", () => {
+    expect(function () {
+      trussProps({ color: ["black", 123] as unknown as "black" });
+    }).toThrowError(
+      "Invalid Truss style value for `color`. trussProps only accepts generated Truss style hashes; use mergeProps for explicit className/style merging.",
+    );
+  });
+
+  test("skips validation in production mode", async function () {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+
+    try {
+      vi.resetModules();
+      const runtime = await import("./runtime");
+      const result = runtime.trussProps({ color: { bad: true } as unknown as "black" });
+      expect(result).toEqual({ className: "" });
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      vi.resetModules();
+    }
   });
 });
 
