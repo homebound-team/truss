@@ -1,3 +1,9 @@
+## [2.1.3](https://github.com/homebound-team/truss/compare/v2.1.2...v2.1.3) (2026-03-23)
+
+### Bug Fixes
+
+* Add onFocusWithin method. ([#180](https://github.com/homebound-team/truss/issues/180)) ([d932d60](https://github.com/homebound-team/truss/commit/d932d60a1f3e9fd9700ff3d40f51dad286aa2e99))
+
 ## [2.1.2](https://github.com/homebound-team/truss/compare/v2.1.1...v2.1.2) (2026-03-23)
 
 ### Bug Fixes
