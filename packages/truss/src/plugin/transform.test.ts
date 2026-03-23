@@ -291,7 +291,8 @@ describe("transform", () => {
       const s = Css.typography(key).$;
     `;
 
-    expectTransform(code).toBeNormalized(`
+    expectTrussTransform(code).toHaveTrussOutput(
+      `
       import { type Typography } from "./Css";
       const __typography = {
         f24: { fontSize: "f24" },
@@ -303,10 +304,8 @@ describe("transform", () => {
       };
       const key: Typography = pickType();
       const s = { ...(__typography[key] ?? {}) };
-    `);
-
-    expect(n(css(code)!)).toEqual(
-      n(`
+    `,
+      `
         .f10_fontSize {
           font-size: 10px;
         }
@@ -328,7 +327,7 @@ describe("transform", () => {
         .fw5 {
           font-weight: 500;
         }
-      `),
+      `,
     );
   });
 
@@ -862,34 +861,33 @@ describe("transform", () => {
   });
 
   test("conditional pseudo branch keeps earlier base class on the same property", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.black.if(isActive).onHover.white.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "black", ...(isActive ? { color: "black h_white" } : {}) };
-    `);
-    expect(n(css(`import { Css } from "./Css"; const s = Css.black.if(isActive).onHover.white.$;`)!)).toBe(
-      n(`
+    `,
+      `
         .black {
           color: #353535;
         }
         .h_white:hover {
           color: #fcfcfa;
         }
-      `),
+      `,
     );
   });
 
   test("conditional else pseudo branch keeps earlier base class on the same property", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.black.if(isActive).bgBlue.else.onHover.white.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "black", ...(isActive ? { backgroundColor: "bgBlue" } : { color: "black h_white" }) };
-    `);
-    // bgBlue sorts before black alphabetically (both are priority 3000 longhands)
-    expect(n(css(`import { Css } from "./Css"; const s = Css.black.if(isActive).bgBlue.else.onHover.white.$;`)!)).toBe(
-      n(`
+    `,
+      `
         .bgBlue {
           background-color: #526675;
         }
@@ -899,7 +897,7 @@ describe("transform", () => {
         .h_white:hover {
           color: #fcfcfa;
         }
-      `),
+      `,
     );
   });
 
@@ -947,15 +945,15 @@ describe("transform", () => {
   });
 
   test("conditional variable branch replaces base class on the same property", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.w100.if(isActive).w(getWidth()).$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
-            const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": __maybeInc(getWidth()) }] } : {}) };
-    `);
-    expect(n(css(`import { Css } from "./Css"; const s = Css.w100.if(isActive).w(getWidth()).$;`)!)).toBe(
-      n(`
+      const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": __maybeInc(getWidth()) }] } : {}) };
+    `,
+      `
         .w100 {
           width: 100%;
         }
@@ -966,7 +964,7 @@ describe("transform", () => {
           syntax: "*";
           inherits: false;
         }
-      `),
+      `,
     );
   });
 
@@ -1125,48 +1123,42 @@ describe("transform", () => {
   });
 
   test("marker and when('ancestor') in same file use same user-defined marker variable", () => {
-    expectTransform(
+    expectTrussTransform(
       `
       import { Css } from "./Css";
       const row = Css.newMarker();
       const a = Css.markerOf(row).$;
       const b = Css.when("ancestor", row, ":hover").blue.$;
-    `,
-    ).toBeNormalized(`
+      `,
+    ).toHaveTrussOutput(
+      `
       const row = Css.newMarker();
       const a = { __marker: "__truss_m_row" };
       const b = { color: "wh_anc_h_row_blue" };
-    `);
-    expect(
-      n(
-        css(
-          `import { Css } from "./Css"; const row = Css.newMarker(); const a = Css.markerOf(row).$; const b = Css.when("ancestor", row, ":hover").blue.$;`,
-        )!,
-      ),
-    ).toBe(
-      n(`
-      .__truss_m_row:hover .wh_anc_h_row_blue {
-        color: #526675;
-      }
-    `),
+      `,
+      `
+        .__truss_m_row:hover .wh_anc_h_row_blue {
+          color: #526675;
+        }
+      `,
     );
   });
 
   // ── when() generic API tests ──────────────────────────────────────
 
   test("Css.when('ancestor', ':hover').blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.when("ancestor", ":hover").blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "wh_anc_h_blue" };
-    `);
-    expect(n(css(`import { Css } from "./Css"; const s = Css.when("ancestor", ":hover").blue.$;`)!)).toBe(
-      n(`
+    `,
+      `
         .__truss_m:hover .wh_anc_h_blue {
           color: #526675;
         }
-      `),
+      `,
     );
   });
 
@@ -1184,50 +1176,50 @@ describe("transform", () => {
   });
 
   test("Css.when('descendant', ':focus').blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.when("descendant", ":focus").blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "wh_desc_f_blue" };
-    `);
-    expect(n(css(`import { Css } from "./Css"; const s = Css.when("descendant", ":focus").blue.$;`)!)).toBe(
-      n(`
+    `,
+      `
         .wh_desc_f_blue:has(.__truss_m:focus) {
           color: #526675;
         }
-      `),
+      `,
     );
   });
 
   test("Css.when('siblingAfter', ':hover').blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.when("siblingAfter", ":hover").blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "wh_sibA_h_blue" };
-    `);
-    expect(n(css(`import { Css } from "./Css"; const s = Css.when("siblingAfter", ":hover").blue.$;`)!)).toBe(
-      n(`
+    `,
+      `
         .wh_sibA_h_blue:has(~ .__truss_m:hover) {
           color: #526675;
         }
-      `),
+      `,
     );
   });
 
   test("Css.when('siblingBefore', ':hover').blue.$", () => {
-    expectTransform(`
+    expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.when("siblingBefore", ":hover").blue.$;
-    `).toBeNormalized(`
+    `).toHaveTrussOutput(
+      `
       const s = { color: "wh_sibB_h_blue" };
-    `);
-    expect(n(css(`import { Css } from "./Css"; const s = Css.when("siblingBefore", ":hover").blue.$;`)!)).toBe(
-      n(`
+    `,
+      `
         .__truss_m:hover ~ .wh_sibB_h_blue {
           color: #526675;
         }
-      `),
+      `,
     );
   });
 
@@ -1350,13 +1342,11 @@ describe("transform", () => {
       const s = Css.ifSm.black.else.white.$;
     `;
 
-    expectTransform(input).toBeNormalized(`
+    expectTrussTransform(input).toHaveTrussOutput(
+      `
       const s = { color: "sm_black mdandup_white" };
-    `);
-
-    // mdandup sorts before sm alphabetically (both are priority 3200 = longhand + @media)
-    expect(n(css(input)!)).toEqual(
-      n(`
+    `,
+      `
       @media screen and (min-width: 600px) {
         .mdandup_white.mdandup_white {
           color: #fcfcfa;
@@ -1367,7 +1357,7 @@ describe("transform", () => {
           color: #353535;
         }
       }
-    `),
+    `,
     );
   });
 
@@ -1554,20 +1544,19 @@ describe("transform", () => {
       const el = <div css={Css.mt2.add("transition", "all 240ms").$} />;
     `;
 
-    expectTransform(code).toBeNormalized(`
+    expectTrussTransform(code).toHaveTrussOutput(
+      `
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({ marginTop: "mt2", transition: "transition_all_240ms" })} />;
-    `);
-    // transition (shorthand-of-longhands = 2000) sorts before margin-top (physical longhand = 4000)
-    expect(n(css(code)!)).toBe(
-      n(`
+    `,
+      `
       .transition_all_240ms {
         transition: all 240ms;
       }
       .mt2 {
         margin-top: 16px;
       }
-    `),
+    `,
     );
   });
 
@@ -1582,13 +1571,13 @@ describe("transform", () => {
       />;
     `;
 
-    expectTransform(code).toBeNormalized(`
+    expectTrussTransform(code).toHaveTrussOutput(
+      `
       import { Palette } from "./Css";
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["color_var", { "--color": Palette.Blue }] }, ...{ color: ["color_var", { "--color": Palette.Black }] } })} />;
-    `);
-    expect(n(css(code)!)).toBe(
-      n(`
+    `,
+      `
       .white {
         color: #fcfcfa;
       }
@@ -1599,7 +1588,7 @@ describe("transform", () => {
         syntax: "*";
         inherits: false;
       }
-    `),
+    `,
     );
   });
 
@@ -1791,6 +1780,20 @@ function transform(code: string, options?: { debug?: boolean }): string | null {
 /** Expect helper around transform output. */
 function expectTransform(code: string, options?: { debug?: boolean }) {
   return expect(transform(code, options));
+}
+
+/** Expect helper around transform code and css outputs. */
+function expectTrussTransform(code: string, options?: { debug?: boolean }) {
+  return expect(trussOutput(code, options));
+}
+
+/** Truss output helper for asserting code and css together. */
+function trussOutput(code: string, options?: { debug?: boolean }): { code: string | null; css: string | null } {
+  const result = transformTruss(snippet(code), "test.tsx", mapping, options);
+  return {
+    code: result?.code ? normalize(result.code) : null,
+    css: result?.css ? normalize(result.css) : null,
+  };
 }
 
 /** CSS helper — returns the generated CSS text. */
