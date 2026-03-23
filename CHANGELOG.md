@@ -1,3 +1,9 @@
+## [2.2.1](https://github.com/homebound-team/truss/compare/v2.2.0...v2.2.1) (2026-03-23)
+
+### Bug Fixes
+
+* Fix Css.typography not emitting all styles. ([#183](https://github.com/homebound-team/truss/issues/183)) ([5fb624c](https://github.com/homebound-team/truss/commit/5fb624ce6e2a88232e2a768fbab1c3ce316783eb))
+
 ## [2.2.0](https://github.com/homebound-team/truss/compare/v2.1.3...v2.2.0) (2026-03-23)
 
 ### Features
