@@ -166,6 +166,10 @@ class CssBuilder<T extends Properties> {
   get onHover() {
     return this.newCss({ selector: ":hover" });
   }
+
+  get onFocusWithin() {
+    return this.newCss({ selector: ":focus-within" });
+  }
   
   ifContainer(props: ContainerProps) {
     return this.newCss({ selector: Container(props) });
@@ -405,6 +409,9 @@ class CssBuilder<T extends Properties> {
   }
   get onFocusVisible() {
     return this.newCss({ selector: ":focus-visible" });
+  }
+  get onFocusWithin() {
+    return this.newCss({ selector: ":focus-within" });
   }
   get onActive() {
     return this.newCss({ selector: ":active" });

@@ -33,6 +33,7 @@ const PSEUDO_SUFFIX: Record<string, string> = {
   ":hover": "_h",
   ":focus": "_f",
   ":focus-visible": "_fv",
+  ":focus-within": "_fw",
   ":active": "_a",
   ":disabled": "_d",
 };

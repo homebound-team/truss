@@ -330,6 +330,12 @@ describe("transform", () => {
     );
   });
 
+  test("onFocusWithin pseudo: Css.onFocusWithin.blue.$", () => {
+    expect(n(transform(`import { Css } from "./Css"; const s = Css.onFocusWithin.blue.$;`)!)).toBe(
+      n(`const s = { color: "fw_blue" };`),
+    );
+  });
+
   test("onHover with variable literal: Css.onHover.bc('red').$", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.onHover.bc("red").$;`)!)).toBe(
       n(`const s = { borderColor: "h_bc_red" };`),
