@@ -261,3 +261,40 @@ const s = Css.if(isActive).df.else.db.$;
 // Output
 const s = { ...(isActive ? { display: "df" } : { display: "db" }) };
 ```
+
+## StyleX Spread Problem
+
+An example of the spread problem, we would write:
+
+```tsx
+const a = Css.df.$;
+const b = Css.mt2.$;
+// And then later:
+return <div css={{ ...a, ...b }} />;
+```
+
+Which the original StyleX-backend would rewrite into:
+
+```tsx
+const styles = stylex.create({
+  df: { display: "flex" },
+  mt2: { marginTop: "16px" },
+});
+
+const a = [css.df];
+const b = [css.mt2];
+// And then later:
+return <div css={{ ...a, ...b }} />;
+```
+
+And the _object_ spread of `...a, ...b` would treat a/b "as objects", using the indexes as the keys and so build:
+
+```ts
+const css = { 0: css.df }
+```
+
+Ideally we could "just" rewrite this to:
+
+```tsx
+return <div css={[ ...a, ...b ]} />;
+```
