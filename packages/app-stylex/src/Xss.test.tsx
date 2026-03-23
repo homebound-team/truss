@@ -7,14 +7,14 @@ afterEach(cleanup);
 
 describe("Xss", () => {
   type PanelXss = "color" | "height" | "marginRight";
-  type PanelXssDestructured = Partial<Xss<PanelXss>>;
 
   function Panel<X extends Only<Xss<PanelXss>, X>>(props: { xss?: X }) {
-    const xss = props.xss as PanelXssDestructured | undefined;
-    const { height, ...restXss } = xss ?? {};
+    const { height, ...rest } = props.xss ?? {};
     const css = {
+      // Spread out `height` as an example where we'd want to move it around within the component
+      // (as-is there is no reason to destructure it, vs. letting it stay in `...rest`
       ...Css.h(1).df.bgBlue.addCss({ height }).$,
-      ...(restXss as unknown as Record<string, string | 0 | undefined>),
+      ...rest,
     };
 
     return <div css={css}>panel</div>;
@@ -23,7 +23,6 @@ describe("Xss", () => {
   test("caller-provided xss height can be destructured and re-injected where needed", () => {
     const r = render(<Panel xss={Css.black.hPx(24).mr1.$} />);
     const el = r.container.firstChild as HTMLElement;
-
     expect(getComputedStyle(el).height).toBe("24px");
     expect(el).toHaveStyle({
       display: "flex",
@@ -34,10 +33,9 @@ describe("Xss", () => {
     });
   });
 
-  test("destructured xss height can fall back to a default while preserving other caller props", () => {
+  test("unset xss height can fall back to a default while preserving other caller props", () => {
     const r = render(<Panel xss={Css.black.mr1.$} />);
     const el = r.container.firstChild as HTMLElement;
-
     expect(getComputedStyle(el).height).toBe("8px");
     expect(el).toHaveStyle({
       display: "flex",
@@ -52,7 +50,6 @@ describe("Xss", () => {
     const height: Xss<"height">["height"] | undefined = undefined;
     const r = render(<div css={Css.h(1).addCss({ height }).$} />);
     const el = r.container.firstChild as HTMLElement;
-
     expect(getComputedStyle(el).height).toBe("8px");
     expect(el).toHaveStyle({ height: "8px" });
   });

@@ -10,6 +10,14 @@
 
 Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) in React/JSX, with a build-time Vite plugin that compiles to atomic CSS on web and plain style objects on React Native for mobile.
 
+## Quick Example
+
+Here's an example of production code using Truss:
+
+<p align="center" style="padding: 100px">
+  <img src="truss-example.png" width="800" />
+</p>
+
 ## Quick Features
 
 Truss lets you:
@@ -29,14 +37,6 @@ Truss lets you:
 - Get immediate access to a built-in "cheat sheet", just control-click into abbreviations/methods to see what they do
 
 Also see the "Why This Approach?" section for more rationale.
-
-## Quick Example
-
-Here's an example of production code using Truss:
-
-<p align="center" style="padding: 100px">
-  <img src="truss-example.png" width="800" />
-</p>
 
 ## Quick How It Works
 
@@ -343,7 +343,9 @@ function Panel<X extends Only<PanelXss, X>>(props: { xss?: X }) {
 
 In this example, `Css.h(1)` provides the default height, and `addCss({ height })` only overrides it when the caller actually passed a `height` xss value.
 
-Note that Truss conventionally uses the `xss` prop name for "the component's allowed extension styles" as a play on the `css` prop, with the `x` representing the "extension" concept. But there is otherwise nothing special about the name of the `xss` prop; i.e. you could use `xstyles={...}` which I believe is what the Facebook XStyles library does, or your own convention.
+This is very similar to doing a spread on `...{ height }` but note that, if the spread height is `undefined`, this will drop any previous `height` values--the `addCss` method will noticed the `undefined` and skip it.
+
+Truss conventionally uses the `xss` prop name for "the component's allowed extension styles" as a play on the `css` prop name, with the `x` representing the "extension" concept, but otherwise there is nothing special about the name of the `xss` prop.
 
 Also note that the XStyles/Xss feature is completely opt-in; you can use it if you want, or you can use Truss solely for the `Css.m2.black.$` abbreviations.
 
