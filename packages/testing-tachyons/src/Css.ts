@@ -2309,6 +2309,10 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: ":hover" });
   }
 
+  get onFocusWithin() {
+    return this.newCss({ selector: ":focus-within" });
+  }
+
   ifContainer(props: ContainerProps) {
     return this.newCss({ selector: Container(props) });
   }

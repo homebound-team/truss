@@ -326,6 +326,23 @@ However, this line will not compile because `mt2` is statically typed as `{ marg
 
 The `Css` DSL also iteratively types itself, i.e. `Css.ml1.mr2.$` is still statically typed as `{ marginLeft: number; marginRight: number }`, instead of being based just on the last-used abbreviation.
 
+You can also destructure an `xss` value for component logic, and then re-apply specific overrides with `addCss(...)`. A useful pattern is to put the component's fallback/default earlier in the chain, and let the caller's destructured override win later:
+
+```tsx
+import { Css, type Only, type Xss } from "src/Css";
+
+type PanelXss = Xss<"color" | "height">;
+
+function Panel<X extends Only<PanelXss, X>>(props: { xss?: X }) {
+  const xss = props.xss as Partial<PanelXss> | undefined;
+  const { height } = xss ?? {};
+
+  return <div css={Css.h(1).black.addCss({ height }).$}>panel</div>;
+}
+```
+
+In this example, `Css.h(1)` provides the default height, and `addCss({ height })` only overrides it when the caller actually passed a `height` xss value.
+
 Note that Truss conventionally uses the `xss` prop name for "the component's allowed extension styles" as a play on the `css` prop, with the `x` representing the "extension" concept. But there is otherwise nothing special about the name of the `xss` prop; i.e. you could use `xstyles={...}` which I believe is what the Facebook XStyles library does, or your own convention.
 
 Also note that the XStyles/Xss feature is completely opt-in; you can use it if you want, or you can use Truss solely for the `Css.m2.black.$` abbreviations.
@@ -488,7 +505,7 @@ Several libraries influenced Truss, specifically:
 
 - Facebook's [XStyles](https://www.youtube.com/watch?v=9JZHodNR184) for the "typed extension" idea
 
-- Facebook's [StyleX](https://stylexjs.com/) heavily influenced Truss's 2.x build-time approach--i.e. we copied nearly everything about it. 😅 
+- Facebook's [StyleX](https://stylexjs.com/) heavily influenced Truss's 2.x build-time approach--i.e. we copied nearly everything about it. 😅
 
   StyleX solved the hard problems of atomic CSS:
   - property-level last-write-wins semantics,
@@ -497,7 +514,6 @@ Several libraries influenced Truss, specifically:
   - deterministic class generation.
 
   The only reasons we don't use StyleX directly are:
-
   - The `stylex.create` values are "arrays of tuple data", instead of object hashes, and so didn't work
     with Truss's extremely common object literal spreads of `css={{ ...Css.mt2.$, ...someOtherStyles }}`.
 

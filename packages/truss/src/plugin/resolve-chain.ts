@@ -302,8 +302,8 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           continue;
         }
 
-        // add(prop, value) — arbitrary CSS property
-        if (abbr === "add") {
+        // add(prop, value) / addCss(cssProp)
+        if (abbr === "add" || abbr === "addCss") {
           const seg = resolveAddCall(
             node,
             mapping,
@@ -652,10 +652,11 @@ function buildParameterizedSegment(params: {
 }
 
 /**
- * Resolve an `add(...)` call.
+ * Resolve an `add(...)` or `addCss(...)` call.
  *
  * Supported overloads:
  * - `add(cssProp)` to inline an existing CssProp array into the chain output
+ * - `addCss(cssProp)` to inline an existing Truss style hash into the chain output
  * - `add("propName", value)` for an arbitrary CSS property/value pair
  */
 function resolveAddCall(
@@ -666,6 +667,28 @@ function resolveAddCall(
   pseudoElement: string | null,
   whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
 ): ResolvedSegment {
+  const isAddCss = node.name === "addCss";
+
+  if (isAddCss) {
+    if (node.args.length !== 1) {
+      throw new UnsupportedPatternError(
+        `addCss() requires exactly 1 argument (an existing CssProp/style hash expression)`,
+      );
+    }
+
+    const styleArg = node.args[0];
+    if (styleArg.type === "SpreadElement") {
+      // I.e. reject call-arg spread like `addCss(...xss)`; callers should use `addCss(xss)` or `addCss({ ...xss })`.
+      throw new UnsupportedPatternError(`addCss() does not support spread arguments`);
+    }
+    return {
+      abbr: "__composed_css_prop",
+      defs: {},
+      styleArrayArg: styleArg,
+      isAddCss: true,
+    };
+  }
+
   if (node.args.length === 1) {
     const styleArg = node.args[0];
     if (styleArg.type === "SpreadElement") {
@@ -686,7 +709,7 @@ function resolveAddCall(
   if (node.args.length !== 2) {
     throw new UnsupportedPatternError(
       `add() requires exactly 2 arguments (property name and value), got ${node.args.length}. ` +
-        `Supported overloads are add(cssProp) and add("propName", value)`,
+        `Supported overloads are add(cssProp), addCss(cssProp), and add("propName", value)`,
     );
   }
 
