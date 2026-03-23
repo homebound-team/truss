@@ -230,13 +230,9 @@ describe("transform", () => {
   });
 
   test("typography runtime key: Css.typography(key).$", () => {
-    expect(
-      n(
-        transform(
-          `import { Css, type Typography } from "./Css"; const key: Typography = pickType(); const s = Css.typography(key).$;`,
-        )!,
-      ),
-    ).toBe(
+    const code = `import { Css, type Typography } from "./Css"; const key: Typography = pickType(); const s = Css.typography(key).$;`;
+
+    expect(n(transform(code)!)).toBe(
       n(`
         import { type Typography } from "./Css";
         const __typography = {
@@ -249,6 +245,32 @@ describe("transform", () => {
         };
         const key: Typography = pickType();
         const s = { ...(__typography[key] ?? {}) };
+      `),
+    );
+
+    expect(n(css(code)!)).toEqual(
+      n(`
+        .f10_fontSize {
+          font-size: 10px;
+        }
+        .f12 {
+          font-size: 12px;
+        }
+        .f14 {
+          font-size: 14px;
+        }
+        .f16 {
+          font-size: 16px;
+        }
+        .f18 {
+          font-size: 18px;
+        }
+        .f24 {
+          font-size: 24px;
+        }
+        .fw5 {
+          font-weight: 500;
+        }
       `),
     );
   });

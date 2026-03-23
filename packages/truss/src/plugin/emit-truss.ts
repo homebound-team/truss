@@ -226,17 +226,29 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
   const rules = new Map<string, AtomicRule>();
   let needsMaybeInc = false;
 
+  function collectSegment(seg: ResolvedSegment): void {
+    if (seg.error || seg.styleArrayArg) return;
+    if (seg.typographyLookup) {
+      for (const segments of Object.values(seg.typographyLookup.segmentsByName)) {
+        for (const nestedSeg of segments) {
+          collectSegment(nestedSeg);
+        }
+      }
+      return;
+    }
+    if (seg.incremented) needsMaybeInc = true;
+    if (seg.variableProps) {
+      collectVariableRules(rules, seg, mapping);
+    } else {
+      collectStaticRules(rules, seg, mapping);
+    }
+  }
+
   for (const chain of chains) {
     for (const part of chain.parts) {
       const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
       for (const seg of segs) {
-        if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
-        if (seg.incremented) needsMaybeInc = true;
-        if (seg.variableProps) {
-          collectVariableRules(rules, seg, mapping);
-        } else {
-          collectStaticRules(rules, seg, mapping);
-        }
+        collectSegment(seg);
       }
     }
   }
