@@ -1,3 +1,9 @@
+## [2.1.2](https://github.com/homebound-team/truss/compare/v2.1.1...v2.1.2) (2026-03-23)
+
+### Bug Fixes
+
+* Add runtime validation to trussProps. ([#176](https://github.com/homebound-team/truss/issues/176)) ([90b5e42](https://github.com/homebound-team/truss/commit/90b5e42408f47dcace3ac5975330f67474a9d8ef))
+
 ## [2.1.1](https://github.com/homebound-team/truss/compare/v2.1.0...v2.1.1) (2026-03-22)
 
 ### Bug Fixes
