@@ -2583,6 +2583,9 @@ class CssBuilder<T extends Properties> {
   get onFocusVisible() {
     return this.newCss({ selector: ":focus-visible" });
   }
+  get onFocusWithin() {
+    return this.newCss({ selector: ":focus-within" });
+  }
   get onActive() {
     return this.newCss({ selector: ":active" });
   }

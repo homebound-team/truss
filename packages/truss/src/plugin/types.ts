@@ -54,6 +54,8 @@ export interface ResolvedSegment {
   argNode?: any;
   /** For composed Css props inserted via `add(cssProp)`. */
   styleArrayArg?: any;
+  /** True when the composed style arg came from `addCss(...)`. */
+  isAddCss?: boolean;
   /** The evaluated literal value of the argument, if it was a compile-time constant. */
   argResolved?: string;
   /** For runtime typography lookups: the lookup metadata and runtime key node. */

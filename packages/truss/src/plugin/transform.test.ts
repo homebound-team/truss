@@ -1479,6 +1479,74 @@ describe("transform", () => {
     );
   });
 
+  test("addCss with CssProp argument composes inline as spread", () => {
+    expect(
+      n(
+        transform(`
+           import { Css } from "./Css";
+           const height = getHeight();
+           const s = Css.df.bgBlue.addCss(height).black.$;
+         `)!,
+      ),
+    ).toBe(
+      n(`
+        const height = getHeight();
+        const s = { display: "df", backgroundColor: "bgBlue", ...height, color: "black" };
+      `),
+    );
+  });
+
+  test("addCss supports destructured fallback expressions", () => {
+    expect(
+      n(
+        transform(`
+          import { Css } from "./Css";
+          function Panel(props) {
+            const { height } = props.xss;
+            return <div css={Css.h(1).df.bgBlue.addCss({ height }).black.$} />;
+          }
+        `)!,
+      ),
+    ).toBe(
+      n(`
+        import { trussProps } from "@homebound/truss/runtime";
+        function Panel(props) {
+          const { height } = props.xss;
+          return <div {...trussProps({ height: "h_8px", display: "df", backgroundColor: "bgBlue", ...(height === undefined ? {} : { height: height }), color: "black" })} />;
+        }
+      `),
+    );
+  });
+
+  test("addCss object literals pass through Truss style values", () => {
+    expect(
+      n(
+        transform(`
+      import { Css } from "./Css";
+       const s = Css.h(1).addCss({ height }).$;`)!,
+      ),
+    ).toBe(
+      n(`
+        const s = { height: "h_8px", ...(height === undefined ? {} : { height: height }) };
+      `),
+    );
+  });
+
+  test("addCss rejects wrong arity", () => {
+    expect(
+      n(
+        transform(`
+       import { Css } from "./Css";
+       const s = Css.addCss("height", "8px").$;`)!,
+      ),
+    ).toBe(
+      n(`
+        console.error("[truss] Unsupported pattern: addCss() requires exactly 1 argument (an existing CssProp/style hash expression) (test.tsx:3)");
+        const s = {};
+      `),
+    );
+  });
+
   test("add with object literal emits console.error", () => {
     expect(n(transform(`import { Css } from "./Css"; const s = Css.add({ wordBreak: "break-word" }).$;`)!)).toBe(
       n(`

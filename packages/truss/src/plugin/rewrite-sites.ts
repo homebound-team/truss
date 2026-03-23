@@ -152,8 +152,11 @@ function buildStyleHashMembers(
 
     if (seg.styleArrayArg) {
       flushNormal();
-      // In the new model, add(cssProp) takes a style hash object — just spread it
-      members.push(t.spreadElement(seg.styleArrayArg as t.Expression));
+      if (seg.isAddCss && t.isObjectExpression(seg.styleArrayArg)) {
+        members.push(...buildAddCssObjectMembers(seg.styleArrayArg));
+      } else {
+        members.push(t.spreadElement(seg.styleArrayArg as t.Expression));
+      }
       continue;
     }
 
@@ -176,6 +179,40 @@ function buildStyleHashMembers(
   }
 
   flushNormal();
+  return members;
+}
+
+function buildAddCssObjectMembers(styleObject: t.ObjectExpression): (t.ObjectProperty | t.SpreadElement)[] {
+  const members: (t.ObjectProperty | t.SpreadElement)[] = [];
+
+  for (const property of styleObject.properties) {
+    if (t.isSpreadElement(property)) {
+      members.push(t.spreadElement(t.cloneNode(property.argument, true) as t.Expression));
+      continue;
+    }
+
+    if (!t.isObjectProperty(property) || property.computed) {
+      members.push(t.spreadElement(t.objectExpression([t.cloneNode(property, true)])));
+      continue;
+    }
+
+    const value = property.value;
+    if (t.isIdentifier(value) || t.isMemberExpression(value) || t.isOptionalMemberExpression(value)) {
+      members.push(
+        t.spreadElement(
+          t.conditionalExpression(
+            t.binaryExpression("===", t.cloneNode(value, true), t.identifier("undefined")),
+            t.objectExpression([]),
+            t.objectExpression([t.objectProperty(clonePropertyKey(property.key), t.cloneNode(value, true))]),
+          ),
+        ),
+      );
+      continue;
+    }
+
+    members.push(t.spreadElement(t.objectExpression([t.cloneNode(property, true)])));
+  }
+
   return members;
 }
 

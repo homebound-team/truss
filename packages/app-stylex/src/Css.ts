@@ -2271,6 +2271,9 @@ class CssBuilder<T extends Properties> {
   get onFocusVisible() {
     return this.newCss({ selector: ":focus-visible" });
   }
+  get onFocusWithin() {
+    return this.newCss({ selector: ":focus-within" });
+  }
   get onActive() {
     return this.newCss({ selector: ":active" });
   }
@@ -2394,6 +2397,11 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ rules: rules as any });
   }
 
+  /** Inline a partial style hash, skipping any undefined values. */
+  addCss<P extends Properties>(props: P): CssBuilder<T & P> {
+    return this.add(omitUndefinedValues(props));
+  }
+
   /** Convert a style hash into `{ className, style }` props for manual spreading into non-`css=` contexts. */
   props(styles: Properties): Record<string, unknown> {
     return trussProps(styles as any);
@@ -2426,6 +2434,13 @@ export function increment(inc: number): number {
 /** Convert `pixels` to a `px` units string so it's not ambiguous. */
 export function px(pixels: number): string {
   return `${pixels}px`;
+}
+
+function omitUndefinedValues<T extends object>(value: T): T {
+  const entries = Object.entries(value).filter(function ([, entryValue]) {
+    return entryValue !== undefined;
+  });
+  return Object.fromEntries(entries) as T;
 }
 
 export enum Palette {
