@@ -1928,13 +1928,13 @@ describe("transform", () => {
     );
   });
 
-  test("marker and when('ancestor') in same file use same user-defined marker variable", () => {
+  test("marker and when(row, 'ancestor') in same file use same user-defined marker variable", () => {
     expectTrussTransform(
       `
       import { Css } from "./Css";
       const row = Css.newMarker();
       const a = Css.markerOf(row).$;
-      const b = Css.when("ancestor", row, ":hover").blue.$;
+      const b = Css.when(row, "ancestor", ":hover").blue.$;
       `,
     ).toHaveTrussOutput(
       `
@@ -1952,12 +1952,29 @@ describe("transform", () => {
 
   // ── when() generic API tests ──────────────────────────────────────
 
-  test("Css.when('ancestor', ':hover').blue.$", () => {
+  test("Css.when(':hover:not(:disabled)').black.$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
-      const s = Css.when("ancestor", ":hover").blue.$;
+      const s = Css.when(":hover:not(:disabled)").black.$;
     `).toHaveTrussOutput(
       `
+      const s = { color: "h_n_d_black" };
+    `,
+      `
+        .h_n_d_black:hover:not(:disabled) {
+          color: #353535;
+        }
+      `,
+    );
+  });
+
+  test("Css.when(defaultMarker, 'ancestor', ':hover').blue.$", () => {
+    expectTrussTransform(`
+      import { Css, defaultMarker } from "./Css";
+      const s = Css.when(defaultMarker, "ancestor", ":hover").blue.$;
+    `).toHaveTrussOutput(
+      `
+      import { defaultMarker } from "./Css";
       const s = { color: "wh_anc_h_blue" };
     `,
       `
@@ -1968,12 +1985,12 @@ describe("transform", () => {
     );
   });
 
-  test("Css.when('ancestor', marker, ':hover').blue.$", () => {
+  test("Css.when(marker, 'ancestor', ':hover').blue.$", () => {
     expectTrussTransform(
       `
       import { Css } from "./Css";
       const marker = Css.newMarker();
-      const s = Css.when("ancestor", marker, ":hover").blue.$;
+      const s = Css.when(marker, "ancestor", ":hover").blue.$;
     `,
     ).toHaveTrussOutput(
       `
@@ -1988,12 +2005,13 @@ describe("transform", () => {
     );
   });
 
-  test("Css.when('descendant', ':focus').blue.$", () => {
+  test("Css.when(defaultMarker, 'descendant', ':focus').blue.$", () => {
     expectTrussTransform(`
-      import { Css } from "./Css";
-      const s = Css.when("descendant", ":focus").blue.$;
+      import { Css, defaultMarker } from "./Css";
+      const s = Css.when(defaultMarker, "descendant", ":focus").blue.$;
     `).toHaveTrussOutput(
       `
+      import { defaultMarker } from "./Css";
       const s = { color: "wh_desc_f_blue" };
     `,
       `
@@ -2004,12 +2022,13 @@ describe("transform", () => {
     );
   });
 
-  test("Css.when('siblingAfter', ':hover').blue.$", () => {
+  test("Css.when(defaultMarker, 'siblingAfter', ':hover').blue.$", () => {
     expectTrussTransform(`
-      import { Css } from "./Css";
-      const s = Css.when("siblingAfter", ":hover").blue.$;
+      import { Css, defaultMarker } from "./Css";
+      const s = Css.when(defaultMarker, "siblingAfter", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
+      import { defaultMarker } from "./Css";
       const s = { color: "wh_sibA_h_blue" };
     `,
       `
@@ -2020,12 +2039,13 @@ describe("transform", () => {
     );
   });
 
-  test("Css.when('siblingBefore', ':hover').blue.$", () => {
+  test("Css.when(defaultMarker, 'siblingBefore', ':hover').blue.$", () => {
     expectTrussTransform(`
-      import { Css } from "./Css";
-      const s = Css.when("siblingBefore", ":hover").blue.$;
+      import { Css, defaultMarker } from "./Css";
+      const s = Css.when(defaultMarker, "siblingBefore", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
+      import { defaultMarker } from "./Css";
       const s = { color: "wh_sibB_h_blue" };
     `,
       `
@@ -2036,12 +2056,29 @@ describe("transform", () => {
     );
   });
 
-  test("Css.when('anySibling', marker, ':hover').blue.$", () => {
+  test("Css.when(defaultMarker, 'anySibling', ':hover').blue.$", () => {
+    expectTrussTransform(`
+      import { Css, defaultMarker } from "./Css";
+      const s = Css.when(defaultMarker, "anySibling", ":hover").blue.$;
+    `).toHaveTrussOutput(
+      `
+      import { defaultMarker } from "./Css";
+      const s = { color: "wh_anyS_h_blue" };
+    `,
+      `
+        .wh_anyS_h_blue:has(~ .__truss_m:hover), .__truss_m:hover ~ .wh_anyS_h_blue {
+          color: #526675;
+        }
+      `,
+    );
+  });
+
+  test("Css.when(row, 'anySibling', ':hover').blue.$", () => {
     expectTrussTransform(
       `
       import { Css } from "./Css";
       const row = Css.newMarker();
-      const s = Css.when("anySibling", row, ":hover").blue.$;
+      const s = Css.when(row, "anySibling", ":hover").blue.$;
     `,
     ).toHaveTrussOutput(
       `
@@ -2056,12 +2093,30 @@ describe("transform", () => {
     );
   });
 
-  test("Css.when with invalid relationship emits console.error", () => {
+  test("Css.when with removed 2-arg relationship form emits console.error", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
-      const s = Css.when("bogus", ":hover").blue.$;
+      const s = Css.when("ancestor", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
+      console.error("[truss] Unsupported pattern: when() expects 1 or 3 arguments (selector) or (marker, relationship, pseudo), got 2 (test.tsx:2)");
+      const s = { color: "blue" };
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+    `,
+    );
+  });
+
+  test("Css.when with invalid relationship emits console.error", () => {
+    expectTrussTransform(`
+      import { Css, defaultMarker } from "./Css";
+      const s = Css.when(defaultMarker, "bogus", ":hover").blue.$;
+    `).toHaveTrussOutput(
+      `
+      import { defaultMarker } from "./Css";
       console.error("[truss] Unsupported pattern: when() relationship must be one of: ancestor, descendant, anySibling, siblingBefore, siblingAfter -- got \\\"bogus\\\" (test.tsx:2)");
       const s = { color: "blue" };
     `,
@@ -2075,12 +2130,13 @@ describe("transform", () => {
 
   test("Css.when with non-literal relationship emits console.error", () => {
     expectTrussTransform(`
-      import { Css } from "./Css";
+      import { Css, defaultMarker } from "./Css";
       const rel = "ancestor";
-      const s = Css.when(rel, ":hover").blue.$;
+      const s = Css.when(defaultMarker, rel, ":hover").blue.$;
     `).toHaveTrussOutput(
       `
-      console.error("[truss] Unsupported pattern: when() first argument must be a string literal relationship (test.tsx:3)");
+      import { defaultMarker } from "./Css";
+      console.error("[truss] Unsupported pattern: when() relationship argument must be a string literal (test.tsx:3)");
       const rel = "ancestor";
       const s = { color: "blue" };
     `,

@@ -452,20 +452,20 @@ class CssBuilder<T extends Properties> {
   }
 
   /**
-    * Styles after this \`when\` are applied based on a relationship + pseudo selector.
+    * Styles after this \`when\` are applied on the current element for a static selector.
     *
-    * \`when("ancestor", ":hover")\` — react to ancestor hover
-    * \`when("descendant", ":focus")\` — react to descendant focus
-    * \`when("siblingAfter", ":hover")\` — react to a following sibling's hover
+    * \`when(\":hover\")\` — same semantics as \`onHover\`
+    * \`when(\":hover:not(:disabled)\")\` — hover only while enabled
     */
-  when(relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter", pseudo: string): CssBuilder<T>;
+  when(selector: string): CssBuilder<T>;
   /**
-    * Styles after this \`when\` are applied based on a relationship-to-marker + pseudo selector.
+    * Styles after this \`when\` are applied based on a marker relationship + pseudo selector.
     *
-    * \`when("ancestor", marker, ":hover")\` — react to a specific ancestor's hover
+    * \`when(defaultMarker, "ancestor", ":hover")\` — react to default-marker ancestor hover
+    * \`when(row, "descendant", ":focus")\` — react to a marked descendant focus
     */
-  when(relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter", marker: Marker, pseudo: string): CssBuilder<T>;
-  when(_relationship: string, _pseudoOrMarker: string | Marker, _pseudo?: string): CssBuilder<T> {
+  when(marker: Marker, relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter", pseudo: string): CssBuilder<T>;
+  when(_selectorOrMarker: string | Marker, _relationship?: string, _pseudo?: string): CssBuilder<T> {
     return this;
   }
 
@@ -570,6 +570,9 @@ export enum Palette {
 
 /** A shortcut for defining Xss types. */
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;
+
+/** The shared default marker token for \`when(defaultMarker, relationship, pseudo)\`. */
+export const defaultMarker: Marker = Symbol.for("truss-default-marker");
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined, elseApplied: false });

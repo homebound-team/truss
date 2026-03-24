@@ -86,14 +86,14 @@ Css.black.ifSm.onHover.blue.$ → { color: "black sm_h_blue" }
 
 ### Relationship selectors (`marker` / `when()`)
 
-Markers are deterministic CSS classes applied to elements. `when()` conditions compile to CSS relationship selectors:
+Markers are deterministic CSS classes applied to elements. `when(selector)` targets the current element, and `when(marker, relationship, pseudo)` compiles to CSS relationship selectors:
 
 ```ts
 Css.marker.$                              → { __marker: "__truss_m" }
 Css.markerOf(row).$                       → { __marker: "__truss_m_row" }
-Css.when("ancestor", ":hover").blue.$     → { color: "wh_anc_h_blue" }
-Css.when("descendant", ":focus").blue.$   → { color: "wh_desc_f_blue" }
-Css.when("siblingBefore", ":hover").blue.$ → { color: "wh_sibB_h_blue" }
+Css.when(":hover:not(:disabled)").blue.$  → { color: "h_n_d_blue" }
+Css.when(defaultMarker, "ancestor", ":hover").blue.$ → { color: "wh_anc_h_blue" }
+Css.when(row, "descendant", ":focus").blue.$               → { color: "wh_desc_f_row_blue" }
 ```
 
 Selector lowering by relationship type:
@@ -290,11 +290,11 @@ return <div css={{ ...a, ...b }} />;
 And the _object_ spread of `...a, ...b` would treat a/b "as objects", using the indexes as the keys and so build:
 
 ```ts
-const css = { 0: css.df }
+const css = { 0: css.df };
 ```
 
 Ideally we could "just" rewrite this to:
 
 ```tsx
-return <div css={[ ...a, ...b ]} />;
+return <div css={[...a, ...b]} />;
 ```
