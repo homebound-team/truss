@@ -1,3 +1,9 @@
+## [2.2.2](https://github.com/homebound-team/truss/compare/v2.2.1...v2.2.2) (2026-03-24)
+
+### Bug Fixes
+
+* Emit less newlines. ([#186](https://github.com/homebound-team/truss/issues/186)) ([2a03512](https://github.com/homebound-team/truss/commit/2a035126a2fa8979a10ff65b8051c9476973576f))
+
 ## [2.2.1](https://github.com/homebound-team/truss/compare/v2.2.0...v2.2.1) (2026-03-23)
 
 ### Bug Fixes
