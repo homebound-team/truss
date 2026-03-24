@@ -50,8 +50,11 @@ export type ResolvedChainPart =
  * - **`element("::placeholder")`** — Pseudo-element. Sets the pseudo-element
  *   context for subsequent styles.
  *
- * - **`when("ancestor", ":hover")`** — Relationship pseudo. Resets both media
- *   query and pseudo-class contexts.
+ * - **`when(":hover")`** — Same-element selector pseudo. Behaves like a custom
+ *   pseudo-class context and stacks with media queries.
+ *
+ * - **`when(marker, "ancestor", ":hover")`** — Relationship pseudo. Resets both
+ *   media query and pseudo-class contexts.
  *
  * - **`ifContainer({ gt, lt })`** — Container query. Sets the media query
  *   context to an `@container` query string.
@@ -339,12 +342,17 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           continue;
         }
 
-        // Generic when(relationship, pseudo) or when(relationship, marker, pseudo)
+        // Generic when(selector) or when(marker, relationship, pseudo)
         if (abbr === "when") {
           const resolved = resolveWhenCall(node);
-          currentPseudoClass = null;
-          currentMediaQuery = null;
-          currentWhenPseudo = resolved;
+          if (resolved.kind === "selector") {
+            currentPseudoClass = resolved.pseudo;
+            currentWhenPseudo = null;
+          } else {
+            currentPseudoClass = null;
+            currentMediaQuery = null;
+            currentWhenPseudo = resolved;
+          }
           continue;
         }
 
@@ -354,7 +362,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           currentWhenPseudo = null;
           if (node.args.length > 0) {
             throw new UnsupportedPatternError(
-              `${abbr}() does not take arguments -- use when("ancestor", ":hover") for relationship pseudos`,
+              `${abbr}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
             );
           }
           continue;
@@ -770,21 +778,36 @@ function tryEvaluateAddLiteral(node: t.Expression | t.SpreadElement): string | n
 const WHEN_RELATIONSHIPS = new Set(["ancestor", "descendant", "anySibling", "siblingBefore", "siblingAfter"]);
 
 /**
- * Resolve a `when(relationship, pseudo)` or `when(relationship, marker, pseudo)` call.
+ * Resolve a `when(selector)` or `when(marker, relationship, pseudo)` call.
  *
- * - 2 args: `when("ancestor", ":hover")` — both must be string literals
- * - 3 args: `when("ancestor", marker, ":hover")` — 1st and 3rd must be string literals, 2nd is a marker variable
+ * - 1 arg: `when(":hover")` — same-element selector, must be a string literal
+ * - 3 args: `when(marker, "ancestor", ":hover")` — marker must be a marker variable or
+ *   `defaultMarker`, relationship/pseudo must be string literals
  */
-function resolveWhenCall(node: CallChainNode): { pseudo: string; markerNode?: any; relationship: string } {
-  if (node.args.length < 2 || node.args.length > 3) {
+function resolveWhenCall(
+  node: CallChainNode,
+):
+  | { kind: "selector"; pseudo: string }
+  | { kind: "relationship"; pseudo: string; markerNode?: any; relationship: string } {
+  if (node.args.length !== 1 && node.args.length !== 3) {
     throw new UnsupportedPatternError(
-      `when() expects 2 or 3 arguments (relationship, [marker], pseudo), got ${node.args.length}`,
+      `when() expects 1 or 3 arguments (selector) or (marker, relationship, pseudo), got ${node.args.length}`,
     );
   }
 
-  const relationshipArg = node.args[0];
+  if (node.args.length === 1) {
+    const pseudoArg = node.args[0];
+    if (pseudoArg.type !== "StringLiteral") {
+      throw new UnsupportedPatternError(`when() selector must be a string literal`);
+    }
+    return { kind: "selector", pseudo: (pseudoArg as any).value };
+  }
+
+  const markerArg = node.args[0];
+  const markerNode = resolveWhenMarker(markerArg);
+  const relationshipArg = node.args[1];
   if (relationshipArg.type !== "StringLiteral") {
-    throw new UnsupportedPatternError(`when() first argument must be a string literal relationship`);
+    throw new UnsupportedPatternError(`when() relationship argument must be a string literal`);
   }
   const relationship: string = (relationshipArg as any).value;
   if (!WHEN_RELATIONSHIPS.has(relationship)) {
@@ -793,22 +816,39 @@ function resolveWhenCall(node: CallChainNode): { pseudo: string; markerNode?: an
     );
   }
 
-  if (node.args.length === 2) {
-    // when("ancestor", ":hover")
-    const pseudoArg = node.args[1];
-    if (pseudoArg.type !== "StringLiteral") {
-      throw new UnsupportedPatternError(`when() pseudo selector must be a string literal`);
-    }
-    return { pseudo: (pseudoArg as any).value, relationship };
-  } else {
-    // when("ancestor", marker, ":hover")
-    const markerNode = node.args[1];
-    const pseudoArg = node.args[2];
-    if (pseudoArg.type !== "StringLiteral") {
-      throw new UnsupportedPatternError(`when() pseudo selector (3rd argument) must be a string literal`);
-    }
-    return { pseudo: (pseudoArg as any).value, markerNode, relationship };
+  const pseudoArg = node.args[2];
+  if (pseudoArg.type !== "StringLiteral") {
+    throw new UnsupportedPatternError(`when() pseudo selector (3rd argument) must be a string literal`);
   }
+  return { kind: "relationship", pseudo: (pseudoArg as any).value, markerNode, relationship };
+}
+
+function resolveWhenMarker(node: t.Expression | t.SpreadElement): any | undefined {
+  if (isDefaultMarkerNode(node)) {
+    return undefined;
+  }
+  if (node.type === "Identifier") {
+    return node;
+  }
+  throw new UnsupportedPatternError(`when() marker must be a marker variable or defaultMarker`);
+}
+
+function isDefaultMarkerNode(node: t.Expression | t.SpreadElement): boolean {
+  if (node.type === "Identifier" && node.name === "defaultMarker") {
+    return true;
+  }
+  return isLegacyDefaultMarkerExpression(node);
+}
+
+function isLegacyDefaultMarkerExpression(node: t.Expression | t.SpreadElement): boolean {
+  return (
+    node.type === "CallExpression" &&
+    node.arguments.length === 0 &&
+    node.callee.type === "MemberExpression" &&
+    !node.callee.computed &&
+    node.callee.property.type === "Identifier" &&
+    node.callee.property.name === "defaultMarker"
+  );
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────

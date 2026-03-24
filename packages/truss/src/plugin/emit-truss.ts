@@ -38,6 +38,15 @@ const PSEUDO_SUFFIX: Record<string, string> = {
   ":disabled": "_d",
 };
 
+/** Extra pseudo selector abbreviations used when() class names need static-but-safe tokens. */
+const PSEUDO_SELECTOR_SUFFIX: Record<string, string> = {
+  ...PSEUDO_SUFFIX,
+  ":not": "_n",
+  ":is": "_is",
+  ":where": "_where",
+  ":has": "_has",
+};
+
 /** Short abbreviations for relationship types in when() class names. */
 const RELATIONSHIP_SHORT: Record<string, string> = {
   ancestor: "anc",
@@ -62,14 +71,44 @@ export function markerClassName(markerNode?: { type: string; name?: string }): s
 /**
  * Build a when() class name prefix from whenPseudo info.
  *
- * I.e. `when("ancestor", ":hover")` → `"wh_anc_h_"`,
- * `when("ancestor", row, ":hover")` → `"wh_anc_h_row_"`.
+ * I.e. `when(defaultMarker, "ancestor", ":hover")` → `"wh_anc_h_"`,
+ * `when(row, "ancestor", ":hover")` → `"wh_anc_h_row_"`.
  */
 function whenPrefix(whenPseudo: { pseudo: string; markerNode?: any; relationship?: string }): string {
   const rel = RELATIONSHIP_SHORT[whenPseudo.relationship ?? "ancestor"] ?? "anc";
-  const pseudoTag = PSEUDO_SUFFIX[whenPseudo.pseudo]?.replace(/^_/, "") ?? whenPseudo.pseudo.replace(/^:/, "");
+  const pseudoTag = pseudoSelectorTag(whenPseudo.pseudo);
   const markerPart = whenPseudo.markerNode?.type === "Identifier" ? `${whenPseudo.markerNode.name}_` : "";
   return `wh_${rel}_${pseudoTag}_${markerPart}`;
+}
+
+/** Convert a pseudo selector into a safe class-name token while preserving raw selector emission. */
+function pseudoSelectorTag(pseudo: string): string {
+  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, function (match) {
+    return `_${pseudoIdentifierTag(match)}_`;
+  });
+  const cleaned = replaced
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  return cleaned || "pseudo";
+}
+
+function pseudoIdentifierTag(pseudo: string): string {
+  const normalized = normalizePseudoIdentifier(pseudo);
+  const known = PSEUDO_SELECTOR_SUFFIX[normalized];
+  if (known) {
+    return known.replace(/^_/, "");
+  }
+  return normalized.replace(/^::?/, "").replace(/-/g, "_");
+}
+
+function normalizePseudoIdentifier(pseudo: string): string {
+  const prefixMatch = pseudo.match(/^::?/);
+  const prefix = prefixMatch?.[0] ?? "";
+  const name = pseudo.slice(prefix.length).replace(/[A-Z]/g, function (match) {
+    return `-${match.toLowerCase()}`;
+  });
+  return `${prefix}${name}`;
 }
 
 /**
@@ -102,10 +141,7 @@ function conditionPrefix(
     parts.push("mq_");
   }
   if (pseudoClass) {
-    const tag = PSEUDO_SUFFIX[pseudoClass];
-    // PSEUDO_SUFFIX values still have a leading underscore; strip it and add trailing
-    if (tag) parts.push(`${tag.replace(/^_/, "")}_`);
-    else parts.push(`${pseudoClass.replace(/^:/, "")}_`);
+    parts.push(`${pseudoSelectorTag(pseudoClass)}_`);
   }
   return parts.join("");
 }

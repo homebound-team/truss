@@ -1,4 +1,4 @@
-import { Css } from "./Css";
+import { Css, defaultMarker } from "./Css";
 import { useState } from "react";
 import { buttonNoteClassName } from "./App.css.ts";
 
@@ -30,7 +30,7 @@ export function App() {
       <div css={Css.df.gap1.$}>
         <div css={Css.marker.ba.bcBlack.p2.br2.cursorPointer.$}>
           <span>Hover this card</span>
-          <span css={Css.when("ancestor", ":hover").white.$}> — I turn white on parent hover</span>
+          <span css={Css.when(defaultMarker, "ancestor", ":hover").white.$}> — I turn white on parent hover</span>
         </div>
       </div>
 

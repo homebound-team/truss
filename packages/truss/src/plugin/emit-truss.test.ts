@@ -148,6 +148,21 @@ describe("collectAtomicRules", () => {
       cssVarName: "--h_borderColor",
     });
   });
+
+  test("custom pseudo selectors build a safe class token", () => {
+    const seg: ResolvedSegment = {
+      abbr: "black",
+      defs: { color: "#353535" },
+      pseudoClass: ":hover:not(:disabled)",
+    };
+    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    expect(rules.get("h_n_d_black")).toMatchObject({
+      className: "h_n_d_black",
+      cssProperty: "color",
+      cssValue: "#353535",
+      pseudoClass: ":hover:not(:disabled)",
+    });
+  });
 });
 
 describe("generateCssText", () => {
@@ -212,6 +227,22 @@ describe("generateCssText", () => {
     ]);
     const css = generateCssText(rules);
     expect(css).toBe(".placeholder_blue::placeholder { color: #526675; }");
+  });
+
+  test("custom pseudo selector rule keeps the raw selector", () => {
+    const rules = new Map<string, AtomicRule>([
+      [
+        "h_n_d_black",
+        {
+          className: "h_n_d_black",
+          cssProperty: "color",
+          cssValue: "#353535",
+          pseudoClass: ":hover:not(:disabled)",
+        },
+      ],
+    ]);
+    const css = generateCssText(rules);
+    expect(css).toBe(".h_n_d_black:hover:not(:disabled) { color: #353535; }");
   });
 
   test("variable rule includes @property", () => {
@@ -493,6 +524,16 @@ describe("computeRulePriority", () => {
     expect(focusWithinCamel).toBe(3140);
     expect(focusVisible).toBe(3160);
     expect(focusVisibleCamel).toBe(3160);
+  });
+
+  test("custom pseudo selectors use the leading pseudo for priority", () => {
+    const priority = computeRulePriority({
+      className: "h_n_d_c",
+      cssProperty: "color",
+      cssValue: "red",
+      pseudoClass: ":hover:not(:disabled)",
+    });
+    expect(priority).toBe(3130);
   });
 
   test("media query adds 200", () => {
