@@ -154,7 +154,7 @@ describe("generateCssText", () => {
   test("base rule", () => {
     const rules = new Map<string, AtomicRule>([["df", { className: "df", cssProperty: "display", cssValue: "flex" }]]);
     const css = generateCssText(rules);
-    expect(css).toContain(".df {\n  display: flex;\n}");
+    expect(css).toBe(".df { display: flex; }");
   });
 
   test("pseudo-class rule", () => {
@@ -162,7 +162,7 @@ describe("generateCssText", () => {
       ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "#526675", pseudoClass: ":hover" }],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".h_blue:hover {\n  color: #526675;\n}");
+    expect(css).toBe(".h_blue:hover { color: #526675; }");
   });
 
   test("media query rule uses doubled selector", () => {
@@ -178,7 +178,7 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain("@media screen and (max-width: 599px) {\n  .sm_blue.sm_blue {\n    color: #526675;\n  }\n}");
+    expect(css).toBe("@media screen and (max-width: 599px) { .sm_blue.sm_blue { color: #526675; } }");
   });
 
   test("media + pseudo uses doubled selector + pseudo", () => {
@@ -195,9 +195,7 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(
-      "@media screen and (max-width: 599px) {\n  .sm_h_blue.sm_h_blue:hover {\n    color: #526675;\n  }\n}",
-    );
+    expect(css).toBe("@media screen and (max-width: 599px) { .sm_h_blue.sm_h_blue:hover { color: #526675; } }");
   });
 
   test("pseudo-element rule", () => {
@@ -213,7 +211,7 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".placeholder_blue::placeholder {\n  color: #526675;\n}");
+    expect(css).toBe(".placeholder_blue::placeholder { color: #526675; }");
   });
 
   test("variable rule includes @property", () => {
@@ -229,8 +227,9 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".mt_var {\n  margin-top: var(--marginTop);\n}");
-    expect(css).toContain('@property --marginTop {\n  syntax: "*";\n  inherits: false;\n}');
+    expect(css).toBe(
+      '.mt_var { margin-top: var(--marginTop); }\n@property --marginTop { syntax: "*"; inherits: false; }',
+    );
   });
 
   test("multi-prop variable rule includes all declarations and @property entries", () => {
@@ -250,9 +249,9 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toContain(".sq_var {\n  height: var(--height);\n  width: var(--width);\n}");
-    expect(css).toContain('@property --height {\n  syntax: "*";\n  inherits: false;\n}');
-    expect(css).toContain('@property --width {\n  syntax: "*";\n  inherits: false;\n}');
+    expect(css).toBe(
+      '.sq_var { height: var(--height); width: var(--width); }\n@property --height { syntax: "*"; inherits: false; }\n@property --width { syntax: "*"; inherits: false; }',
+    );
   });
 
   test("ordering: base before pseudo before media", () => {
