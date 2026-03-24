@@ -1,3 +1,9 @@
+## [2.3.0](https://github.com/homebound-team/truss/compare/v2.2.2...v2.3.0) (2026-03-24)
+
+### Features
+
+* Rework Css.when API. ([#189](https://github.com/homebound-team/truss/issues/189)) ([1e62ec4](https://github.com/homebound-team/truss/commit/1e62ec454caeb13dd2bc0b3e94939beee3ecd0a9))
+
 ## [2.2.2](https://github.com/homebound-team/truss/compare/v2.2.1...v2.2.2) (2026-03-24)
 
 ### Bug Fixes
