@@ -388,7 +388,7 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   for (const rule of allRules) {
     for (const declaration of getRuleDeclarations(rule)) {
       if (declaration.cssVarName) {
-        lines.push(`@property ${declaration.cssVarName} {\n  syntax: "*";\n  inherits: false;\n}`);
+        lines.push(`@property ${declaration.cssVarName} { syntax: "*"; inherits: false; }`);
       }
     }
   }
@@ -469,19 +469,19 @@ function getRuleDeclarations(rule: AtomicRule): Array<{ cssProperty: string; css
 function formatRuleBlock(selector: string, rule: AtomicRule): string {
   const body = getRuleDeclarations(rule)
     .map(function (declaration) {
-      return `  ${declaration.cssProperty}: ${declaration.cssValue};`;
+      return `${declaration.cssProperty}: ${declaration.cssValue};`;
     })
-    .join("\n");
-  return `${selector} {\n${body}\n}`;
+    .join(" ");
+  return `${selector} { ${body} }`;
 }
 
 function formatNestedRuleBlock(wrapper: string, selector: string, rule: AtomicRule): string {
   const body = getRuleDeclarations(rule)
     .map(function (declaration) {
-      return `    ${declaration.cssProperty}: ${declaration.cssValue};`;
+      return `${declaration.cssProperty}: ${declaration.cssValue};`;
     })
-    .join("\n");
-  return `${wrapper} {\n  ${selector} {\n${body}\n  }\n}`;
+    .join(" ");
+  return `${wrapper} { ${selector} { ${body} } }`;
 }
 
 // -- AST generation for style hash objects --
