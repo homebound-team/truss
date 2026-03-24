@@ -1,3 +1,9 @@
+## [2.3.1](https://github.com/homebound-team/truss/compare/v2.3.0...v2.3.1) (2026-03-24)
+
+### Bug Fixes
+
+* Rename marker. ([#190](https://github.com/homebound-team/truss/issues/190)) ([5b41a0d](https://github.com/homebound-team/truss/commit/5b41a0d2c5871efd98bf89cc25502cf156e07a6f))
+
 ## [2.3.0](https://github.com/homebound-team/truss/compare/v2.2.2...v2.3.0) (2026-03-24)
 
 ### Features
