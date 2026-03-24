@@ -12,35 +12,77 @@ Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) 
 
 ## Quick Example
 
-Here's an example of production code using Truss:
+Writing Truss code looks like this in JSX:
 
-<p align="center" style="padding: 100px">
-  <img src="truss-example.png" width="800" />
-</p>
+```tsx
+<h1 css={Css.f24.black.$}>Truss v2</h1>
+
+<p css={Css.bodyText.$}>This demo uses the Truss DSL.</p>
+
+<div css={Css.df.gap1.$}>
+  <div css={Css.p1.ba.bcBlack.br2.cursorPointer.onHover.bcBlue.bgLightGray.$}>
+    Border box with padding and radius
+  </div>
+  <div css={Css.bgBlue.white.p1.br2.cursorPointer.onHover.bgBlack.$}>
+    Blue background with white text
+  </div>
+</div>
+```
+
+And generates atomic CSS classes like:
+
+```html
+<h1 class="f24 black" data-truss-src="App.tsx:8">Truss v2</h1>
+    
+<p class="f14 black" data-truss-src="App.tsx:10">This demo uses the Truss DSL.</p>
+    
+<div class="df gap1" data-truss-src="App.tsx:12">
+  <div class="pt1 pb1 pr1 pl1 bss bw1 bcBlack h_bcBlue br2 cursorPointer h_bgLightGray" data-truss-src="App.tsx:13">
+    Border box with padding and radius
+  </div>
+  <div class="bgBlue h_bgBlack white pt1 pb1 pr1 pl1 br2 cursorPointer" data-truss-src="App.tsx:16">
+    Blue background with white text
+  </div>
+</div>
+```
 
 ## Quick Features
 
-Truss lets you:
+- Inline CSS-in-JS that is build-time compiled to a single static CSS stylesheet.
+  - `<div css={Css.mt1.black.$}>` -> `<div class="mt1 black">`
 
-- Write `<div css={Css.mt1.black.$}>`, which Truss compiles into atomic CSS classes at build time.
+- Naturally use dynamic values:
+  - `Css.mt(someValue).$` or
+  - `Css.mt0.if(someCondition).mt4.$`.
 
-- Setup your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below)
+- Selectors and breakpoints:
+  - `Css.white.onHover.black.$` or
+  - `Css.ifSm.mx1.$`
 
-- Achieve both utility-class brevity and critical-CSS delivery.
+- `Css` expressions are "just objects", so you can compose them with spreads, conditionals, destructuring, etc.:
+  - `css={{ ...Css.mt2.$, ...(someCondition ? Css.bgRed.$ : Css.bgGreen.$) }}`
+  - The last-set value _per property_ wins, i.e. not "the last class name" or "the last `color` value"
+  - Extremely natural to build up complex styles with conditionals, loops, etc.
 
-- Output dynamic style values as needed, i.e. `Css.mt(someValue).$` or `Css.mt0.if(someCondition).mt4.$`.
+- Tachyons-inspired abbreviations for superior inline readability
+  - No long class names that compound into a "wall of text" 
+  - Consistent abbreviation pattern:
+    - `justify-content: flex-start` is `jcfs`,
+    - Easier to memorize/read
+  - See [Why Tachyons](#why-tachyons-instead-of-tailwinds)
 
-- Use selectors and breakpoints as needed, i.e. `Css.onHover.black.$` or `Css.ifSm.mx1.$`
+- Configure your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below)
 
-- Use Tachyons-based abbreviations for superior inline readability (see [Why Tachyons](#why-tachyons-instead-of-tailwinds))
-
-- Get immediate access to a built-in "cheat sheet", just control-click into abbreviations/methods to see what they do
+- Type-checking built in
+  - No editor support or IDE extensions required for great DX
+  - Just regular TypeScript
 
 Also see the "Why This Approach?" section for more rationale.
 
+
 ## Quick How It Works
 
-Truss generates a `src/Css.ts` file in your local project; this file exports a `Css` symbol that you use like:
+Truss, using your project-specific `truss-config.ts`, generates a `src/Css.ts` file in your project; this file exports a `Css` symbol that you use like:
 
 ```typescript
 import { Css } from "src/Css";
@@ -48,37 +90,33 @@ import { Css } from "src/Css";
 const css = Css.mx2.black.$;
 ```
 
-Where `Css.` signals "the start of your CSS styling", and `.$` signals "the end of your CSS styling".
+Where `Css.` signals "the start of your CSS expression", and `.$` signals "the end of your CSS expression".
 
 In between, you can chain as many abbreviations/methods as you want, and they will all be statically typed and compiled into atomic CSS classes at build time.
 
+These expressions are rewritten to be "just plain objects":
+
 ```typescript
-// Css.mx2.black.$ compiles to:
-{ marginLeft: "ml2", marginRight: "mr2", color: "black" }
-// where "ml2", "mr2", "black" are atomic class names
+// Input
+const css = Css.mx2.black.$;
+// Output
+const css = { marginLeft: "ml2", marginRight: "mr2", color: "black" }
 ```
 
-On web, Truss is used with its Vite plugin; you can write:
+And then these object literals are used by the `css` property to assign the `className` and `style` props:
 
 ```tsx
-function MyReactComponent(props: MyProps) {
-  return <div css={Css.mx2.black.$}>content</div>;
-}
-```
-
-At build time, the Truss plugin transforms this into `trussProps(...)` calls and emits a single `truss.css` stylesheet with all atomic rules.
-
-On mobile, the same chain gives a plain style object for React Native:
-
-```tsx
-function MyNativeComponent() {
-  return <View style={Css.mx2.black.$} />;
-}
+// Input
+return <div css={Css.black.$}>content</div>;
+// Build-time output
+return <div {...trussProps({ color: "black" })}>content</div>;
+// Runtime value
+return <div className="black">content</div>;
 ```
 
 ## Installation
 
-For v2 web usage, you can use the `truss` command to generate `Css.ts` (+ `Css.json`) from your `truss-config.ts`:
+For web usage, use the `truss` command to generate the `Css.ts` (and `Css.json` metadata file) from your `truss-config.ts`:
 
 - `npm i --save-dev @homebound/truss`
 - Add a `truss` command to your `package.json`:
@@ -97,13 +135,9 @@ For v2 web usage, you can use the `truss` command to generate `Css.ts` (+ `Css.j
 
 We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
-- Your design system will likely be pretty stable, so the `Css.ts` output should rarely change.
+- Your design system be pretty stable, so the `Css.ts` output should rarely change.
 - When it does change, it can be nice to see the diff-d output in the PR for others to review.
 - It's the simplest "just works" setup for new contributors.
-
-Granted, you're free to not check-in `src/Css.ts` and instead `.gitignore` it, and then just remember to run `npm run truss` in new working copies.
-
-If you are targeting React Native/mobile runtime objects instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
 
 ### Vite Plugin Setup (compile-in-app libraries)
 
@@ -181,7 +215,11 @@ Notes:
 - `mapping` is required and should point to the single `Css.json` you want to compile against.
 - `externalPackages` tells the plugin which `node_modules` packages contain `Css.*.$` usage that needs to be transformed.
 
-### Arbitrary Selectors with `.css.ts` Files
+### React Native (experimental/mobile) Usage
+
+If you are targeting React Native instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
+
+## Arbitrary Selectors with `.css.ts` Files
 
 Truss intentionally limits the selectors you can use in `Css.*.$` chains to keep atomic class output deterministic. When you need complex selectors (descendant combinators, `:nth-child`, etc.), you can use a `.css.ts` file to write plain CSS while still using Truss's design tokens and abbreviations.
 
@@ -233,7 +271,7 @@ This gives you the best of both worlds: Truss's design-token consistency (colors
 - Runtime/variable arguments (`Css.mt(x).$`), conditionals (`Css.if(cond).df.$`), pseudo-class modifiers (`Css.onHover.blue.$`), and media query modifiers (`Css.ifSm.blue.$`) are not supported — write those directly in your selectors instead
 - Invalid chains produce an inline CSS comment (`/* [truss] unsupported: ... */`) rather than failing the build
 
-### Truss Command
+## Truss Command
 
 The truss command accepts an optional second argument which is the path to your
 configuration file. If omitted, it will look for `./truss-config.ts`.
@@ -246,7 +284,7 @@ configuration file. If omitted, it will look for `./truss-config.ts`.
 }
 ```
 
-### Configuration
+## Configuration
 
 Truss's configuration is done via a `truss-config.ts` file installed into your local project.
 
@@ -509,23 +547,22 @@ Several libraries influenced Truss, specifically:
 
 - Facebook's [StyleX](https://stylexjs.com/) heavily influenced Truss's 2.x build-time approach--i.e. we copied nearly everything about it. 😅
 
-  StyleX solved the hard problems of atomic CSS:
+  StyleX solved the hard problems of build-time atomic CSS:
   - property-level last-write-wins semantics,
   - specificity tiers via doubled selectors for media queries,
   - CSS custom properties for runtime values, and
   - deterministic class generation.
 
   The only reasons we don't use StyleX directly are:
-  - The `stylex.create` values are "arrays of tuple data", instead of object hashes, and so didn't work
-    with Truss's extremely common object literal spreads of `css={{ ...Css.mt2.$, ...someOtherStyles }}`.
+  - The `stylex.create` values are "arrays of tuple data", instead of object hashes, and so didn't work with Truss's extremely common object literal spreads of `css={{ ...Css.mt2.$, ...someOtherStyles }}`.
 
   - Given we already have "basically unique" abbreviations, we can make class names that aren't esoteric hashes.
-    We are probably giving up some small-percentage of output size/performance, that matters at Facebook scale,
-    but for Truss we prioritize readability and debuggability of the emitted CSS classes.
+
+    We probably give up some small-percentage of output size/performance, that matters at Facebook scale, but for Truss we prioritize readability and debuggability of the emitted CSS classes.
 
 ## Contributing
 
-The Truss repository is set up as a Yarn workspace, although really the core package is just `packages/truss`, and the other packages are primarily examples/tests for web output and mobile (React Native) output.
+The Truss repository is set up as a Yarn workspace, although the core package is just `packages/truss`; the other packages are examples/tests projects.
 
 A basic development flow is:
 
@@ -540,5 +577,3 @@ A basic development flow is:
 
 - `npx -p @homebound/truss init` type experience for setup - inspired by [Storybook](https://storybook.js.org/docs/guides/quick-start-guide/)
 - Support `number[]` increments as config
-- Server-side generation; in theory this should just work?
-- Add more real-world React Native examples

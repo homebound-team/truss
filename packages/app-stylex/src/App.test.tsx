@@ -12,13 +12,13 @@ afterEach(() => {
 describe("App", () => {
   test("renders heading with correct styles", () => {
     render(<App />);
-    const heading = screen.getByText("Truss + StyleX");
+    const heading = screen.getByText("Truss v2");
     expect(heading).toHaveStyle({ color: "#353535", fontSize: "24px" });
   });
 
   test("root container is a flex column centered with padding", () => {
     render(<App />);
-    const root = screen.getByText("Truss + StyleX").parentElement!;
+    const root = screen.getByText("Truss v2").parentElement!;
     expect(root).toHaveStyle({
       display: "flex",
       flexDirection: "column",
