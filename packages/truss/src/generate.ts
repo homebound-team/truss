@@ -461,7 +461,7 @@ class CssBuilder<T extends Properties> {
   /**
     * Styles after this \`when\` are applied based on a marker relationship + pseudo selector.
     *
-    * \`when(defaultMarker, "ancestor", ":hover")\` — react to default-marker ancestor hover
+    * \`when(marker, "ancestor", ":hover")\` — react to marker ancestor hover
     * \`when(row, "descendant", ":focus")\` — react to a marked descendant focus
     */
   when(marker: Marker, relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter", pseudo: string): CssBuilder<T>;
@@ -571,8 +571,8 @@ export enum Palette {
 /** A shortcut for defining Xss types. */
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 
-/** The shared default marker token for \`when(defaultMarker, relationship, pseudo)\`. */
-export const defaultMarker: Marker = Symbol.for("truss-default-marker");
+/** The shared marker token for \`when(marker, relationship, pseudo)\`. */
+export const marker: Marker = Symbol.for("truss-default-marker");
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined, elseApplied: false });

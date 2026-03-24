@@ -153,7 +153,7 @@ The plugin rewrites `css={...}` into `{...trussProps(...)}` spread attributes. T
 <tr css={Css.marker.cursorPointer.$}>
 
 // Child reacts to parent hover:
-<td css={Css.when(defaultMarker, "ancestor", ":hover").bgBlue100.$}>
+<td css={Css.when(marker, "ancestor", ":hover").bgBlue100.$}>
 
 // Named markers for specificity:
 const row = Css.newMarker();
@@ -255,7 +255,7 @@ Inline CSS object keys like `"&:hover"`, `"& > div"` are an emotion/fela feature
 // Parent:
 <tr css={Css.marker.cursorPointer.onHover.cursorPointer.$}>
 // Child:
-<td css={Css.when(defaultMarker, "ancestor", ":hover").bgColor(style.rowHoverColor ?? Palette.Blue100).$}>
+<td css={Css.when(marker, "ancestor", ":hover").bgColor(style.rowHoverColor ?? Palette.Blue100).$}>
 ```
 
 ```tsx
