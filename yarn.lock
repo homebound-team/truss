@@ -2010,9 +2010,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"app-stylex@workspace:packages/app-stylex":
+"app@workspace:packages/app":
   version: 0.0.0-use.local
-  resolution: "app-stylex@workspace:packages/app-stylex"
+  resolution: "app@workspace:packages/app"
   dependencies:
     "@homebound/truss": "workspace:*"
     "@testing-library/dom": "npm:^10.4.1"

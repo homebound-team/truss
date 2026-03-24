@@ -4,7 +4,7 @@ import { loadMapping } from "./index";
 import { resolve } from "path";
 import { normalize } from "../testUtils";
 
-const mapping = loadMapping(resolve(__dirname, "../../../app-stylex/src/Css.json"));
+const mapping = loadMapping(resolve(__dirname, "../../../app/src/Css.json"));
 
 describe("transform", () => {
   test("returns null for files without Css import", () => {
