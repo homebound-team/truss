@@ -611,6 +611,11 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ rules: rules as any });
   }
 
+  /** Adds a partial style hash, skipping any undefined values. */
+  addCss<P extends Properties>(props: P): CssBuilder<T & P> {
+    return this.add(omitUndefinedValues(props));
+  }
+
   /** Adds new properties, either a specific key/value or a Properties object, to a nested selector. */
   addIn<P extends Properties>(selector: string, props: P | undefined): CssBuilder<T & P>;
   addIn<K extends keyof Properties>(
@@ -666,6 +671,13 @@ export function increment(inc: number): number {
 /** Convert `pixels` to a `px` units string so it's not ambiguous. */
 export function px(pixels: number): string {
   return `${pixels}px`;
+}
+
+function omitUndefinedValues<T extends object>(value: T): T {
+  const entries = Object.entries(value).filter(function ([, entryValue]) {
+    return entryValue !== undefined;
+  });
+  return Object.fromEntries(entries) as T;
 }
 
 export enum Palette {
