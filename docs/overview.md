@@ -89,10 +89,10 @@ Css.black.ifSm.onHover.blue.$ → { color: "black sm_h_blue" }
 Markers are deterministic CSS classes applied to elements. `when(selector)` targets the current element, and `when(marker, relationship, pseudo)` compiles to CSS relationship selectors:
 
 ```ts
-Css.marker.$                              → { __marker: "__truss_m" }
-Css.markerOf(row).$                       → { __marker: "__truss_m_row" }
+Css.marker.$                              → { __marker: "_mrk" }
+Css.markerOf(row).$                       → { __marker: "_row_mrk" }
 Css.when(":hover:not(:disabled)").blue.$  → { color: "h_n_d_blue" }
-Css.when(defaultMarker, "ancestor", ":hover").blue.$ → { color: "wh_anc_h_blue" }
+Css.when(marker, "ancestor", ":hover").blue.$ → { color: "wh_anc_h_blue" }
 Css.when(row, "descendant", ":focus").blue.$               → { color: "wh_desc_f_row_blue" }
 ```
 
@@ -179,7 +179,7 @@ Class names are deterministic and human-readable:
 | Literal-folded        | `mt_16px`                  | `.mt_16px { margin-top: 16px }`                       |
 | `add()` literal       | `add_transition_all_240ms` | `.add_transition_all_240ms { transition: all 240ms }` |
 | `add()` variable      | `color_var`                | `.color_var { color: var(--color) }`                  |
-| `when()` relationship | `wh_anc_h_blue`            | `.__truss_m:hover .wh_anc_h_blue { color: #526675 }`  |
+| `when()` relationship | `wh_anc_h_blue`            | `._mrk:hover .wh_anc_h_blue { color: #526675 }`       |
 
 ### Specificity tiers
 
@@ -190,7 +190,7 @@ The stylesheet uses specificity tiers so cascade behavior is correct regardless 
 | Base                  | `(0,1,0)`   | `.class`              | `.black { color: #353535 }`            |
 | Pseudo-class          | `(0,1,1)`   | `.class:pseudo`       | `.h_blue:hover { color: #526675 }`     |
 | Pseudo-element        | `(0,1,1)`   | `.class::element`     | `.placeholder_blue::placeholder {...}` |
-| Relationship (`when`) | `(0,2,0)+`  | combinator selectors  | `.__truss_m:hover .target { ... }`     |
+| Relationship (`when`) | `(0,2,0)+`  | combinator selectors  | `._mrk:hover .target { ... }`          |
 | Media query           | `(0,2,0)`   | `.class.class`        | `.sm_blue.sm_blue { ... }`             |
 | Media + pseudo        | `(0,2,1)`   | `.class.class:pseudo` | `.sm_h_blue.sm_h_blue:hover { ... }`   |
 

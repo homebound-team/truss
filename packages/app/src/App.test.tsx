@@ -85,7 +85,7 @@ describe("App", () => {
     render(<App />);
     const markerCard = screen.getByText("Hover this card").parentElement!;
     const childSpan = screen.getByText(/I turn white on parent hover/);
-    expect(markerCard.className).toMatch(/__truss_m/);
-    expect(childSpan.className).toMatch(/wh_anc_h_white/);
+    expect(markerCard.className.includes("_mrk")).toBe(true);
+    expect(childSpan.className.includes("wh_anc_h_white")).toBe(true);
   });
 });

@@ -782,7 +782,7 @@ const WHEN_RELATIONSHIPS = new Set(["ancestor", "descendant", "anySibling", "sib
  *
  * - 1 arg: `when(":hover")` — same-element selector, must be a string literal
  * - 3 args: `when(marker, "ancestor", ":hover")` — marker must be a marker variable or
- *   `defaultMarker`, relationship/pseudo must be string literals
+ *   the shared `marker` token, relationship/pseudo must be string literals
  */
 function resolveWhenCall(
   node: CallChainNode,
@@ -830,11 +830,11 @@ function resolveWhenMarker(node: t.Expression | t.SpreadElement): any | undefine
   if (node.type === "Identifier") {
     return node;
   }
-  throw new UnsupportedPatternError(`when() marker must be a marker variable or defaultMarker`);
+  throw new UnsupportedPatternError(`when() marker must be a marker variable or marker`);
 }
 
 function isDefaultMarkerNode(node: t.Expression | t.SpreadElement): boolean {
-  if (node.type === "Identifier" && node.name === "defaultMarker") {
+  if (node.type === "Identifier" && (node.name === "marker" || node.name === "defaultMarker")) {
     return true;
   }
   return isLegacyDefaultMarkerExpression(node);

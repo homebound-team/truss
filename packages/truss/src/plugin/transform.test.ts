@@ -1879,7 +1879,7 @@ describe("transform", () => {
       const s = Css.marker.$;
     `).toHaveTrussOutput(
       `
-      const s = { __marker: "__truss_m" };
+      const s = { __marker: "_mrk" };
     `,
       ``,
     );
@@ -1892,7 +1892,7 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       import { trussProps } from "@homebound/truss/runtime";
-      const el = <div {...trussProps({ __marker: "__truss_m" })} />;
+      const el = <div {...trussProps({ __marker: "_mrk" })} />;
     `,
       ``,
     );
@@ -1904,7 +1904,7 @@ describe("transform", () => {
       const s = Css.marker.df.$;
     `).toHaveTrussOutput(
       `
-      const s = { __marker: "__truss_m", display: "df" };
+      const s = { __marker: "_mrk", display: "df" };
     `,
       `
       .df {
@@ -1922,7 +1922,7 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       const row = Css.newMarker();
-      const s = { __marker: "__truss_m_row" };
+      const s = { __marker: "_row_mrk" };
     `,
       ``,
     );
@@ -1939,11 +1939,11 @@ describe("transform", () => {
     ).toHaveTrussOutput(
       `
       const row = Css.newMarker();
-      const a = { __marker: "__truss_m_row" };
+      const a = { __marker: "_row_mrk" };
       const b = { color: "wh_anc_h_row_blue" };
       `,
       `
-        .__truss_m_row:hover .wh_anc_h_row_blue {
+        ._row_mrk:hover .wh_anc_h_row_blue {
           color: #526675;
         }
       `,
@@ -1968,105 +1968,105 @@ describe("transform", () => {
     );
   });
 
-  test("Css.when(defaultMarker, 'ancestor', ':hover').blue.$", () => {
+  test("Css.when(marker, 'ancestor', ':hover').blue.$", () => {
     expectTrussTransform(`
-      import { Css, defaultMarker } from "./Css";
-      const s = Css.when(defaultMarker, "ancestor", ":hover").blue.$;
+      import { Css, marker } from "./Css";
+      const s = Css.when(marker, "ancestor", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
-      import { defaultMarker } from "./Css";
+      import { marker } from "./Css";
       const s = { color: "wh_anc_h_blue" };
     `,
       `
-        .__truss_m:hover .wh_anc_h_blue {
+        ._mrk:hover .wh_anc_h_blue {
           color: #526675;
         }
       `,
     );
   });
 
-  test("Css.when(marker, 'ancestor', ':hover').blue.$", () => {
+  test("Css.when(customMarker, 'ancestor', ':hover').blue.$", () => {
     expectTrussTransform(
       `
       import { Css } from "./Css";
-      const marker = Css.newMarker();
-      const s = Css.when(marker, "ancestor", ":hover").blue.$;
+      const customMarker = Css.newMarker();
+      const s = Css.when(customMarker, "ancestor", ":hover").blue.$;
     `,
     ).toHaveTrussOutput(
       `
-      const marker = Css.newMarker();
-      const s = { color: "wh_anc_h_marker_blue" };
+      const customMarker = Css.newMarker();
+      const s = { color: "wh_anc_h_customMarker_blue" };
     `,
       `
-      .__truss_m_marker:hover .wh_anc_h_marker_blue {
+      ._customMarker_mrk:hover .wh_anc_h_customMarker_blue {
         color: #526675;
       }
     `,
     );
   });
 
-  test("Css.when(defaultMarker, 'descendant', ':focus').blue.$", () => {
+  test("Css.when(marker, 'descendant', ':focus').blue.$", () => {
     expectTrussTransform(`
-      import { Css, defaultMarker } from "./Css";
-      const s = Css.when(defaultMarker, "descendant", ":focus").blue.$;
+      import { Css, marker } from "./Css";
+      const s = Css.when(marker, "descendant", ":focus").blue.$;
     `).toHaveTrussOutput(
       `
-      import { defaultMarker } from "./Css";
+      import { marker } from "./Css";
       const s = { color: "wh_desc_f_blue" };
     `,
       `
-        .wh_desc_f_blue:has(.__truss_m:focus) {
+        .wh_desc_f_blue:has(._mrk:focus) {
           color: #526675;
         }
       `,
     );
   });
 
-  test("Css.when(defaultMarker, 'siblingAfter', ':hover').blue.$", () => {
+  test("Css.when(marker, 'siblingAfter', ':hover').blue.$", () => {
     expectTrussTransform(`
-      import { Css, defaultMarker } from "./Css";
-      const s = Css.when(defaultMarker, "siblingAfter", ":hover").blue.$;
+      import { Css, marker } from "./Css";
+      const s = Css.when(marker, "siblingAfter", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
-      import { defaultMarker } from "./Css";
+      import { marker } from "./Css";
       const s = { color: "wh_sibA_h_blue" };
     `,
       `
-        .wh_sibA_h_blue:has(~ .__truss_m:hover) {
+        .wh_sibA_h_blue:has(~ ._mrk:hover) {
           color: #526675;
         }
       `,
     );
   });
 
-  test("Css.when(defaultMarker, 'siblingBefore', ':hover').blue.$", () => {
+  test("Css.when(marker, 'siblingBefore', ':hover').blue.$", () => {
     expectTrussTransform(`
-      import { Css, defaultMarker } from "./Css";
-      const s = Css.when(defaultMarker, "siblingBefore", ":hover").blue.$;
+      import { Css, marker } from "./Css";
+      const s = Css.when(marker, "siblingBefore", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
-      import { defaultMarker } from "./Css";
+      import { marker } from "./Css";
       const s = { color: "wh_sibB_h_blue" };
     `,
       `
-        .__truss_m:hover ~ .wh_sibB_h_blue {
+        ._mrk:hover ~ .wh_sibB_h_blue {
           color: #526675;
         }
       `,
     );
   });
 
-  test("Css.when(defaultMarker, 'anySibling', ':hover').blue.$", () => {
+  test("Css.when(marker, 'anySibling', ':hover').blue.$", () => {
     expectTrussTransform(`
-      import { Css, defaultMarker } from "./Css";
-      const s = Css.when(defaultMarker, "anySibling", ":hover").blue.$;
+      import { Css, marker } from "./Css";
+      const s = Css.when(marker, "anySibling", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
-      import { defaultMarker } from "./Css";
+      import { marker } from "./Css";
       const s = { color: "wh_anyS_h_blue" };
     `,
       `
-        .wh_anyS_h_blue:has(~ .__truss_m:hover), .__truss_m:hover ~ .wh_anyS_h_blue {
+        .wh_anyS_h_blue:has(~ ._mrk:hover), ._mrk:hover ~ .wh_anyS_h_blue {
           color: #526675;
         }
       `,
@@ -2086,7 +2086,7 @@ describe("transform", () => {
       const s = { color: "wh_anyS_h_row_blue" };
     `,
       `
-      .wh_anyS_h_row_blue:has(~ .__truss_m_row:hover), .__truss_m_row:hover ~ .wh_anyS_h_row_blue {
+      .wh_anyS_h_row_blue:has(~ ._row_mrk:hover), ._row_mrk:hover ~ .wh_anyS_h_row_blue {
         color: #526675;
       }
     `,
@@ -2112,11 +2112,11 @@ describe("transform", () => {
 
   test("Css.when with invalid relationship emits console.error", () => {
     expectTrussTransform(`
-      import { Css, defaultMarker } from "./Css";
-      const s = Css.when(defaultMarker, "bogus", ":hover").blue.$;
+      import { Css, marker } from "./Css";
+      const s = Css.when(marker, "bogus", ":hover").blue.$;
     `).toHaveTrussOutput(
       `
-      import { defaultMarker } from "./Css";
+      import { marker } from "./Css";
       console.error("[truss] Unsupported pattern: when() relationship must be one of: ancestor, descendant, anySibling, siblingBefore, siblingAfter -- got \\\"bogus\\\" (test.tsx:2)");
       const s = { color: "blue" };
     `,
@@ -2130,12 +2130,12 @@ describe("transform", () => {
 
   test("Css.when with non-literal relationship emits console.error", () => {
     expectTrussTransform(`
-      import { Css, defaultMarker } from "./Css";
+      import { Css, marker } from "./Css";
       const rel = "ancestor";
-      const s = Css.when(defaultMarker, rel, ":hover").blue.$;
+      const s = Css.when(marker, rel, ":hover").blue.$;
     `).toHaveTrussOutput(
       `
-      import { defaultMarker } from "./Css";
+      import { marker } from "./Css";
       console.error("[truss] Unsupported pattern: when() relationship argument must be a string literal (test.tsx:3)");
       const rel = "ancestor";
       const s = { color: "blue" };
@@ -2156,7 +2156,7 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       const row = getMarker();
-      const s = { __marker: "__truss_m_row", display: "df" };
+      const s = { __marker: "_row_mrk", display: "df" };
     `,
       `
       .df {

@@ -57,21 +57,21 @@ const RELATIONSHIP_SHORT: Record<string, string> = {
 };
 
 /** Default marker class name (used when no explicit marker is provided). */
-export const DEFAULT_MARKER_CLASS = "__truss_m";
+export const DEFAULT_MARKER_CLASS = "_mrk";
 
 /** Derive a marker class name from a marker AST node (or use the default). */
 export function markerClassName(markerNode?: { type: string; name?: string }): string {
   if (!markerNode) return DEFAULT_MARKER_CLASS;
   if (markerNode.type === "Identifier" && markerNode.name) {
-    return `__truss_m_${markerNode.name}`;
+    return `_${markerNode.name}_mrk`;
   }
-  return `${DEFAULT_MARKER_CLASS}_marker`;
+  return "_marker_mrk";
 }
 
 /**
  * Build a when() class name prefix from whenPseudo info.
  *
- * I.e. `when(defaultMarker, "ancestor", ":hover")` → `"wh_anc_h_"`,
+ * I.e. `when(marker, "ancestor", ":hover")` → `"wh_anc_h_"`,
  * `when(row, "ancestor", ":hover")` → `"wh_anc_h_row_"`.
  */
 function whenPrefix(whenPseudo: { pseudo: string; markerNode?: any; relationship?: string }): string {

@@ -381,7 +381,7 @@ const spin = stylex.keyframes({
 
 1. **Phase 1 — Pseudo-classes on self:** Add `.onHover`, `.onFocus`, `.onActive`, `.onDisabled` to the StyleX CssBuilder. These generate per-property `{ default, ':hover' }` objects inside `stylex.create`. This covers ~31 direct uses.
 
-2. **Phase 2 — Ancestor/descendant state:** Leverage `stylex.when.ancestor(':hover')` with `stylex.defaultMarker()` for the Table row-hover pattern and similar parent-state-driven styles.
+2. **Phase 2 — Ancestor/descendant state:** Leverage `stylex.when.ancestor(':hover')` with `stylex.marker()` for the Table row-hover pattern and similar parent-state-driven styles.
 
 3. **Phase 3 — Descendant selectors:** Migrate `"& > *"` patterns to explicit prop-passing or CSS variable inheritance. This is the largest effort, concentrated in GridTable.
 
