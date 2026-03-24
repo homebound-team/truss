@@ -7,7 +7,7 @@ import { camelToKebab } from "./emit-truss";
 import { loadMapping, trussPlugin } from "./index";
 import { resolve } from "path";
 
-const mapping = loadMapping(resolve(__dirname, "../../../app-stylex/src/Css.json"));
+const mapping = loadMapping(resolve(__dirname, "../../../app/src/Css.json"));
 
 describe("transformCssTs", () => {
   test("single selector with static chain", () => {

@@ -14,7 +14,7 @@
     "packages/template-tachyons",
     "packages/testing-tachyons",
     "packages/testing-tachyons-rn",
-    "packages/app-stylex"
+    "packages/app"
   ],
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
