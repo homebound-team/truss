@@ -382,3 +382,4 @@ export function loadMapping(path: string): TrussMapping {
 }
 
 export type { TrussMapping, TrussMappingEntry } from "./types";
+export { trussEsbuildPlugin, type TrussEsbuildPluginOptions } from "./esbuild-plugin";
