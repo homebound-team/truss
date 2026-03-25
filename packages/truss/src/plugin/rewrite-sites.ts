@@ -87,7 +87,7 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
   const previousProperties = new Map<string, t.ObjectProperty>();
 
   if (chain.markers.length > 0) {
-    const markerClasses = chain.markers.map(function (marker) {
+    const markerClasses = chain.markers.map((marker) => {
       return markerClassName(marker.markerNode);
     });
     members.push(t.objectProperty(t.identifier("__marker"), t.stringLiteral(markerClasses.join(" "))));
@@ -251,7 +251,7 @@ function mergeConditionalBranchMembers(
   previousProperties: Map<string, t.ObjectProperty>,
   conditionalOnlyProps: Set<string>,
 ): (t.ObjectProperty | t.SpreadElement)[] {
-  return members.map(function (member) {
+  return members.map((member) => {
     if (!t.isObjectProperty(member)) {
       return member;
     }
@@ -324,10 +324,10 @@ function arrayElementExpression(element: t.Expression | t.SpreadElement | null |
 function mergeVarsObject(previousVars: t.Expression, currentVars: t.Expression): t.Expression {
   if (t.isObjectExpression(previousVars) && t.isObjectExpression(currentVars)) {
     return t.objectExpression([
-      ...previousVars.properties.map(function (property) {
+      ...previousVars.properties.map((property) => {
         return t.cloneNode(property, true);
       }),
-      ...currentVars.properties.map(function (property) {
+      ...currentVars.properties.map((property) => {
         return t.cloneNode(property, true);
       }),
     ]);
@@ -371,7 +371,7 @@ function injectDebugInfo(
   if (!options.debug) return;
 
   // Find the first real style property (skip SpreadElements and __marker metadata)
-  const firstProp = expr.properties.find(function (p) {
+  const firstProp = expr.properties.find((p) => {
     return (
       t.isObjectProperty(p) &&
       !(

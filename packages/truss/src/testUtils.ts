@@ -24,19 +24,19 @@ function stripTrussAnnotations(css: string): string {
 }
 
 expect.extend({
-  toBeNormalized: function (received: string | null | undefined, expected: string) {
+  toBeNormalized(received: string | null | undefined, expected: string) {
     const normalizedExpected = normalize(expected);
     const diff = this.utils.diff(normalizedExpected, received);
 
     return {
       pass: this.equals(received, normalizedExpected),
-      message: function () {
+      message: () => {
         return diff ?? `expected normalized strings to match`;
       },
     };
   },
 
-  toHaveTrussOutput: function (
+  toHaveTrussOutput(
     received: { code: string | null; css: string | null },
     expectedCode: string,
     expectedCss: string,
@@ -50,7 +50,7 @@ expect.extend({
 
     return {
       pass: this.equals(received.code, normalizedExpectedCode) && this.equals(strippedCss, normalizedExpectedCss),
-      message: function () {
+      message: () => {
         const messages = [];
 
         if (codeDiff) {

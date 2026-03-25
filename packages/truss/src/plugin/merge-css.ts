@@ -120,7 +120,7 @@ export function mergeTrussCss(sources: ParsedTrussCss[]): string {
   }
 
   // Sort by priority ascending, tiebreak alphabetically by class name
-  allRules.sort(function (a, b) {
+  allRules.sort((a, b) => {
     const diff = a.priority - b.priority;
     if (diff !== 0) return diff;
     return a.className < b.className ? -1 : a.className > b.className ? 1 : 0;

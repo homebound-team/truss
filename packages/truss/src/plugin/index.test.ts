@@ -6,15 +6,15 @@ import { trussPlugin } from "./index";
 
 const tempDirs: string[] = [];
 
-afterEach(function () {
+afterEach(() => {
   for (const dir of tempDirs) {
     rmSync(dir, { recursive: true, force: true });
   }
   tempDirs.length = 0;
 });
 
-describe("trussPlugin", function () {
-  test("uses the configured mapping for library files", function () {
+describe("trussPlugin", () => {
+  test("uses the configured mapping for library files", () => {
     // Given we have a src/Css.json
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
@@ -38,7 +38,7 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("skips all node_modules files", function () {
+  test("skips all node_modules files", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -54,7 +54,7 @@ describe("trussPlugin", function () {
     expect(result).toBeNull();
   });
 
-  test("transforms application files importing library Css.ts", function () {
+  test("transforms application files importing library Css.ts", () => {
     const root = createTempRoot();
     writeMapping(join(root, "node_modules", "@company", "library", "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -79,7 +79,7 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("dev html injects the runtime without a stylesheet link", function () {
+  test("dev html injects the runtime without a stylesheet link", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -94,7 +94,7 @@ describe("trussPlugin", function () {
     expect(html.includes("/virtual:truss.css")).toBe(false);
   });
 
-  test("dev virtual CSS orders static base rules before variable rules for the same property", function () {
+  test("dev virtual CSS orders static base rules before variable rules for the same property", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       w100: { kind: "static", defs: { width: "100%" } },
@@ -132,7 +132,7 @@ describe("trussPlugin", function () {
     expect(w100Idx).toBeLessThan(wVarIdx);
   });
 
-  test("CSS output includes priority annotations", function () {
+  test("CSS output includes priority annotations", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -156,7 +156,7 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("merges library truss.css with app CSS", function () {
+  test("merges library truss.css with app CSS", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -208,7 +208,7 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("merges library @property declarations with app CSS", function () {
+  test("merges library @property declarations with app CSS", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       mt: { kind: "variable", props: ["marginTop"], incremented: true },
@@ -322,7 +322,7 @@ function getVirtualCss(plugin: ReturnType<typeof trussPlugin>): string {
   };
 
   for (const mw of middlewares) {
-    mw(fakeReq, fakeRes, function () {});
+    mw(fakeReq, fakeRes, () => {});
   }
 
   return css;

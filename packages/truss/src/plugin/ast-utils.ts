@@ -255,13 +255,13 @@ export function replaceCssImportWithNamedImports(
   for (const node of ast.program.body) {
     if (!t.isImportDeclaration(node)) continue;
 
-    const cssSpecIndex = node.specifiers.findIndex(function (spec) {
+    const cssSpecIndex = node.specifiers.findIndex((spec) => {
       return t.isImportSpecifier(spec) && spec.local.name === cssBinding;
     });
     if (cssSpecIndex === -1 || node.specifiers.length !== 1) continue;
 
     node.source = t.stringLiteral(source);
-    node.specifiers = imports.map(function (entry) {
+    node.specifiers = imports.map((entry) => {
       return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
     });
     return true;
@@ -281,7 +281,7 @@ export function upsertNamedImports(
     if (!t.isImportDeclaration(node) || node.source.value !== source) continue;
 
     for (const entry of imports) {
-      const exists = node.specifiers.some(function (spec) {
+      const exists = node.specifiers.some((spec) => {
         return t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: entry.importedName });
       });
       if (exists) continue;
@@ -292,7 +292,7 @@ export function upsertNamedImports(
   }
 
   const importDecl = t.importDeclaration(
-    imports.map(function (entry) {
+    imports.map((entry) => {
       return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
     }),
     t.stringLiteral(source),

@@ -40,7 +40,7 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
       // Resolve outDir from esbuild config
       outDir = build.initialOptions.outdir ?? build.initialOptions.outdir;
 
-      build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, function (args: { path: string }) {
+      build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
         if (!code.includes("Css")) return undefined;
 
@@ -63,7 +63,7 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
         return { contents: result.code, loader: loaderForPath(args.path) };
       });
 
-      build.onEnd(function () {
+      build.onEnd(() => {
         if (cssRegistry.size === 0) return;
 
         const css = generateCssText(cssRegistry);
