@@ -1,3 +1,9 @@
+## [2.4.0](https://github.com/homebound-team/truss/compare/v2.3.5...v2.4.0) (2026-03-25)
+
+### Features
+
+* Rework application/library build setup. ([#195](https://github.com/homebound-team/truss/issues/195)) ([6edabf8](https://github.com/homebound-team/truss/commit/6edabf817178b3335ee76e2c6ec5f2ecb808aa3c))
+
 ## [2.3.5](https://github.com/homebound-team/truss/compare/v2.3.4...v2.3.5) (2026-03-25)
 
 ### Bug Fixes
