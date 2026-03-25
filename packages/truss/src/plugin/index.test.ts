@@ -106,6 +106,59 @@ describe("trussPlugin", function () {
     );
   });
 
+  test("transforms tsup-bundled library file where Css is created via new CssBuilder", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "node_modules", "@company", "library", "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+    const plugin = trussPlugin({
+      mapping: "./node_modules/@company/library/src/Css.json",
+      externalPackages: ["@company/library"],
+    });
+    runConfigHooks(plugin, root);
+    // Simulate tsup-bundled output: Css is a local variable, not an import
+    const result = runTransform(
+      plugin,
+      [
+        `import { trussProps } from "@homebound/truss/runtime";`,
+        `var CssBuilder = class _CssBuilder { constructor(opts) { this.opts = opts; } };`,
+        `var Css = new CssBuilder({ rules: {}, enabled: true });`,
+        `const el = <div css={Css.df.$} />;`,
+        `const el2 = jsx("div", { css: Css.df.$ });`,
+      ].join("\n"),
+      join(root, "node_modules", "@company", "library", "dist", "index.js"),
+    );
+    expect(n(result?.code ?? "")).toBe(
+      n(`
+        import { trussProps } from "@homebound/truss/runtime";
+        var CssBuilder = class _CssBuilder { constructor(opts) { this.opts = opts; } };
+        var Css = new CssBuilder({ rules: {}, enabled: true });
+        const el = <div {...trussProps({ display: "df" })} />;
+        const el2 = jsx("div", { css: { display: "df" } });
+      `),
+    );
+  });
+
+  test("skips tsup-bundled files not in externalPackages", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    runConfigHooks(plugin, root);
+    // A bundled file in node_modules that is NOT whitelisted
+    const result = runTransform(
+      plugin,
+      [
+        `var CssBuilder = class _CssBuilder { constructor(opts) { this.opts = opts; } };`,
+        `var Css = new CssBuilder({ rules: {}, enabled: true });`,
+        `const el = <div css={Css.df.$} />;`,
+      ].join("\n"),
+      join(root, "node_modules", "other-lib", "dist", "index.js"),
+    );
+    expect(result).toBeNull();
+  });
+
   test("dev html injects the runtime without a stylesheet link", function () {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {

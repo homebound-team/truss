@@ -10,6 +10,7 @@ import {
   collectTopLevelBindings,
   reservePreferredName,
   findCssImportBinding,
+  findCssBuilderBinding,
   removeCssImport,
   hasCssMethodCall,
   findNamedImportBinding,
@@ -67,9 +68,11 @@ export function transformTruss(
     sourceFilename: filename,
   });
 
-  // Step 1: Find the Css import binding name
-  const cssBindingName = findCssImportBinding(ast);
+  // Step 1: Find the Css binding name — either from an import or a local `new CssBuilder(...)` declaration
+  const cssImportBinding = findCssImportBinding(ast);
+  const cssBindingName = cssImportBinding ?? findCssBuilderBinding(ast);
   if (!cssBindingName) return null;
+  const cssIsImported = cssImportBinding !== null;
 
   // Step 2: Collect all Css expression sites
   const sites: ExpressionSite[] = [];
@@ -161,19 +164,21 @@ export function transformTruss(
   }
 
   // Step 7: Remove/replace the Css import and inject runtime imports.
-  const reusedCssImportLine =
-    runtimeImports.length > 0 &&
-    findImportDeclaration(ast, "@homebound/truss/runtime") === null &&
-    replaceCssImportWithNamedImports(ast, cssBindingName, "@homebound/truss/runtime", runtimeImports);
+  // When Css comes from a local `new CssBuilder(...)` (tsup bundles), skip import removal.
+  let reusedCssImportLine = false;
+  if (cssIsImported) {
+    reusedCssImportLine =
+      runtimeImports.length > 0 &&
+      findImportDeclaration(ast, "@homebound/truss/runtime") === null &&
+      replaceCssImportWithNamedImports(ast, cssBindingName, "@homebound/truss/runtime", runtimeImports);
 
-  if (!reusedCssImportLine) {
-    removeCssImport(ast, cssBindingName);
+    if (!reusedCssImportLine) {
+      removeCssImport(ast, cssBindingName);
+    }
   }
 
-  if (runtimeImports.length > 0) {
-    if (!reusedCssImportLine) {
-      upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
-    }
+  if (runtimeImports.length > 0 && !reusedCssImportLine) {
+    upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
   }
 
   // Step 8: Insert helper declarations after imports
