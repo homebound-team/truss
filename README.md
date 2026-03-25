@@ -165,6 +165,8 @@ npm install --save-dev @homebound/truss
    });
    ```
 
+   If the library builds with **Vite**, use the Vite plugin:
+
    ```ts
    // vite.config.ts (library package)
    import { defineConfig } from "vite";
@@ -180,9 +182,22 @@ npm install --save-dev @homebound/truss
    });
    ```
 
-   The plugin transforms `Css.*.$` expressions to plain objects and emits a `truss.css` file with priority annotations that enable correct merging.
+   If the library builds with **tsup** (or esbuild), use the esbuild plugin:
 
-   For Vitest, the same config works:
+   ```ts
+   // tsup.config.ts (library package)
+   import { defineConfig } from "tsup";
+   import { trussEsbuildPlugin } from "@homebound/truss/plugin";
+
+   export default defineConfig({
+     entry: ["src/index.ts"],
+     esbuildPlugins: [trussEsbuildPlugin({ mapping: "./src/Css.json" })],
+   });
+   ```
+
+   Both plugins transform `Css.*.$` expressions to plain objects and emit a `truss.css` file with priority annotations that enable correct merging.
+
+   For Vitest, use the Vite plugin:
 
    ```ts
    // vitest.config.ts (library package)
