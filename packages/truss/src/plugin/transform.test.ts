@@ -1806,6 +1806,32 @@ describe("transform", () => {
     );
   });
 
+  test("bundled file with multiple @homebound/truss/runtime imports does not duplicate mergeProps", () => {
+    expectTrussTransform(`
+      import { trussProps } from "@homebound/truss/runtime";
+      import { Css } from "./Css";
+      const a = <div {...trussProps({ display: "df" })} />;
+      const other = someCode();
+      import { mergeProps as mergeProps13 } from "@homebound/truss/runtime";
+      const b = <div {...mergeProps13("cls", undefined, { display: "df" })} />;
+      const el = <div className="existing" css={Css.df.$} />;
+    `).toHaveTrussOutput(
+      `
+      import { trussProps } from "@homebound/truss/runtime";
+      const a = <div {...trussProps({ display: "df" })} />;
+      const other = someCode();
+      import { mergeProps as mergeProps13 } from "@homebound/truss/runtime";
+      const b = <div {...mergeProps13("cls", undefined, { display: "df" })} />;
+      const el = <div {...mergeProps13("existing", undefined, { display: "df" })} />;
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
+  });
+
   test("falls back for __maybeInc helper name collisions", () => {
     expectTrussTransform(
       `

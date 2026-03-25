@@ -150,13 +150,13 @@ export function transformTruss(
 
   // Step 6: Prepare runtime imports before removing the Css import.
   const runtimeImports: Array<{ importedName: string; localName: string }> = [];
-  if (needsTrussPropsHelper.current) {
+  if (needsTrussPropsHelper.current && !existingTrussPropsHelperName) {
     runtimeImports.push({ importedName: "trussProps", localName: trussPropsHelperName });
   }
-  if (needsMergePropsHelper.current) {
+  if (needsMergePropsHelper.current && !existingMergePropsHelperName) {
     runtimeImports.push({ importedName: "mergeProps", localName: mergePropsHelperName });
   }
-  if (needsTrussDebugInfo.current) {
+  if (needsTrussDebugInfo.current && !existingTrussDebugInfoName) {
     runtimeImports.push({ importedName: "TrussDebugInfo", localName: trussDebugInfoName });
   }
   if (options.injectCss) {
