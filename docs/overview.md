@@ -150,6 +150,7 @@ The Vite plugin (`packages/truss/src/plugin/index.ts`) orchestrates transform an
 | `emit-truss.ts`    | Atomic rule collection, class naming, CSS generation, AST building      |
 | `rewrite-sites.ts` | Rewrites expression sites — objects, JSX props, `Css.props()` calls     |
 | `runtime.ts`       | Runtime exports: `trussProps`, `mergeProps`, `TrussDebugInfo`           |
+| `merge-css.ts`     | Parses and merges annotated truss.css files from libraries              |
 | `index.ts`         | Vite plugin — global CSS registry, dev HMR, production CSS emission     |
 
 ### Dev mode
@@ -160,7 +161,11 @@ For jsdom tests, the plugin passes `injectCss: true`, which injects `__injectTru
 
 ### Production mode
 
-The plugin accumulates all atomic rules across files during transform. In `generateBundle`, it appends the full CSS to an existing CSS asset or emits a standalone `truss.css`. The `writeBundle` hook writes to disk as a fallback.
+The plugin accumulates all atomic rules across files during transform. In `generateBundle`, it merges the app's rules with any pre-compiled library `truss.css` files (configured via the `libraries` option), deduplicates by class name, sorts by priority, and appends the unified CSS to an existing CSS asset or emits a standalone `truss.css`. The `writeBundle` hook writes to disk as a fallback.
+
+### Library CSS merging
+
+Each CSS rule in the output is annotated with its priority: `/* @truss p:<priority> c:<className> */`. When `libraries` are configured, the plugin parses these annotations from each library's `truss.css`, combines them with the app's own rules, deduplicates by class name (same class name = same rule, since output is deterministic), and sorts by priority ascending with alphabetical class name tiebreaker. `@property` declarations are deduplicated by variable name and appended at the end.
 
 ## CSS Generation
 
