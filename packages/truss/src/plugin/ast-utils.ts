@@ -153,6 +153,29 @@ export function findCssImportBinding(ast: t.File): string | null {
   return null;
 }
 
+/**
+ * Find a local binding where `Css` is created via `new CssBuilder(...)`.
+ *
+ * This handles tsup-bundled libraries where Css is not imported but declared as:
+ *   var Css = new CssBuilder({ ... });
+ */
+export function findCssBuilderBinding(ast: t.File): string | null {
+  for (const node of ast.program.body) {
+    if (!t.isVariableDeclaration(node)) continue;
+    for (const decl of node.declarations) {
+      if (
+        t.isIdentifier(decl.id) &&
+        decl.init &&
+        t.isNewExpression(decl.init) &&
+        t.isIdentifier(decl.init.callee, { name: "CssBuilder" })
+      ) {
+        return decl.id.name;
+      }
+    }
+  }
+  return null;
+}
+
 /** Check if the AST contains a `binding.method(...)` call expression. */
 export function hasCssMethodCall(ast: t.File, binding: string, method: string): boolean {
   let found = false;
