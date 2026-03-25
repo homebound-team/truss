@@ -61,9 +61,7 @@ export function computeRulePriority(rule: AtomicRule): number {
 /** Returns true if this rule uses CSS custom property var() values. */
 function isVariableRule(rule: AtomicRule): boolean {
   if (rule.declarations) {
-    return rule.declarations.some(function (d) {
-      return d.cssVarName !== undefined;
-    });
+    return rule.declarations.some((d) => d.cssVarName !== undefined);
   }
   return rule.cssVarName !== undefined;
 }
@@ -74,12 +72,22 @@ function isVariableRule(rule: AtomicRule): boolean {
  * When two rules have the same priority (e.g. two different longhands both at 3000),
  * we tiebreak by class name so the output is fully deterministic regardless of
  * file processing order (which differs between dev HMR and production builds).
+ *
+ * Uses a decorate-sort-undecorate pattern so each rule's priority is computed
+ * once upfront rather than re-evaluated on every comparator call.
  */
 export function sortRulesByPriority(rules: AtomicRule[]): void {
-  rules.sort(function (a, b) {
-    const diff = computeRulePriority(a) - computeRulePriority(b);
+  // Pre-compute priorities so the O(n log n) comparisons are just number/string compares
+  const decorated = rules.map((rule, i) => {
+    return { rule, priority: computeRulePriority(rule), index: i };
+  });
+  decorated.sort((a, b) => {
+    const diff = a.priority - b.priority;
     if (diff !== 0) return diff;
     // Alphabetical tiebreaker ensures identical output in dev and production
-    return a.className < b.className ? -1 : a.className > b.className ? 1 : 0;
+    return a.rule.className < b.rule.className ? -1 : a.rule.className > b.rule.className ? 1 : 0;
   });
+  for (let i = 0; i < decorated.length; i++) {
+    rules[i] = decorated[i].rule;
+  }
 }
