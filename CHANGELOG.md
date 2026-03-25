@@ -1,3 +1,9 @@
+## [2.3.2](https://github.com/homebound-team/truss/compare/v2.3.1...v2.3.2) (2026-03-25)
+
+### Bug Fixes
+
+* Fix rewriting Css in tsup-bundled libraries. ([#191](https://github.com/homebound-team/truss/issues/191)) ([8919dc4](https://github.com/homebound-team/truss/commit/8919dc48519655eddf00426dc791db1dd838d288))
+
 ## [2.3.1](https://github.com/homebound-team/truss/compare/v2.3.0...v2.3.1) (2026-03-24)
 
 ### Bug Fixes
