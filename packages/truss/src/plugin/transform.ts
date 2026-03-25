@@ -12,7 +12,6 @@ import {
   findCssImportBinding,
   findCssBuilderBinding,
   removeCssImport,
-  hasCssMethodCall,
   findNamedImportBinding,
   findImportDeclaration,
   replaceCssImportWithNamedImports,
@@ -74,11 +73,14 @@ export function transformTruss(
   if (!cssBindingName) return null;
   const cssIsImported = cssImportBinding !== null;
 
-  // Step 2: Collect all Css expression sites
+  // Step 2: Collect all Css.*.$  expression sites AND detect Css.props() in a single pass.
+  // Both checks share one traverse to avoid walking the full AST twice.
   const sites: ExpressionSite[] = [];
   const errorMessages: Array<{ message: string; line: number | null }> = [];
+  let hasCssPropsCall = false;
 
   traverse(ast, {
+    // -- Css.*.$  chain collection --
     MemberExpression(path: NodePath<t.MemberExpression>) {
       if (!t.isIdentifier(path.node.property, { name: "$" })) return;
       if (path.node.computed) return;
@@ -99,10 +101,21 @@ export function transformTruss(
         errorMessages.push({ message: err, line });
       }
     },
+    // -- Css.props() detection (so we don't bail early when there are no Css.*.$ sites) --
+    CallExpression(path: NodePath<t.CallExpression>) {
+      if (hasCssPropsCall) return;
+      const callee = path.node.callee;
+      if (
+        t.isMemberExpression(callee) &&
+        !callee.computed &&
+        t.isIdentifier(callee.object, { name: cssBindingName }) &&
+        t.isIdentifier(callee.property, { name: "props" })
+      ) {
+        hasCssPropsCall = true;
+      }
+    },
   });
 
-  // Also check for Css.props(...) calls which need rewriting even without Css.$ sites
-  const hasCssPropsCall = hasCssMethodCall(ast, cssBindingName, "props");
   if (sites.length === 0 && !hasCssPropsCall) return null;
 
   // Step 3: Collect atomic rules for CSS generation

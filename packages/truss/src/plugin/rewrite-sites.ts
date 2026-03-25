@@ -58,10 +58,8 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     }
   }
 
-  rewriteCssPropsCalls(options);
-
-  // Second pass: lower any remaining `css={...}` expression to `trussProps(...)`.
-  rewriteCssAttributeExpressions(options);
+  // Single pass: rewrite Css.props(...) calls and remaining css={...} attributes together
+  rewriteCssPropsAndCssAttributes(options);
 }
 
 /**
@@ -466,23 +464,21 @@ function removeExistingAttribute(path: NodePath<t.JSXAttribute>, attrName: strin
 }
 
 // ---------------------------------------------------------------------------
-// Css.props(...) rewriting
+// Combined pass: Css.props(...) rewriting + remaining css={...} attributes
 // ---------------------------------------------------------------------------
 
 /**
- * Rewrite `Css.props(expr)` into `trussProps(expr)`.
- *
- * In the new model, the argument is already a style hash, so we just delegate to trussProps.
+ * Single traversal that rewrites both `Css.props(expr)` calls and remaining
+ * `css={expr}` JSX attributes, avoiding two separate full-AST passes.
  */
-function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
+function rewriteCssPropsAndCssAttributes(options: RewriteSitesOptions): void {
   traverse(options.ast, {
+    // -- Css.props(expr) → trussProps(expr) or mergeProps(...) --
     CallExpression(path: NodePath<t.CallExpression>) {
       if (!isCssPropsCall(path.node, options.cssBindingName)) return;
 
       const arg = path.node.arguments[0];
       if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
-
-      const line = path.node.loc?.start.line ?? null;
 
       options.needsTrussPropsHelper.current = true;
 
@@ -497,23 +493,8 @@ function rewriteCssPropsCalls(options: RewriteSitesOptions): void {
         path.replaceWith(t.callExpression(t.identifier(options.trussPropsHelperName), [arg]));
       }
     },
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Second pass: remaining css={...} attributes
-// ---------------------------------------------------------------------------
-
-/**
- * Rewrite any remaining `css={expr}` JSX attributes into `{...trussProps(expr)}`.
- *
- * This handles cases where the css prop value is not a direct `Css.*.$` chain,
- * e.g. `css={someVariable}`, `css={{ ...a, ...b }}`, `css={cond ? a : b}`.
- *
- * In the new model, all of these just need to be wrapped in trussProps().
- */
-function rewriteCssAttributeExpressions(options: RewriteSitesOptions): void {
-  traverse(options.ast, {
+    // -- Remaining css={expr} JSX attributes → {...trussProps(expr)} spreads --
+    // I.e. css={someVariable}, css={{ ...a, ...b }}, css={cond ? a : b}
     JSXAttribute(path: NodePath<t.JSXAttribute>) {
       if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
       const value = path.node.value;
@@ -521,7 +502,6 @@ function rewriteCssAttributeExpressions(options: RewriteSitesOptions): void {
       if (!t.isExpression(value.expression)) return;
 
       const expr = value.expression;
-      const line = path.node.loc?.start.line ?? null;
 
       const existingClassNameExpr = removeExistingAttribute(path, "className");
       const existingStyleExpr = removeExistingAttribute(path, "style");
