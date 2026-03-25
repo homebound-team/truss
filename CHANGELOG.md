@@ -1,3 +1,9 @@
+## [2.5.0](https://github.com/homebound-team/truss/compare/v2.4.0...v2.5.0) (2026-03-25)
+
+### Features
+
+* Add esbuild plugin for tsup. ([#196](https://github.com/homebound-team/truss/issues/196)) ([bd8b7bf](https://github.com/homebound-team/truss/commit/bd8b7bf8857cd1353c820d06215a2cd69806f492))
+
 ## [2.4.0](https://github.com/homebound-team/truss/compare/v2.3.5...v2.4.0) (2026-03-25)
 
 ### Features
