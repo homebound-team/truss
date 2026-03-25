@@ -1,3 +1,9 @@
+## [2.3.4](https://github.com/homebound-team/truss/compare/v2.3.3...v2.3.4) (2026-03-25)
+
+### Bug Fixes
+
+* Combine AST passes for good measure. ([#193](https://github.com/homebound-team/truss/issues/193)) ([388df8f](https://github.com/homebound-team/truss/commit/388df8fef58436c58c154c9de6c5e1b05f629786))
+
 ## [2.3.3](https://github.com/homebound-team/truss/compare/v2.3.2...v2.3.3) (2026-03-25)
 
 ### Bug Fixes
