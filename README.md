@@ -33,9 +33,9 @@ And generates atomic CSS classes like:
 
 ```html
 <h1 class="f24 black" data-truss-src="App.tsx:8">Truss v2</h1>
-    
+
 <p class="f14 black" data-truss-src="App.tsx:10">This demo uses the Truss DSL.</p>
-    
+
 <div class="df gap1" data-truss-src="App.tsx:12">
   <div class="pt1 pb1 pr1 pl1 bss bw1 bcBlack h_bcBlue br2 cursorPointer h_bgLightGray" data-truss-src="App.tsx:13">
     Border box with padding and radius
@@ -65,7 +65,7 @@ And generates atomic CSS classes like:
   - Extremely natural to build up complex styles with conditionals, loops, etc.
 
 - Tachyons-inspired abbreviations for superior inline readability
-  - No long class names that compound into a "wall of text" 
+  - No long class names that compound into a "wall of text"
   - Consistent abbreviation pattern:
     - `justify-content: flex-start` is `jcfs`,
     - Easier to memorize/read
@@ -78,7 +78,6 @@ And generates atomic CSS classes like:
   - Just regular TypeScript
 
 Also see the "Why This Approach?" section for more rationale.
-
 
 ## Quick How It Works
 
@@ -100,7 +99,7 @@ These expressions are rewritten to be "just plain objects":
 // Input
 const css = Css.mx2.black.$;
 // Output
-const css = { marginLeft: "ml2", marginRight: "mr2", color: "black" }
+const css = { marginLeft: "ml2", marginRight: "mr2", color: "black" };
 ```
 
 And then these object literals are used by the `css` property to assign the `className` and `style` props:
@@ -139,22 +138,22 @@ We recommend checking the `src/Css.ts` file into your repository, with the ratio
 - When it does change, it can be nice to see the diff-d output in the PR for others to review.
 - It's the simplest "just works" setup for new contributors.
 
-### Vite Plugin Setup (compile-in-app libraries)
+### Vite Plugin Setup (pre-compiled libraries)
 
 Truss generates both `Css.ts` and `Css.json`:
 
 - `Css.ts` is the typed `Css.*.$` DSL to use in your component code,
 - `Css.json` is a metadata file consumed by the Truss Vite plugin at build time.
 
-These dual outputs enable a compile-in-app model where component libraries can ship untransformed `Css.*.$` usage and the consuming app compiles both the library's `Css` styles + application's `Css` styles into a single unified output.
+Libraries compile their own `Css.*.$` expressions and ship a pre-built `truss.css` alongside compiled JS. The consuming application only transforms its own source files, then merges the library's `truss.css` into a unified stylesheet. This works because Truss's CSS output is deterministic -- the same abbreviation always produces the same class name and CSS rule.
 
-Install the build dependency in the app:
+Install the build dependency:
 
 ```bash
 npm install --save-dev @homebound/truss
 ```
 
-1. In the **library** package (i.e. your shared, company-wide component library) that defines your Truss styles/design system tokens, run codegen.
+1. In the **library** package (i.e. your shared, company-wide component library) that defines your Truss styles/design system tokens, run codegen and build with the Truss plugin.
 
    ```ts
    // truss-config.ts
@@ -166,43 +165,55 @@ npm install --save-dev @homebound/truss
    });
    ```
 
-   Notes:
-   - Do **not** run `trussPlugin(...)` in the library build; leave `Css.*.$` untransformed, as they'll be rewritten by each downstream application's build.
-   - If the library runs Vitest, use `trussPlugin(...)` there (tests only):
+   ```ts
+   // vite.config.ts (library package)
+   import { defineConfig } from "vite";
+   import { trussPlugin } from "@homebound/truss/plugin";
 
-     ```ts
-     // vitest.config.ts (library package)
-     import { defineConfig } from "vitest/config";
-     import { trussPlugin } from "@homebound/truss/plugin";
-
-     export default defineConfig({
-       plugins: [trussPlugin({ mapping: "./src/Css.json" })],
-       test: {
-         environment: "jsdom",
+   export default defineConfig({
+     plugins: [trussPlugin({ mapping: "./src/Css.json" })],
+     build: {
+       lib: {
+         /* your library entry */
        },
-     });
-     ```
+     },
+   });
+   ```
 
-2. Publish the design system library's `Css` module and generated `Css.json` (for example in `dist/`), along with library files that contain `Css.*.$` usage, to npm/other repository. Then:
+   The plugin transforms `Css.*.$` expressions to plain objects and emits a `truss.css` file with priority annotations that enable correct merging.
+
+   For Vitest, the same config works:
+
+   ```ts
+   // vitest.config.ts (library package)
+   import { defineConfig } from "vitest/config";
+   import { trussPlugin } from "@homebound/truss/plugin";
+
+   export default defineConfig({
+     plugins: [trussPlugin({ mapping: "./src/Css.json" })],
+     test: {
+       environment: "jsdom",
+     },
+   });
+   ```
+
+2. Publish the library's compiled JS, `Css.json`, and `truss.css` (for example in `dist/`). Then:
    - Application code can import the design system styles directly, e.g. `import { Css } from "@company/library"`.
    - The application does **not** need to run its own Truss codegen step
-   - In the application's Vite config, run the Truss plugin before React:
+   - In the application's Vite config, point `mapping` to the library's `Css.json` and `libraries` to the library's `truss.css`:
 
      ```ts
      import { defineConfig } from "vite";
      import react from "@vitejs/plugin-react";
      import { trussPlugin } from "@homebound/truss/plugin";
 
-     // Any upstream libraries (if any) that are using our `Css.*.$` syntax
-     // and so need to be compiled by the Truss plugin
-     const externalPackages = ["@company/library"];
-
      export default defineConfig({
        plugins: [
          trussPlugin({
            // If you don't have a design library, just pass ./src/Css.json
            mapping: "./node_modules/@company/library/dist/Css.json",
-           externalPackages,
+           // Pre-compiled CSS from libraries to merge with app CSS
+           libraries: ["./node_modules/@company/library/dist/truss.css"],
          }),
          react(),
        ],
@@ -213,7 +224,7 @@ Notes:
 
 - Keep `trussPlugin(...)` before `react()`.
 - `mapping` is required and should point to the single `Css.json` you want to compile against.
-- `externalPackages` tells the plugin which `node_modules` packages contain `Css.*.$` usage that needs to be transformed.
+- `libraries` lists paths to pre-compiled `truss.css` files that will be merged with the app's own generated CSS. Rules are deduplicated by class name and sorted by priority to produce a correct unified stylesheet.
 
 ### React Native (experimental/mobile) Usage
 

@@ -1,7 +1,7 @@
 import * as t from "@babel/types";
 import type { ResolvedChain } from "./resolve-chain";
 import type { ResolvedSegment, TrussMapping } from "./types";
-import { sortRulesByPriority } from "./priority";
+import { computeRulePriority, sortRulesByPriority } from "./priority";
 
 // -- Atomic CSS rule model --
 
@@ -407,6 +407,9 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
  * Uses an additive priority system where property tier + pseudo + at-rule priorities
  * are summed to produce a single sort key, guaranteeing longhands beat shorthands,
  * pseudo-classes follow LVFHA order, and at-rules override base styles.
+ *
+ * Each rule is preceded by a `/* @truss p:<priority> c:<className> *\/` annotation
+ * that enables deterministic merging of CSS from independently-built libraries.
  */
 export function generateCssText(rules: Map<string, AtomicRule>): string {
   const allRules = Array.from(rules.values());
@@ -414,9 +417,15 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   // Single flat sort by computed priority
   sortRulesByPriority(allRules);
 
+  // Pre-compute priorities for annotations (mirrors sort order)
+  const priorities = allRules.map(computeRulePriority);
+
   const lines: string[] = [];
 
-  for (const rule of allRules) {
+  for (let i = 0; i < allRules.length; i++) {
+    const rule = allRules[i];
+    const priority = priorities[i];
+    lines.push(`/* @truss p:${priority} c:${rule.className} */`);
     lines.push(formatRule(rule));
   }
 
@@ -424,6 +433,7 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   for (const rule of allRules) {
     for (const declaration of getRuleDeclarations(rule)) {
       if (declaration.cssVarName) {
+        lines.push(`/* @truss @property */`);
         lines.push(`@property ${declaration.cssVarName} { syntax: "*"; inherits: false; }`);
       }
     }

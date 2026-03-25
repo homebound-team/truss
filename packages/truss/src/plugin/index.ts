@@ -6,12 +6,13 @@ import { generateCssText } from "./emit-truss";
 import { transformTruss } from "./transform";
 import { transformCssTs } from "./transform-css";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
+import { readTrussCss, mergeTrussCss, parseTrussCss, type ParsedTrussCss } from "./merge-css";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
   mapping: string;
-  /** Packages in `node_modules` that should also be transformed, all other `node_modules` files are skipped. */
-  externalPackages?: string[];
+  /** Paths to pre-compiled truss.css files from libraries to merge into the app's CSS. */
+  libraries?: string[];
 }
 
 // Intentionally loose Vite types so we don't depend on the `vite` package at compile time.
@@ -57,7 +58,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let debug = false;
   let isTest = false;
   let isBuild = false;
-  const externalPackages = opts.externalPackages ?? [];
+  const libraryPaths = opts.libraries ?? [];
 
   // Global CSS rule registry shared across all transform calls within a build
   const cssRegistry = new Map<string, AtomicRule>();
@@ -77,9 +78,34 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     return mapping;
   }
 
-  /** Generate the full CSS string from the global registry, ordered by precedence tiers. */
+  /** Cached parsed library CSS (loaded once per build). */
+  let libraryCache: ParsedTrussCss[] | null = null;
+
+  /** Load and cache all library truss.css files. */
+  function loadLibraries(): ParsedTrussCss[] {
+    if (!libraryCache) {
+      libraryCache = libraryPaths.map(function (libPath) {
+        const resolved = resolve(projectRoot || process.cwd(), libPath);
+        return readTrussCss(resolved);
+      });
+    }
+    return libraryCache;
+  }
+
+  /**
+   * Generate the full CSS string from the global registry, merged with library CSS.
+   *
+   * When `libraries` are configured, parses each library's annotated truss.css,
+   * combines with the app's own rules, deduplicates by class name, and sorts
+   * by priority to produce a unified stylesheet.
+   */
   function collectCss(): string {
-    return generateCssText(cssRegistry);
+    const appCss = generateCssText(cssRegistry);
+    const libs = loadLibraries();
+    if (libs.length === 0) return appCss;
+    // Parse the app's own annotated CSS and merge with library sources
+    const appParsed = parseTrussCss(appCss);
+    return mergeTrussCss([...libs, appParsed]);
   }
 
   return {
@@ -95,8 +121,9 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
     buildStart() {
       ensureMapping();
-      // Reset registry at start of each build
+      // Reset registry and library cache at start of each build
       cssRegistry.clear();
+      libraryCache = null;
       cssVersion = 0;
       lastSentVersion = 0;
     },
@@ -218,7 +245,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       if (!hasCssDsl && !rewrittenImports.changed) return null;
 
       const fileId = stripQueryAndHash(id);
-      if (isNodeModulesFile(fileId) && !isWhitelistedExternalPackageFile(fileId, externalPackages)) {
+      if (isNodeModulesFile(fileId)) {
         return null;
       }
 
@@ -345,18 +372,7 @@ function stripQueryAndHash(id: string): string {
 }
 
 function isNodeModulesFile(filePath: string): boolean {
-  return normalizePath(filePath).includes("/node_modules/");
-}
-
-function isWhitelistedExternalPackageFile(filePath: string, externalPackages: string[]): boolean {
-  const normalizedPath = normalizePath(filePath);
-  return externalPackages.some(function (pkg) {
-    return normalizedPath.includes(`/node_modules/${pkg}/`);
-  });
-}
-
-function normalizePath(path: string): string {
-  return path.replace(/\\/g, "/");
+  return filePath.replace(/\\/g, "/").includes("/node_modules/");
 }
 
 /** Load a truss mapping file synchronously (for tests). */

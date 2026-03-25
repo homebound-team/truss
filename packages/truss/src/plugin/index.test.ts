@@ -38,46 +38,20 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("skips node_modules files unless package is in externalPackages", function () {
+  test("skips all node_modules files", function () {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
     });
-    // Given we're the application or library in vitest, using src/Css.json
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     runConfigHooks(plugin, root);
-    // And we have code that is not in an externalPackages
+    // Code inside node_modules is never transformed
     const result = runTransform(
       plugin,
       `import { Css } from "./Css"; const el = <div css={Css.df.$} />;`,
       join(root, "node_modules", "acme-ui", "src", "Button.tsx"),
     );
-    // Then it is not transformed
     expect(result).toBeNull();
-  });
-
-  test("transforms whitelisted external package files", function () {
-    const root = createTempRoot();
-    writeMapping(join(root, "node_modules", "@company", "library", "src", "Css.json"), {
-      df: { kind: "static", defs: { display: "flex" } },
-    });
-    // Given we're running the application build, pointing to the library's Css.json
-    const plugin = trussPlugin({
-      mapping: "./node_modules/@company/library/src/Css.json",
-      externalPackages: ["@company/library"],
-    });
-    runConfigHooks(plugin, root);
-    const result = runTransform(
-      plugin,
-      `import { Css } from "./Css.js"; const el = <div css={Css.df.$} />;`,
-      join(root, "node_modules", "@company", "library", "src", "Button.tsx"),
-    );
-    expect(n(result?.code ?? "")).toBe(
-      n(`
-        import { trussProps } from "@homebound/truss/runtime";
-        const el = <div {...trussProps({ display: "df" })} />;
-      `),
-    );
   });
 
   test("transforms application files importing library Css.ts", function () {
@@ -88,7 +62,6 @@ describe("trussPlugin", function () {
     // Given we're running the application build, pointing to the library's Css.json
     const plugin = trussPlugin({
       mapping: "./node_modules/@company/library/src/Css.json",
-      externalPackages: ["@company/library"],
     });
     runConfigHooks(plugin, root);
     // And we have application src/Button.tsx importing Css from the library
@@ -104,59 +77,6 @@ describe("trussPlugin", function () {
         const el = <div {...trussProps({ display: "df" })} />;
       `),
     );
-  });
-
-  test("transforms tsup-bundled library file where Css is created via new CssBuilder", function () {
-    const root = createTempRoot();
-    writeMapping(join(root, "node_modules", "@company", "library", "src", "Css.json"), {
-      df: { kind: "static", defs: { display: "flex" } },
-    });
-    const plugin = trussPlugin({
-      mapping: "./node_modules/@company/library/src/Css.json",
-      externalPackages: ["@company/library"],
-    });
-    runConfigHooks(plugin, root);
-    // Simulate tsup-bundled output: Css is a local variable, not an import
-    const result = runTransform(
-      plugin,
-      [
-        `import { trussProps } from "@homebound/truss/runtime";`,
-        `var CssBuilder = class _CssBuilder { constructor(opts) { this.opts = opts; } };`,
-        `var Css = new CssBuilder({ rules: {}, enabled: true });`,
-        `const el = <div css={Css.df.$} />;`,
-        `const el2 = jsx("div", { css: Css.df.$ });`,
-      ].join("\n"),
-      join(root, "node_modules", "@company", "library", "dist", "index.js"),
-    );
-    expect(n(result?.code ?? "")).toBe(
-      n(`
-        import { trussProps } from "@homebound/truss/runtime";
-        var CssBuilder = class _CssBuilder { constructor(opts) { this.opts = opts; } };
-        var Css = new CssBuilder({ rules: {}, enabled: true });
-        const el = <div {...trussProps({ display: "df" })} />;
-        const el2 = jsx("div", { css: { display: "df" } });
-      `),
-    );
-  });
-
-  test("skips tsup-bundled files not in externalPackages", function () {
-    const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {
-      df: { kind: "static", defs: { display: "flex" } },
-    });
-    const plugin = trussPlugin({ mapping: "./src/Css.json" });
-    runConfigHooks(plugin, root);
-    // A bundled file in node_modules that is NOT whitelisted
-    const result = runTransform(
-      plugin,
-      [
-        `var CssBuilder = class _CssBuilder { constructor(opts) { this.opts = opts; } };`,
-        `var Css = new CssBuilder({ rules: {}, enabled: true });`,
-        `const el = <div css={Css.df.$} />;`,
-      ].join("\n"),
-      join(root, "node_modules", "other-lib", "dist", "index.js"),
-    );
-    expect(result).toBeNull();
   });
 
   test("dev html injects the runtime without a stylesheet link", function () {
@@ -210,6 +130,133 @@ describe("trussPlugin", function () {
     expect(w100Idx).toBeGreaterThan(-1);
     expect(wVarIdx).toBeGreaterThan(-1);
     expect(w100Idx).toBeLessThan(wVarIdx);
+  });
+
+  test("CSS output includes priority annotations", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+      black: { kind: "static", defs: { color: "#353535" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    runTransform(plugin, `import { Css } from "./Css"; const s = Css.df.black.$;`, join(root, "src", "App.tsx"));
+
+    const css = getVirtualCss(plugin);
+    expect(css).toBe(
+      [
+        "/* @truss p:3000 c:black */",
+        ".black { color: #353535; }",
+        "/* @truss p:3000 c:df */",
+        ".df { display: flex; }",
+      ].join("\n"),
+    );
+  });
+
+  test("merges library truss.css with app CSS", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+      black: { kind: "static", defs: { color: "#353535" } },
+      blue: { kind: "static", defs: { color: "#526675" } },
+    });
+
+    // Write a pre-compiled library truss.css with some overlapping and unique rules
+    const libCssDir = join(root, "node_modules", "@company", "library", "dist");
+    mkdirSync(libCssDir, { recursive: true });
+    writeFileSync(
+      join(libCssDir, "truss.css"),
+      [
+        "/* @truss p:3000 c:black */",
+        ".black { color: #353535; }",
+        "/* @truss p:3000 c:blue */",
+        ".blue { color: #526675; }",
+        "/* @truss p:3000 c:fdc */",
+        ".fdc { flex-direction: column; }",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const plugin = trussPlugin({
+      mapping: "./src/Css.json",
+      libraries: ["./node_modules/@company/library/dist/truss.css"],
+    });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    // App uses df and black (black overlaps with library)
+    runTransform(plugin, `import { Css } from "./Css"; const s = Css.df.black.$;`, join(root, "src", "App.tsx"));
+
+    const css = getVirtualCss(plugin);
+
+    // All unique rules present, deduplicated (black from both sources appears once),
+    // sorted by priority then alphabetically by class name
+    expect(css).toBe(
+      [
+        "/* @truss p:3000 c:black */",
+        ".black { color: #353535; }",
+        "/* @truss p:3000 c:blue */",
+        ".blue { color: #526675; }",
+        "/* @truss p:3000 c:df */",
+        ".df { display: flex; }",
+        "/* @truss p:3000 c:fdc */",
+        ".fdc { flex-direction: column; }",
+      ].join("\n"),
+    );
+  });
+
+  test("merges library @property declarations with app CSS", function () {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      mt: { kind: "variable", props: ["marginTop"], incremented: true },
+    });
+
+    // Library ships a truss.css with a variable rule and @property
+    const libCssDir = join(root, "node_modules", "@company", "library", "dist");
+    mkdirSync(libCssDir, { recursive: true });
+    writeFileSync(
+      join(libCssDir, "truss.css"),
+      [
+        "/* @truss p:4000.5 c:mt_var */",
+        ".mt_var { margin-top: var(--marginTop); }",
+        "/* @truss @property */",
+        '@property --marginTop { syntax: "*"; inherits: false; }',
+        "/* @truss p:3000 c:blue */",
+        ".blue { color: #526675; }",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const plugin = trussPlugin({
+      mapping: "./src/Css.json",
+      libraries: ["./node_modules/@company/library/dist/truss.css"],
+    });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    // App also uses mt(x), producing the same mt_var rule
+    runTransform(
+      plugin,
+      `import { Css } from "./Css"; const x = 2; const s = Css.mt(x).$;`,
+      join(root, "src", "App.tsx"),
+    );
+
+    const css = getVirtualCss(plugin);
+
+    // Rules sorted by priority, mt_var deduplicated, @property deduplicated
+    expect(css).toBe(
+      [
+        "/* @truss p:3000 c:blue */",
+        ".blue { color: #526675; }",
+        "/* @truss p:4000.5 c:mt_var */",
+        ".mt_var { margin-top: var(--marginTop); }",
+        "/* @truss @property */",
+        '@property --marginTop { syntax: "*"; inherits: false; }',
+      ].join("\n"),
+    );
   });
 });
 

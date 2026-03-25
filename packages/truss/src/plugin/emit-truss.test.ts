@@ -166,10 +166,10 @@ describe("collectAtomicRules", () => {
 });
 
 describe("generateCssText", () => {
-  test("base rule", () => {
+  test("base rule with annotation", () => {
     const rules = new Map<string, AtomicRule>([["df", { className: "df", cssProperty: "display", cssValue: "flex" }]]);
     const css = generateCssText(rules);
-    expect(css).toBe(".df { display: flex; }");
+    expect(css).toBe("/* @truss p:3000 c:df */\n.df { display: flex; }");
   });
 
   test("pseudo-class rule", () => {
@@ -177,7 +177,7 @@ describe("generateCssText", () => {
       ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "#526675", pseudoClass: ":hover" }],
     ]);
     const css = generateCssText(rules);
-    expect(css).toBe(".h_blue:hover { color: #526675; }");
+    expect(css).toBe("/* @truss p:3130 c:h_blue */\n.h_blue:hover { color: #526675; }");
   });
 
   test("media query rule uses doubled selector", () => {
@@ -193,7 +193,9 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toBe("@media screen and (max-width: 599px) { .sm_blue.sm_blue { color: #526675; } }");
+    expect(css).toBe(
+      "/* @truss p:3200 c:sm_blue */\n@media screen and (max-width: 599px) { .sm_blue.sm_blue { color: #526675; } }",
+    );
   });
 
   test("media + pseudo uses doubled selector + pseudo", () => {
@@ -210,7 +212,9 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toBe("@media screen and (max-width: 599px) { .sm_h_blue.sm_h_blue:hover { color: #526675; } }");
+    expect(css).toBe(
+      "/* @truss p:3330 c:sm_h_blue */\n@media screen and (max-width: 599px) { .sm_h_blue.sm_h_blue:hover { color: #526675; } }",
+    );
   });
 
   test("pseudo-element rule", () => {
@@ -226,7 +230,7 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toBe(".placeholder_blue::placeholder { color: #526675; }");
+    expect(css).toBe("/* @truss p:8000 c:placeholder_blue */\n.placeholder_blue::placeholder { color: #526675; }");
   });
 
   test("custom pseudo selector rule keeps the raw selector", () => {
@@ -242,10 +246,10 @@ describe("generateCssText", () => {
       ],
     ]);
     const css = generateCssText(rules);
-    expect(css).toBe(".h_n_d_black:hover:not(:disabled) { color: #353535; }");
+    expect(stripAnnotations(css)).toBe(".h_n_d_black:hover:not(:disabled) { color: #353535; }");
   });
 
-  test("variable rule includes @property", () => {
+  test("variable rule includes @property with annotation", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "mt_var",
@@ -259,7 +263,12 @@ describe("generateCssText", () => {
     ]);
     const css = generateCssText(rules);
     expect(css).toBe(
-      '.mt_var { margin-top: var(--marginTop); }\n@property --marginTop { syntax: "*"; inherits: false; }',
+      [
+        "/* @truss p:4000.5 c:mt_var */",
+        ".mt_var { margin-top: var(--marginTop); }",
+        "/* @truss @property */",
+        '@property --marginTop { syntax: "*"; inherits: false; }',
+      ].join("\n"),
     );
   });
 
@@ -281,7 +290,14 @@ describe("generateCssText", () => {
     ]);
     const css = generateCssText(rules);
     expect(css).toBe(
-      '.sq_var { height: var(--height); width: var(--width); }\n@property --height { syntax: "*"; inherits: false; }\n@property --width { syntax: "*"; inherits: false; }',
+      [
+        "/* @truss p:4000.5 c:sq_var */",
+        ".sq_var { height: var(--height); width: var(--width); }",
+        "/* @truss @property */",
+        '@property --height { syntax: "*"; inherits: false; }',
+        "/* @truss @property */",
+        '@property --width { syntax: "*"; inherits: false; }',
+      ].join("\n"),
     );
   });
 
@@ -299,7 +315,7 @@ describe("generateCssText", () => {
       ["black", { className: "black", cssProperty: "color", cssValue: "black" }],
       ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const baseIdx = css.indexOf(".black {");
     const pseudoIdx = css.indexOf(".h_blue:hover {");
     const mediaIdx = css.indexOf(".sm_blue.sm_blue {");
@@ -320,7 +336,7 @@ describe("generateCssText", () => {
       ],
       ["w100", { className: "w100", cssProperty: "width", cssValue: "100%" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const staticIdx = css.indexOf(".w100 {");
     const variableIdx = css.indexOf(".w_var {");
     expect(staticIdx).toBeLessThan(variableIdx);
@@ -332,7 +348,7 @@ describe("generateCssText", () => {
       ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
       ["f_green", { className: "f_green", cssProperty: "color", cssValue: "green", pseudoClass: ":focus" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const hoverIdx = css.indexOf(".h_blue:hover");
     const focusIdx = css.indexOf(".f_green:focus");
     const activeIdx = css.indexOf(".a_red:active");
@@ -341,21 +357,17 @@ describe("generateCssText", () => {
   });
 
   test("shorthand border-color emits before longhand border-top-color", () => {
-    // I.e. `bc("white")` sets border-color (shorthand-of-longhands → 2000),
-    // `btc("red")` sets border-top-color (physical longhand → 4000).
-    // border-top-color must appear later so it wins in the cascade.
     const rules = new Map<string, AtomicRule>([
       ["btc_red", { className: "btc_red", cssProperty: "border-top-color", cssValue: "red" }],
       ["bc_white", { className: "bc_white", cssProperty: "border-color", cssValue: "white" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const bcIdx = css.indexOf(".bc_white {");
     const btcIdx = css.indexOf(".btc_red {");
     expect(bcIdx).toBeLessThan(btcIdx);
   });
 
   test("shorthand border-color variable emits before longhand border-top-color variable", () => {
-    // Same scenario but with var() rules — the bug that originally motivated this change.
     const rules = new Map<string, AtomicRule>([
       [
         "btc_var",
@@ -376,19 +388,18 @@ describe("generateCssText", () => {
         },
       ],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const bcIdx = css.indexOf(".bc_var {");
     const btcIdx = css.indexOf(".btc_var {");
     expect(bcIdx).toBeLessThan(btcIdx);
   });
 
   test("shorthand margin emits before longhand margin-top", () => {
-    // margin is shorthand-of-shorthands → 1000, margin-top is physical longhand → 4000
     const rules = new Map<string, AtomicRule>([
       ["mt0", { className: "mt0", cssProperty: "margin-top", cssValue: "0" }],
       ["m0", { className: "m0", cssProperty: "margin", cssValue: "0" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const mIdx = css.indexOf(".m0 {");
     const mtIdx = css.indexOf(".mt0 {");
     expect(mIdx).toBeLessThan(mtIdx);
@@ -399,20 +410,19 @@ describe("generateCssText", () => {
       ["pl8", { className: "pl8", cssProperty: "padding-left", cssValue: "8px" }],
       ["p0", { className: "p0", cssProperty: "padding", cssValue: "0" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const pIdx = css.indexOf(".p0 {");
     const plIdx = css.indexOf(".pl8 {");
     expect(pIdx).toBeLessThan(plIdx);
   });
 
   test("border (shorthand-of-shorthands) before border-color (shorthand-of-longhands) before border-top-color (longhand)", () => {
-    // Three levels: border → 1000, border-color → 2000, border-top-color → 4000
     const rules = new Map<string, AtomicRule>([
       ["btc_red", { className: "btc_red", cssProperty: "border-top-color", cssValue: "red" }],
       ["bc_blue", { className: "bc_blue", cssProperty: "border-color", cssValue: "blue" }],
       ["b_none", { className: "b_none", cssProperty: "border", cssValue: "none" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const borderIdx = css.indexOf(".b_none {");
     const bcIdx = css.indexOf(".bc_blue {");
     const btcIdx = css.indexOf(".btc_red {");
@@ -421,8 +431,6 @@ describe("generateCssText", () => {
   });
 
   test("same-priority rules are deterministic regardless of insertion order", () => {
-    // These are all longhands (priority 3000) — order must be alphabetical by class name
-    // so dev (HMR) and production builds produce identical CSS
     const rulesForward = new Map<string, AtomicRule>([
       ["absolute", { className: "absolute", cssProperty: "position", cssValue: "absolute" }],
       ["bgBlue700", { className: "bgBlue700", cssProperty: "background-color", cssValue: "blue" }],
@@ -436,7 +444,7 @@ describe("generateCssText", () => {
     // Both insertion orders must produce the same output
     expect(generateCssText(rulesForward)).toBe(generateCssText(rulesReverse));
     // And the alphabetical order should be: absolute, bgBlue700, bgWhite
-    const css = generateCssText(rulesForward);
+    const css = stripAnnotations(generateCssText(rulesForward));
     const absIdx = css.indexOf(".absolute {");
     const blueIdx = css.indexOf(".bgBlue700 {");
     const whiteIdx = css.indexOf(".bgWhite {");
@@ -450,7 +458,7 @@ describe("generateCssText", () => {
       ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
       ["a_red", { className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" }],
     ]);
-    const css = generateCssText(rules);
+    const css = stripAnnotations(generateCssText(rules));
     const hoverIdx = css.indexOf(".h_blue:hover");
     const activeIdx = css.indexOf(".a_red:active");
     // :disabled is not in LVFHA but stylex gives it priority 92, which is < :hover (130)
@@ -590,3 +598,11 @@ describe("computeRulePriority", () => {
     expect(priority).toBe(3000);
   });
 });
+
+/** Strip priority annotation comments from CSS text for tests that just check rule content. */
+function stripAnnotations(css: string): string {
+  return css
+    .split("\n")
+    .filter((line) => !line.startsWith("/* @truss "))
+    .join("\n");
+}

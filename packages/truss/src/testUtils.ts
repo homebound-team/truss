@@ -17,6 +17,12 @@ export function normalize(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
+/** Strip `/* @truss ... *\/` priority annotations from CSS text. */
+function stripTrussAnnotations(css: string): string {
+  // Annotations may already be normalized into a single line, so use regex
+  return normalize(css.replace(/\/\* @truss [^*]*\*\//g, ""));
+}
+
 expect.extend({
   toBeNormalized: function (received: string | null | undefined, expected: string) {
     const normalizedExpected = normalize(expected);
@@ -37,11 +43,13 @@ expect.extend({
   ) {
     const normalizedExpectedCode = normalize(expectedCode);
     const normalizedExpectedCss = normalize(expectedCss);
+    // Strip priority annotations from actual CSS so test expectations don't need them
+    const strippedCss = received.css ? stripTrussAnnotations(received.css) : received.css;
     const codeDiff = this.utils.diff(normalizedExpectedCode, received.code);
-    const cssDiff = this.utils.diff(normalizedExpectedCss, received.css);
+    const cssDiff = this.utils.diff(normalizedExpectedCss, strippedCss);
 
     return {
-      pass: this.equals(received.code, normalizedExpectedCode) && this.equals(received.css, normalizedExpectedCss),
+      pass: this.equals(received.code, normalizedExpectedCode) && this.equals(strippedCss, normalizedExpectedCss),
       message: function () {
         const messages = [];
 
