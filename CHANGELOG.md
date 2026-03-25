@@ -1,3 +1,9 @@
+## [2.3.5](https://github.com/homebound-team/truss/compare/v2.3.4...v2.3.5) (2026-03-25)
+
+### Bug Fixes
+
+* Small compute priority perf fix. ([#194](https://github.com/homebound-team/truss/issues/194)) ([917afba](https://github.com/homebound-team/truss/commit/917afbaef738cd69fb6c8beffc941008e0e29739))
+
 ## [2.3.4](https://github.com/homebound-team/truss/compare/v2.3.3...v2.3.4) (2026-03-25)
 
 ### Bug Fixes
