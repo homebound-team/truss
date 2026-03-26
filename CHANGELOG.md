@@ -1,3 +1,9 @@
+## [2.7.0](https://github.com/homebound-team/truss/compare/v2.6.1...v2.7.0) (2026-03-26)
+
+### Features
+
+* Add isFirstOfType/isLastOfType methods. ([#201](https://github.com/homebound-team/truss/issues/201)) ([f45f800](https://github.com/homebound-team/truss/commit/f45f80097027edbcc85abb8fb03d955ad0561d1a))
+
 ## [2.6.1](https://github.com/homebound-team/truss/compare/v2.6.0...v2.6.1) (2026-03-26)
 
 ### Bug Fixes
