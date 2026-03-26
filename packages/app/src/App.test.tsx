@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test } from "vitest";
 import { App } from "./App";
 import { hasCssDeclaration } from "./testCssUtils";
-import "@testing-library/jest-dom/vitest";
 
 afterEach(() => {
   cleanup();

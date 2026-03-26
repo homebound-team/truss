@@ -228,7 +228,7 @@ export function transformTruss(
   }
 
   if (declarationsToInsert.length > 0) {
-    const insertIndex = ast.program.body.findIndex(function (node) {
+    const insertIndex = ast.program.body.findIndex((node) => {
       return !t.isImportDeclaration(node);
     });
     ast.program.body.splice(insertIndex === -1 ? ast.program.body.length : insertIndex, 0, ...declarationsToInsert);

@@ -6,15 +6,15 @@ import { trussPlugin } from "./index";
 
 const tempDirs: string[] = [];
 
-afterEach(function () {
+afterEach(() => {
   for (const dir of tempDirs) {
     rmSync(dir, { recursive: true, force: true });
   }
   tempDirs.length = 0;
 });
 
-describe("trussPlugin", function () {
-  test("uses the configured mapping for library files", function () {
+describe("trussPlugin", () => {
+  test("uses the configured mapping for library files", () => {
     // Given we have a src/Css.json
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
@@ -38,7 +38,7 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("skips all node_modules files", function () {
+  test("skips all node_modules files", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -54,7 +54,7 @@ describe("trussPlugin", function () {
     expect(result).toBeNull();
   });
 
-  test("transforms application files importing library Css.ts", function () {
+  test("transforms application files importing library Css.ts", () => {
     const root = createTempRoot();
     writeMapping(join(root, "node_modules", "@company", "library", "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -79,7 +79,89 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("dev html injects the runtime without a stylesheet link", function () {
+  test("test mode bootstraps library CSS for modules without local Truss usage", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+    writeLibraryCss(root, [
+      "/* @truss p:3000 c:beamStatic */",
+      ".beamStatic { display: flex; }",
+    ]);
+
+    const plugin = trussPlugin({
+      mapping: "./src/Css.json",
+      libraries: ["./node_modules/@company/library/dist/truss.css"],
+    });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "test" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    const result = runTransform(
+      plugin,
+      `export const el = <div className="beamStatic" />;`,
+      join(root, "src", "LibraryOnly.tsx"),
+    );
+    expect(n(result?.code ?? "")).toBe(
+      n(`
+        export const el = <div className="beamStatic" />;
+        import "virtual:truss:test-css";
+      `),
+    );
+    const bootstrapModule = getTestCssModule(plugin);
+    expect(n(bootstrapModule)).toBe(
+      n(`
+        import { __injectTrussCSS } from "@homebound/truss/runtime";
+
+        __injectTrussCSS("/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }");
+      `),
+    );
+  });
+
+  test("test mode relies on the bootstrap module instead of per-file CSS injection", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+    writeLibraryCss(root, [
+      "/* @truss p:3000 c:beamStatic */",
+      ".beamStatic { display: flex; }",
+    ]);
+
+    const plugin = trussPlugin({
+      mapping: "./src/Css.json",
+      libraries: ["./node_modules/@company/library/dist/truss.css"],
+    });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "test" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    const result = runTransform(
+      plugin,
+      `import { Css } from "./Css"; const el = <div css={Css.df.$} className="beamStatic" />;`,
+      join(root, "src", "App.tsx"),
+    );
+
+    expect(n(result?.code ?? "")).toBe(
+      n(`
+        import { mergeProps, TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
+        __injectTrussCSS("/* @truss p:3000 c:df */\\n.df { display: flex; }");
+        const el = <div {...mergeProps("beamStatic", undefined, {
+          display: ["df", new TrussDebugInfo("App.tsx:1")]
+        })} />;
+        import "virtual:truss:test-css";
+      `),
+    );
+
+    const bootstrapModule = getTestCssModule(plugin);
+    expect(n(bootstrapModule)).toBe(
+      n(`
+        import { __injectTrussCSS } from "@homebound/truss/runtime";
+
+        __injectTrussCSS("/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }\\n/* @truss p:3000 c:df */\\n.df { display: flex; }");
+      `),
+    );
+  });
+
+  test("dev html injects the runtime without a stylesheet link", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -94,7 +176,7 @@ describe("trussPlugin", function () {
     expect(html.includes("/virtual:truss.css")).toBe(false);
   });
 
-  test("dev virtual CSS orders static base rules before variable rules for the same property", function () {
+  test("dev virtual CSS orders static base rules before variable rules for the same property", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       w100: { kind: "static", defs: { width: "100%" } },
@@ -132,7 +214,7 @@ describe("trussPlugin", function () {
     expect(w100Idx).toBeLessThan(wVarIdx);
   });
 
-  test("CSS output includes priority annotations", function () {
+  test("CSS output includes priority annotations", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -156,7 +238,7 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("merges library truss.css with app CSS", function () {
+  test("merges library truss.css with app CSS", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -208,7 +290,7 @@ describe("trussPlugin", function () {
     );
   });
 
-  test("merges library @property declarations with app CSS", function () {
+  test("merges library @property declarations with app CSS", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       mt: { kind: "variable", props: ["marginTop"], incremented: true },
@@ -279,6 +361,12 @@ function writeMapping(path: string, abbreviations: Record<string, Record<string,
   writeFileSync(path, `${JSON.stringify(mapping, null, 2)}\n`, "utf8");
 }
 
+function writeLibraryCss(root: string, lines: string[]): void {
+  const libCssDir = join(root, "node_modules", "@company", "library", "dist");
+  mkdirSync(libCssDir, { recursive: true });
+  writeFileSync(join(libCssDir, "truss.css"), lines.join("\n"), "utf8");
+}
+
 function runConfigHooks(plugin: ReturnType<typeof trussPlugin>, root: string): void {
   invokeHook(plugin.configResolved, {} as any, { root } as any);
   invokeHook(plugin.buildStart, {} as any);
@@ -322,10 +410,19 @@ function getVirtualCss(plugin: ReturnType<typeof trussPlugin>): string {
   };
 
   for (const mw of middlewares) {
-    mw(fakeReq, fakeRes, function () {});
+    mw(fakeReq, fakeRes, () => {});
   }
 
   return css;
+}
+
+function getTestCssModule(plugin: ReturnType<typeof trussPlugin>): string {
+  const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "virtual:truss:test-css", undefined);
+  expect(resolvedId).toBe("\0virtual:truss:test-css");
+
+  const moduleCode = invokeHook(plugin.load, {} as unknown, resolvedId);
+  expect(typeof moduleCode).toBe("string");
+  return moduleCode as string;
 }
 
 function invokeHook(hook: unknown, thisArg: unknown, ...args: unknown[]): unknown {

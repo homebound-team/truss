@@ -170,7 +170,15 @@ class CssBuilder<T extends Properties> {
   get onFocusWithin() {
     return this.newCss({ selector: ":focus-within" });
   }
-  
+
+  get ifFirstOfType() {
+    return this.newCss({ selector: ":first-of-type" });
+  }
+
+  get ifLastOfType() {
+    return this.newCss({ selector: ":last-of-type" });
+  }
+
   ifContainer(props: ContainerProps) {
     return this.newCss({ selector: Container(props) });
   }
@@ -262,7 +270,7 @@ export function px(pixels: number): string {
 }
 
 function omitUndefinedValues<T extends object>(value: T): T {
-  const entries = Object.entries(value).filter(function ([, entryValue]) {
+  const entries = Object.entries(value).filter(([, entryValue]) => {
     return entryValue !== undefined;
   });
   return Object.fromEntries(entries) as T;
@@ -431,6 +439,12 @@ class CssBuilder<T extends Properties> {
   get onDisabled() {
     return this.newCss({ selector: ":disabled" });
   }
+  get ifFirstOfType() {
+    return this.newCss({ selector: ":first-of-type" });
+  }
+  get ifLastOfType() {
+    return this.newCss({ selector: ":last-of-type" });
+  }
 
   /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
   get marker(): CssBuilder<T> {
@@ -556,7 +570,7 @@ export function px(pixels: number): string {
 }
 
 function omitUndefinedValues<T extends object>(value: T): T {
-  const entries = Object.entries(value).filter(function ([, entryValue]) {
+  const entries = Object.entries(value).filter(([, entryValue]) => {
     return entryValue !== undefined;
   });
   return Object.fromEntries(entries) as T;

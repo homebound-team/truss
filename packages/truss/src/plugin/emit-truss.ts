@@ -36,6 +36,8 @@ const PSEUDO_SUFFIX: Record<string, string> = {
   ":focus-within": "_fw",
   ":active": "_a",
   ":disabled": "_d",
+  ":first-of-type": "_fot",
+  ":last-of-type": "_lot",
 };
 
 /** Extra pseudo selector abbreviations used when() class names need static-but-safe tokens. */
@@ -83,7 +85,7 @@ function whenPrefix(whenPseudo: { pseudo: string; markerNode?: any; relationship
 
 /** Convert a pseudo selector into a safe class-name token while preserving raw selector emission. */
 function pseudoSelectorTag(pseudo: string): string {
-  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, function (match) {
+  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, (match) => {
     return `_${pseudoIdentifierTag(match)}_`;
   });
   const cleaned = replaced
@@ -105,7 +107,7 @@ function pseudoIdentifierTag(pseudo: string): string {
 function normalizePseudoIdentifier(pseudo: string): string {
   const prefixMatch = pseudo.match(/^::?/);
   const prefix = prefixMatch?.[0] ?? "";
-  const name = pseudo.slice(prefix.length).replace(/[A-Z]/g, function (match) {
+  const name = pseudo.slice(prefix.length).replace(/[A-Z]/g, (match) => {
     return `-${match.toLowerCase()}`;
   });
   return `${prefix}${name}`;
@@ -373,7 +375,7 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
       },
     ];
     if (
-      !existingRule.declarations.some(function (entry) {
+      !existingRule.declarations.some((entry) => {
         return entry.cssProperty === declaration.cssProperty;
       })
     ) {
@@ -514,7 +516,7 @@ function getRuleDeclarations(rule: AtomicRule): Array<{ cssProperty: string; css
 
 function formatRuleBlock(selector: string, rule: AtomicRule): string {
   const body = getRuleDeclarations(rule)
-    .map(function (declaration) {
+    .map((declaration) => {
       return `${declaration.cssProperty}: ${declaration.cssValue};`;
     })
     .join(" ");
@@ -523,7 +525,7 @@ function formatRuleBlock(selector: string, rule: AtomicRule): string {
 
 function formatNestedRuleBlock(wrapper: string, selector: string, rule: AtomicRule): string {
   const body = getRuleDeclarations(rule)
-    .map(function (declaration) {
+    .map((declaration) => {
       return `${declaration.cssProperty}: ${declaration.cssValue};`;
     })
     .join(" ");

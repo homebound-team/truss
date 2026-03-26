@@ -665,7 +665,7 @@ export function getPropertyPriority(property: string): number {
 /** Get the priority for a pseudo-class selector. */
 export function getPseudoClassPriority(pseudo: string): number {
   const leadingPseudo = pseudo.trim().match(/^::?[a-zA-Z-]+/)?.[0] ?? pseudo.split("(")[0];
-  const base = leadingPseudo.replace(/[A-Z]/g, function (match) {
+  const base = leadingPseudo.replace(/[A-Z]/g, (match) => {
     return `-${match.toLowerCase()}`;
   });
   return PSEUDO_CLASS_PRIORITIES[base] ?? 40;

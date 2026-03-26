@@ -84,7 +84,7 @@ describe("trussProps", () => {
   });
 
   test("throws for plain object values that are not Truss tuples", () => {
-    expect(function () {
+    expect(() => {
       trussProps({ color: { bad: true } as unknown as "black" });
     }).toThrowError(
       "Invalid Truss style value for `color`. trussProps only accepts generated Truss style hashes; use mergeProps for explicit className/style merging.",
@@ -92,14 +92,14 @@ describe("trussProps", () => {
   });
 
   test("throws for tuple values with invalid payloads", () => {
-    expect(function () {
+    expect(() => {
       trussProps({ color: ["black", 123] as unknown as "black" });
     }).toThrowError(
       "Invalid Truss style value for `color`. trussProps only accepts generated Truss style hashes; use mergeProps for explicit className/style merging.",
     );
   });
 
-  test("skips validation in production mode", async function () {
+  test("skips validation in production mode", async () => {
     const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
 
@@ -200,5 +200,29 @@ describe.skipIf(!hasDocument)("__injectTrussCSS", () => {
     // Should only appear once
     const count = (style.textContent?.match(/\.df/g) ?? []).length;
     expect(count).toBe(1);
+  });
+
+  test("deduplicates repeated merged bootstrap CSS chunks", () => {
+    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
+
+    const cssText = "/* @truss p:3000 c:beamStatic */\n.beamStatic { display: flex; }";
+    __injectTrussCSS(cssText);
+    __injectTrussCSS(cssText);
+
+    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
+    expect(style.textContent).toBe("/* @truss p:3000 c:beamStatic */\n.beamStatic { display: flex; }");
+  });
+
+  test("recreates the cached style tag after removal", () => {
+    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
+
+    __injectTrussCSS(".df { display: flex; }");
+    const firstStyle = document.querySelector("style[data-truss]") as HTMLStyleElement;
+    firstStyle.remove();
+
+    __injectTrussCSS(".aic { align-items: center; }");
+
+    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
+    expect(style.textContent).toBe(".aic { align-items: center; }");
   });
 });

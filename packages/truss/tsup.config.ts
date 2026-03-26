@@ -5,6 +5,7 @@ export default defineConfig({
     index: "src/index.ts",
     "plugin/index": "src/plugin/index.ts",
     runtime: "src/runtime.ts",
+    vitest: "src/vitest.ts",
   },
   format: ["esm"],
   dts: true,

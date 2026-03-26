@@ -8,13 +8,15 @@
   <hr />
 </div>
 
-Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) in React/JSX, with a build-time Vite plugin that compiles to atomic CSS on web and plain style objects on React Native for mobile.
+Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) in React/JSX.
 
 ## Quick Example
 
-Writing Truss code looks like this in JSX:
+Writing Truss code looks like:
 
 ```tsx
+import { Css } from "/src/Css.ts";
+
 <h1 css={Css.f24.black.$}>Truss v2</h1>
 
 <p css={Css.bodyText.$}>This demo uses the Truss DSL.</p>
@@ -29,7 +31,7 @@ Writing Truss code looks like this in JSX:
 </div>
 ```
 
-And generates atomic CSS classes like:
+Which compiles via our Vite/esbuild plugins to production HTML output:
 
 ```html
 <h1 class="f24 black" data-truss-src="App.tsx:8">Truss v2</h1>
@@ -46,6 +48,17 @@ And generates atomic CSS classes like:
 </div>
 ```
 
+And a static, build-time generated CSS file:
+
+```css
+.df { display: flexl };
+.black { color: black };
+.pt1 { padding-top: 8px };
+.bcBlack: { background-color: black };
+.h_bcBlue:hover { background-color: blue; }
+// etc...
+```
+
 ## Quick Features
 
 - Inline CSS-in-JS that is build-time compiled to a single static CSS stylesheet.
@@ -53,20 +66,21 @@ And generates atomic CSS classes like:
 
 - Naturally use dynamic values:
   - `Css.mt(someValue).$` or
+  - `Css.bgColor(maybe ? Palette.Black : Palette.Blue).$` or
   - `Css.mt0.if(someCondition).mt4.$`.
 
 - Selectors and breakpoints:
   - `Css.white.onHover.black.$` or
   - `Css.ifSm.mx1.$`
 
-- `Css` expressions are "just objects", so you can compose them with spreads, conditionals, destructuring, etc.:
-  - `css={{ ...Css.mt2.$, ...(someCondition ? Css.bgRed.$ : Css.bgGreen.$) }}`
+- `Css` expressions are "just POJOs", so naturally amenable to composition
+  - `<div css={{ ...Css.mt2.$, ...(someCondition ? Css.bgRed.$ : Css.bgGreen.$) }} />`
   - The last-set value _per property_ wins, i.e. not "the last class name" or "the last `color` value"
   - Extremely natural to build up complex styles with conditionals, loops, etc.
 
 - Tachyons-inspired abbreviations for superior inline readability
   - No long class names that compound into a "wall of text"
-  - Consistent abbreviation pattern:
+  - Consistent `FooBar` -> `fb` abbreviation pattern:
     - `justify-content: flex-start` is `jcfs`,
     - Easier to memorize/read
   - See [Why Tachyons](#why-tachyons-instead-of-tailwinds)
@@ -212,6 +226,23 @@ npm install --save-dev @homebound/truss
    });
    ```
 
+   To assert Truss-generated styles in tests, Truss also exports a `toHaveStyle` matcher:
+
+   ```ts
+   // testSetup.ts
+   import { expect } from "vitest";
+   import "@testing-library/jest-dom/vitest";
+   import { toHaveStyle } from "@homebound/truss/vitest";
+
+   expect.extend({ toHaveStyle });
+   ```
+
+   This gives you both the matcher implementation and Vitest type augmentation. You can then write assertions like:
+
+   ```ts
+   expect(element).toHaveStyle({ display: "flex", color: "#353535" });
+   ```
+
 2. Publish the library's compiled JS, `Css.json`, and `truss.css` (for example in `dist/`). Then:
    - Application code can import the design system styles directly, e.g. `import { Css } from "@company/library"`.
    - The application does **not** need to run its own Truss codegen step
@@ -343,6 +374,32 @@ function MyReactComponent(props: {}) {
 ```
 
 Where `sm` resolves from the breakpoints you define in `truss-config.ts`.
+
+The available pseudo-class modifiers are:
+
+| Modifier | CSS Pseudo-Class |
+| --- | --- |
+| `onHover` | `:hover` |
+| `onFocus` | `:focus` |
+| `onFocusVisible` | `:focus-visible` |
+| `onFocusWithin` | `:focus-within` |
+| `onActive` | `:active` |
+| `onDisabled` | `:disabled` |
+| `ifFirstOfType` | `:first-of-type` |
+| `ifLastOfType` | `:last-of-type` |
+
+For arbitrary pseudo-selectors not covered above, use `when`:
+
+```tsx
+// Simple pseudo-selector
+<div css={Css.when(":hover:not(:disabled)").black.$} />
+
+// Marker-based relationship (react to an ancestor's hover)
+const row = Css.newMarker();
+<tr css={Css.markerOf(row).$}>
+  <td css={Css.when(row, "ancestor", ":hover").blue.$}>...</td>
+</tr>
+```
 
 ## XStyles / Xss Extension Contracts
 

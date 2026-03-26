@@ -1,3 +1,27 @@
+## [2.7.0](https://github.com/homebound-team/truss/compare/v2.6.1...v2.7.0) (2026-03-26)
+
+### Features
+
+* Add isFirstOfType/isLastOfType methods. ([#201](https://github.com/homebound-team/truss/issues/201)) ([f45f800](https://github.com/homebound-team/truss/commit/f45f80097027edbcc85abb8fb03d955ad0561d1a))
+
+## [2.6.1](https://github.com/homebound-team/truss/compare/v2.6.0...v2.6.1) (2026-03-26)
+
+### Bug Fixes
+
+* Add toHaveStyle to readme. ([#200](https://github.com/homebound-team/truss/issues/200)) ([58380fd](https://github.com/homebound-team/truss/commit/58380fd84790965d2b541bbef55fbb7442917f96))
+
+## [2.6.0](https://github.com/homebound-team/truss/compare/v2.5.1...v2.6.0) (2026-03-26)
+
+### Features
+
+* Add toHaveStyle matcher. ([#199](https://github.com/homebound-team/truss/issues/199)) ([c64826c](https://github.com/homebound-team/truss/commit/c64826cba27c9132a477b3309820cd2278334a8f))
+
+## [2.5.1](https://github.com/homebound-team/truss/compare/v2.5.0...v2.5.1) (2026-03-26)
+
+### Bug Fixes
+
+* Use lambdas. ([#197](https://github.com/homebound-team/truss/issues/197)) ([ec433c6](https://github.com/homebound-team/truss/commit/ec433c69fb2b4d4d8324d83d639ae045010bf0e2))
+
 ## [2.5.0](https://github.com/homebound-team/truss/compare/v2.4.0...v2.5.0) (2026-03-25)
 
 ### Features
