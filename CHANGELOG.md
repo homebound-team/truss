@@ -1,3 +1,9 @@
+## [2.5.1](https://github.com/homebound-team/truss/compare/v2.5.0...v2.5.1) (2026-03-26)
+
+### Bug Fixes
+
+* Use lambdas. ([#197](https://github.com/homebound-team/truss/issues/197)) ([ec433c6](https://github.com/homebound-team/truss/commit/ec433c69fb2b4d4d8324d83d639ae045010bf0e2))
+
 ## [2.5.0](https://github.com/homebound-team/truss/compare/v2.4.0...v2.5.0) (2026-03-25)
 
 ### Features
