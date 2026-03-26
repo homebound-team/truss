@@ -25,6 +25,8 @@ export type TrussStyleValue =
 export type TrussStyleHash = Record<string, TrussStyleValue>;
 
 const shouldValidateTrussStyleValues = resolveShouldValidateTrussStyleValues();
+const TRUSS_CSS_CHUNKS = "__trussCssChunks__";
+let trussStyleElement: TrussStyleElement | null = null;
 
 /** Merge one or more Truss style hashes into `{ className, style?, data-truss-src? }`. */
 export function trussProps(
@@ -111,20 +113,20 @@ export function mergeProps(
  * In browser dev mode, CSS is served via the Vite virtual endpoint instead.
  */
 export function __injectTrussCSS(cssText: string): void {
-  if (typeof document === "undefined") return;
+  if (typeof document === "undefined" || cssText.length === 0) return;
 
-  const id = "data-truss";
-  let style = document.querySelector(`style[${id}]`) as HTMLStyleElement | null;
-  if (!style) {
-    style = document.createElement("style");
-    style.setAttribute(id, "");
-    document.head.appendChild(style);
+  const style = getOrCreateTrussStyleElement();
+
+  // Track exact injected chunks on the style node so repeated execution of the
+  // test bootstrap or transformed modules does not append duplicate CSS text.
+  const injectedChunks = (style[TRUSS_CSS_CHUNKS] ??= new Set<string>());
+  if (injectedChunks.has(cssText) || style.textContent?.includes(cssText)) {
+    injectedChunks.add(cssText);
+    return;
   }
 
-  // Append if not already present (dedupe across HMR re-executions)
-  if (!style.textContent?.includes(cssText)) {
-    style.textContent = (style.textContent ?? "") + cssText;
-  }
+  injectedChunks.add(cssText);
+  style.textContent = (style.textContent ?? "") + cssText;
 }
 
 /** Fail fast when `trussProps` receives a non-Truss style value. */
@@ -160,3 +162,22 @@ function resolveShouldValidateTrussStyleValues(): boolean {
   }
   return false;
 }
+
+function getOrCreateTrussStyleElement(): TrussStyleElement {
+  const id = "data-truss";
+  if (trussStyleElement?.ownerDocument === document && trussStyleElement.isConnected) {
+    return trussStyleElement;
+  }
+
+  const style = (document.querySelector(`style[${id}]`) as TrussStyleElement | null) ?? document.createElement("style");
+  if (!style.isConnected) {
+    style.setAttribute(id, "");
+    document.head.appendChild(style);
+  }
+  trussStyleElement = style;
+  return trussStyleElement;
+}
+
+type TrussStyleElement = HTMLStyleElement & {
+  [TRUSS_CSS_CHUNKS]?: Set<string>;
+};

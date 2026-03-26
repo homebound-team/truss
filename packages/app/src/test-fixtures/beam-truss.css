@@ -1,0 +1,2 @@
+/* @truss p:3000 c:beamStatic */
+.beamStatic { display: flex; }

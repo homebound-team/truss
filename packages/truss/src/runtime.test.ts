@@ -201,4 +201,28 @@ describe.skipIf(!hasDocument)("__injectTrussCSS", () => {
     const count = (style.textContent?.match(/\.df/g) ?? []).length;
     expect(count).toBe(1);
   });
+
+  test("deduplicates repeated merged bootstrap CSS chunks", () => {
+    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
+
+    const cssText = "/* @truss p:3000 c:beamStatic */\n.beamStatic { display: flex; }";
+    __injectTrussCSS(cssText);
+    __injectTrussCSS(cssText);
+
+    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
+    expect(style.textContent).toBe("/* @truss p:3000 c:beamStatic */\n.beamStatic { display: flex; }");
+  });
+
+  test("recreates the cached style tag after removal", () => {
+    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
+
+    __injectTrussCSS(".df { display: flex; }");
+    const firstStyle = document.querySelector("style[data-truss]") as HTMLStyleElement;
+    firstStyle.remove();
+
+    __injectTrussCSS(".aic { align-items: center; }");
+
+    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
+    expect(style.textContent).toBe(".aic { align-items: center; }");
+  });
 });
