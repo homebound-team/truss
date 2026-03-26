@@ -674,7 +674,7 @@ export function px(pixels: number): string {
 }
 
 function omitUndefinedValues<T extends object>(value: T): T {
-  const entries = Object.entries(value).filter(([, entryValue]) => {
+  const entries = Object.entries(value).filter(function ([, entryValue]) {
     return entryValue !== undefined;
   });
   return Object.fromEntries(entries) as T;

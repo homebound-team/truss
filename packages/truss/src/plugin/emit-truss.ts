@@ -36,6 +36,8 @@ const PSEUDO_SUFFIX: Record<string, string> = {
   ":focus-within": "_fw",
   ":active": "_a",
   ":disabled": "_d",
+  ":first-of-type": "_fot",
+  ":last-of-type": "_lot",
 };
 
 /** Extra pseudo selector abbreviations used when() class names need static-but-safe tokens. */
