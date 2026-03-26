@@ -1,3 +1,9 @@
+## [2.6.0](https://github.com/homebound-team/truss/compare/v2.5.1...v2.6.0) (2026-03-26)
+
+### Features
+
+* Add toHaveStyle matcher. ([#199](https://github.com/homebound-team/truss/issues/199)) ([c64826c](https://github.com/homebound-team/truss/commit/c64826cba27c9132a477b3309820cd2278334a8f))
+
 ## [2.5.1](https://github.com/homebound-team/truss/compare/v2.5.0...v2.5.1) (2026-03-26)
 
 ### Bug Fixes
