@@ -40,6 +40,15 @@ const CSS_TS_QUERY = "?truss-css";
 const VIRTUAL_CSS_ENDPOINT = "/virtual:truss.css";
 const VIRTUAL_RUNTIME_ID = "virtual:truss:runtime";
 const RESOLVED_VIRTUAL_RUNTIME_ID = "\0" + VIRTUAL_RUNTIME_ID;
+// Test-only bootstrap that injects the same merged collectCss() output used by
+// /virtual:truss.css, but as a virtual module side effect instead of an HTTP
+// fetch. In dev, the browser reaches /virtual:truss.css via transformIndexHtml
+// -> virtual:truss:runtime -> fetch("/virtual:truss.css") -> configureServer.
+// Vitest/jsdom does not boot from index.html or run that browser fetch/HMR path;
+// it imports modules directly into the test environment, so CSS has to enter via
+// a module side effect instead.
+const VIRTUAL_TEST_CSS_ID = "virtual:truss:test-css";
+const RESOLVED_VIRTUAL_TEST_CSS_ID = "\0" + VIRTUAL_TEST_CSS_ID;
 
 /**
  * Vite plugin that transforms `Css.*.$` expressions from truss's CssBuilder DSL
@@ -179,6 +188,9 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       if (source === VIRTUAL_RUNTIME_ID || source === "/" + VIRTUAL_RUNTIME_ID) {
         return RESOLVED_VIRTUAL_RUNTIME_ID;
       }
+      if (source === VIRTUAL_TEST_CSS_ID || source === "/" + VIRTUAL_TEST_CSS_ID) {
+        return RESOLVED_VIRTUAL_TEST_CSS_ID;
+      }
 
       // Handle .css.ts virtual modules
       if (!source.endsWith(CSS_TS_QUERY)) return null;
@@ -225,6 +237,16 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 })();
 `;
       }
+      if (id === RESOLVED_VIRTUAL_TEST_CSS_ID) {
+        // Vitest/jsdom has no dev server stylesheet fetch, so inject the full
+        // merged CSS payload once via a virtual side-effect module.
+        const css = collectCss();
+        return `
+import { __injectTrussCSS } from "@homebound/truss/runtime";
+
+__injectTrussCSS(${JSON.stringify(css)});
+`;
+      }
 
       // Handle .css.ts virtual modules
       if (!id.startsWith(VIRTUAL_CSS_PREFIX)) return null;
@@ -241,37 +263,50 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
       const rewrittenImports = rewriteCssTsImports(code, id);
       const rewrittenCode = rewrittenImports.code;
-      const hasCssDsl = rewrittenCode.includes("Css");
-      if (!hasCssDsl && !rewrittenImports.changed) return null;
-
       const fileId = stripQueryAndHash(id);
+
+      // In tests, we do not boot through index.html and the dev runtime fetch path
+      // (`virtual:truss:runtime` -> fetch("/virtual:truss.css")), so we inject the
+      // merged application + library CSS through a virtual module side effect instead.
+      //
+      // We add `import "virtual:truss:test-css"` to each eligible transformed module,
+      // but ESM module caching should evaluate that virtual module only once per test
+      // module graph. Transformed files may still emit per-file `__injectTrussCSS`
+      // calls; exact repeated chunks are deduped in the runtime helper.
+      const shouldBootstrapTestCss = isTest && libraryPaths.length > 0 && !isNodeModulesFile(fileId);
+      const testCssBootstrap = injectTestCssBootstrapImport(rewrittenCode, shouldBootstrapTestCss);
+      const transformedCode = testCssBootstrap.code;
+      const hasCssDsl = rewrittenCode.includes("Css");
       if (isNodeModulesFile(fileId)) {
         return null;
       }
+      if (!hasCssDsl && !rewrittenImports.changed && !testCssBootstrap.changed) return null;
 
       if (fileId.endsWith(".css.ts")) {
         // Keep `.css.ts` modules as normal TS so named exports like class-name
         // constants still work at runtime; only return code when we injected the
         // companion `?truss-css` side-effect import.
-        return rewrittenImports.changed ? { code: rewrittenCode, map: null } : null;
+        return rewrittenImports.changed || testCssBootstrap.changed ? { code: transformedCode, map: null } : null;
       }
 
       if (!hasCssDsl) {
         // Some non-`.css.ts` modules only need the import rewrite and do not have
         // any `Css.*.$` expressions for the main Truss transform to process.
-        return { code: rewrittenCode, map: null };
+        return { code: transformedCode, map: null };
       }
 
       // For regular JS/TS modules that still use the DSL, run the full Truss
       // transform after the import rewrite so both behaviors compose.
-      const result = transformTruss(rewrittenCode, fileId, ensureMapping(), {
-        debug,
+      const result = transformTruss(
+        transformedCode,
+        fileId,
+        ensureMapping(),
         // In test mode (jsdom), inject CSS directly so document.styleSheets has rules
-        injectCss: isTest,
-      });
+        { debug, injectCss: isTest },
+      );
       if (!result) {
-        if (!rewrittenImports.changed) return null;
-        return { code: rewrittenCode, map: null };
+        if (!rewrittenImports.changed && !testCssBootstrap.changed) return null;
+        return { code: transformedCode, map: null };
       }
 
       // Merge new rules into the global registry
@@ -373,6 +408,19 @@ function stripQueryAndHash(id: string): string {
 
 function isNodeModulesFile(filePath: string): boolean {
   return filePath.replace(/\\/g, "/").includes("/node_modules/");
+}
+
+function injectTestCssBootstrapImport(code: string, shouldInject: boolean): { code: string; changed: boolean } {
+  // Keep this as a normal ESM import so Vite/Vitest module caching ensures the
+  // bootstrap executes once per module graph instead of once per transformed file.
+  if (!shouldInject) {
+    return { code, changed: false };
+  }
+
+  return {
+    code: `${code}\nimport "${VIRTUAL_TEST_CSS_ID}";`,
+    changed: true,
+  };
 }
 
 /** Load a truss mapping file synchronously (for tests). */
