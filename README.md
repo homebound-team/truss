@@ -212,6 +212,23 @@ npm install --save-dev @homebound/truss
    });
    ```
 
+   To assert Truss-generated styles in tests, Truss also exports a `toHaveStyle` matcher:
+
+   ```ts
+   // testSetup.ts
+   import { expect } from "vitest";
+   import "@testing-library/jest-dom/vitest";
+   import { toHaveStyle } from "@homebound/truss/vitest";
+
+   expect.extend({ toHaveStyle });
+   ```
+
+   This gives you both the matcher implementation and Vitest type augmentation. You can then write assertions like:
+
+   ```ts
+   expect(element).toHaveStyle({ display: "flex", color: "#353535" });
+   ```
+
 2. Publish the library's compiled JS, `Css.json`, and `truss.css` (for example in `dist/`). Then:
    - Application code can import the design system styles directly, e.g. `import { Css } from "@company/library"`.
    - The application does **not** need to run its own Truss codegen step
