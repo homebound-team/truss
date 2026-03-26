@@ -6,15 +6,15 @@ import { trussEsbuildPlugin } from "./esbuild-plugin";
 
 const tempDirs: string[] = [];
 
-afterEach(function () {
+afterEach(() => {
   for (const dir of tempDirs) {
     rmSync(dir, { recursive: true, force: true });
   }
   tempDirs.length = 0;
 });
 
-describe("trussEsbuildPlugin", function () {
-  test("transforms source files via onLoad", function () {
+describe("trussEsbuildPlugin", () => {
+  test("transforms source files via onLoad", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -39,7 +39,7 @@ describe("trussEsbuildPlugin", function () {
     );
   });
 
-  test("returns undefined for files without Css usage", function () {
+  test("returns undefined for files without Css usage", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -56,7 +56,7 @@ describe("trussEsbuildPlugin", function () {
     expect(result).toBeUndefined();
   });
 
-  test("writes truss.css on build end", function () {
+  test("writes truss.css on build end", () => {
     const root = createTempRoot();
     const outDir = join(root, "dist");
     writeMapping(join(root, "src", "Css.json"), {
@@ -91,7 +91,7 @@ describe("trussEsbuildPlugin", function () {
     );
   });
 
-  test("does not write truss.css when no rules collected", function () {
+  test("does not write truss.css when no rules collected", () => {
     const root = createTempRoot();
     const outDir = join(root, "dist");
     writeMapping(join(root, "src", "Css.json"), {
@@ -106,7 +106,7 @@ describe("trussEsbuildPlugin", function () {
     expect(existsSync(join(outDir, "truss.css"))).toBe(false);
   });
 
-  test("respects custom outputCss path", function () {
+  test("respects custom outputCss path", () => {
     const root = createTempRoot();
     const outDir = join(root, "dist");
     writeMapping(join(root, "src", "Css.json"), {
@@ -129,7 +129,7 @@ describe("trussEsbuildPlugin", function () {
     expect(existsSync(join(outDir, "styles", "truss.css"))).toBe(true);
   });
 
-  test("deduplicates rules across multiple files", function () {
+  test("deduplicates rules across multiple files", () => {
     const root = createTempRoot();
     const outDir = join(root, "dist");
     writeMapping(join(root, "src", "Css.json"), {
@@ -164,7 +164,7 @@ describe("trussEsbuildPlugin", function () {
     );
   });
 
-  test("selects correct loader for file extensions", function () {
+  test("selects correct loader for file extensions", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },

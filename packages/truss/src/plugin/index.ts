@@ -84,7 +84,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   /** Load and cache all library truss.css files. */
   function loadLibraries(): ParsedTrussCss[] {
     if (!libraryCache) {
-      libraryCache = libraryPaths.map(function (libPath) {
+      libraryCache = libraryPaths.map((libPath) => {
         const resolved = resolve(projectRoot || process.cwd(), libPath);
         return readTrussCss(resolved);
       });
@@ -136,7 +136,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       if (isTest) return;
 
       // Serve the current collected CSS at the virtual endpoint
-      server.middlewares.use(function (req: any, res: any, next: any) {
+      server.middlewares.use((req: any, res: any, next: any) => {
         if (req.url !== VIRTUAL_CSS_ENDPOINT) return next();
         const css = collectCss();
         res.setHeader("Content-Type", "text/css");
@@ -145,7 +145,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       });
 
       // Poll for CSS version changes and push HMR updates
-      const interval = setInterval(function () {
+      const interval = setInterval(() => {
         if (cssVersion !== lastSentVersion && server.ws) {
           lastSentVersion = cssVersion;
           server.ws.send({ type: "custom", event: "truss:css-update" });
@@ -153,7 +153,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       }, 150);
 
       // Clean up interval when server closes
-      server.httpServer?.on("close", function () {
+      server.httpServer?.on("close", () => {
         clearInterval(interval);
       });
     },
@@ -199,7 +199,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       if (id === RESOLVED_VIRTUAL_RUNTIME_ID) {
         return `
 // Truss dev HMR runtime — keeps styles up to date without page reload
-(function() {
+(() => {
   let style = document.getElementById("__truss_virtual__");
   if (!style) {
     style = document.createElement("style");
@@ -209,16 +209,16 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
   function fetchCss() {
     fetch("${VIRTUAL_CSS_ENDPOINT}")
-      .then(function(r) { return r.text(); })
-      .then(function(css) { style.textContent = css; })
-      .catch(function() {});
+      .then((r) => r.text())
+      .then((css) => { style.textContent = css; })
+      .catch(() => {});
   }
 
   fetchCss();
 
   if (import.meta.hot) {
     import.meta.hot.on("truss:css-update", fetchCss);
-    import.meta.hot.on("vite:afterUpdate", function() {
+    import.meta.hot.on("vite:afterUpdate", () => {
       setTimeout(fetchCss, 50);
     });
   }
@@ -325,7 +325,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       const trussPath = join(outDir, "truss.css");
       if (!existsSync(trussPath)) {
         // Check if it was appended to an existing CSS asset
-        const alreadyEmitted = Object.keys(bundle).some(function (key) {
+        const alreadyEmitted = Object.keys(bundle).some((key) => {
           const asset = bundle[key];
           return (
             asset.type === "asset" &&
