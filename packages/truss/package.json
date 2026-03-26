@@ -19,6 +19,11 @@
       "types": "./build/runtime.d.ts",
       "import": "./build/runtime.js",
       "default": "./build/runtime.js"
+    },
+    "./vitest": {
+      "types": "./build/vitest.d.ts",
+      "import": "./build/vitest.js",
+      "default": "./build/vitest.js"
     }
   },
   "scripts": {

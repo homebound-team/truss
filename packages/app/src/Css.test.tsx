@@ -2,7 +2,6 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 import { Css, Palette, type Only, type Xss } from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
-import "@testing-library/jest-dom/vitest";
 
 afterEach(cleanup);
 

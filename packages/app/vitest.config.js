@@ -6,5 +6,6 @@ export default defineConfig({
   plugins: [trussPlugin({ mapping: "./src/Css.json" }), react()],
   test: {
     environment: "jsdom",
+    setupFiles: "./src/testSetup.ts",
   },
 });
