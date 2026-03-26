@@ -1,3 +1,9 @@
+## [2.8.0](https://github.com/homebound-team/truss/compare/v2.7.0...v2.8.0) (2026-03-26)
+
+### Features
+
+* Output app+libary css in vitest. ([#202](https://github.com/homebound-team/truss/issues/202)) ([b12ab95](https://github.com/homebound-team/truss/commit/b12ab95f604585338a42d7f2948fc8e9726ad86d))
+
 ## [2.7.0](https://github.com/homebound-team/truss/compare/v2.6.1...v2.7.0) (2026-03-26)
 
 ### Features
