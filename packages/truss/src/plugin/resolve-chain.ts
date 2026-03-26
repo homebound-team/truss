@@ -860,6 +860,8 @@ const PSEUDO_METHODS: Record<string, string> = {
   onFocusWithin: ":focus-within",
   onActive: ":active",
   onDisabled: ":disabled",
+  ifFirstOfType: ":first-of-type",
+  ifLastOfType: ":last-of-type",
 };
 
 function isPseudoMethod(name: string): boolean {

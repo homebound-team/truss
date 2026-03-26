@@ -2301,24 +2301,27 @@ class CssBuilder<T extends Properties> {
   }
 
   /**
-   * Styles after this `when` are applied on the current element for a static selector.
+   * Styles after this `when` are applied based on a relationship + pseudo selector.
    *
-   * `when(":hover")` — same semantics as `onHover`
-   * `when(":hover:not(:disabled)")` — hover only while enabled
-   */
-  when(selector: string): CssBuilder<T>;
-  /**
-   * Styles after this `when` are applied based on a marker relationship + pseudo selector.
-   *
-   * `when(marker, "ancestor", ":hover")` — react to marker ancestor hover
-   * `when(row, "descendant", ":focus")` — react to a marked descendant focus
+   * `when("ancestor", ":hover")` — react to ancestor hover
+   * `when("descendant", ":focus")` — react to descendant focus
+   * `when("siblingAfter", ":hover")` — react to a following sibling's hover
    */
   when(
-    marker: Marker,
     relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter",
     pseudo: string,
   ): CssBuilder<T>;
-  when(_selectorOrMarker: string | Marker, _relationship?: string, _pseudo?: string): CssBuilder<T> {
+  /**
+   * Styles after this `when` are applied based on a relationship-to-marker + pseudo selector.
+   *
+   * `when("ancestor", marker, ":hover")` — react to a specific ancestor's hover
+   */
+  when(
+    relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter",
+    marker: Marker,
+    pseudo: string,
+  ): CssBuilder<T>;
+  when(_relationship: string, _pseudoOrMarker: string | Marker, _pseudo?: string): CssBuilder<T> {
     return this;
   }
 
@@ -2434,7 +2437,7 @@ export function px(pixels: number): string {
 }
 
 function omitUndefinedValues<T extends object>(value: T): T {
-  const entries = Object.entries(value).filter(([, entryValue]) => {
+  const entries = Object.entries(value).filter(function ([, entryValue]) {
     return entryValue !== undefined;
   });
   return Object.fromEntries(entries) as T;
@@ -2451,9 +2454,6 @@ export enum Palette {
 
 /** A shortcut for defining Xss types. */
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;
-
-/** The shared marker token for `when(marker, relationship, pseudo)`. */
-export const marker: Marker = Symbol.for("truss-default-marker");
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
 export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined, elseApplied: false });

@@ -792,6 +792,38 @@ describe("transform", () => {
     );
   });
 
+  test("ifFirstOfType pseudo: Css.ifFirstOfType.blue.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifFirstOfType.blue.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "fot_blue" };
+    `,
+      `
+      .fot_blue:first-of-type {
+        color: #526675;
+      }
+    `,
+    );
+  });
+
+  test("ifLastOfType pseudo: Css.ifLastOfType.blue.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifLastOfType.blue.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "lot_blue" };
+    `,
+      `
+      .lot_blue:last-of-type {
+        color: #526675;
+      }
+    `,
+    );
+  });
+
   test("onHover with variable literal: Css.onHover.bc('red').$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
