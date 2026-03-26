@@ -1,3 +1,9 @@
+## [2.8.1](https://github.com/homebound-team/truss/compare/v2.8.0...v2.8.1) (2026-03-26)
+
+### Bug Fixes
+
+* Fix toHaveStyle w/variables. ([#203](https://github.com/homebound-team/truss/issues/203)) ([417a817](https://github.com/homebound-team/truss/commit/417a817ad746d474dcb4cc2cc0dfd76cecc6fb0b))
+
 ## [2.8.0](https://github.com/homebound-team/truss/compare/v2.7.0...v2.8.0) (2026-03-26)
 
 ### Features
