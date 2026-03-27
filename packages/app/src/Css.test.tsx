@@ -471,4 +471,16 @@ describe("Truss CssBuilder", () => {
       expect(hasCssDeclaration(el, "color", { hover: true })).toBe(true);
     });
   });
+
+  test("css prop on a custom component type-checks and applies styles", () => {
+    /** A custom component that forwards className/style from the rewritten css prop. */
+    function Card(props: { title: string }) {
+      const { title, ...others } = props;
+      return <div {...others}>{props.title}</div>;
+    }
+    // Passing `css` here would fail to type-check without the JSX.IntrinsicAttributes augmentation
+    const r = render(<Card title="hello" css={Css.df.black.$} />);
+    const el = r.container.firstChild as HTMLElement;
+    expect(el).toHaveStyle({ display: "flex", color: "#353535" });
+  });
 });

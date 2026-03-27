@@ -7,7 +7,7 @@
     "build": "tspc --build && yarn workspace @homebound/truss run build",
     "test": "yarn workspaces foreach --all run test",
     "semantic-release": "semantic-release",
-    "codegen": "yarn workspaces foreach -A run codegen"
+    "codegen": "yarn build && yarn workspaces foreach -A run codegen"
   },
   "workspaces": [
     "packages/truss",
