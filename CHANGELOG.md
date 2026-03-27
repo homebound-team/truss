@@ -1,3 +1,9 @@
+## [2.8.2](https://github.com/homebound-team/truss/compare/v2.8.1...v2.8.2) (2026-03-27)
+
+### Bug Fixes
+
+* Canonicalize colors. ([#205](https://github.com/homebound-team/truss/issues/205)) ([b90a129](https://github.com/homebound-team/truss/commit/b90a129c16cb35ede2246185a00f759242e19642))
+
 ## [2.8.1](https://github.com/homebound-team/truss/compare/v2.8.0...v2.8.1) (2026-03-26)
 
 ### Bug Fixes
