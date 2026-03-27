@@ -1,3 +1,9 @@
+## [2.8.4](https://github.com/homebound-team/truss/compare/v2.8.3...v2.8.4) (2026-03-27)
+
+### Bug Fixes
+
+* Move React types to Intrinisic. ([#208](https://github.com/homebound-team/truss/issues/208)) ([7fdd624](https://github.com/homebound-team/truss/commit/7fdd624e4e2a24cc51a59ab161eac97a3db2f296))
+
 ## [2.8.3](https://github.com/homebound-team/truss/compare/v2.8.2...v2.8.3) (2026-03-27)
 
 ### Bug Fixes
