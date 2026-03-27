@@ -21,6 +21,8 @@ type MatcherResult = {
  */
 const wholeValueCssVariablePattern = /^var\(\s*(--[\w-]+)\s*(?:,\s*(.+))?\)$/;
 
+let probe: HTMLDivElement | undefined;
+
 /**
  * Assert that an element's computed style matches the provided CSS declarations.
  *
@@ -39,12 +41,15 @@ export function toHaveStyle(this: MatcherContext, received: unknown, expected: S
     };
   }
 
+  probe ??= received.ownerDocument.createElement("div");
+
   const expectedStyles = parseExpectedStyles(this, received, expected);
   const mismatches: string[] = [];
   for (const [property, expectedValue] of expectedStyles) {
-    const actualValue = getActualStyleValue(received, property);
-    if (actualValue !== expectedValue) {
-      mismatches.push(`${property}: expected ${expectedValue}, received ${actualValue || "<empty>"}`);
+    const actualValue = canonicalizeValue(probe, property, getActualStyleValue(received, property));
+    const comparableExpectedValue = canonicalizeValue(probe, property, expectedValue);
+    if (actualValue !== comparableExpectedValue) {
+      mismatches.push(`${property}: expected ${comparableExpectedValue}, received ${actualValue || "<empty>"}`);
     }
   }
 
@@ -140,16 +145,23 @@ function getActualStyleValue(el: { style?: CSSStyleDeclaration; ownerDocument: D
 }
 
 /**
+ * Canonicalize a property/value pair through CSSOM serialization so equivalent
+ * forms like `rgb(...)` and `rgba(..., 1)` compare equal.
+ */
+function canonicalizeValue(probe: HTMLElement, property: string, value: string): string {
+  probe.style.cssText = "";
+  probe.style.setProperty(property, value);
+  return probe.style.getPropertyValue(property).trim() || value;
+}
+
+/**
  * Resolve a whole-value `var(--token)` reference using the element's current
  * custom properties. jsdom leaves these unresolved in many computed values.
  *
  * This is intentionally a single-hop lookup for cases like
  * `.color_var { color: var(--color) }` plus `el.style.setProperty("--color", "blue")`.
  */
-function resolveWholeValueCssVariable(
-  value: string,
-  computedStyles: CSSStyleDeclaration,
-): string {
+function resolveWholeValueCssVariable(value: string, computedStyles: CSSStyleDeclaration): string {
   const match = value.match(wholeValueCssVariablePattern);
   if (!match) {
     return value;
