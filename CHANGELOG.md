@@ -1,3 +1,9 @@
+## [2.8.3](https://github.com/homebound-team/truss/compare/v2.8.2...v2.8.3) (2026-03-27)
+
+### Bug Fixes
+
+* Always emit truss.css file. ([#206](https://github.com/homebound-team/truss/issues/206)) ([1bf0f48](https://github.com/homebound-team/truss/commit/1bf0f489494d7b8ea7c2c1c6e9ef8a753f7745d9))
+
 ## [2.8.2](https://github.com/homebound-team/truss/compare/v2.8.1...v2.8.2) (2026-03-27)
 
 ### Bug Fixes
