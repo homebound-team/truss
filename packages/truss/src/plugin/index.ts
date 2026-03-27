@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { resolve, dirname, isAbsolute, join } from "path";
+import { readFileSync, existsSync } from "fs";
+import { resolve, dirname, isAbsolute } from "path";
 import type { TrussMapping } from "./types";
 import type { AtomicRule } from "./emit-truss";
 import { generateCssText } from "./emit-truss";
@@ -29,7 +29,6 @@ export interface TrussVitePlugin {
   transformIndexHtml?: (html: string) => string;
   handleHotUpdate?: (ctx: any) => void;
   generateBundle?: (options: any, bundle: any) => void;
-  writeBundle?: (options: any, bundle: any) => void;
 }
 
 /** Prefix for virtual CSS module IDs generated from .css.ts files. */
@@ -168,7 +167,11 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     },
 
     transformIndexHtml(html: string) {
-      if (isBuild) return html;
+      if (isBuild) {
+        // Inject a stylesheet link so the emitted truss.css is loaded at page start
+        const link = `<link rel="stylesheet" href="./truss.css">`;
+        return html.replace("</head>", `    ${link}\n  </head>`);
+      }
       // Inject the virtual runtime script for dev mode; it owns style updates.
       const tag = `<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`;
       return html.replace("</head>", `    ${tag}\n  </head>`);
@@ -328,51 +331,18 @@ __injectTrussCSS(${JSON.stringify(css)});
 
     // -- Production CSS emission --
 
-    generateBundle(_options: any, bundle: any) {
+    generateBundle(_options: any, _bundle: any) {
       if (!isBuild) return;
       const css = collectCss();
       if (!css) return;
 
-      // Try to append to an existing CSS asset in the bundle
-      for (const key of Object.keys(bundle)) {
-        const asset = bundle[key];
-        if (asset.type === "asset" && key.endsWith(".css")) {
-          asset.source = asset.source + "\n" + css;
-          return;
-        }
-      }
-
-      // No existing CSS asset found — emit a standalone truss.css
+      // Always emit a standalone truss.css so the asset is deterministic and
+      // referenced by the <link> injected in transformIndexHtml.
       (this as any).emitFile({
         type: "asset",
         fileName: "truss.css",
         source: css,
       });
-    },
-
-    writeBundle(options: any, bundle: any) {
-      if (!isBuild) return;
-      const css = collectCss();
-      if (!css) return;
-
-      // Fallback: if generateBundle didn't find a target, write to disk
-      const outDir = options.dir || join(projectRoot, "dist");
-      const trussPath = join(outDir, "truss.css");
-      if (!existsSync(trussPath)) {
-        // Check if it was appended to an existing CSS asset
-        const alreadyEmitted = Object.keys(bundle).some((key) => {
-          const asset = bundle[key];
-          return (
-            asset.type === "asset" &&
-            key.endsWith(".css") &&
-            typeof asset.source === "string" &&
-            asset.source.includes(css)
-          );
-        });
-        if (!alreadyEmitted) {
-          writeFileSync(trussPath, css, "utf8");
-        }
-      }
     },
   };
 }

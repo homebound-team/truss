@@ -84,10 +84,7 @@ describe("trussPlugin", () => {
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
     });
-    writeLibraryCss(root, [
-      "/* @truss p:3000 c:beamStatic */",
-      ".beamStatic { display: flex; }",
-    ]);
+    writeLibraryCss(root, ["/* @truss p:3000 c:beamStatic */", ".beamStatic { display: flex; }"]);
 
     const plugin = trussPlugin({
       mapping: "./src/Css.json",
@@ -122,10 +119,7 @@ describe("trussPlugin", () => {
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
     });
-    writeLibraryCss(root, [
-      "/* @truss p:3000 c:beamStatic */",
-      ".beamStatic { display: flex; }",
-    ]);
+    writeLibraryCss(root, ["/* @truss p:3000 c:beamStatic */", ".beamStatic { display: flex; }"]);
 
     const plugin = trussPlugin({
       mapping: "./src/Css.json",
@@ -174,6 +168,19 @@ describe("trussPlugin", () => {
     expect(html).toBeTypeOf("string");
     expect(html.includes('<script type="module" src="/virtual:truss:runtime"></script>')).toBe(true);
     expect(html.includes("/virtual:truss.css")).toBe(false);
+  });
+
+  test("production html injects a stylesheet link for truss.css", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
+
+    const html = invokeHook(plugin.transformIndexHtml, {} as any, "<html><head></head><body></body></html>") as any;
+    expect(html).toBe('<html><head>    <link rel="stylesheet" href="./truss.css">\n  </head><body></body></html>');
   });
 
   test("dev virtual CSS orders static base rules before variable rules for the same property", () => {
