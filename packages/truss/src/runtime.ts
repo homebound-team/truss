@@ -22,7 +22,8 @@ export type TrussStyleValue =
   | [classNames: string, vars: Record<string, string>, debugInfo: TrussDebugInfo];
 
 /** A property-keyed style hash where each key owns one logical CSS property. */
-export type TrussStyleHash = Record<string, TrussStyleValue>;
+export type TrussCustomClassNameValue = string | ReadonlyArray<string | false | null | undefined>;
+export type TrussStyleHash = Record<string, TrussStyleValue | TrussCustomClassNameValue>;
 
 const shouldValidateTrussStyleValues = resolveShouldValidateTrussStyleValues();
 const TRUSS_CSS_CHUNKS = "__trussCssChunks__";
@@ -44,8 +45,6 @@ export function trussProps(
   const debugSources: string[] = [];
 
   for (const [key, value] of Object.entries(merged)) {
-    if (shouldValidateTrussStyleValues) assertValidTrussStyleValue(key, value);
-
     // __marker is a special key — its value is a marker class name, not a CSS property
     if (key === "__marker") {
       if (typeof value === "string") {
@@ -53,6 +52,14 @@ export function trussProps(
       }
       continue;
     }
+
+    if (key === "className") {
+      // I.e. plugin-emitted raw class names that should flow straight into the final prop.
+      appendCustomClassNames(classNames, value);
+      continue;
+    }
+
+    if (shouldValidateTrussStyleValues) assertValidTrussStyleValue(key, value);
 
     if (typeof value === "string") {
       // I.e. "df" or "black blue_h"
@@ -86,6 +93,22 @@ export function trussProps(
   }
 
   return props;
+}
+
+function appendCustomClassNames(classNames: string[], value: unknown): void {
+  if (typeof value === "string") {
+    // I.e. `className: "custom"`
+    classNames.push(value);
+    return;
+  }
+
+  if (!Array.isArray(value)) return;
+  for (const entry of value) {
+    if (typeof entry === "string") {
+      // I.e. `className: ["custom", cond && "selected"]`
+      classNames.push(entry);
+    }
+  }
 }
 
 /** Merge explicit className/style with Truss style hashes. */

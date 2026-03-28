@@ -17,6 +17,11 @@ describe("trussProps", () => {
     expect(result).toEqual({ className: "black blue_h df" });
   });
 
+  test("passes through custom className entries", () => {
+    const result = trussProps({ className: ["custom", undefined, "custom-2"], display: "df" });
+    expect(result).toEqual({ className: "custom custom-2 df" });
+  });
+
   test("handles variable tuples with CSS variables", () => {
     const result = trussProps({ marginTop: ["mt_var", { "--marginTop": "16px" }] });
     expect(result).toEqual({

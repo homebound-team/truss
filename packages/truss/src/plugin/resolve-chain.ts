@@ -319,6 +319,19 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           continue;
         }
 
+        // Raw class passthrough, i.e. `Css.className(buttonClass).df.$`
+        if (abbr === "className") {
+          const seg = resolveClassNameCall(
+            node,
+            currentMediaQuery,
+            currentPseudoClass,
+            currentPseudoElement,
+            currentWhenPseudo,
+          );
+          segments.push(seg);
+          continue;
+        }
+
         if (abbr === "typography") {
           const resolved = resolveTypographyCall(
             node,
@@ -657,6 +670,37 @@ function buildParameterizedSegment(params: {
     base.pseudoElement = params.pseudoElement;
   }
   return base;
+}
+
+function resolveClassNameCall(
+  node: CallChainNode,
+  mediaQuery: string | null,
+  pseudoClass: string | null,
+  pseudoElement: string | null,
+  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
+): ResolvedSegment {
+  if (node.args.length !== 1) {
+    throw new UnsupportedPatternError(`className() expects exactly 1 argument, got ${node.args.length}`);
+  }
+
+  const arg = node.args[0];
+  if (arg.type === "SpreadElement") {
+    throw new UnsupportedPatternError(`className() does not support spread arguments`);
+  }
+
+  if (mediaQuery || pseudoClass || pseudoElement || whenPseudo) {
+    // I.e. `ifSm.className("x")` cannot be represented as a runtime-only class append.
+    throw new UnsupportedPatternError(
+      `className() cannot be used inside media query, pseudo-class, pseudo-element, or when() contexts`,
+    );
+  }
+
+  return {
+    // I.e. this is metadata for the rewriter/runtime, not an atomic CSS rule.
+    abbr: "className",
+    defs: {},
+    classNameArg: arg,
+  };
 }
 
 /**

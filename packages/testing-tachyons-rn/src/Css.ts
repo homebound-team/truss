@@ -646,6 +646,12 @@ class CssBuilder<T extends Properties> {
     const rules = { ...this.rules, [selector]: { ...(this.rules as any)[selector], ...newRules } };
     return this.newCss({ rules: rules as any });
   }
+
+  /** Marker for the build-time transform to append a raw className. */
+  className(className: string): CssBuilder<T> {
+    void className;
+    return this;
+  }
 }
 
 /** Sort keys so equivalent rule objects have deterministic shape. */

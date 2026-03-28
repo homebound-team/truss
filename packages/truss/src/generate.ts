@@ -232,6 +232,12 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ rules: rules as any });
   }
 
+  /** Marker for the build-time transform to append a raw className. */
+  className(className: string): CssBuilder<T> {
+    void className;
+    return this;
+  }
+
 }
 
 /** Sort keys so equivalent rule objects have deterministic shape. */
@@ -540,6 +546,12 @@ class CssBuilder<T extends Properties> {
   /** Inline a partial style hash, skipping any undefined values. */
   addCss<P extends Properties>(props: P): CssBuilder<T & P> {
     return this.add(omitUndefinedValues(props));
+  }
+
+  /** Marker for the build-time transform to append a raw className. */
+  className(className: string): CssBuilder<T> {
+    void className;
+    return this;
   }
 
   /** Convert a style hash into \`{ className, style }\` props for manual spreading into non-\`css=\` contexts. */
