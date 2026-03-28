@@ -279,7 +279,7 @@ __injectTrussCSS(${JSON.stringify(css)});
       const shouldBootstrapTestCss = isTest && libraryPaths.length > 0 && !isNodeModulesFile(fileId);
       const testCssBootstrap = injectTestCssBootstrapImport(rewrittenCode, shouldBootstrapTestCss);
       const transformedCode = testCssBootstrap.code;
-      const hasCssDsl = rewrittenCode.includes("Css");
+      const hasCssDsl = rewrittenCode.includes("Css") || rewrittenCode.includes("css=");
       if (isNodeModulesFile(fileId)) {
         return null;
       }
