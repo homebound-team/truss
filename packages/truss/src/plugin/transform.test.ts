@@ -3159,7 +3159,6 @@ test("ternary mixing {} and style object normalizes {} to {}", () => {
 
 test("css prop with variable is rewritten even without Css chain usage", () => {
   expectTrussTransform(`
-      import { Css } from "./Css";
       const styles = getStyles();
       const el = <div css={styles} />;
     `).toHaveTrussOutput(
@@ -3167,6 +3166,20 @@ test("css prop with variable is rewritten even without Css chain usage", () => {
       import { trussProps } from "@homebound/truss/runtime";
       const styles = getStyles();
       const el = <div {...trussProps(styles)} />;
+    `,
+    ``,
+  );
+});
+
+test("css prop with spread object is rewritten even without Css chain usage", () => {
+  expectTrussTransform(`
+      const styles = getStyles();
+      const el = <div css={{ ...styles }} />;
+    `).toHaveTrussOutput(
+    `
+      import { trussProps } from "@homebound/truss/runtime";
+      const styles = getStyles();
+      const el = <div {...trussProps({ ...styles })} />;
     `,
     ``,
   );

@@ -58,8 +58,8 @@ export function transformTruss(
   mapping: TrussMapping,
   options: TransformTrussOptions = {},
 ): TransformResult | null {
-  // Fast bail: skip files that don't reference Css
-  if (!code.includes("Css")) return null;
+  // Fast bail: skip files that don't reference Css or use JSX css= attributes
+  if (!code.includes("Css") && !code.includes("css=")) return null;
 
   const ast = parse(code, {
     sourceType: "module",
@@ -67,14 +67,13 @@ export function transformTruss(
     sourceFilename: filename,
   });
 
-  // Step 1: Find the Css binding name — either from an import or a local `new CssBuilder(...)` declaration
+  // Step 1: Find the Css binding name — either from an import or a local `new CssBuilder(...)` declaration.
+  // May be null when the file only has JSX css= attributes without importing Css.
   const cssImportBinding = findCssImportBinding(ast);
   const cssBindingName = cssImportBinding ?? findCssBuilderBinding(ast);
-  if (!cssBindingName) return null;
   const cssIsImported = cssImportBinding !== null;
 
-  // Step 2: Collect all Css.*.$  expression sites AND detect Css.props() in a single pass.
-  // Both checks share one traverse to avoid walking the full AST twice.
+  // Step 2: Collect all Css.*.$  expression sites AND detect Css.props() / JSX css= in a single pass.
   const sites: ExpressionSite[] = [];
   const errorMessages: Array<{ message: string; line: number | null }> = [];
   let hasCssPropsCall = false;
@@ -83,6 +82,7 @@ export function transformTruss(
   traverse(ast, {
     // -- Css.*.$  chain collection --
     MemberExpression(path: NodePath<t.MemberExpression>) {
+      if (!cssBindingName) return;
       if (!t.isIdentifier(path.node.property, { name: "$" })) return;
       if (path.node.computed) return;
 
@@ -104,7 +104,7 @@ export function transformTruss(
     },
     // -- Css.props() detection (so we don't bail early when there are no Css.*.$ sites) --
     CallExpression(path: NodePath<t.CallExpression>) {
-      if (hasCssPropsCall) return;
+      if (!cssBindingName || hasCssPropsCall) return;
       const callee = path.node.callee;
       if (
         t.isMemberExpression(callee) &&
@@ -155,7 +155,7 @@ export function transformTruss(
   rewriteExpressionSites({
     ast,
     sites,
-    cssBindingName,
+    cssBindingName: cssBindingName ?? "",
     filename: basename(filename),
     debug: options.debug ?? false,
     mapping,
@@ -191,10 +191,10 @@ export function transformTruss(
     reusedCssImportLine =
       runtimeImports.length > 0 &&
       findImportDeclaration(ast, "@homebound/truss/runtime") === null &&
-      replaceCssImportWithNamedImports(ast, cssBindingName, "@homebound/truss/runtime", runtimeImports);
+      replaceCssImportWithNamedImports(ast, cssImportBinding!, "@homebound/truss/runtime", runtimeImports);
 
     if (!reusedCssImportLine) {
-      removeCssImport(ast, cssBindingName);
+      removeCssImport(ast, cssImportBinding!);
     }
   }
 
