@@ -189,6 +189,74 @@ describe("transform", () => {
     );
   });
 
+  test("debug mode adds origin marker className for multi-property segments", () => {
+    expectTrussTransform(
+      `
+      import { Css } from "./Css";
+      const s = Css.bb.$;
+    `,
+      { debug: true },
+    ).toHaveTrussOutput(
+      `
+      import { TrussDebugInfo } from "@homebound/truss/runtime";
+      const s = { className_bb: "bb", borderBottomStyle: ["bbs_solid", new TrussDebugInfo("test.tsx:2")], borderBottomWidth: "bbw_1px" };
+    `,
+      `
+      .bbs_solid {
+        border-bottom-style: solid;
+      }
+      .bbw_1px {
+        border-bottom-width: 1px;
+      }
+    `,
+    );
+  });
+
+  test("debug mode adds origin marker className for variable segments with extra defs", () => {
+    expectTrussTransform(
+      `
+      import { Css } from "./Css";
+      const lines = getLineCount();
+      const s = Css.lineClamp(lines).$;
+    `,
+      { debug: true },
+    ).toHaveTrussOutput(
+      `
+      import { TrussDebugInfo } from "@homebound/truss/runtime";
+      const lines = getLineCount();
+      const s = {
+        className_lineClamp: "lineClamp",
+        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": lines }, new TrussDebugInfo("test.tsx:3")],
+        overflow: "oh",
+        display: "d_negwebkit_box",
+        WebkitBoxOrient: "wbo_vertical",
+        textOverflow: "to_ellipsis"
+      };
+    `,
+      `
+      .oh {
+        overflow: hidden;
+      }
+      .d_negwebkit_box {
+        display: -webkit-box;
+      }
+      .to_ellipsis {
+        text-overflow: ellipsis;
+      }
+      .wbo_vertical {
+        -webkit-box-orient: vertical;
+      }
+      .lineClamp_var {
+        -webkit-line-clamp: var(--WebkitLineClamp);
+      }
+      @property --WebkitLineClamp {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
   test("variable with literal arg: Css.mt(2).$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
@@ -384,24 +452,24 @@ describe("transform", () => {
       const lines = getLineCount();
       const s = {
         WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": lines }],
-        overflow: "lineClamp_overflow",
-        display: "lineClamp_display",
-        WebkitBoxOrient: "lineClamp_WebkitBoxOrient",
-        textOverflow: "lineClamp_textOverflow"
+        overflow: "oh",
+        display: "d_negwebkit_box",
+        WebkitBoxOrient: "wbo_vertical",
+        textOverflow: "to_ellipsis"
       };
     `,
       `
-      .lineClamp_overflow {
+      .oh {
         overflow: hidden;
       }
-      .lineClamp_WebkitBoxOrient {
-        -webkit-box-orient: vertical;
-      }
-      .lineClamp_display {
+      .d_negwebkit_box {
         display: -webkit-box;
       }
-      .lineClamp_textOverflow {
+      .to_ellipsis {
         text-overflow: ellipsis;
+      }
+      .wbo_vertical {
+        -webkit-box-orient: vertical;
       }
       .lineClamp_var {
         -webkit-line-clamp: var(--WebkitLineClamp);
@@ -421,28 +489,28 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       const s = {
-        WebkitLineClamp: "lineClamp_3_WebkitLineClamp",
+        WebkitLineClamp: "wlc_3",
         overflow: "oh",
-        display: "lineClamp_3_display",
-        WebkitBoxOrient: "lineClamp_3_WebkitBoxOrient",
-        textOverflow: "lineClamp_3_textOverflow"
+        display: "d_negwebkit_box",
+        WebkitBoxOrient: "wbo_vertical",
+        textOverflow: "to_ellipsis"
       };
     `,
       `
       .oh {
         overflow: hidden;
       }
-      .lineClamp_3_WebkitBoxOrient {
-        -webkit-box-orient: vertical;
-      }
-      .lineClamp_3_WebkitLineClamp {
-        -webkit-line-clamp: 3;
-      }
-      .lineClamp_3_display {
+      .d_negwebkit_box {
         display: -webkit-box;
       }
-      .lineClamp_3_textOverflow {
+      .to_ellipsis {
         text-overflow: ellipsis;
+      }
+      .wbo_vertical {
+        -webkit-box-orient: vertical;
+      }
+      .wlc_3 {
+        -webkit-line-clamp: 3;
       }
     `,
     );
@@ -523,15 +591,12 @@ describe("transform", () => {
         f16: { fontSize: "f16" },
         f14: { fontSize: "f14" },
         f12: { fontSize: "f12" },
-        f10: { fontSize: "f10_fontSize", fontWeight: "fw5" }
+        f10: { fontSize: "fz_10px", fontWeight: "fw5" }
       };
       const key: Typography = pickType();
       const s = { ...(__typography[key] ?? {}) };
     `,
       `
-        .f10_fontSize {
-          font-size: 10px;
-        }
         .f12 {
           font-size: 12px;
         }
@@ -549,6 +614,9 @@ describe("transform", () => {
         }
         .fw5 {
           font-weight: 500;
+        }
+        .fz_10px {
+          font-size: 10px;
         }
       `,
     );
@@ -571,7 +639,7 @@ describe("transform", () => {
         f16: { fontSize: "f16" },
         f14: { fontSize: "f14" },
         f12: { fontSize: "f12" },
-        f10: { fontSize: "f10_fontSize", fontWeight: "fw5" }
+        f10: { fontSize: "fz_10px", fontWeight: "fw5" }
       };
       const __typography__sm = {
         f24: { fontSize: "sm_f24" },
@@ -579,16 +647,13 @@ describe("transform", () => {
         f16: { fontSize: "sm_f16" },
         f14: { fontSize: "sm_f14" },
         f12: { fontSize: "sm_f12" },
-        f10: { fontSize: "sm_f10_fontSize", fontWeight: "sm_fw5" }
+        f10: { fontSize: "sm_fz_10px", fontWeight: "sm_fw5" }
       };
       const key: Typography = pickType();
       const otherKey: Typography = pickOtherType();
       const s = { ...(__typography[key] ?? {}), ...(__typography__sm[otherKey] ?? {}) };
     `,
       `
-      .f10_fontSize {
-        font-size: 10px;
-      }
       .f12 {
         font-size: 12px;
       }
@@ -607,10 +672,8 @@ describe("transform", () => {
       .fw5 {
         font-weight: 500;
       }
-      @media screen and (max-width: 599px) {
-        .sm_f10_fontSize.sm_f10_fontSize {
-          font-size: 10px;
-        }
+      .fz_10px {
+        font-size: 10px;
       }
       @media screen and (max-width: 599px) {
         .sm_f12.sm_f12 {
@@ -640,6 +703,11 @@ describe("transform", () => {
       @media screen and (max-width: 599px) {
         .sm_fw5.sm_fw5 {
           font-weight: 500;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_fz_10px.sm_fz_10px {
+          font-size: 10px;
         }
       }
     `,
@@ -1344,17 +1412,17 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      const borderBottomStyles = { borderBottomStyle: "bb_borderBottomStyle", borderBottomWidth: "bb_borderBottomWidth" };
+      const borderBottomStyles = { borderBottomStyle: "bbs_solid", borderBottomWidth: "bbw_1px" };
       const styles = { activeStyles: { ...{ color: "black" }, foo: true, ...borderBottomStyles } };
     `,
       `
       .black {
         color: #353535;
       }
-      .bb_borderBottomStyle {
+      .bbs_solid {
         border-bottom-style: solid;
       }
-      .bb_borderBottomWidth {
+      .bbw_1px {
         border-bottom-width: 1px;
       }
     `,
@@ -1809,7 +1877,7 @@ describe("transform", () => {
       `
       import { trussProps } from "@homebound/truss/runtime";
       const cls = getClass();
-      const el = <div {...trussProps({ display: "df", className_cls: cls })} />;
+      const el = <div {...trussProps({ className_cls: cls, display: "df" })} />;
     `,
       `
       .df {
@@ -3044,7 +3112,7 @@ test("indirect style references via useMemo and function calls", () => {
         return <button {...attrs}>Click me</button>;
       }
       function getSpreadLikeStyles() {
-        const borderBottomStyles = { borderBottomStyle: "bb_borderBottomStyle", borderBottomWidth: "bb_borderBottomWidth" };
+        const borderBottomStyles = { borderBottomStyle: "bbs_solid", borderBottomWidth: "bbw_1px" };
         return {
           baseStyles: { display: "df", alignItems: "aic" },
           activeStyles: { ...{ color: "blue" }, ...borderBottomStyles }
@@ -3061,10 +3129,10 @@ test("indirect style references via useMemo and function calls", () => {
       .df {
         display: flex;
       }
-      .bb_borderBottomStyle {
+      .bbs_solid {
         border-bottom-style: solid;
       }
-      .bb_borderBottomWidth {
+      .bbw_1px {
         border-bottom-width: 1px;
       }
     `,

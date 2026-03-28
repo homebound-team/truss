@@ -1941,9 +1941,9 @@ class CssBuilder<T extends Properties> {
   get measureNarrow() {
     return this.add("maxWidth", "20em");
   }
-  /** Sets `textIndent: "1em"; marginTop: 0; marginBottom: 0`. */
+  /** Sets `textIndent: "1em"; marginTop: "0px"; marginBottom: "0px"`. */
   get indent() {
-    return this.add("textIndent", "1em").add("marginTop", 0).add("marginBottom", 0);
+    return this.add("textIndent", "1em").add("marginTop", "0px").add("marginBottom", "0px");
   }
   /** Sets `fontVariant: "small-caps"`. */
   get smallCaps() {

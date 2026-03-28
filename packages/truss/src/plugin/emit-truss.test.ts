@@ -35,13 +35,13 @@ describe("collectAtomicRules", () => {
       defs: { borderStyle: "solid", borderWidth: "1px" },
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
-    expect(rules.get("ba_borderStyle")).toMatchObject({
-      className: "ba_borderStyle",
+    expect(rules.get("bs_solid")).toMatchObject({
+      className: "bs_solid",
       cssProperty: "border-style",
       cssValue: "solid",
     });
-    expect(rules.get("ba_borderWidth")).toMatchObject({
-      className: "ba_borderWidth",
+    expect(rules.get("bw_1px")).toMatchObject({
+      className: "bw_1px",
       cssProperty: "border-width",
       cssValue: "1px",
     });

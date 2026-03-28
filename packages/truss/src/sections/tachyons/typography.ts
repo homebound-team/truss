@@ -9,8 +9,8 @@ export const typography: CreateMethodsFn = () => [
   newMethod("measureNarrow", { maxWidth: "20em" }),
   newMethod("indent", {
     textIndent: "1em",
-    marginTop: 0,
-    marginBottom: 0,
+    marginTop: "0px",
+    marginBottom: "0px",
   }),
   newMethod("smallCaps", { fontVariant: "small-caps" }),
   newMethod("truncate", {
