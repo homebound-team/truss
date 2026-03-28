@@ -1,3 +1,9 @@
+## [2.11.0](https://github.com/homebound-team/truss/compare/v2.10.0...v2.11.0) (2026-03-28)
+
+### Features
+
+* Emit static className when possible. ([#212](https://github.com/homebound-team/truss/issues/212)) ([d56c753](https://github.com/homebound-team/truss/commit/d56c753fb0a4c9fd5be775f20b138a77687534d8))
+
 ## [2.10.0](https://github.com/homebound-team/truss/compare/v2.9.1...v2.10.0) (2026-03-28)
 
 ### Features
