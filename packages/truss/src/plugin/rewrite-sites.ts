@@ -151,7 +151,7 @@ function buildStyleHashMembers(
     if (seg.error) continue;
 
     if (seg.classNameArg) {
-      // I.e. `Css.className(cls).df.$` becomes `className: [cls]` in the style hash.
+      // I.e. `Css.className(cls).df.$` becomes `className_cls: cls` in the style hash.
       classNameArgs.push(t.cloneNode(seg.classNameArg, true) as t.Expression);
       continue;
     }
@@ -186,10 +186,35 @@ function buildStyleHashMembers(
 
   flushNormal();
   if (classNameArgs.length > 0) {
-    // I.e. keep raw class expressions separate from atomic CSS-property entries.
-    members.push(t.objectProperty(t.identifier("className"), t.arrayExpression(classNameArgs)));
+    // I.e. keep raw class expressions separate from atomic CSS-property entries,
+    // and use unique keys so `{ ...Css.className("a").$, ...Css.className("b").$ }` preserves both.
+    members.push(...buildCustomClassNameMembers(classNameArgs));
   }
   return members;
+}
+
+function buildCustomClassNameMembers(classNameArgs: t.Expression[]): t.ObjectProperty[] {
+  const counts = new Map<string, number>();
+
+  return classNameArgs.map((arg) => {
+    const baseKey = `className_${sanitizeClassNameKey(arg)}`;
+    const count = (counts.get(baseKey) ?? 0) + 1;
+    counts.set(baseKey, count);
+    const key = count === 1 ? baseKey : `${baseKey}_${count}`;
+    return t.objectProperty(t.identifier(key), t.cloneNode(arg, true));
+  });
+}
+
+function sanitizeClassNameKey(arg: t.Expression): string {
+  const raw =
+    t.isStringLiteral(arg)
+      ? arg.value
+      : t.isTemplateLiteral(arg) && arg.expressions.length === 0 && arg.quasis.length === 1
+        ? (arg.quasis[0].value.cooked ?? "")
+        : generate(arg).code;
+
+  const sanitized = raw.replace(/[^a-zA-Z0-9_$]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  return sanitized || "value";
 }
 
 function buildAddCssObjectMembers(styleObject: t.ObjectExpression): (t.ObjectProperty | t.SpreadElement)[] {
@@ -270,10 +295,6 @@ function mergeConditionalBranchMembers(
 
     const prop = propertyName(member.key);
     const prior = previousProperties.get(prop);
-    if (prop === "className" && prior) {
-      // I.e. `Css.className(base).if(cond).className(extra).$` should keep both classes when true.
-      return t.objectProperty(clonePropertyKey(member.key), mergeClassNameValues(prior.value as t.Expression, member.value as t.Expression));
-    }
     if (!prior || !conditionalOnlyProps.has(prop)) {
       return member;
     }
@@ -304,19 +325,6 @@ function mergePropertyValues(previousValue: t.Expression, currentValue: t.Expres
   }
 
   return t.cloneNode(currentValue, true);
-}
-
-function mergeClassNameValues(previousValue: t.Expression, currentValue: t.Expression): t.ArrayExpression {
-  return t.arrayExpression([...toClassNameElements(previousValue), ...toClassNameElements(currentValue)]);
-}
-
-function toClassNameElements(value: t.Expression): t.Expression[] {
-  if (t.isArrayExpression(value)) {
-    return value.elements.flatMap((element) => {
-      return element && !t.isSpreadElement(element) ? [t.cloneNode(element, true)] : [];
-    });
-  }
-  return [t.cloneNode(value, true)];
 }
 
 function mergeTupleValue(
@@ -404,8 +412,8 @@ function injectDebugInfo(
     return (
       t.isObjectProperty(p) &&
       !(
-        (t.isIdentifier(p.key) && p.key.name === "className") ||
-        (t.isStringLiteral(p.key) && p.key.value === "className") ||
+        (t.isIdentifier(p.key) && p.key.name.startsWith("className_")) ||
+        (t.isStringLiteral(p.key) && p.key.value.startsWith("className_")) ||
         (t.isIdentifier(p.key) && p.key.name === "__marker") ||
         (t.isStringLiteral(p.key) && p.key.value === "__marker")
       )

@@ -53,7 +53,7 @@ export function trussProps(
       continue;
     }
 
-    if (key === "className") {
+    if (key.startsWith("className_")) {
       // I.e. plugin-emitted raw class names that should flow straight into the final prop.
       appendCustomClassNames(classNames, value);
       continue;
@@ -97,7 +97,7 @@ export function trussProps(
 
 function appendCustomClassNames(classNames: string[], value: unknown): void {
   if (typeof value === "string") {
-    // I.e. `className: "custom"`
+    // I.e. `className_button: "button"`
     classNames.push(value);
     return;
   }
@@ -105,7 +105,7 @@ function appendCustomClassNames(classNames: string[], value: unknown): void {
   if (!Array.isArray(value)) return;
   for (const entry of value) {
     if (typeof entry === "string") {
-      // I.e. `className: ["custom", cond && "selected"]`
+      // I.e. `className_button: ["button", cond && "selected"]`
       classNames.push(entry);
     }
   }

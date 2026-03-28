@@ -392,6 +392,23 @@ describe("Truss CssBuilder", () => {
       expect(div).toHaveStyle({ display: "flex" });
     });
 
+    test("css prop combines custom class names from spread Css expressions", () => {
+      const r = render(
+        <div
+          css={{
+            ...Css.className("foo").$,
+            ...Css.className("bar").$,
+            ...Css.df.$,
+          }}
+        >
+          Test
+        </div>,
+      );
+      const div = r.container.firstChild as HTMLElement;
+      expect(div.className.split(/\s+/)).toEqual(["foo", "bar", "df"]);
+      expect(div).toHaveStyle({ display: "flex" });
+    });
+
     test("css prop applies variable styles with variable", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$}>Test</div>);

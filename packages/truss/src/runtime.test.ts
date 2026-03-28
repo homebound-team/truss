@@ -18,7 +18,7 @@ describe("trussProps", () => {
   });
 
   test("passes through custom className entries", () => {
-    const result = trussProps({ className: ["custom", undefined, "custom-2"], display: "df" });
+    const result = trussProps({ className_custom: "custom", className_custom_2: "custom-2", display: "df" });
     expect(result).toEqual({ className: "custom custom-2 df" });
   });
 
