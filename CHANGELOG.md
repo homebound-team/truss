@@ -1,3 +1,9 @@
+## [2.11.1](https://github.com/homebound-team/truss/compare/v2.11.0...v2.11.1) (2026-03-28)
+
+### Bug Fixes
+
+* Fix missed css rewrites. ([#213](https://github.com/homebound-team/truss/issues/213)) ([d93b17f](https://github.com/homebound-team/truss/commit/d93b17fca778745ad4706de069a1cad1a80562f6))
+
 ## [2.11.0](https://github.com/homebound-team/truss/compare/v2.10.0...v2.11.0) (2026-03-28)
 
 ### Features
