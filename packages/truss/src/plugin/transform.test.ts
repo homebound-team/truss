@@ -1809,13 +1809,25 @@ describe("transform", () => {
       `
       import { trussProps } from "@homebound/truss/runtime";
       const cls = getClass();
-      const el = <div {...trussProps({ display: "df", className: [cls] })} />;
+      const el = <div {...trussProps({ display: "df", className_cls: cls })} />;
     `,
       `
       .df {
         display: flex;
       }
     `,
+    );
+  });
+
+  test("custom className passthrough combines across spread expressions", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = { ...Css.className("foo").$, ...Css.className("bar").$ };
+    `).toHaveTrussOutput(
+      `
+      const s = { ...{ className_foo: "foo" }, ...{ className_bar: "bar" } };
+    `,
+      ``,
     );
   });
 
