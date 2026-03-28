@@ -1,3 +1,9 @@
+## [2.10.0](https://github.com/homebound-team/truss/compare/v2.9.1...v2.10.0) (2026-03-28)
+
+### Features
+
+* Smaller multi-property class names. ([#211](https://github.com/homebound-team/truss/issues/211)) ([84b24b4](https://github.com/homebound-team/truss/commit/84b24b435febe18e3786aa30dedb5b6bd7735a0b))
+
 ## [2.9.1](https://github.com/homebound-team/truss/compare/v2.9.0...v2.9.1) (2026-03-28)
 
 ### Bug Fixes
