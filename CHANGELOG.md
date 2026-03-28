@@ -1,3 +1,9 @@
+## [2.9.0](https://github.com/homebound-team/truss/compare/v2.8.4...v2.9.0) (2026-03-28)
+
+### Features
+
+* Add Css.className. ([#209](https://github.com/homebound-team/truss/issues/209)) ([d9c557f](https://github.com/homebound-team/truss/commit/d9c557f16c10d3b8e658b0dab0344441aaf80756))
+
 ## [2.8.4](https://github.com/homebound-team/truss/compare/v2.8.3...v2.8.4) (2026-03-27)
 
 ### Bug Fixes
