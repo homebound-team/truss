@@ -116,15 +116,26 @@ const css = Css.mx2.black.$;
 const css = { marginLeft: "ml2", marginRight: "mr2", color: "black" };
 ```
 
-And then these object literals are used by the `css` property to assign the `className` and `style` props:
+When every value in the expression is static (no runtime variables or conditionals), the plugin resolves the class names at build time with zero runtime overhead:
 
 ```tsx
 // Input
-return <div css={Css.black.$}>content</div>;
+return <div css={Css.df.aic.black.$}>content</div>;
+// Build-time output — no runtime call, just a plain className
+return <div className="df aic black">content</div>;
+```
+
+When the expression contains dynamic values, a lightweight `trussProps` runtime helper is used:
+
+```tsx
+// Input
+return <div css={Css.mt(someValue).black.$}>content</div>;
 // Build-time output
-return <div {...trussProps({ color: "black" })}>content</div>;
-// Runtime value
-return <div className="black">content</div>;
+return (
+  <div {...trussProps({ marginTop: ["mt_var", { "--marginTop": __maybeInc(someValue) }], color: "black" })}>
+    content
+  </div>
+);
 ```
 
 ## Installation
@@ -377,28 +388,28 @@ Where `sm` resolves from the breakpoints you define in `truss-config.ts`.
 
 The available pseudo-class modifiers are:
 
-| Modifier | CSS Pseudo-Class |
-| --- | --- |
-| `onHover` | `:hover` |
-| `onFocus` | `:focus` |
+| Modifier         | CSS Pseudo-Class |
+| ---------------- | ---------------- |
+| `onHover`        | `:hover`         |
+| `onFocus`        | `:focus`         |
 | `onFocusVisible` | `:focus-visible` |
-| `onFocusWithin` | `:focus-within` |
-| `onActive` | `:active` |
-| `onDisabled` | `:disabled` |
-| `ifFirstOfType` | `:first-of-type` |
-| `ifLastOfType` | `:last-of-type` |
+| `onFocusWithin`  | `:focus-within`  |
+| `onActive`       | `:active`        |
+| `onDisabled`     | `:disabled`      |
+| `ifFirstOfType`  | `:first-of-type` |
+| `ifLastOfType`   | `:last-of-type`  |
 
 For arbitrary pseudo-selectors not covered above, use `when`:
 
 ```tsx
 // Simple pseudo-selector
-<div css={Css.when(":hover:not(:disabled)").black.$} />
+<div css={Css.when(":hover:not(:disabled)").black.$} />;
 
 // Marker-based relationship (react to an ancestor's hover)
 const row = Css.newMarker();
 <tr css={Css.markerOf(row).$}>
   <td css={Css.when(row, "ancestor", ":hover").blue.$}>...</td>
-</tr>
+</tr>;
 ```
 
 ## Custom Selectors with `.css.ts` and `Css.className(...)`

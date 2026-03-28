@@ -47,8 +47,18 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     const line = site.path.node.loc?.start.line ?? null;
 
     if (cssAttrPath) {
-      // JSX css= attribute → spread trussProps or mergeProps
-      cssAttrPath.replaceWith(t.jsxSpreadAttribute(buildCssSpreadExpression(cssAttrPath, styleHash, line, options)));
+      // JSX css= attribute → static className when possible, otherwise spread trussProps/mergeProps
+      if (
+        !options.debug &&
+        isFullyStaticStyleHash(styleHash) &&
+        !hasExistingAttribute(cssAttrPath, "className") &&
+        !hasExistingAttribute(cssAttrPath, "style")
+      ) {
+        const classNames = extractStaticClassNames(styleHash);
+        cssAttrPath.replaceWith(t.jsxAttribute(t.jsxIdentifier("className"), t.stringLiteral(classNames)));
+      } else {
+        cssAttrPath.replaceWith(t.jsxSpreadAttribute(buildCssSpreadExpression(cssAttrPath, styleHash, line, options)));
+      }
     } else {
       // Non-JSX position → plain object expression with optional debug info
       if (options.debug && line !== null) {
@@ -623,4 +633,37 @@ function extractSiblingClassName(callPath: NodePath<t.CallExpression>): t.Expres
 /** Match static object property names. */
 function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName, name: string): boolean {
   return (t.isIdentifier(key) && key.name === name) || (t.isStringLiteral(key) && key.value === name);
+}
+
+// ---------------------------------------------------------------------------
+// Static style hash detection
+// ---------------------------------------------------------------------------
+
+/** Check whether a style hash has only static string values (no spreads, no tuples). */
+function isFullyStaticStyleHash(hash: t.ObjectExpression): boolean {
+  for (const prop of hash.properties) {
+    if (!t.isObjectProperty(prop)) return false;
+    if (!t.isStringLiteral(prop.value)) return false;
+  }
+  return true;
+}
+
+/** Extract all static class names from a fully-static style hash, joined with spaces. */
+function extractStaticClassNames(hash: t.ObjectExpression): string {
+  const classNames: string[] = [];
+  for (const prop of hash.properties) {
+    if (t.isObjectProperty(prop) && t.isStringLiteral(prop.value)) {
+      classNames.push(prop.value.value);
+    }
+  }
+  return classNames.join(" ");
+}
+
+/** Check whether a sibling JSX attribute exists without removing it. */
+function hasExistingAttribute(path: NodePath<t.JSXAttribute>, attrName: string): boolean {
+  const openingElement = path.parentPath;
+  if (!openingElement || !openingElement.isJSXOpeningElement()) return false;
+  return openingElement.node.attributes.some((attr) => {
+    return t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name, { name: attrName });
+  });
 }

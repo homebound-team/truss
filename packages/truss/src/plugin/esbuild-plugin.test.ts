@@ -33,8 +33,7 @@ describe("trussEsbuildPlugin", () => {
     expect(result!.loader).toBe("tsx");
     expect(n(result!.contents)).toBe(
       n(`
-        import { trussProps } from "@homebound/truss/runtime";
-        const el = <div {...trussProps({ display: "df" })} />;
+        const el = <div className="df" />;
       `),
     );
   });

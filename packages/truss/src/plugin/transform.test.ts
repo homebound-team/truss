@@ -42,14 +42,14 @@ describe("transform", () => {
       import { keepMe } from "./other";
       import { Css } from "./Css";
 
-      const el = <div css={Css.black.$} />;
+      const el = <div css={Css.black.$} className="extra" />;
       const value = keepMe();
     `,
       "test.tsx",
       mapping,
     )?.code;
 
-    expect(lineOf(output!, 'import { trussProps } from "@homebound/truss/runtime";')).toBe(2);
+    expect(lineOf(output!, 'import { mergeProps } from "@homebound/truss/runtime";')).toBe(2);
     expect(lineOf(output!, "const el =")).toBe(4);
   });
 
@@ -90,8 +90,7 @@ describe("transform", () => {
       const el = <div css={Css.df.$} />;
     `).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
-      const el = <div {...trussProps({ display: "df" })} />;
+      const el = <div className="df" />;
     `,
       `
       .df {
@@ -107,8 +106,7 @@ describe("transform", () => {
       const el = <div css={Css.df.aic.black.$} />;
     `).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
-      const el = <div {...trussProps({ display: "df", alignItems: "aic", color: "black" })} />;
+      const el = <div className="df aic black" />;
     `,
       `
       .aic {
@@ -525,9 +523,8 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
-      const a = <div {...trussProps({ display: "df" })} />;
-      const b = <div {...trussProps({ display: "df", alignItems: "aic" })} />;
+      const a = <div className="df" />;
+      const b = <div className="df aic" />;
     `,
       `
       .aic {
@@ -1330,7 +1327,7 @@ describe("transform", () => {
       import { getFromAnotherFile } from "./other";
       import { trussProps } from "@homebound/truss/runtime";
       function Example({ param, content }) {
-        return <div {...trussProps(getFromAnotherFile(param))}><span {...trussProps({ color: "blue" })}>{content}</span></div>;
+        return <div {...trussProps(getFromAnotherFile(param))}><span className="blue">{content}</span></div>;
       }
     `,
       `
@@ -2050,8 +2047,7 @@ describe("transform", () => {
       const el = <div css={Css.marker.$} />;
     `).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
-      const el = <div {...trussProps({ __marker: "_mrk" })} />;
+      const el = <div className="_mrk" />;
     `,
       ``,
     );
@@ -2644,8 +2640,7 @@ describe("transform", () => {
       const el = <div css={Css.ifSm.df.$} />;
     `).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
-      const el = <div {...trussProps({ display: "sm_df" })} />;
+      const el = <div className="sm_df" />;
     `,
       `
       @media screen and (max-width: 599px) {
@@ -2846,8 +2841,7 @@ describe("transform", () => {
 
     expectTrussTransform(code).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
-      const el = <div {...trussProps({ marginTop: "mt2", transition: "transition_all_240ms" })} />;
+      const el = <div className="mt2 transition_all_240ms" />;
     `,
       `
       .transition_all_240ms {

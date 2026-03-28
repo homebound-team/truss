@@ -32,8 +32,7 @@ describe("trussPlugin", () => {
     // Then it is rewritten
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import { trussProps } from "@homebound/truss/runtime";
-        const el = <div {...trussProps({ display: "df" })} />;
+        const el = <div className="df" />;
       `),
     );
   });
@@ -73,8 +72,7 @@ describe("trussPlugin", () => {
     // Then it gets transformed
     expect(n(result?.code ?? "")).toBe(
       n(`
-        import { trussProps } from "@homebound/truss/runtime";
-        const el = <div {...trussProps({ display: "df" })} />;
+        const el = <div className="df" />;
       `),
     );
   });
