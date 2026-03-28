@@ -42,7 +42,7 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
 
       build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
-        if (!code.includes("Css")) return undefined;
+        if (!code.includes("Css") && !code.includes("css=")) return undefined;
 
         if (!mapping) {
           mapping = loadMapping(resolve(process.cwd(), opts.mapping));

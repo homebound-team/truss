@@ -163,6 +163,39 @@ describe("trussEsbuildPlugin", () => {
     );
   });
 
+  test("transforms css prop on JSX even without Css import", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
+    const { onLoadCallback } = setupPlugin(plugin, join(root, "dist"));
+
+    const result = onLoadCallback({
+      path: join(root, "src", "GridItem.tsx"),
+      contents: `
+        import { useGridItem } from "./hooks";
+        export function GridItem({ children }) {
+          const { gridItemProps, gridItemStyles } = useGridItem();
+          return <div {...gridItemProps} css={{ ...gridItemStyles }}>{children}</div>;
+        }
+      `,
+    });
+
+    expect(result).toBeDefined();
+    expect(n(result!.contents)).toBe(
+      n(`
+        import { useGridItem } from "./hooks";
+        import { trussProps } from "@homebound/truss/runtime";
+        export function GridItem({ children }) {
+          const { gridItemProps, gridItemStyles } = useGridItem();
+          return <div {...gridItemProps} {...trussProps({ ...gridItemStyles })}>{children}</div>;
+        }
+      `),
+    );
+  });
+
   test("selects correct loader for file extensions", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
