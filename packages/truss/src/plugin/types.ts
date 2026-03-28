@@ -56,6 +56,8 @@ export interface ResolvedSegment {
   styleArrayArg?: any;
   /** True when the composed style arg came from `addCss(...)`. */
   isAddCss?: boolean;
+  /** For custom class names inserted via `className(...)`. */
+  classNameArg?: any;
   /** The evaluated literal value of the argument, if it was a compile-time constant. */
   argResolved?: string;
   /** For runtime typography lookups: the lookup metadata and runtime key node. */

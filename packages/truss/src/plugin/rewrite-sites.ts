@@ -129,7 +129,8 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
  * Build ObjectExpression members from a list of segments.
  *
  * Normal segments are batched and processed by buildStyleHashProperties.
- * Special segments (styleArrayArg, typographyLookup) produce SpreadElements.
+ * Special segments (styleArrayArg, typographyLookup, classNameArg) produce
+ * spread members or reserved metadata properties.
  */
 function buildStyleHashMembers(
   segments: ResolvedSegment[],
@@ -137,6 +138,7 @@ function buildStyleHashMembers(
 ): (t.ObjectProperty | t.SpreadElement)[] {
   const members: (t.ObjectProperty | t.SpreadElement)[] = [];
   const normalSegs: ResolvedSegment[] = [];
+  const classNameArgs: t.Expression[] = [];
 
   function flushNormal(): void {
     if (normalSegs.length > 0) {
@@ -147,6 +149,12 @@ function buildStyleHashMembers(
 
   for (const seg of segments) {
     if (seg.error) continue;
+
+    if (seg.classNameArg) {
+      // I.e. `Css.className(cls).df.$` becomes `className: [cls]` in the style hash.
+      classNameArgs.push(t.cloneNode(seg.classNameArg, true) as t.Expression);
+      continue;
+    }
 
     if (seg.styleArrayArg) {
       flushNormal();
@@ -177,6 +185,10 @@ function buildStyleHashMembers(
   }
 
   flushNormal();
+  if (classNameArgs.length > 0) {
+    // I.e. keep raw class expressions separate from atomic CSS-property entries.
+    members.push(t.objectProperty(t.identifier("className"), t.arrayExpression(classNameArgs)));
+  }
   return members;
 }
 
@@ -224,7 +236,7 @@ function buildAddCssObjectMembers(styleObject: t.ObjectExpression): (t.ObjectPro
 function collectConditionalOnlyProps(segments: ResolvedSegment[]): Set<string> {
   const allProps = new Map<string, boolean>();
   for (const seg of segments) {
-    if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
+    if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.classNameArg) continue;
     const hasCondition = !!(seg.pseudoClass || seg.mediaQuery || seg.pseudoElement || seg.whenPseudo);
     const props = seg.variableProps ?? Object.keys(seg.defs);
     for (const prop of props) {
@@ -258,6 +270,10 @@ function mergeConditionalBranchMembers(
 
     const prop = propertyName(member.key);
     const prior = previousProperties.get(prop);
+    if (prop === "className" && prior) {
+      // I.e. `Css.className(base).if(cond).className(extra).$` should keep both classes when true.
+      return t.objectProperty(clonePropertyKey(member.key), mergeClassNameValues(prior.value as t.Expression, member.value as t.Expression));
+    }
     if (!prior || !conditionalOnlyProps.has(prop)) {
       return member;
     }
@@ -288,6 +304,19 @@ function mergePropertyValues(previousValue: t.Expression, currentValue: t.Expres
   }
 
   return t.cloneNode(currentValue, true);
+}
+
+function mergeClassNameValues(previousValue: t.Expression, currentValue: t.Expression): t.ArrayExpression {
+  return t.arrayExpression([...toClassNameElements(previousValue), ...toClassNameElements(currentValue)]);
+}
+
+function toClassNameElements(value: t.Expression): t.Expression[] {
+  if (t.isArrayExpression(value)) {
+    return value.elements.flatMap((element) => {
+      return element && !t.isSpreadElement(element) ? [t.cloneNode(element, true)] : [];
+    });
+  }
+  return [t.cloneNode(value, true)];
 }
 
 function mergeTupleValue(
@@ -375,6 +404,8 @@ function injectDebugInfo(
     return (
       t.isObjectProperty(p) &&
       !(
+        (t.isIdentifier(p.key) && p.key.name === "className") ||
+        (t.isStringLiteral(p.key) && p.key.value === "className") ||
         (t.isIdentifier(p.key) && p.key.name === "__marker") ||
         (t.isStringLiteral(p.key) && p.key.value === "__marker")
       )

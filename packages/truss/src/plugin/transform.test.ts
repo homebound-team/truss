@@ -1798,6 +1798,27 @@ describe("transform", () => {
     );
   });
 
+  test("custom className passthrough: Css.className(cls).df.$", () => {
+    expectTrussTransform(
+      `
+      import { Css } from "./Css";
+      const cls = getClass();
+      const el = <div css={Css.className(cls).df.$} />;
+    `,
+    ).toHaveTrussOutput(
+      `
+      import { trussProps } from "@homebound/truss/runtime";
+      const cls = getClass();
+      const el = <div {...trussProps({ display: "df", className: [cls] })} />;
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
+  });
+
   test("className merging: css + variable className expression", () => {
     expectTrussTransform(
       `

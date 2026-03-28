@@ -265,7 +265,7 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
   let needsMaybeInc = false;
 
   function collectSegment(seg: ResolvedSegment): void {
-    if (seg.error || seg.styleArrayArg) return;
+    if (seg.error || seg.styleArrayArg || seg.classNameArg) return;
     if (seg.typographyLookup) {
       for (const segments of Object.values(seg.typographyLookup.segmentsByName)) {
         for (const nestedSeg of segments) {
@@ -577,7 +577,7 @@ export function buildStyleHashProperties(
   }
 
   for (const seg of segments) {
-    if (seg.error || seg.styleArrayArg || seg.typographyLookup) continue;
+    if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.classNameArg) continue;
 
     const { prefix } = segmentContext(seg, mapping);
     const isConditional = prefix !== "";

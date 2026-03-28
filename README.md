@@ -401,6 +401,38 @@ const row = Css.newMarker();
 </tr>
 ```
 
+## Custom Selectors with `.css.ts` and `Css.className(...)`
+
+For selectors that do not fit naturally into a `Css.*.$` chain, i.e. descendant selectors, `:nth-child(...)`, or library-driven markup hooks, put that selector logic in a `.css.ts` file and then attach the exported class name through `Css.className(...)`.
+
+```ts
+// DataGrid.css.ts
+import { Css } from "./Css";
+
+export const zebraRows = "zebraRows";
+
+export const css = {
+  [`.${zebraRows} tbody tr:nth-child(even) td`]: Css.bgLightGray.$,
+  [`.${zebraRows} tbody tr:hover td`]: Css.bgBlue.white.$,
+};
+```
+
+```tsx
+// DataGrid.tsx
+import { Css } from "./Css";
+import { zebraRows } from "./DataGrid.css.ts";
+
+export function DataGrid() {
+  return (
+    <table css={Css.w100.className(zebraRows).$}>
+      <tbody>{/* rows */}</tbody>
+    </table>
+  );
+}
+```
+
+This keeps the base element styling in Truss, i.e. `Css.w100`, while using the `.css.ts` class as the anchor for arbitrary selectors. At build time, Truss merges both into the final `className` prop.
+
 ## XStyles / Xss Extension Contracts
 
 Truss liberally borrows the idea of type-checked "extension" CSS from the currently-unreleased Facebook XStyles library (at least in theory; I've only seen one or two slides for this feature of XStyles, but I'm pretty sure Truss is faithful re-implementation of it).

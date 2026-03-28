@@ -2724,6 +2724,12 @@ class CssBuilder<T extends Properties> {
     return this.add(omitUndefinedValues(props));
   }
 
+  /** Marker for the build-time transform to append a raw className. */
+  className(className: string): CssBuilder<T> {
+    void className;
+    return this;
+  }
+
   /** Convert a style hash into `{ className, style }` props for manual spreading into non-`css=` contexts. */
   props(styles: Properties): Record<string, unknown> {
     return trussProps(styles as any);
