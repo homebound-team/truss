@@ -3157,6 +3157,21 @@ test("ternary mixing {} and style object normalizes {} to {}", () => {
   );
 });
 
+test("css prop with variable is rewritten even without Css chain usage", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const styles = getStyles();
+      const el = <div css={styles} />;
+    `).toHaveTrussOutput(
+    `
+      import { trussProps } from "@homebound/truss/runtime";
+      const styles = getStyles();
+      const el = <div {...trussProps(styles)} />;
+    `,
+    ``,
+  );
+});
+
 /** Expect helper around transform code and css outputs. */
 function expectTrussTransform(code: string, options?: { debug?: boolean }) {
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);

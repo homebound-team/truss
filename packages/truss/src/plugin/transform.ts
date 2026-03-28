@@ -78,6 +78,7 @@ export function transformTruss(
   const sites: ExpressionSite[] = [];
   const errorMessages: Array<{ message: string; line: number | null }> = [];
   let hasCssPropsCall = false;
+  let hasJsxCssAttribute = false;
 
   traverse(ast, {
     // -- Css.*.$  chain collection --
@@ -114,9 +115,16 @@ export function transformTruss(
         hasCssPropsCall = true;
       }
     },
+    // -- JSX css={...} attribute detection (so we don't bail when there are only css props) --
+    JSXAttribute(path: NodePath<t.JSXAttribute>) {
+      if (hasJsxCssAttribute) return;
+      if (t.isJSXIdentifier(path.node.name, { name: "css" })) {
+        hasJsxCssAttribute = true;
+      }
+    },
   });
 
-  if (sites.length === 0 && !hasCssPropsCall) return null;
+  if (sites.length === 0 && !hasCssPropsCall && !hasJsxCssAttribute) return null;
 
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
