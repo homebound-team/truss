@@ -1,3 +1,9 @@
+## [2.9.1](https://github.com/homebound-team/truss/compare/v2.9.0...v2.9.1) (2026-03-28)
+
+### Bug Fixes
+
+* Fix multiple class names won't get dropped. ([#210](https://github.com/homebound-team/truss/issues/210)) ([4d7c577](https://github.com/homebound-team/truss/commit/4d7c57718d9be5531a877f9d25026e442cb90c01))
+
 ## [2.9.0](https://github.com/homebound-team/truss/compare/v2.8.4...v2.9.0) (2026-03-28)
 
 ### Features
