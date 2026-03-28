@@ -1,3 +1,9 @@
+## [2.11.3](https://github.com/homebound-team/truss/compare/v2.11.2...v2.11.3) (2026-03-28)
+
+### Bug Fixes
+
+* Missed css rewrite in esbuild. ([#215](https://github.com/homebound-team/truss/issues/215)) ([5e87ec5](https://github.com/homebound-team/truss/commit/5e87ec592e3f9347dc39721b4f7c93b4d1a62620))
+
 ## [2.11.2](https://github.com/homebound-team/truss/compare/v2.11.1...v2.11.2) (2026-03-28)
 
 ### Bug Fixes
