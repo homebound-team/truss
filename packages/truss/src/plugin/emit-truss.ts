@@ -2,6 +2,7 @@ import * as t from "@babel/types";
 import type { ResolvedChain } from "./resolve-chain";
 import type { ResolvedSegment, TrussMapping } from "./types";
 import { computeRulePriority, sortRulesByPriority } from "./priority";
+import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 
 // -- Atomic CSS rule model --
 
@@ -204,6 +205,11 @@ function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
   return cachedLookup!;
 }
 
+/** Get the short abbreviation for a CSS property, falling back to the raw name. */
+function getPropertyAbbreviation(cssProp: string): string {
+  return cssPropertyAbbreviations[cssProp] ?? cssProp;
+}
+
 /**
  * Compute the base class name for a static segment.
  *
@@ -231,7 +237,9 @@ function computeStaticBaseName(
       const lookup = getLonghandLookup(mapping);
       const canonical = lookup.get(`${cssProp}\0${cssValue}`);
       if (canonical) return canonical;
-      return `${abbr}_${valuePart}_${cssProp}`;
+      // Use the actual CSS value (not argResolved) so fixed extra defs share classes
+      // I.e. lineClamp("3") display:-webkit-box → `d_negwebkit_box`, not `d_3`
+      return `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
     }
     return `${abbr}_${valuePart}`;
   }
@@ -241,7 +249,7 @@ function computeStaticBaseName(
     const lookup = getLonghandLookup(mapping);
     const canonical = lookup.get(`${cssProp}\0${cssValue}`);
     if (canonical) return canonical;
-    return `${abbr}_${cssProp}`;
+    return `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
   }
 
   return abbr;
@@ -386,13 +394,16 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
   // Extra static defs alongside variable props
   if (seg.variableExtraDefs) {
     for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-      const extraBase = `${seg.abbr}_${cssProp}`;
+      const cssValue = String(value);
+      const lookup = getLonghandLookup(mapping);
+      const canonical = lookup.get(`${cssProp}\0${cssValue}`);
+      const extraBase = canonical ?? `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
       const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
       if (!rules.has(extraName)) {
         rules.set(extraName, {
           className: extraName,
           cssProperty: camelToKebab(cssProp),
-          cssValue: String(value),
+          cssValue,
           ...(!whenSelector && baseRuleFields(seg)),
           whenSelector,
         });
@@ -601,7 +612,10 @@ export function buildStyleHashProperties(
       // Extra static defs
       if (seg.variableExtraDefs) {
         for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-          const extraBase = `${seg.abbr}_${cssProp}`;
+          const cssValue = String(value);
+          const lookup = getLonghandLookup(mapping);
+          const canonical = lookup.get(`${cssProp}\0${cssValue}`);
+          const extraBase = canonical ?? `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
           const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
           pushEntry(cssProp, { className: extraName, isVariable: false, isConditional });
         }

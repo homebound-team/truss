@@ -181,14 +181,26 @@ function buildStyleHashMembers(
       continue;
     }
 
+    // In debug mode, add the abbreviation name as a marker className for multi-property
+    // segments so engineers can see the origin in the DOM. I.e. `Css.bb.$` adds "bb"
+    // alongside "bbs_solid bbw_1px", and `Css.lineClamp(n).$` adds "lineClamp".
+    if (options.debug && !seg.classNameArg && !seg.styleArrayArg && !seg.typographyLookup) {
+      const isMultiProp = Object.keys(seg.defs).length > 1;
+      const hasExtraDefs = seg.variableExtraDefs && Object.keys(seg.variableExtraDefs).length > 0;
+      if (isMultiProp || hasExtraDefs) {
+        classNameArgs.push(t.stringLiteral(seg.abbr));
+      }
+    }
+
     normalSegs.push(seg);
   }
 
   flushNormal();
   if (classNameArgs.length > 0) {
-    // I.e. keep raw class expressions separate from atomic CSS-property entries,
-    // and use unique keys so `{ ...Css.className("a").$, ...Css.className("b").$ }` preserves both.
-    members.push(...buildCustomClassNameMembers(classNameArgs));
+    // Prepend so markers/custom classes appear first in the DOM,
+    // I.e. `className="bb bbs_solid bbw_1px"` rather than at the end.
+    // Uses unique `className_${key}` keys so spreading preserves all entries.
+    members.unshift(...buildCustomClassNameMembers(classNameArgs));
   }
   return members;
 }
@@ -205,15 +217,18 @@ function buildCustomClassNameMembers(classNameArgs: t.Expression[]): t.ObjectPro
   });
 }
 
+/** Derive a valid JS identifier suffix from a className arg. I.e. `"my-btn"` → `my_btn`, `cls` → `cls`. */
 function sanitizeClassNameKey(arg: t.Expression): string {
-  const raw =
-    t.isStringLiteral(arg)
-      ? arg.value
-      : t.isTemplateLiteral(arg) && arg.expressions.length === 0 && arg.quasis.length === 1
-        ? (arg.quasis[0].value.cooked ?? "")
-        : generate(arg).code;
+  const raw = t.isStringLiteral(arg)
+    ? arg.value
+    : t.isTemplateLiteral(arg) && arg.expressions.length === 0 && arg.quasis.length === 1
+      ? (arg.quasis[0].value.cooked ?? "")
+      : generate(arg).code;
 
-  const sanitized = raw.replace(/[^a-zA-Z0-9_$]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  const sanitized = raw
+    .replace(/[^a-zA-Z0-9_$]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
   return sanitized || "value";
 }
 

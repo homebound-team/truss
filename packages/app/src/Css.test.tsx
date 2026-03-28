@@ -1,3 +1,4 @@
+import React from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 import { Css, Palette, type Only, type Xss } from "./Css";
@@ -323,6 +324,28 @@ describe("Truss CssBuilder", () => {
     });
   });
 
+  describe("debug origin markers", () => {
+    test("Css.bb adds 'bb' marker className before atomic class names", () => {
+      const r = render(<div css={Css.bb.$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el.className).toEqual("bb bbs_solid bbw_1px");
+      expect(el).toHaveStyle({ borderBottomStyle: "solid", borderBottomWidth: "1px" });
+    });
+
+    test("Css.ba adds 'ba' marker className before atomic class names", () => {
+      const r = render(<div css={Css.ba.$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el.className).toEqual("ba bss bw1");
+      expect(el).toHaveStyle({ borderStyle: "solid", borderWidth: "1px" });
+    });
+
+    test("single-property abbreviations do not add a marker className", () => {
+      const r = render(<div css={Css.df.$} />);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el.className).toEqual("df");
+    });
+  });
+
   describe("palette enum", () => {
     test("Palette contains expected colors", () => {
       expect(Palette.Black).toBe("#353535");
@@ -405,7 +428,7 @@ describe("Truss CssBuilder", () => {
         </div>,
       );
       const div = r.container.firstChild as HTMLElement;
-      expect(div.className.split(/\s+/)).toEqual(["foo", "bar", "df"]);
+      expect(div.className).toEqual("foo bar df");
       expect(div).toHaveStyle({ display: "flex" });
     });
 
@@ -489,7 +512,7 @@ describe("Truss CssBuilder", () => {
     });
   });
 
-  test("css prop on a custom component type-checks and applies styles", () => {
+  test("css prop on a custom function component type-checks and applies styles", () => {
     /** A custom component that forwards className/style from the rewritten css prop. */
     function Card(props: { title: string }) {
       const { title, ...others } = props;
@@ -497,6 +520,19 @@ describe("Truss CssBuilder", () => {
     }
     // Passing `css` here would fail to type-check without the JSX.IntrinsicAttributes augmentation
     const r = render(<Card title="hello" css={Css.df.black.$} />);
+    const el = r.container.firstChild as HTMLElement;
+    expect(el).toHaveStyle({ display: "flex", color: "#353535" });
+  });
+
+  test("css prop on a custom class component type-checks and applies styles", () => {
+    /** A class component that forwards className/style from the rewritten css prop. */
+    class Panel extends React.Component<{ label: string }> {
+      render() {
+        const { label, ...others } = this.props;
+        return <div {...others}>{label}</div>;
+      }
+    }
+    const r = render(<Panel label="hello" css={Css.df.black.$} />);
     const el = r.container.firstChild as HTMLElement;
     expect(el).toHaveStyle({ display: "flex", color: "#353535" });
   });

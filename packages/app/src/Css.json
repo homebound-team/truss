@@ -448,7 +448,7 @@
     "measure": {"kind":"static","defs":{"maxWidth":"30em"}},
     "measureWide": {"kind":"static","defs":{"maxWidth":"34em"}},
     "measureNarrow": {"kind":"static","defs":{"maxWidth":"20em"}},
-    "indent": {"kind":"static","defs":{"textIndent":"1em","marginTop":0,"marginBottom":0}},
+    "indent": {"kind":"static","defs":{"textIndent":"1em","marginTop":"0px","marginBottom":"0px"}},
     "smallCaps": {"kind":"static","defs":{"fontVariant":"small-caps"}},
     "truncate": {"kind":"static","defs":{"whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}},
     "fs": {"kind":"variable","props":["fontSize"],"incremented":false},
