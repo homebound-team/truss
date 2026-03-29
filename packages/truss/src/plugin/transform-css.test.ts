@@ -224,18 +224,144 @@ describe("transformCssTs", () => {
     );
   });
 
-  test("error: non-Css expression value produces inline comment", () => {
+  test("string literal value is passed through as-is", () => {
     const css = transformCssTs(
-      `import { Css } from "./Css"; export const css = { ".foo": "not a Css expression" };`,
+      `import { Css } from "./Css"; export const css = { body: "margin: 0; padding: 0;" };`,
       "test.css.ts",
       mapping,
     );
-    expect(n(css)).toBe(n(`/* [truss] unsupported: ".foo" — value must be a Css.*.$  expression */`));
+    expect(n(css)).toBe(
+      n(`
+        body {
+          margin: 0; padding: 0;
+        }
+      `),
+    );
   });
 
-  test("error: no Css import produces comment", () => {
-    const css = transformCssTs(`export const css = { ".foo": "bar" };`, "test.css.ts", mapping);
-    expect(n(css)).toBe(n(`/* [truss] test.css.ts: no Css import found */`));
+  test("template literal value produces raw CSS declarations", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css";
+       export const css = {
+         body: \`
+           margin: 16px;
+           font-size: 14px !important;
+           line-height: 20px !important;
+         \`,
+       };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        body {
+          margin: 16px;
+          font-size: 14px !important;
+          line-height: 20px !important;
+        }
+      `),
+    );
+  });
+
+  test("string literal mixed with Css chains", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css";
+       export const css = {
+         ".reset": Css.df.$,
+         body: "font-size: 14px !important;",
+       };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        .reset {
+          display: flex;
+        }
+
+        body {
+          font-size: 14px !important;
+        }
+      `),
+    );
+  });
+
+  test("string literal values without Css import", () => {
+    const css = transformCssTs(
+      `export const css = {
+         body: "margin: 0; padding: 0;",
+         h1: "font-weight: bold;",
+       };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        body {
+          margin: 0; padding: 0;
+        }
+
+        h1 {
+          font-weight: bold;
+        }
+      `),
+    );
+  });
+
+  test("Css.raw tagged template literal produces raw CSS declarations", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css";
+       export const css = {
+         body: Css.raw\`
+           margin: 16px;
+           background-color: rgba(255, 255, 255, 1);
+           color: rgba(53, 53, 53, 1);
+           font-size: 14px !important;
+           line-height: 20px !important;
+         \`,
+       };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        body {
+          margin: 16px;
+          background-color: rgba(255, 255, 255, 1);
+          color: rgba(53, 53, 53, 1);
+          font-size: 14px !important;
+          line-height: 20px !important;
+        }
+      `),
+    );
+  });
+
+  test("Css.raw mixed with Css chains", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css";
+       export const css = {
+         ".reset": Css.df.$,
+         body: Css.raw\`font-size: 14px !important;\`,
+       };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        .reset {
+          display: flex;
+        }
+
+        body {
+          font-size: 14px !important;
+        }
+      `),
+    );
+  });
+
+  test("no Css import with non-string Css chain value produces comment", () => {
+    const css = transformCssTs(`export const css = { ".foo": someVar };`, "test.css.ts", mapping);
+    expect(n(css)).toBe(n(`/* [truss] unsupported: ".foo" — Css.*.$  chain requires a Css import */`));
   });
 
   test("error: no named css export produces comment", () => {

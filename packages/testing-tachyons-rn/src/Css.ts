@@ -652,6 +652,11 @@ class CssBuilder<T extends Properties> {
     void className;
     return this;
   }
+
+  /** Tagged template literal for raw CSS in .css.ts files; passes through the string as-is. */
+  raw(strings: TemplateStringsArray, ...values: unknown[]): string {
+    return String.raw(strings, ...values);
+  }
 }
 
 /** Sort keys so equivalent rule objects have deterministic shape. */

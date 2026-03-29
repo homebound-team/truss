@@ -15,10 +15,15 @@ import { camelToKebab } from "./emit-truss";
  * export const css = {
  *   ".some-selector": Css.df.blue.$,
  *   ".other > .selector": Css.mt(2).black.$,
+ *   body: `
+ *     margin: 0;
+ *     font-size: 14px !important;
+ *   `,
  * };
  * ```
  *
- * Each key is a CSS selector (string literal), each value is a `Css.*.$` chain.
+ * Each key is a CSS selector (string literal), each value is either a `Css.*.$`
+ * chain or a string literal / template literal containing raw CSS declarations.
  * The chains are resolved via the truss mapping into concrete CSS declarations.
  *
  * Returns the generated CSS string.
@@ -30,10 +35,8 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
     sourceFilename: filename,
   });
 
+  // Css import is optional — only needed when Css.*.$  chains are used
   const cssBindingName = findCssImportBinding(ast);
-  if (!cssBindingName) {
-    return `/* [truss] ${filename}: no Css import found */\n`;
-  }
 
   // Find the `export const css = { ... }` expression
   const cssExport = findNamedCssExportObject(ast);
@@ -62,10 +65,23 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
       continue;
     }
 
-    // Value must be a Css.*.$  expression
     const valueNode = prop.value;
+
+    // String literal or template literal → pass through as raw CSS
+    const rawCss = extractStaticStringValue(valueNode, cssBindingName);
+    if (rawCss !== null) {
+      rules.push(formatRawCssRule(selector, rawCss));
+      continue;
+    }
+
+    // Otherwise value must be a Css.*.$  expression
     if (!t.isExpression(valueNode)) {
       rules.push(`/* [truss] unsupported: "${selector}" value is not an expression */`);
+      continue;
+    }
+
+    if (!cssBindingName) {
+      rules.push(`/* [truss] unsupported: "${selector}" — Css.*.$  chain requires a Css import */`);
       continue;
     }
 
@@ -109,6 +125,30 @@ function objectPropertyStringKey(prop: t.ObjectProperty, stringBindings: Map<str
   // Allow unquoted identifiers as keys too (e.g. `body: Css.df.$`)
   if (t.isIdentifier(prop.key) && !prop.computed) return prop.key.name;
   if (prop.computed) return resolveStaticString(prop.key, stringBindings);
+  return null;
+}
+
+/**
+ * Extract a static string from a StringLiteral, a no-expression TemplateLiteral,
+ * or a `Css.raw` tagged template literal (i.e. `Css.raw\`...\``).
+ */
+function extractStaticStringValue(node: t.Node, cssBindingName: string | null): string | null {
+  if (t.isStringLiteral(node)) return node.value;
+  if (t.isTemplateLiteral(node) && node.expressions.length === 0 && node.quasis.length === 1) {
+    return node.quasis[0].value.cooked ?? node.quasis[0].value.raw;
+  }
+  // Css.raw`...` tagged template literal
+  if (
+    t.isTaggedTemplateExpression(node) &&
+    t.isMemberExpression(node.tag) &&
+    !node.tag.computed &&
+    t.isIdentifier(node.tag.property, { name: "raw" }) &&
+    t.isIdentifier(node.tag.object, { name: cssBindingName ?? "" }) &&
+    node.quasi.expressions.length === 0 &&
+    node.quasi.quasis.length === 1
+  ) {
+    return node.quasi.quasis[0].value.cooked ?? node.quasi.quasis[0].value.raw;
+  }
   return null;
 }
 
@@ -211,6 +251,19 @@ function resolveCssExpression(
   }
 
   return { declarations };
+}
+
+/** Format a CSS rule block from a raw CSS string, passed through as-is. */
+function formatRawCssRule(selector: string, raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return `${selector} {}`;
+  // Indent each non-empty line by two spaces
+  const body = trimmed
+    .split("\n")
+    .map((line) => `  ${line.trim()}`)
+    .filter((line) => line.trim().length > 0)
+    .join("\n");
+  return `${selector} {\n${body}\n}`;
 }
 
 /** Format a CSS rule block. */
