@@ -63,40 +63,55 @@ And a static, build-time generated CSS file:
 
 - Inline CSS-in-JS that is build-time compiled to a single static CSS stylesheet.
   - `<div css={Css.mt1.black.$}>` -> `<div class="mt1 black">`
+  - Vite plugin emits a single `truss-(contenthash).css`, for optimal caching and performance
 
 - Naturally use dynamic values:
   - `Css.mt(someValue).$` or
   - `Css.bgColor(maybe ? Palette.Black : Palette.Blue).$` or
   - `Css.mt0.if(someCondition).mt4.$`.
-  - Still compiled to atomic CSS output, with a lightweight runtime helper to apply dynamic values
+  - Still compiled to static/atomic CSS, with a lightweight runtime helper to apply dynamic values
 
 - Pseudo-selectors and breakpoints:
   - `Css.white.onHover.black.$` or
   - `Css.ifSm.mx1.$`
+  - Intentionally limited to the styling the immediate element
+  - See the "Pseudo-Selectors" section below for rationale & escape hatches
 
 - `Css` expressions are "just POJOs", so naturally amenable to composition
   - `<div css={{ ...Css.mt2.$, ...(someCondition ? Css.bgRed.$ : Css.bgGreen.$) }} />`
-  - The last-set value _per property_ wins, i.e. not "the last class name" or "the last `color` value"
+  - The last-set value _per property_ wins, i.e. not "the last class name"
   - Extremely natural to build up complex styles with conditionals, view logic, etc.
 
 - Tachyons-inspired abbreviations for superior inline readability
   - No long class names that compound into a "wall of text"
+  - No IDE plugins needed to hide long class names 😅 
   - Consistent `FooBar` -> `fb` abbreviation pattern:
     - `justify-content: flex-start` is `jcfs`,
     - Easier to memorize/read
   - See [Why Tachyons](#why-tachyons-instead-of-tailwinds)
 
-- Configure your design system in Truss's configuration
-  - Color palette, fonts, increments, and breakpoints
+- Configure your design system in Truss's configuration 🧑‍🎨 
+  - Color palette, fonts, increments, and breakpoint 🎨s
   - [See example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below
 
 - Escape hatch to arbitrary/runtime selectors
   - `useRuntimeStyle({ body: Css.blue.$ })`
   - Only applied when the component is mounted
 
-- Type-checking built in
+- Type-checking built in 💪
   - No editor support or IDE extensions required for great DX
-  - Just regular TypeScript
+  - Just regular TypeScript (...with code-generation & build-time Vite plugins)
+
+- Why not Tailwinds?
+  - Our abbreviations are shorter
+  - Composing styles property-by-property with POJO spreads instead of class name strings is more natural and less error-prone
+  - Easier escape hatches to dynamic values & dynamic selectors
+  - We just like Truss better 🤷 😀
+
+- Why not StyleX?
+  - StyleX arrays for composition instead of objects, which did not work for our legacy Truss v1 codebases
+  - Too strict with no escape hatches for dynamic/transient CSS/selectors, which are rare but still occur
+  - ...but we heavily crib StyleX's atomic CSS priority system 🙏 
 
 Also see the "Why This Approach?" section for more rationale.
 
