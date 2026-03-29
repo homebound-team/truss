@@ -1,3 +1,9 @@
+## [2.14.0](https://github.com/homebound-team/truss/compare/v2.13.0...v2.14.0) (2026-03-29)
+
+### Features
+
+* Add useRuntimeStyle hook. ([#218](https://github.com/homebound-team/truss/issues/218)) ([c1596a2](https://github.com/homebound-team/truss/commit/c1596a2b6ce13e4ba2139d5fa49931da75dc6288))
+
 ## [2.13.0](https://github.com/homebound-team/truss/compare/v2.12.0...v2.13.0) (2026-03-29)
 
 ### Features
