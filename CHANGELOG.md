@@ -1,3 +1,9 @@
+## [2.15.0](https://github.com/homebound-team/truss/compare/v2.14.0...v2.15.0) (2026-03-29)
+
+### Features
+
+* Add a content hash to the build-time file name. ([#219](https://github.com/homebound-team/truss/issues/219)) ([d110931](https://github.com/homebound-team/truss/commit/d110931e82e9872671179c70714d3caf9793f812))
+
 ## [2.14.0](https://github.com/homebound-team/truss/compare/v2.13.0...v2.14.0) (2026-03-29)
 
 ### Features
