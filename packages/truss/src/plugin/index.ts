@@ -175,8 +175,13 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
     transformIndexHtml(html: string) {
       if (isBuild) {
-        // Strip the dev-only virtual CSS link (if present in the source HTML)
-        const stripped = html.replace(/\s*<link[^>]*href=["'][^"']*virtual:truss\.css["'][^>]*\/?>/, "");
+        // Strip any existing truss CSS references so the hook is idempotent when
+        // a tool (e.g. Storybook) runs multiple Vite builds with the same plugin.
+        // I.e. removes /virtual:truss.css, __TRUSS_CSS_HASH__, and /assets/truss-<hash>.css
+        const stripped = html
+          .replace(/\s*<link[^>]*href=["'][^"']*virtual:truss\.css["'][^>]*\/?>/g, "")
+          .replace(/\s*<link[^>]*href=["'][^"']*__TRUSS_CSS_HASH__["'][^>]*\/?>/g, "")
+          .replace(/\s*<link[^>]*href=["'][^"']*\/assets\/truss-[0-9a-f]+\.css["'][^>]*\/?>/g, "");
         // Inject a stylesheet link with a placeholder; writeBundle replaces it
         // with the content-hashed filename for long-term caching.
         const link = `<link rel="stylesheet" href="${TRUSS_CSS_PLACEHOLDER}">`;

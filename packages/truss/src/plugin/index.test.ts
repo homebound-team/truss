@@ -202,6 +202,30 @@ describe("trussPlugin", () => {
     expect(html).toContain("__TRUSS_CSS_HASH__");
   });
 
+  test("production html is idempotent across multiple builds (e.g. Storybook)", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
+
+    // Simulate a second build pass receiving HTML that already has a patched truss link
+    const alreadyPatched = [
+      "<html><head>",
+      '    <link rel="stylesheet" href="/assets/truss-abcd1234.css">',
+      "  </head><body></body></html>",
+    ].join("\n");
+    const html = invokeHook(plugin.transformIndexHtml, {} as any, alreadyPatched) as any;
+    // The old hashed link should be stripped and replaced with a single placeholder
+    expect(html).not.toContain("truss-abcd1234.css");
+    expect(html).toContain("__TRUSS_CSS_HASH__");
+    // Only one truss CSS link should exist (the placeholder)
+    const linkCount = (html.match(/<link[^>]*TRUSS_CSS_HASH/g) || []).length;
+    expect(linkCount).toBe(1);
+  });
+
   test("dev virtual CSS orders static base rules before variable rules for the same property", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
