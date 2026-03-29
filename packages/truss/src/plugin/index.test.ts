@@ -168,7 +168,7 @@ describe("trussPlugin", () => {
     expect(html.includes("/virtual:truss.css")).toBe(false);
   });
 
-  test("production html injects a stylesheet link for truss.css", () => {
+  test("production html injects a placeholder stylesheet link for truss.css", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -178,7 +178,28 @@ describe("trussPlugin", () => {
     invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
 
     const html = invokeHook(plugin.transformIndexHtml, {} as any, "<html><head></head><body></body></html>") as any;
-    expect(html).toBe('<html><head>    <link rel="stylesheet" href="./truss.css">\n  </head><body></body></html>');
+    // The placeholder is replaced with the content-hashed filename in writeBundle
+    expect(html).toBe(
+      '<html><head>    <link rel="stylesheet" href="__TRUSS_CSS_HASH__">\n  </head><body></body></html>',
+    );
+  });
+
+  test("production html strips dev-only virtual:truss.css link", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
+
+    const html = invokeHook(
+      plugin.transformIndexHtml,
+      {} as any,
+      '<html><head>\n    <link rel="stylesheet" href="/virtual:truss.css" />\n  </head><body></body></html>',
+    ) as any;
+    expect(html).not.toContain("virtual:truss.css");
+    expect(html).toContain("__TRUSS_CSS_HASH__");
   });
 
   test("dev virtual CSS orders static base rules before variable rules for the same property", () => {

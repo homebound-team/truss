@@ -1,5 +1,6 @@
-import { readFileSync, existsSync } from "fs";
-import { resolve, dirname, isAbsolute } from "path";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
+import { resolve, dirname, isAbsolute, join } from "path";
+import { createHash } from "crypto";
 import type { TrussMapping } from "./types";
 import type { AtomicRule } from "./emit-truss";
 import { generateCssText } from "./emit-truss";
@@ -29,11 +30,15 @@ export interface TrussVitePlugin {
   transformIndexHtml?: (html: string) => string;
   handleHotUpdate?: (ctx: any) => void;
   generateBundle?: (options: any, bundle: any) => void;
+  writeBundle?: (options: any, bundle: any) => void;
 }
 
 /** Prefix for virtual CSS module IDs generated from .css.ts files. */
 const VIRTUAL_CSS_PREFIX = "\0truss-css:";
 const CSS_TS_QUERY = "?truss-css";
+
+/** Placeholder injected into HTML during build; replaced with the hashed CSS filename in generateBundle. */
+const TRUSS_CSS_PLACEHOLDER = "__TRUSS_CSS_HASH__";
 
 /** Virtual module IDs for dev HMR. */
 const VIRTUAL_CSS_ENDPOINT = "/virtual:truss.css";
@@ -58,7 +63,7 @@ const RESOLVED_VIRTUAL_TEST_CSS_ID = "\0" + VIRTUAL_TEST_CSS_ID;
  * while imports are supplemented with a virtual CSS side-effect module.
  *
  * In dev mode, serves CSS via a virtual endpoint that the injected runtime keeps in sync.
- * In production, emits a single `truss.css` asset with all atomic rules.
+ * In production, emits a content-hashed CSS asset (e.g. `assets/truss-abc123.css`) for long-term caching.
  */
 export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let mapping: TrussMapping | null = null;
@@ -67,6 +72,8 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let isTest = false;
   let isBuild = false;
   const libraryPaths = opts.libraries ?? [];
+  /** The hashed CSS filename emitted during generateBundle, used by writeBundle to patch HTML. */
+  let emittedCssFileName: string | null = null;
 
   // Global CSS rule registry shared across all transform calls within a build
   const cssRegistry = new Map<string, AtomicRule>();
@@ -168,9 +175,12 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
     transformIndexHtml(html: string) {
       if (isBuild) {
-        // Inject a stylesheet link so the emitted truss.css is loaded at page start
-        const link = `<link rel="stylesheet" href="./truss.css">`;
-        return html.replace("</head>", `    ${link}\n  </head>`);
+        // Strip the dev-only virtual CSS link (if present in the source HTML)
+        const stripped = html.replace(/\s*<link[^>]*href=["'][^"']*virtual:truss\.css["'][^>]*\/?>/, "");
+        // Inject a stylesheet link with a placeholder; writeBundle replaces it
+        // with the content-hashed filename for long-term caching.
+        const link = `<link rel="stylesheet" href="${TRUSS_CSS_PLACEHOLDER}">`;
+        return stripped.replace("</head>", `    ${link}\n  </head>`);
       }
       // Inject the virtual runtime script for dev mode; it owns style updates.
       const tag = `<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`;
@@ -336,13 +346,31 @@ __injectTrussCSS(${JSON.stringify(css)});
       const css = collectCss();
       if (!css) return;
 
-      // Always emit a standalone truss.css so the asset is deterministic and
-      // referenced by the <link> injected in transformIndexHtml.
+      // Compute a content hash so the filename is cache-bustable.
+      const hash = createHash("sha256").update(css).digest("hex").slice(0, 8);
+      const fileName = `assets/truss-${hash}.css`;
+      emittedCssFileName = fileName;
+
       (this as any).emitFile({
         type: "asset",
-        fileName: "truss.css",
+        fileName,
         source: css,
       });
+    },
+
+    /** Patch HTML files on disk to replace the CSS placeholder with the hashed filename. */
+    writeBundle(options: any, _bundle: any) {
+      if (!emittedCssFileName) return;
+      const outDir = options.dir || join(projectRoot, "dist");
+      // Find and patch all HTML files in the output directory
+      for (const entry of readdirSync(outDir)) {
+        if (!entry.endsWith(".html")) continue;
+        const htmlPath = join(outDir, entry);
+        const html = readFileSync(htmlPath, "utf8");
+        if (html.includes(TRUSS_CSS_PLACEHOLDER)) {
+          writeFileSync(htmlPath, html.replace(TRUSS_CSS_PLACEHOLDER, `/${emittedCssFileName}`), "utf8");
+        }
+      }
     },
   };
 }
