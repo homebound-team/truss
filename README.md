@@ -84,7 +84,7 @@ And a static, build-time generated CSS file:
 
 - Tachyons-inspired abbreviations for superior inline readability
   - No long class names that compound into a "wall of text"
-  - No IDE plugins needed to hide long class names 😅
+  - No IDE plugins needed to make your JSX readable again 😅
   - Consistent `FooBar` -> `fb` abbreviation pattern:
     - `justify-content: flex-start` is `jcfs`,
     - Easier to memorize/read
@@ -103,7 +103,7 @@ And a static, build-time generated CSS file:
   - Just regular TypeScript (...with code-generation & build-time Vite plugins)
 
 - Why not Tailwinds?
-  - Our abbreviations are shorter
+  - Our abbreviations are shorter 🩳 
   - Composing styles property-by-property with POJO spreads instead of class name strings is more natural and less error-prone
   - Easier escape hatches to dynamic values & dynamic selectors
   - We just like Truss better 🤷 😀
