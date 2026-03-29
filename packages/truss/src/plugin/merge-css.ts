@@ -14,10 +14,16 @@ export interface ParsedPropertyDeclaration {
   varName: string;
 }
 
+/** A parsed arbitrary CSS block extracted from an annotated truss.css file. */
+export interface ParsedArbitraryCssBlock {
+  cssText: string;
+}
+
 /** The result of parsing an annotated truss.css file. */
 export interface ParsedTrussCss {
   rules: ParsedCssRule[];
   properties: ParsedPropertyDeclaration[];
+  arbitraryCssBlocks?: ParsedArbitraryCssBlock[];
 }
 
 /** Regex matching `/* @truss p:<priority> c:<className> *\/` annotations. */
@@ -26,11 +32,18 @@ const RULE_ANNOTATION_RE = /^\/\* @truss p:([\d.]+) c:(\S+) \*\/$/;
 /** Regex matching `/* @truss @property *\/` annotations. */
 const PROPERTY_ANNOTATION_RE = /^\/\* @truss @property \*\/$/;
 
+/** Regex matching the start of an annotated arbitrary CSS block. */
+const ARBITRARY_START_RE = /^\/\* @truss arbitrary:start \*\/$/;
+
+/** Regex matching the end of an annotated arbitrary CSS block. */
+const ARBITRARY_END_RE = /^\/\* @truss arbitrary:end \*\/$/;
+
 /** Regex to extract the variable name from `@property --foo { ... }`. */
 const PROPERTY_VAR_RE = /^@property\s+(--\S+)/;
 
 /**
- * Parse an annotated truss.css file into rules and @property declarations.
+ * Parse an annotated truss.css file into rules, @property declarations,
+ * and arbitrary CSS blocks.
  *
  * The file must contain `/* @truss p:<priority> c:<className> *\/` comments
  * before each CSS rule, and `/* @truss @property *\/` before each @property declaration.
@@ -39,6 +52,7 @@ export function parseTrussCss(cssText: string): ParsedTrussCss {
   const lines = cssText.split("\n");
   const rules: ParsedCssRule[] = [];
   const properties: ParsedPropertyDeclaration[] = [];
+  const arbitraryCssBlocks: ParsedArbitraryCssBlock[] = [];
 
   let i = 0;
   while (i < lines.length) {
@@ -74,10 +88,27 @@ export function parseTrussCss(cssText: string): ParsedTrussCss {
       continue;
     }
 
+    if (ARBITRARY_START_RE.test(line)) {
+      i++;
+      const blockLines: string[] = [];
+      while (i < lines.length && !ARBITRARY_END_RE.test(lines[i].trim())) {
+        blockLines.push(lines[i]);
+        i++;
+      }
+      const blockText = blockLines.join("\n").trim();
+      if (blockText.length > 0) {
+        arbitraryCssBlocks.push({ cssText: blockText });
+      }
+      if (i < lines.length && ARBITRARY_END_RE.test(lines[i].trim())) {
+        i++;
+      }
+      continue;
+    }
+
     i++;
   }
 
-  return { rules, properties };
+  return { rules, properties, arbitraryCssBlocks };
 }
 
 /**
@@ -90,19 +121,30 @@ export function readTrussCss(filePath: string): ParsedTrussCss {
   return parseTrussCss(content);
 }
 
+/** Wrap an arbitrary CSS block in annotations so it survives later Truss merges. */
+export function annotateArbitraryCssBlock(cssText: string): string {
+  const trimmed = cssText.trim();
+  if (trimmed.length === 0) {
+    return "";
+  }
+  return ["/* @truss arbitrary:start */", trimmed, "/* @truss arbitrary:end */"].join("\n");
+}
+
 /**
  * Merge multiple parsed truss CSS sources into a single CSS string.
  *
  * Rules are deduplicated by class name (first occurrence wins, since
  * deterministic output means identical class names produce identical rules),
  * then sorted by priority ascending with alphabetical class name tiebreaker.
- * @property declarations are deduplicated by variable name and appended at the end.
+ * @property declarations are deduplicated by variable name and appended next.
+ * Arbitrary CSS blocks are left opaque and appended in source order at the end.
  */
 export function mergeTrussCss(sources: ParsedTrussCss[]): string {
   const seenClasses = new Set<string>();
   const allRules: ParsedCssRule[] = [];
   const seenProperties = new Set<string>();
   const allProperties: ParsedPropertyDeclaration[] = [];
+  const allArbitraryCssBlocks: ParsedArbitraryCssBlock[] = [];
 
   for (const source of sources) {
     for (const rule of source.rules) {
@@ -117,6 +159,7 @@ export function mergeTrussCss(sources: ParsedTrussCss[]): string {
         allProperties.push(prop);
       }
     }
+    allArbitraryCssBlocks.push(...(source.arbitraryCssBlocks ?? []));
   }
 
   // Sort by priority ascending, tiebreak alphabetically by class name
@@ -136,6 +179,10 @@ export function mergeTrussCss(sources: ParsedTrussCss[]): string {
   for (const prop of allProperties) {
     lines.push(`/* @truss @property */`);
     lines.push(prop.cssText);
+  }
+
+  for (const block of allArbitraryCssBlocks) {
+    lines.push(annotateArbitraryCssBlock(block.cssText));
   }
 
   return lines.join("\n");
