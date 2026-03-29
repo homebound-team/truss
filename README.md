@@ -84,13 +84,13 @@ And a static, build-time generated CSS file:
 
 - Tachyons-inspired abbreviations for superior inline readability
   - No long class names that compound into a "wall of text"
-  - No IDE plugins needed to hide long class names 😅 
+  - No IDE plugins needed to hide long class names 😅
   - Consistent `FooBar` -> `fb` abbreviation pattern:
     - `justify-content: flex-start` is `jcfs`,
     - Easier to memorize/read
   - See [Why Tachyons](#why-tachyons-instead-of-tailwinds)
 
-- Configure your design system in Truss's configuration 🧑‍🎨 
+- Configure your design system in Truss's configuration 🧑‍🎨
   - Color palette, fonts, increments, and breakpoint 🎨s
   - [See example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below
 
@@ -111,7 +111,7 @@ And a static, build-time generated CSS file:
 - Why not StyleX?
   - StyleX arrays for composition instead of objects, which did not work for our legacy Truss v1 codebases
   - Too strict with no escape hatches for dynamic/transient CSS/selectors, which are rare but still occur
-  - ...but we heavily crib StyleX's atomic CSS priority system 🙏 
+  - ...but we heavily crib StyleX's atomic CSS priority system 🙏
 
 Also see the "Why This Approach?" section for more rationale.
 
@@ -339,8 +339,8 @@ Truss intentionally limits the selectors you can use in `Css.*.$` chains to:
 
 Such that, in canonical Truss usage, you can only use selectors that _directly modify the element you're styling_, i.e.:
 
-* `Css.onHover` -> when I'm hovered, modify my styles
-* `Css.when(marker, "ancestor", ":hover")` -> when my ancestor is hovered, modify my styles
+- `Css.onHover` -> when I'm hovered, modify my styles
+- `Css.when(marker, "ancestor", ":hover")` -> when my ancestor is hovered, modify my styles
 
 Unlike Tachyons and Tailwinds, Truss does not create duplicate/repetitive abbreviations for every pseudo-selector and breakpoint variant (e.g. `md-blue` or `lg-red`).
 
@@ -395,9 +395,13 @@ import { Css } from "./Css";
 
 export const zebraRows = "zebraRows";
 
+// These styles will be appended to the `truss.css` output
 export const css = {
+  // Write whatever selectors you want, using `zebraRows`
   [`.${zebraRows} tbody tr:nth-child(even) td`]: Css.bgLightGray.$,
   [`.${zebraRows} tbody tr:hover td`]: Css.bgBlue.white.$,
+  // Or do global selectors if you want, but be careful with specificity and conflicts
+  body: Css.bgWhite.$,
 };
 ```
 
@@ -415,16 +419,13 @@ export function DataGrid() {
 }
 ```
 
-This keeps the base element styling in Truss, i.e. `Css.w100`, while using the `.css.ts` class as the anchor for arbitrary selectors. At build time, Truss merges both into the final `className` prop.
+This keeps the base element styling in Truss, i.e. `Css.w100`, while using the `.css.ts` class as the anchor for arbitrary selectors.
 
-### Raw CSS Strings
+At build time, Truss merges both into the final `className` prop.
 
-When you need arbitrary CSS that the `Css.*.$` DSL does not support (e.g. `!important`, custom properties, or vendor-specific values), you can use a raw string literal or the `Css.raw` tagged template as a property value:
+If you need arbitrary CSS that the `Css.*.$` DSL does not support (e.g. `!important`, custom properties, or vendor-specific values), you can use a raw string literal or the `Css.raw` tagged template as a property value:
 
 ```ts
-// App.css.ts
-import { Css } from "./Css";
-
 export const css = {
   body: Css.raw`
     margin: 16px;
@@ -436,7 +437,9 @@ export const css = {
 };
 ```
 
-The `Css.raw` tag is a pass-through (it returns the string as-is at runtime) but signals to IDEs that the template content is CSS, enabling syntax highlighting and autocomplete.
+The `Css.raw` tag is a pass-through (it returns the string as-is at runtime) but signals to IDEs that the template content is CSS, enabling syntax highlighting and autocomplete (similar to styled-components markup).
+
+Raw strings are emitted as-is, so property names must use standard CSS kebab-case (e.g. `font-size`, not `fontSize`).
 
 You can also use a plain string literal or untagged template literal:
 
@@ -449,31 +452,19 @@ export const css = {
 };
 ```
 
-Both forms can be mixed freely with `Css.*.$` chains in the same file:
-
-```ts
-import { Css } from "./Css";
-
-export const css = {
-  "*, *::before, *::after": Css.add("boxSizing", "border-box").$,
-  body: Css.raw`
-    margin: 0;
-    font-size: 14px !important;
-  `,
-};
-```
-
-Raw strings are emitted as-is, so property names must use standard CSS kebab-case (e.g. `font-size`, not `fontSize`). When using only raw string values (no `Css.*.$` chains), the `Css` import is not required.
-
 **Limitations:**
 
 - Only static and literal-argument chains are supported (e.g. `Css.df.$`, `Css.mt(2).$`, `Css.mtPx(12).$`)
-- Runtime/variable arguments (`Css.mt(x).$`), conditionals (`Css.if(cond).df.$`), pseudo-class modifiers (`Css.onHover.blue.$`), and media query modifiers (`Css.ifSm.blue.$`) are not supported — write those directly in your selectors instead
-- Invalid chains produce an inline CSS comment (`/* [truss] unsupported: ... */`) rather than failing the build
+- Runtime/variable arguments (`Css.mt(x).$`), conditionals (`Css.if(cond).df.$`), pseudo-class modifiers (`Css.onHover.blue.$`), and media query modifiers (`Css.ifSm.blue.$`) are not supported
 
 ## Arbitrary _Runtime_ Selectors
 
-When the selector rule is driven by runtime state and should be injected only while a component is mounted, use `RuntimeStyle` instead:
+When selector rules are either:
+
+- 1. Fundamentally driven by runtime values that change the selector itself, or
+- 2. Should be only transiently injecteda/applied while a component is mounted
+
+Truss also provides a `RuntimeStyle` component:
 
 ```tsx
 import { Css, RuntimeStyle } from "./Css";
@@ -504,7 +495,6 @@ function Preview(props: { bottomMargin: number }) {
   return <div>...</div>;
 }
 ```
-
 
 ## Truss Command
 
