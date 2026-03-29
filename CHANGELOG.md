@@ -1,3 +1,10 @@
+## [2.15.1](https://github.com/homebound-team/truss/compare/v2.15.0...v2.15.1) (2026-03-29)
+
+### Bug Fixes
+
+* Add css.ts support to esbuild plugin ([#221](https://github.com/homebound-team/truss/issues/221)) ([c7d3d6e](https://github.com/homebound-team/truss/commit/c7d3d6e78bb3180ad80e419430df77d3cb82e906))
+* Fix storybook getting multiple truss.css files. ([#222](https://github.com/homebound-team/truss/issues/222)) ([15bc83a](https://github.com/homebound-team/truss/commit/15bc83a648bfdea2566a77d04515b48f18f24bed))
+
 ## [2.15.0](https://github.com/homebound-team/truss/compare/v2.14.0...v2.15.0) (2026-03-29)
 
 ### Features
