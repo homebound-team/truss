@@ -31,7 +31,7 @@ import { Css } from "/src/Css.ts";
 </div>
 ```
 
-Which compiles via our Vite/esbuild plugins to production HTML output:
+Which our Vite/esbuild plugins compile to production HTML output:
 
 ```html
 <h1 class="f24 black" data-truss-src="App.tsx:8">Truss v2</h1>
@@ -68,15 +68,16 @@ And a static, build-time generated CSS file:
   - `Css.mt(someValue).$` or
   - `Css.bgColor(maybe ? Palette.Black : Palette.Blue).$` or
   - `Css.mt0.if(someCondition).mt4.$`.
+  - Still compiled to atomic CSS output, with a lightweight runtime helper to apply dynamic values
 
-- Selectors and breakpoints:
+- Pseudo-selectors and breakpoints:
   - `Css.white.onHover.black.$` or
   - `Css.ifSm.mx1.$`
 
 - `Css` expressions are "just POJOs", so naturally amenable to composition
   - `<div css={{ ...Css.mt2.$, ...(someCondition ? Css.bgRed.$ : Css.bgGreen.$) }} />`
   - The last-set value _per property_ wins, i.e. not "the last class name" or "the last `color` value"
-  - Extremely natural to build up complex styles with conditionals, loops, etc.
+  - Extremely natural to build up complex styles with conditionals, view logic, etc.
 
 - Tachyons-inspired abbreviations for superior inline readability
   - No long class names that compound into a "wall of text"
@@ -85,7 +86,13 @@ And a static, build-time generated CSS file:
     - Easier to memorize/read
   - See [Why Tachyons](#why-tachyons-instead-of-tailwinds)
 
-- Configure your project's design system (palette, fonts, increments, and breakpoints) in Truss's configuration ([see example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below)
+- Configure your design system in Truss's configuration
+  - Color palette, fonts, increments, and breakpoints
+  - [See example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below
+
+- Escape hatch to arbitrary/runtime selectors
+  - `useRuntimeStyle({ body: Css.blue.$ })`
+  - Only applied when the component is mounted
 
 - Type-checking built in
   - No editor support or IDE extensions required for great DX
@@ -95,7 +102,9 @@ Also see the "Why This Approach?" section for more rationale.
 
 ## Quick How It Works
 
-Truss, using your project-specific `truss-config.ts`, generates a `src/Css.ts` file in your project; this file exports a `Css` symbol that you use like:
+Truss uses your project's `truss-config.ts` to generate a `src/Css.ts` file with the configured abbreviations/design system in a TypeScript DSL.
+
+This file exports a `Css` symbol that you use like:
 
 ```typescript
 import { Css } from "src/Css";
@@ -294,7 +303,6 @@ Truss ships two build plugins. Both transform `Css.*.$` expressions into plain o
 | **Dev server HMR**        | Yes -- serves CSS via a virtual endpoint and pushes updates over WebSocket        | No -- esbuild has no dev server                               |
 | **Content-hashed output** | Yes -- production builds emit `assets/truss-<hash>.css` for long-term caching     | No -- writes a fixed `truss.css` to the output directory      |
 | **Library CSS merging**   | Yes -- `libraries` option merges pre-compiled library CSS into the app stylesheet | No -- libraries are merged by the consuming app's Vite plugin |
-| **`.css.ts` support**     | Yes -- arbitrary-selector `.css.ts` files are compiled to plain CSS               | Yes -- emitted into `truss.css` as preserved arbitrary blocks |
 | **Test CSS injection**    | Yes -- auto-injects CSS into jsdom for Vitest                                     | No                                                            |
 | **HTML injection**        | Yes -- injects `<link>` / `<script>` tags into `index.html`                       | No -- not applicable for library builds                       |
 
@@ -307,90 +315,92 @@ Truss ships two build plugins. Both transform `Css.*.$` expressions into plain o
 
 If you are targeting React Native instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
 
-## Arbitrary Selectors with `.css.ts` Files
+## Pseudo-Selectors and Media Queries
 
-Truss intentionally limits the selectors you can use in `Css.*.$` chains to keep atomic class output deterministic. When you need complex selectors (descendant combinators, `:nth-child`, etc.), you have two options:
+Truss intentionally limits the selectors you can use in `Css.*.$` chains to:
 
-- Use a `.css.ts` file for static/global arbitrary selectors that should be emitted at build time and live alongside your normal app CSS.
-- Use `RuntimeStyle` for transient or dynamic arbitrary selectors that should only exist while a React subtree is mounted.
+- 1. Keep atomic class output deterministic,
+- 2. Discourage selectors that "reach into other components" to manipulate their styles
 
-Use a `.css.ts` file when the rule is effectively part of your app's static stylesheet:
+Such that, in canonical Truss usage, you can only use selectors that _directly modify the element you're styling_, i.e.:
 
-Create a file with the `.css.ts` extension:
+* `Css.onHover` -> when I'm hovered, modify my styles
+* `Css.when(marker, "ancestor", ":hover")` -> when my ancestor is hovered, modify my styles
+
+Unlike Tachyons and Tailwinds, Truss does not create duplicate/repetitive abbreviations for every pseudo-selector and breakpoint variant (e.g. `md-blue` or `lg-red`).
+
+Instead, Truss provides chain commands like `onHover`, `ifSm`, and `ifMd` that then "modify" the commands that come after them:
+
+```tsx
+function MyReactComponent(props: {}) {
+  return <div css={Css.mx2.black.onHover.blue.ifSm.mx1.$}>...</div>;
+}
+```
+
+Where `sm` resolves from the breakpoints you define in `truss-config.ts`.
+
+The available pseudo-class modifiers are:
+
+| Modifier         | CSS Pseudo-Class |
+| ---------------- | ---------------- |
+| `onHover`        | `:hover`         |
+| `onFocus`        | `:focus`         |
+| `onFocusVisible` | `:focus-visible` |
+| `onFocusWithin`  | `:focus-within`  |
+| `onActive`       | `:active`        |
+| `onDisabled`     | `:disabled`      |
+| `ifFirstOfType`  | `:first-of-type` |
+| `ifLastOfType`   | `:last-of-type`  |
+
+For arbitrary pseudo-selectors not covered above, use `when`:
+
+```tsx
+// Simple pseudo-selector
+<div css={Css.when(":hover:not(:disabled)").black.$} />;
+
+// Marker-based relationship (react to an ancestor's hover)
+const row = Css.newMarker();
+<tr css={Css.markerOf(row).$}>
+  <td css={Css.when(row, "ancestor", ":hover").blue.$}>...</td>
+</tr>;
+```
+
+## Arbitrary _Build-time_ Selectors
+
+For selectors not supported by `Css.*.$`, i.e. descendant selectors, `:nth-child(...)`, or library-driven markup hooks, but where the selectors themselves are still:
+
+1. Globally applicable, and
+2. Statically known at build-time
+
+You can put the selectors in a `.css.ts` file and then attach the exported class name through `Css.className(...)`.
 
 ```ts
 // DataGrid.css.ts
 import { Css } from "./Css";
 
+export const zebraRows = "zebraRows";
+
 export const css = {
-  ".ag-row:nth-child(odd)": Css.bgWhite.$,
-  ".ag-header-cell > .ag-cell-label-container": Css.df.aic.gap1.$,
-  ".ag-cell:focus-visible": Css.bBlue.ba.$,
+  [`.${zebraRows} tbody tr:nth-child(even) td`]: Css.bgLightGray.$,
+  [`.${zebraRows} tbody tr:hover td`]: Css.bgBlue.white.$,
 };
 ```
 
-Then import it from your component:
-
 ```tsx
 // DataGrid.tsx
-import "./DataGrid.css.ts";
-```
+import { Css } from "./Css";
+import { zebraRows } from "./DataGrid.css.ts";
 
-At build time, the Truss Vite plugin resolves each `Css.*.$` chain to its concrete CSS values and emits a plain CSS file. The example above produces:
-
-```css
-.ag-row:nth-child(odd) {
-  background-color: #fcfcfa;
-}
-
-.ag-header-cell > .ag-cell-label-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ag-cell:focus-visible {
-  border-color: #526675;
-  border-style: solid;
-  border-width: 1px;
-}
-```
-
-This gives you the best of both worlds: Truss's design-token consistency (colors, spacing increments) with full CSS selector power, while still keeping the result fully static and build-time generated.
-
-### Dynamic / Transient Selectors with `RuntimeStyle`
-
-When the selector rule is driven by runtime state and should be injected only while a component is mounted, use `RuntimeStyle` instead:
-
-```tsx
-import { Css, RuntimeStyle } from "./Css";
-
-function Preview(props: { accent: string }) {
+export function DataGrid() {
   return (
-    <>
-      <RuntimeStyle
-        css={{
-          ".preview [data-selected='true']": Css.bc(props.accent).bgWhite.$,
-        }}
-      />
-      <div className="preview">...</div>
-    </>
+    <table css={Css.w100.className(zebraRows).$}>
+      <tbody>{/* rows */}</tbody>
+    </table>
   );
 }
 ```
 
-`RuntimeStyle` evaluates its `Css` expressions at runtime, injects a `<style>` tag into the DOM, and removes that tag when the component unmounts. Use it for ephemeral selectors or selector rules that depend on runtime values; use `.css.ts` when the rule is static/global and should be baked into the build output.
-
-The same behavior is available as the `useRuntimeStyle` hook for cases where you prefer a hook over a component:
-
-```tsx
-import { Css, useRuntimeStyle } from "./Css";
-
-function Preview(props: { bottomMargin: number }) {
-  useRuntimeStyle({ body: Css.mbPx(props.bottomMargin).$ });
-  return <div>...</div>;
-}
-```
+This keeps the base element styling in Truss, i.e. `Css.w100`, while using the `.css.ts` class as the anchor for arbitrary selectors. At build time, Truss merges both into the final `className` prop.
 
 ### Raw CSS Strings
 
@@ -445,6 +455,41 @@ Raw strings are emitted as-is, so property names must use standard CSS kebab-cas
 - Only static and literal-argument chains are supported (e.g. `Css.df.$`, `Css.mt(2).$`, `Css.mtPx(12).$`)
 - Runtime/variable arguments (`Css.mt(x).$`), conditionals (`Css.if(cond).df.$`), pseudo-class modifiers (`Css.onHover.blue.$`), and media query modifiers (`Css.ifSm.blue.$`) are not supported — write those directly in your selectors instead
 - Invalid chains produce an inline CSS comment (`/* [truss] unsupported: ... */`) rather than failing the build
+
+## Arbitrary _Runtime_ Selectors
+
+When the selector rule is driven by runtime state and should be injected only while a component is mounted, use `RuntimeStyle` instead:
+
+```tsx
+import { Css, RuntimeStyle } from "./Css";
+
+function Preview(props: { accent: string }) {
+  return (
+    <>
+      <RuntimeStyle
+        css={{
+          ".preview [data-selected='true']": Css.bc(props.accent).bgWhite.$,
+        }}
+      />
+      <div className="preview">...</div>
+    </>
+  );
+}
+```
+
+`RuntimeStyle` evaluates its `Css` expressions at runtime, injects a `<style>` tag into the DOM, and removes that tag when the component unmounts. Use it for ephemeral selectors or selector rules that depend on runtime values; use `.css.ts` when the rule is static/global and should be baked into the build output.
+
+The same behavior is available as the `useRuntimeStyle` hook for cases where you prefer a hook over a component:
+
+```tsx
+import { Css, useRuntimeStyle } from "./Css";
+
+function Preview(props: { bottomMargin: number }) {
+  useRuntimeStyle({ body: Css.mbPx(props.bottomMargin).$ });
+  return <div>...</div>;
+}
+```
+
 
 ## Truss Command
 
