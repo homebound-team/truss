@@ -561,6 +561,7 @@ function rewriteCssPropsAndCssAttributes(options: RewriteSitesOptions): void {
     // I.e. css={someVariable}, css={{ ...a, ...b }}, css={cond ? a : b}
     JSXAttribute(path: NodePath<t.JSXAttribute>) {
       if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
+      if (isRuntimeStyleCssAttribute(path)) return;
       const value = path.node.value;
       if (!t.isJSXExpressionContainer(value)) return;
       if (!t.isExpression(value.expression)) return;
@@ -633,6 +634,12 @@ function extractSiblingClassName(callPath: NodePath<t.CallExpression>): t.Expres
 /** Match static object property names. */
 function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName, name: string): boolean {
   return (t.isIdentifier(key) && key.name === name) || (t.isStringLiteral(key) && key.value === name);
+}
+
+function isRuntimeStyleCssAttribute(path: NodePath<t.JSXAttribute>): boolean {
+  const openingElementPath = path.parentPath;
+  if (!openingElementPath || !openingElementPath.isJSXOpeningElement()) return false;
+  return t.isJSXIdentifier(openingElementPath.node.name, { name: "RuntimeStyle" });
 }
 
 // ---------------------------------------------------------------------------

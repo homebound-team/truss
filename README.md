@@ -289,7 +289,12 @@ If you are targeting React Native instead, set `target: "react-native"` in your 
 
 ## Arbitrary Selectors with `.css.ts` Files
 
-Truss intentionally limits the selectors you can use in `Css.*.$` chains to keep atomic class output deterministic. When you need complex selectors (descendant combinators, `:nth-child`, etc.), you can use a `.css.ts` file to write plain CSS while still using Truss's design tokens and abbreviations.
+Truss intentionally limits the selectors you can use in `Css.*.$` chains to keep atomic class output deterministic. When you need complex selectors (descendant combinators, `:nth-child`, etc.), you have two options:
+
+- Use a `.css.ts` file for static/global arbitrary selectors that should be emitted at build time and live alongside your normal app CSS.
+- Use `RuntimeStyle` for transient or dynamic arbitrary selectors that should only exist while a React subtree is mounted.
+
+Use a `.css.ts` file when the rule is effectively part of your app's static stylesheet:
 
 Create a file with the `.css.ts` extension:
 
@@ -331,7 +336,30 @@ At build time, the Truss Vite plugin resolves each `Css.*.$` chain to its concre
 }
 ```
 
-This gives you the best of both worlds: Truss's design-token consistency (colors, spacing increments) with full CSS selector power.
+This gives you the best of both worlds: Truss's design-token consistency (colors, spacing increments) with full CSS selector power, while still keeping the result fully static and build-time generated.
+
+### Dynamic / Transient Selectors with `RuntimeStyle`
+
+When the selector rule is driven by runtime state and should be injected only while a component is mounted, use `RuntimeStyle` instead:
+
+```tsx
+import { Css, RuntimeStyle } from "./Css";
+
+function Preview(props: { accent: string }) {
+  return (
+    <>
+      <RuntimeStyle
+        css={{
+          ".preview [data-selected='true']": Css.bc(props.accent).bgWhite.$,
+        }}
+      />
+      <div className="preview">...</div>
+    </>
+  );
+}
+```
+
+`RuntimeStyle` evaluates its `Css` expressions at runtime, injects a `<style>` tag into the DOM, and removes that tag when the component unmounts. Use it for ephemeral selectors or selector rules that depend on runtime values; use `.css.ts` when the rule is static/global and should be baked into the build output.
 
 ### Raw CSS Strings
 

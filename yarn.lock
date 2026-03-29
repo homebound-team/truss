@@ -547,13 +547,17 @@ __metadata:
     "@types/babel__generator": "npm:^7.27.0"
     "@types/babel__traverse": "npm:^7.28.0"
     "@types/node": "npm:^25.5.0"
+    "@types/react": "npm:^19.2.14"
     change-case: "npm:^5.4.4"
     csstype: "npm:^3.2.3"
     jiti: "npm:^2.6.1"
+    react: "npm:^19.2.4"
     ts-poet: "npm:^6.12.0"
     tsup: "npm:^8.5.1"
     typescript: "npm:^5.9.3"
     vitest: "npm:^4.1.0"
+  peerDependencies:
+    react: ">=18"
   bin:
     truss: cli.js
   languageName: unknown

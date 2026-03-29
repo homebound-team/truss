@@ -5,6 +5,7 @@ import { Properties as Properties1 } from "csstype";
 // Target: native (build-time plugin)
 
 import { trussProps } from "@homebound/truss/runtime";
+export { RuntimeStyle } from "@homebound/truss/runtime";
 
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
@@ -33,7 +34,13 @@ declare module "react" {
   }
 }
 
-type Opts<T> = { rules: T; enabled: boolean; selector: string | undefined; elseApplied: boolean };
+type Opts<T> = {
+  rules: T;
+  enabled: boolean;
+  selector: string | undefined;
+  elseApplied: boolean;
+  runtimeError: string | undefined;
+};
 
 class CssBuilder<T extends Properties> {
   constructor(private opts: Opts<T>) {}
@@ -2266,6 +2273,12 @@ class CssBuilder<T extends Properties> {
   }
 
   get $(): T {
+    if (this.opts.runtimeError) {
+      throw new Error(this.opts.runtimeError);
+    }
+    if (this.selector !== undefined) {
+      throw new Error("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
+    }
     return this.rules as any;
   }
 
@@ -2296,12 +2309,12 @@ class CssBuilder<T extends Properties> {
 
   /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
   get marker(): CssBuilder<T> {
-    return this;
+    return this.unsupportedRuntime("marker cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Marks this element with a user-defined marker. */
   markerOf(_marker: Marker): CssBuilder<T> {
-    return this;
+    return this.unsupportedRuntime("markerOf() cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Creates a marker token for use with markerOf() and when(). */
@@ -2332,16 +2345,16 @@ class CssBuilder<T extends Properties> {
     pseudo: string,
   ): CssBuilder<T>;
   when(_selectorOrMarker: string | Marker, _relationship?: string, _pseudo?: string): CssBuilder<T> {
-    return this;
+    return this.unsupportedRuntime("when() cannot be used in RuntimeStyle css expressions.");
   }
 
   ifContainer(_props: { name?: string; lt?: number; gt?: number }) {
-    return this;
+    return this.unsupportedRuntime("ifContainer() cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Apply styles within a pseudo-element (e.g. `"::placeholder"`, `"::selection"`). */
   element(_pseudoElement: string): CssBuilder<T> {
-    return this;
+    return this.unsupportedRuntime("element() cannot be used in RuntimeStyle css expressions.");
   }
 
   get ifPrint() {
@@ -2377,7 +2390,7 @@ class CssBuilder<T extends Properties> {
     if (typeof condOrMediaQuery === "boolean") {
       return new CssBuilder({ ...this.opts, enabled: condOrMediaQuery, elseApplied: false });
     }
-    return this.newCss({ selector: condOrMediaQuery, elseApplied: false });
+    return this.unsupportedRuntime("if(mediaQuery) cannot be used in RuntimeStyle css expressions.");
   }
 
   get else(): CssBuilder<T> {
@@ -2415,7 +2428,7 @@ class CssBuilder<T extends Properties> {
   /** Marker for the build-time transform to append a raw className. */
   className(className: string): CssBuilder<T> {
     void className;
-    return this;
+    return this.unsupportedRuntime("className() cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Convert a style hash into `{ className, style }` props for manual spreading into non-`css=` contexts. */
@@ -2436,6 +2449,9 @@ class CssBuilder<T extends Properties> {
   }
   private get selector(): string | undefined {
     return this.opts.selector;
+  }
+  private unsupportedRuntime(message: string): CssBuilder<T> {
+    return this.newCss({ runtimeError: message });
   }
   private newCss(opts: Partial<Opts<T>>): CssBuilder<T> {
     return new CssBuilder({ ...this.opts, ...opts });
@@ -2480,7 +2496,13 @@ export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 export const marker: Marker = Symbol.for("truss-default-marker");
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined, elseApplied: false });
+export const Css = new CssBuilder({
+  rules: {},
+  enabled: true,
+  selector: undefined,
+  elseApplied: false,
+  runtimeError: undefined,
+});
 
 export type Margin = "margin" | "marginTop" | "marginRight" | "marginBottom" | "marginLeft";
 
