@@ -1,3 +1,9 @@
+## [2.13.0](https://github.com/homebound-team/truss/compare/v2.12.0...v2.13.0) (2026-03-29)
+
+### Features
+
+* Add RuntimeStyle component. ([#217](https://github.com/homebound-team/truss/issues/217)) ([e15aaeb](https://github.com/homebound-team/truss/commit/e15aaeb8ac997137aed0a03163ca5edcc3e8d6e1))
+
 ## [2.12.0](https://github.com/homebound-team/truss/compare/v2.11.3...v2.12.0) (2026-03-29)
 
 ### Features
