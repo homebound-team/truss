@@ -5,7 +5,7 @@ import { Properties as Properties1 } from "csstype";
 // Target: native (build-time plugin)
 
 import { trussProps } from "@homebound/truss/runtime";
-export { RuntimeStyle } from "@homebound/truss/runtime";
+export { RuntimeStyle, useRuntimeStyle } from "@homebound/truss/runtime";
 
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;

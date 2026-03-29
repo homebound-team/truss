@@ -1,7 +1,7 @@
 import React from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
-import { Css, Palette, RuntimeStyle, type Only, type Xss } from "./Css";
+import { Css, Palette, RuntimeStyle, useRuntimeStyle, type Only, type Xss } from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
 
 afterEach(cleanup);
@@ -521,6 +521,30 @@ describe("Truss CssBuilder", () => {
       expect(() => {
         render(<RuntimeStyle css={{ ".runtime-style-target": Css.onHover.blue.$ }} />);
       }).toThrowError("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
+    });
+  });
+
+  describe("useRuntimeStyle", () => {
+    function UseRuntimeStyleHarness(props: { space: number }) {
+      useRuntimeStyle({ ".hook-target": Css.mt(props.space).black.$ });
+      return <div className="hook-target">Hook</div>;
+    }
+
+    test("injects selector rules from runtime Css expressions", () => {
+      const r = render(<UseRuntimeStyleHarness space={2} />);
+      const el = r.container.querySelector(".hook-target") as HTMLElement;
+      const style = document.querySelector("style[data-truss-runtime-style]") as HTMLStyleElement;
+
+      expect(style).not.toBeNull();
+      expect(style.textContent).toBe(`.hook-target {\n  margin-top: 16px;\n  color: #353535;\n}`);
+      expect(el).toHaveStyle({ marginTop: "16px", color: "#353535" });
+    });
+
+    test("removes the injected style tag on unmount", () => {
+      const r = render(<UseRuntimeStyleHarness space={1} />);
+      expect(document.querySelectorAll("style[data-truss-runtime-style]").length).toBe(1);
+      r.unmount();
+      expect(document.querySelectorAll("style[data-truss-runtime-style]").length).toBe(0);
     });
   });
 

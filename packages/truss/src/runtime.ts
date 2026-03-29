@@ -196,7 +196,35 @@ export interface RuntimeStyleProps {
  * at runtime.
  */
 export function RuntimeStyle(props: RuntimeStyleProps): null {
-  const cssText = buildRuntimeStyleCssText(props.css);
+  useRuntimeStyle(props.css);
+  return null;
+}
+
+/**
+ * Hook that injects dynamic or selector-based CSS at runtime into a transient `<style>` tag.
+ *
+ * This is the hook counterpart to the `RuntimeStyle` component and `.css.ts` files:
+ * - use `.css.ts` for static/global arbitrary selectors baked into the build output
+ * - use `useRuntimeStyle` when you need the same thing from a hook instead of a component
+ *
+ * Example with a flat `Css` expression:
+ * ```ts
+ * useRuntimeStyle({ "body": Css.mbPx(dynamicValue).$ });
+ * ```
+ *
+ * Example with raw CSS via `Css.raw`:
+ * ```ts
+ * useRuntimeStyle({ ".preview code": Css.raw`font-variant-ligatures: none;` });
+ * ```
+ *
+ * The injected `<style>` element is appended on mount and removed on unmount.
+ *
+ * Note: Only flat `Css.*.$` expressions are supported here; selector/marker helpers like
+ * `onHover`, `when`, `ifSm`, `ifContainer`, `element`, and `className()` are rejected
+ * at runtime.
+ */
+export function useRuntimeStyle(css: RuntimeStyleCss): void {
+  const cssText = buildRuntimeStyleCssText(css);
   useInsertionEffect(() => {
     if (typeof document === "undefined" || cssText.length === 0) return;
     const style = document.createElement("style");
@@ -205,7 +233,6 @@ export function RuntimeStyle(props: RuntimeStyleProps): null {
     document.head.appendChild(style);
     return () => style.remove();
   }, [cssText]);
-  return null;
 }
 
 /** Serialize RuntimeStyle rules into CSS text for a transient `<style>` tag. */

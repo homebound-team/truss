@@ -361,6 +361,17 @@ function Preview(props: { accent: string }) {
 
 `RuntimeStyle` evaluates its `Css` expressions at runtime, injects a `<style>` tag into the DOM, and removes that tag when the component unmounts. Use it for ephemeral selectors or selector rules that depend on runtime values; use `.css.ts` when the rule is static/global and should be baked into the build output.
 
+The same behavior is available as the `useRuntimeStyle` hook for cases where you prefer a hook over a component:
+
+```tsx
+import { Css, useRuntimeStyle } from "./Css";
+
+function Preview(props: { bottomMargin: number }) {
+  useRuntimeStyle({ body: Css.mbPx(props.bottomMargin).$ });
+  return <div>...</div>;
+}
+```
+
 ### Raw CSS Strings
 
 When you need arbitrary CSS that the `Css.*.$` DSL does not support (e.g. `!important`, custom properties, or vendor-specific values), you can use a raw string literal or the `Css.raw` tagged template as a property value:
