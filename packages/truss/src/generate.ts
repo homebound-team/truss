@@ -238,6 +238,11 @@ class CssBuilder<T extends Properties> {
     return this;
   }
 
+  /** Tagged template literal for raw CSS in .css.ts files; passes through the string as-is. */
+  raw(strings: TemplateStringsArray, ...values: unknown[]): string {
+    return String.raw(strings, ...values);
+  }
+
 }
 
 /** Sort keys so equivalent rule objects have deterministic shape. */
@@ -557,6 +562,11 @@ class CssBuilder<T extends Properties> {
   /** Convert a style hash into \`{ className, style }\` props for manual spreading into non-\`css=\` contexts. */
   props(styles: Properties): Record<string, unknown> {
     return trussProps(styles as any);
+  }
+
+  /** Tagged template literal for raw CSS in .css.ts files; passes through the string as-is. */
+  raw(strings: TemplateStringsArray, ...values: unknown[]): string {
+    return String.raw(strings, ...values);
   }
 
   private get rules(): T {

@@ -333,6 +333,54 @@ At build time, the Truss Vite plugin resolves each `Css.*.$` chain to its concre
 
 This gives you the best of both worlds: Truss's design-token consistency (colors, spacing increments) with full CSS selector power.
 
+### Raw CSS Strings
+
+When you need arbitrary CSS that the `Css.*.$` DSL does not support (e.g. `!important`, custom properties, or vendor-specific values), you can use a raw string literal or the `Css.raw` tagged template as a property value:
+
+```ts
+// App.css.ts
+import { Css } from "./Css";
+
+export const css = {
+  body: Css.raw`
+    margin: 16px;
+    background-color: rgba(255, 255, 255, 1);
+    color: rgba(53, 53, 53, 1);
+    font-size: 14px !important;
+    line-height: 20px !important;
+  `,
+};
+```
+
+The `Css.raw` tag is a pass-through (it returns the string as-is at runtime) but signals to IDEs that the template content is CSS, enabling syntax highlighting and autocomplete.
+
+You can also use a plain string literal or untagged template literal:
+
+```ts
+export const css = {
+  body: `
+    margin: 16px;
+    font-size: 14px !important;
+  `,
+};
+```
+
+Both forms can be mixed freely with `Css.*.$` chains in the same file:
+
+```ts
+import { Css } from "./Css";
+
+export const css = {
+  "*, *::before, *::after": Css.add("boxSizing", "border-box").$,
+  body: Css.raw`
+    margin: 0;
+    font-size: 14px !important;
+  `,
+};
+```
+
+Raw strings are emitted as-is, so property names must use standard CSS kebab-case (e.g. `font-size`, not `fontSize`). When using only raw string values (no `Css.*.$` chains), the `Css` import is not required.
+
 **Limitations:**
 
 - Only static and literal-argument chains are supported (e.g. `Css.df.$`, `Css.mt(2).$`, `Css.mtPx(12).$`)
