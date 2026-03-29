@@ -159,6 +159,43 @@ describe("transform", () => {
     ).toBeNull();
   });
 
+  test("useRuntimeStyle object literal keeps nested Css expressions for runtime evaluation", () => {
+    expectTrussTransform(`
+      import { useRuntimeStyle } from "@homebound/truss/runtime";
+      import { Css } from "./Css";
+      const space = 2;
+      useRuntimeStyle({ ".foo": Css.blue.$, ".bar": Css.mt(space).$ });
+      const el = <div css={Css.df.$} />;
+    `).toHaveTrussOutput(
+      `
+      import { useRuntimeStyle } from "@homebound/truss/runtime";
+      import { Css } from "./Css";
+      const space = 2;
+      useRuntimeStyle({ ".foo": Css.blue.$, ".bar": Css.mt(space).$ });
+      const el = <div className="df" />;
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
+  });
+
+  test("returns null for files that only use useRuntimeStyle", () => {
+    expect(
+      transformTruss(
+        snippet(`
+          import { useRuntimeStyle } from "@homebound/truss/runtime";
+          import { Css } from "./Css";
+          useRuntimeStyle({ ".foo": Css.blue.$ });
+        `),
+        "test.tsx",
+        mapping,
+      ),
+    ).toBeNull();
+  });
+
   test("debug mode rewrites jsx css props through trussProps", () => {
     expectTrussTransform(
       `

@@ -261,15 +261,25 @@ function isInsideRuntimeStyleCssObject(path: NodePath<t.MemberExpression>): bool
   let current: NodePath<t.Node> | null = path.parentPath;
 
   while (current) {
+    // JSX path: <RuntimeStyle css={{ ".sel": Css.blue.$ }} />
     if (current.isJSXExpressionContainer()) {
       const attrPath = current.parentPath;
       if (!attrPath || !attrPath.isJSXAttribute()) return false;
       return t.isObjectExpression(current.node.expression) && isRuntimeStyleCssAttribute(attrPath);
     }
+    // Hook path: useRuntimeStyle({ ".sel": Css.blue.$ })
+    if (current.isCallExpression() && isUseRuntimeStyleCall(current.node)) {
+      return true;
+    }
     current = current.parentPath;
   }
 
   return false;
+}
+
+/** Match `useRuntimeStyle(...)` call expressions. */
+function isUseRuntimeStyleCall(node: t.CallExpression): boolean {
+  return t.isIdentifier(node.callee, { name: "useRuntimeStyle" });
 }
 
 function isRuntimeStyleCssAttribute(path: NodePath<t.JSXAttribute>): boolean {
