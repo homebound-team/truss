@@ -1,3 +1,5 @@
+import { useInsertionEffect } from "react";
+
 /** A compact source label for a Truss CSS expression, used in debug mode. */
 export class TrussDebugInfo {
   /** I.e. `"FileName.tsx:line"` */
@@ -24,6 +26,9 @@ export type TrussStyleValue =
 /** A property-keyed style hash where each key owns one logical CSS property. */
 export type TrussCustomClassNameValue = string | ReadonlyArray<string | false | null | undefined>;
 export type TrussStyleHash = Record<string, TrussStyleValue | TrussCustomClassNameValue>;
+export type RuntimeStyleDeclarationValue = string | number | null | undefined;
+export type RuntimeStyleDeclarations = Record<string, RuntimeStyleDeclarationValue | Record<string, unknown>>;
+export type RuntimeStyleCss = Record<string, RuntimeStyleDeclarations | string>;
 
 const shouldValidateTrussStyleValues = resolveShouldValidateTrussStyleValues();
 const TRUSS_CSS_CHUNKS = "__trussCssChunks__";
@@ -150,6 +155,108 @@ export function __injectTrussCSS(cssText: string): void {
 
   injectedChunks.add(cssText);
   style.textContent = (style.textContent ?? "") + cssText;
+}
+
+export interface RuntimeStyleProps {
+  css: RuntimeStyleCss;
+}
+
+/**
+ * Inject dynamic or selector-based CSS at runtime into a transient `<style>` tag.
+ *
+ * This is the runtime counterpart to `.css.ts` files:
+ * - use `.css.ts` for static/global arbitrary selectors that should be baked into the build output
+ * - use `RuntimeStyle` for selectors that depend on runtime values or should only exist while a component is mounted
+ *
+ * Example with a flat `Css` expression:
+ * ```tsx
+ * <RuntimeStyle
+ *   css={{
+ *     ".preview a": Css.blue.$,
+ *   }}
+ * />
+ * ```
+ *
+ * Example with raw CSS via `Css.raw`:
+ * ```tsx
+ * <RuntimeStyle
+ *   css={{
+ *     ".preview code": Css.raw`
+ *       font-variant-ligatures: none;
+ *       text-decoration: underline;
+ *     `,
+ *   }}
+ * />
+ * ```
+ *
+ * The injected `<style>` element is appended on mount and removed on unmount.
+ *
+ * Note: Only flat `Css.*.$` expressions are supported here; selector/marker helpers like
+ * `onHover`, `when`, `ifSm`, `ifContainer`, `element`, and `className()` are rejected
+ * at runtime.
+ */
+export function RuntimeStyle(props: RuntimeStyleProps): null {
+  const cssText = buildRuntimeStyleCssText(props.css);
+  useInsertionEffect(() => {
+    if (typeof document === "undefined" || cssText.length === 0) return;
+    const style = document.createElement("style");
+    style.setAttribute("data-truss-runtime-style", "");
+    style.textContent = cssText;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, [cssText]);
+  return null;
+}
+
+/** Serialize RuntimeStyle rules into CSS text for a transient `<style>` tag. */
+function buildRuntimeStyleCssText(css: RuntimeStyleCss): string {
+  const rules: string[] = [];
+  for (const [selector, value] of Object.entries(css)) {
+    if (typeof value === "string") {
+      rules.push(formatRawRuntimeStyleRule(selector, value));
+    } else {
+      rules.push(formatRuntimeStyleRule(selector, value));
+    }
+  }
+  return rules.join("\n\n");
+}
+
+function formatRawRuntimeStyleRule(selector: string, raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return `${selector} {}`;
+  const body = trimmed
+    .split("\n")
+    .map((line) => `  ${line.trim()}`)
+    .filter((line) => line.trim().length > 0)
+    .join("\n");
+  return `${selector} {\n${body}\n}`;
+}
+
+function formatRuntimeStyleRule(selector: string, declarations: RuntimeStyleDeclarations): string {
+  const lines: string[] = [];
+  for (const [property, value] of Object.entries(declarations)) {
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "string" && typeof value !== "number") {
+      throw new Error(runtimeStyleUnsupportedValueMessage(selector, property));
+    }
+    lines.push(`  ${camelToKebabRuntime(property)}: ${String(value)};`);
+  }
+  if (lines.length === 0) return `${selector} {}`;
+  return `${selector} {\n${lines.join("\n")}\n}`;
+}
+
+function runtimeStyleUnsupportedValueMessage(selector: string, property: string): string {
+  return `RuntimeStyle selector \`${selector}\` has an unsupported nested value for \`${property}\`. Only flat Css expressions can be used here; selector/marker/className helpers like onHover, when, ifSm, ifContainer, element, and className() are not supported.`;
+}
+
+function camelToKebabRuntime(property: string): string {
+  return property
+    .replace(/^(Webkit|Moz|Ms|O)/, function prefixToCss(prefix) {
+      return `-${prefix.toLowerCase()}`;
+    })
+    .replace(/[A-Z]/g, function upperToCss(letter) {
+      return `-${letter.toLowerCase()}`;
+    });
 }
 
 /** Fail fast when `trussProps` receives a non-Truss style value. */

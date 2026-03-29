@@ -77,7 +77,8 @@ export function transformTruss(
   const sites: ExpressionSite[] = [];
   const errorMessages: Array<{ message: string; line: number | null }> = [];
   let hasCssPropsCall = false;
-  let hasJsxCssAttribute = false;
+  let hasBuildtimeJsxCssAttribute = false;
+  let hasRuntimeStyleCssUsage = false;
 
   traverse(ast, {
     // -- Css.*.$  chain collection --
@@ -88,6 +89,10 @@ export function transformTruss(
 
       const chain = extractChain(path.node.object, cssBindingName);
       if (!chain) return;
+      if (isInsideRuntimeStyleCssObject(path)) {
+        hasRuntimeStyleCssUsage = true;
+        return;
+      }
 
       const parentPath = path.parentPath;
       if (parentPath && parentPath.isMemberExpression() && t.isIdentifier(parentPath.node.property, { name: "$" })) {
@@ -117,14 +122,13 @@ export function transformTruss(
     },
     // -- JSX css={...} attribute detection (so we don't bail when there are only css props) --
     JSXAttribute(path: NodePath<t.JSXAttribute>) {
-      if (hasJsxCssAttribute) return;
-      if (t.isJSXIdentifier(path.node.name, { name: "css" })) {
-        hasJsxCssAttribute = true;
-      }
+      if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
+      if (isRuntimeStyleCssAttribute(path)) return;
+      hasBuildtimeJsxCssAttribute = true;
     },
   });
 
-  if (sites.length === 0 && !hasCssPropsCall && !hasJsxCssAttribute) return null;
+  if (sites.length === 0 && !hasCssPropsCall && !hasBuildtimeJsxCssAttribute) return null;
 
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
@@ -187,7 +191,7 @@ export function transformTruss(
   // Step 7: Remove/replace the Css import and inject runtime imports.
   // When Css comes from a local `new CssBuilder(...)` (tsup bundles), skip import removal.
   let reusedCssImportLine = false;
-  if (cssIsImported) {
+  if (cssIsImported && !hasRuntimeStyleCssUsage) {
     reusedCssImportLine =
       runtimeImports.length > 0 &&
       findImportDeclaration(ast, "@homebound/truss/runtime") === null &&
@@ -251,6 +255,29 @@ export function transformTruss(
   const outputCode = preserveBlankLineAfterImports(code, output.code);
 
   return { code: outputCode, map: output.map, css: cssText, rules };
+}
+
+function isInsideRuntimeStyleCssObject(path: NodePath<t.MemberExpression>): boolean {
+  let current: NodePath<t.Node> | null = path.parentPath;
+
+  while (current) {
+    if (current.isJSXExpressionContainer()) {
+      const attrPath = current.parentPath;
+      if (!attrPath || !attrPath.isJSXAttribute()) return false;
+      return t.isObjectExpression(current.node.expression) && isRuntimeStyleCssAttribute(attrPath);
+    }
+    current = current.parentPath;
+  }
+
+  return false;
+}
+
+function isRuntimeStyleCssAttribute(path: NodePath<t.JSXAttribute>): boolean {
+  if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return false;
+
+  const openingElementPath = path.parentPath;
+  if (!openingElementPath || !openingElementPath.isJSXOpeningElement()) return false;
+  return t.isJSXIdentifier(openingElementPath.node.name, { name: "RuntimeStyle" });
 }
 
 /** Collect typography runtime lookups from all resolved chains. */
