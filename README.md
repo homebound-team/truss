@@ -220,7 +220,7 @@ npm install --save-dev @homebound/truss
    });
    ```
 
-   Both plugins transform `Css.*.$` expressions to plain objects and emit a `truss.css` file with priority annotations that enable correct merging.
+   Both plugins transform `Css.*.$` expressions to plain objects and emit a `truss.css` file with annotations that enable correct merging. `.css.ts` arbitrary-selector rules are also emitted into `truss.css` and preserved as opaque blocks during app-level merges.
 
    For Vitest, use the Vite plugin:
 
@@ -294,7 +294,7 @@ Truss ships two build plugins. Both transform `Css.*.$` expressions into plain o
 | **Dev server HMR**        | Yes -- serves CSS via a virtual endpoint and pushes updates over WebSocket        | No -- esbuild has no dev server                               |
 | **Content-hashed output** | Yes -- production builds emit `assets/truss-<hash>.css` for long-term caching     | No -- writes a fixed `truss.css` to the output directory      |
 | **Library CSS merging**   | Yes -- `libraries` option merges pre-compiled library CSS into the app stylesheet | No -- libraries are merged by the consuming app's Vite plugin |
-| **`.css.ts` support**     | Yes -- arbitrary-selector `.css.ts` files are compiled to plain CSS               | No                                                            |
+| **`.css.ts` support**     | Yes -- arbitrary-selector `.css.ts` files are compiled to plain CSS               | Yes -- emitted into `truss.css` as preserved arbitrary blocks |
 | **Test CSS injection**    | Yes -- auto-injects CSS into jsdom for Vitest                                     | No                                                            |
 | **HTML injection**        | Yes -- injects `<link>` / `<script>` tags into `index.html`                       | No -- not applicable for library builds                       |
 

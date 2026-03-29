@@ -16,6 +16,7 @@ describe("parseTrussCss", () => {
       { priority: 3000, className: "black", cssText: ".black { color: #353535; }" },
     ]);
     expect(result.properties).toEqual([]);
+    expect(result.arbitraryCssBlocks).toEqual([]);
   });
 
   test("parses @property declarations", () => {
@@ -33,6 +34,7 @@ describe("parseTrussCss", () => {
     expect(result.properties).toEqual([
       { cssText: '@property --marginTop { syntax: "*"; inherits: false; }', varName: "--marginTop" },
     ]);
+    expect(result.arbitraryCssBlocks).toEqual([]);
   });
 
   test("parses fractional priorities", () => {
@@ -46,6 +48,7 @@ describe("parseTrussCss", () => {
     const result = parseTrussCss("");
     expect(result.rules).toEqual([]);
     expect(result.properties).toEqual([]);
+    expect(result.arbitraryCssBlocks).toEqual([]);
   });
 
   test("ignores lines without annotations", () => {
@@ -58,6 +61,7 @@ describe("parseTrussCss", () => {
 
     const result = parseTrussCss(css);
     expect(result.rules).toEqual([{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }]);
+    expect(result.arbitraryCssBlocks).toEqual([]);
   });
 
   test("parses media query rules", () => {
@@ -92,65 +96,80 @@ describe("parseTrussCss", () => {
       { cssText: '@property --width { syntax: "*"; inherits: false; }', varName: "--width" },
     ]);
   });
+
+  test("parses annotated arbitrary CSS blocks", () => {
+    const css = [
+      "/* @truss p:3000 c:df */",
+      ".df { display: flex; }",
+      "/* @truss arbitrary:start */",
+      ".zebra tbody tr:nth-child(even) td {",
+      "  background-color: #fcfcfa;",
+      "}",
+      "/* @truss arbitrary:end */",
+    ].join("\n");
+
+    const result = parseTrussCss(css);
+    expect(result.rules).toEqual([{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }]);
+    expect(result.properties).toEqual([]);
+    expect(result.arbitraryCssBlocks).toEqual([
+      {
+        cssText: [".zebra tbody tr:nth-child(even) td {", "  background-color: #fcfcfa;", "}"].join("\n"),
+      },
+    ]);
+  });
 });
 
 describe("mergeTrussCss", () => {
   test("merges two sources with no overlap", () => {
-    const source1: ParsedTrussCss = {
+    const source1 = parsedTrussCss({
       rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }],
-      properties: [],
-    };
-    const source2: ParsedTrussCss = {
+    });
+    const source2 = parsedTrussCss({
       rules: [{ priority: 3000, className: "black", cssText: ".black { color: #353535; }" }],
-      properties: [],
-    };
+    });
 
     const merged = mergeTrussCss([source1, source2]);
     // Both rules present, alphabetical tiebreak: black before df
-    expect(merged).toContain(".black { color: #353535; }");
-    expect(merged).toContain(".df { display: flex; }");
+    expect(merged.includes(".black { color: #353535; }")).toBe(true);
+    expect(merged.includes(".df { display: flex; }")).toBe(true);
     const blackIdx = merged.indexOf(".black {");
     const dfIdx = merged.indexOf(".df {");
     expect(blackIdx).toBeLessThan(dfIdx);
   });
 
   test("deduplicates rules by class name", () => {
-    const source1: ParsedTrussCss = {
+    const source1 = parsedTrussCss({
       rules: [
         { priority: 3000, className: "df", cssText: ".df { display: flex; }" },
         { priority: 3000, className: "black", cssText: ".black { color: #353535; }" },
       ],
-      properties: [],
-    };
-    const source2: ParsedTrussCss = {
+    });
+    const source2 = parsedTrussCss({
       rules: [
         { priority: 3000, className: "df", cssText: ".df { display: flex; }" },
         { priority: 3000, className: "blue", cssText: ".blue { color: #526675; }" },
       ],
-      properties: [],
-    };
+    });
 
     const merged = mergeTrussCss([source1, source2]);
     // "df" should appear only once
     const dfCount = merged.split(".df { display: flex; }").length - 1;
     expect(dfCount).toBe(1);
     // All unique rules present
-    expect(merged).toContain(".black { color: #353535; }");
-    expect(merged).toContain(".blue { color: #526675; }");
+    expect(merged.includes(".black { color: #353535; }")).toBe(true);
+    expect(merged.includes(".blue { color: #526675; }")).toBe(true);
   });
 
   test("sorts merged rules by priority", () => {
-    const source1: ParsedTrussCss = {
+    const source1 = parsedTrussCss({
       rules: [{ priority: 3130, className: "h_blue", cssText: ".h_blue:hover { color: blue; }" }],
-      properties: [],
-    };
-    const source2: ParsedTrussCss = {
+    });
+    const source2 = parsedTrussCss({
       rules: [
         { priority: 3000, className: "black", cssText: ".black { color: black; }" },
         { priority: 3200, className: "sm_blue", cssText: "@media (...) { .sm_blue.sm_blue { color: blue; } }" },
       ],
-      properties: [],
-    };
+    });
 
     const merged = mergeTrussCss([source1, source2]);
     const blackIdx = merged.indexOf(".black {");
@@ -161,32 +180,32 @@ describe("mergeTrussCss", () => {
   });
 
   test("deduplicates @property declarations by variable name", () => {
-    const source1: ParsedTrussCss = {
+    const source1 = parsedTrussCss({
       rules: [{ priority: 4000.5, className: "mt_var", cssText: ".mt_var { margin-top: var(--marginTop); }" }],
       properties: [{ cssText: '@property --marginTop { syntax: "*"; inherits: false; }', varName: "--marginTop" }],
-    };
-    const source2: ParsedTrussCss = {
+    });
+    const source2 = parsedTrussCss({
       rules: [{ priority: 4000.5, className: "mt_var", cssText: ".mt_var { margin-top: var(--marginTop); }" }],
       properties: [
         { cssText: '@property --marginTop { syntax: "*"; inherits: false; }', varName: "--marginTop" },
         { cssText: '@property --width { syntax: "*"; inherits: false; }', varName: "--width" },
       ],
-    };
+    });
 
     const merged = mergeTrussCss([source1, source2]);
     const marginTopCount = merged.split("@property --marginTop").length - 1;
     expect(marginTopCount).toBe(1);
-    expect(merged).toContain("@property --width");
+    expect(merged.includes("@property --width")).toBe(true);
   });
 
   test("@property declarations appear after all rules", () => {
-    const source: ParsedTrussCss = {
+    const source = parsedTrussCss({
       rules: [
         { priority: 4000.5, className: "mt_var", cssText: ".mt_var { margin-top: var(--marginTop); }" },
         { priority: 3000, className: "df", cssText: ".df { display: flex; }" },
       ],
       properties: [{ cssText: '@property --marginTop { syntax: "*"; inherits: false; }', varName: "--marginTop" }],
-    };
+    });
 
     const merged = mergeTrussCss([source]);
     const lastRuleIdx = merged.indexOf(".mt_var {");
@@ -195,14 +214,14 @@ describe("mergeTrussCss", () => {
   });
 
   test("preserves priority annotations in output", () => {
-    const source: ParsedTrussCss = {
+    const source = parsedTrussCss({
       rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }],
       properties: [{ cssText: '@property --marginTop { syntax: "*"; inherits: false; }', varName: "--marginTop" }],
-    };
+    });
 
     const merged = mergeTrussCss([source]);
-    expect(merged).toContain("/* @truss p:3000 c:df */");
-    expect(merged).toContain("/* @truss @property */");
+    expect(merged.includes("/* @truss p:3000 c:df */")).toBe(true);
+    expect(merged.includes("/* @truss @property */")).toBe(true);
   });
 
   test("handles empty sources", () => {
@@ -211,14 +230,35 @@ describe("mergeTrussCss", () => {
   });
 
   test("handles source with only @property declarations", () => {
-    const source: ParsedTrussCss = {
+    const source = parsedTrussCss({
       rules: [],
       properties: [{ cssText: '@property --color { syntax: "*"; inherits: false; }', varName: "--color" }],
-    };
+    });
 
     const merged = mergeTrussCss([source]);
-    expect(merged).toContain("@property --color");
-    expect(merged).toContain("/* @truss @property */");
+    expect(merged.includes("@property --color")).toBe(true);
+    expect(merged.includes("/* @truss @property */")).toBe(true);
+  });
+
+  test("appends arbitrary CSS blocks after atomic rules and properties without deduping", () => {
+    const source1 = parsedTrussCss({
+      rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }],
+      arbitraryCssBlocks: [{ cssText: ".grid td:nth-child(odd) {\n  background-color: #fcfcfa;\n}" }],
+    });
+    const source2 = parsedTrussCss({
+      properties: [{ cssText: '@property --width { syntax: "*"; inherits: false; }', varName: "--width" }],
+      arbitraryCssBlocks: [{ cssText: ".grid td:nth-child(odd) {\n  background-color: #fcfcfa;\n}" }],
+    });
+
+    const merged = mergeTrussCss([source1, source2]);
+    const ruleIdx = merged.indexOf(".df {");
+    const propertyIdx = merged.indexOf("@property --width");
+    const firstArbitraryIdx = merged.indexOf("/* @truss arbitrary:start */");
+    const lastArbitraryIdx = merged.lastIndexOf("/* @truss arbitrary:start */");
+    expect(ruleIdx).toBeGreaterThanOrEqual(0);
+    expect(propertyIdx).toBeGreaterThan(ruleIdx);
+    expect(firstArbitraryIdx).toBeGreaterThan(propertyIdx);
+    expect(lastArbitraryIdx).toBeGreaterThan(firstArbitraryIdx);
   });
 
   test("round-trips through parse and merge", () => {
@@ -232,6 +272,11 @@ describe("mergeTrussCss", () => {
       ".h_blue:hover { color: #526675; }",
       "/* @truss @property */",
       '@property --marginTop { syntax: "*"; inherits: false; }',
+      "/* @truss arbitrary:start */",
+      ".zebra tbody tr:nth-child(even) td {",
+      "  background-color: #fcfcfa;",
+      "}",
+      "/* @truss arbitrary:end */",
     ].join("\n");
 
     const parsed = parseTrussCss(originalCss);
@@ -239,3 +284,11 @@ describe("mergeTrussCss", () => {
     expect(merged).toBe(originalCss);
   });
 });
+
+function parsedTrussCss(input: Partial<ParsedTrussCss>): ParsedTrussCss {
+  return {
+    rules: input.rules ?? [],
+    properties: input.properties ?? [],
+    arbitraryCssBlocks: input.arbitraryCssBlocks ?? [],
+  };
+}

@@ -1,10 +1,12 @@
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
-import { resolve, join, relative } from "path";
+import { resolve, join } from "path";
 import type { TrussMapping } from "./types";
 import type { AtomicRule } from "./emit-truss";
 import { generateCssText } from "./emit-truss";
 import { transformTruss } from "./transform";
+import { transformCssTs } from "./transform-css";
 import { loadMapping } from "./index";
+import { annotateArbitraryCssBlock } from "./merge-css";
 
 export interface TrussEsbuildPluginOptions {
   /** Path to the Css.json mapping file (relative to cwd or absolute). */
@@ -14,7 +16,8 @@ export interface TrussEsbuildPluginOptions {
 }
 
 /**
- * esbuild plugin that transforms `Css.*.$` expressions and emits a `truss.css` file.
+ * esbuild plugin that transforms `Css.*.$` expressions, collects `.css.ts` blocks,
+ * and emits a `truss.css` file.
  *
  * Designed for library builds using tsup/esbuild. Transforms source files
  * during the build and writes an annotated `truss.css` alongside the output
@@ -31,6 +34,7 @@ export interface TrussEsbuildPluginOptions {
  */
 export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
   const cssRegistry = new Map<string, AtomicRule>();
+  const arbitraryCssRegistry = new Map<string, string>();
   let mapping: TrussMapping | null = null;
   let outDir: string | undefined;
 
@@ -42,6 +46,22 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
 
       build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
+
+        if (args.path.endsWith(".css.ts")) {
+          if (!mapping) {
+            mapping = loadMapping(resolve(process.cwd(), opts.mapping));
+          }
+
+          const css = annotateArbitraryCssBlock(transformCssTs(code, args.path, mapping));
+          if (css.length > 0) {
+            arbitraryCssRegistry.set(args.path, css);
+          } else {
+            arbitraryCssRegistry.delete(args.path);
+          }
+
+          return { contents: code, loader: loaderForPath(args.path) };
+        }
+
         if (!code.includes("Css") && !code.includes("css=")) return undefined;
 
         if (!mapping) {
@@ -64,9 +84,12 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
       });
 
       build.onEnd(() => {
-        if (cssRegistry.size === 0) return;
+        if (cssRegistry.size === 0 && arbitraryCssRegistry.size === 0) return;
 
-        const css = generateCssText(cssRegistry);
+        const cssParts = [generateCssText(cssRegistry), ...arbitraryCssRegistry.values()].filter(
+          (part) => part.length > 0,
+        );
+        const css = cssParts.join("\n");
         const cssFileName = opts.outputCss ?? "truss.css";
         const cssPath = resolve(outDir ?? join(process.cwd(), "dist"), cssFileName);
 

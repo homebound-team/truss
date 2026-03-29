@@ -55,6 +55,84 @@ describe("trussEsbuildPlugin", () => {
     expect(result).toBeUndefined();
   });
 
+  test("collects .css.ts selectors and appends them after atomic CSS", () => {
+    const root = createTempRoot();
+    const outDir = join(root, "dist");
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+      black: { kind: "static", defs: { color: "#353535" } },
+    });
+
+    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
+    const { onLoadCallback, onEndCallback } = setupPlugin(plugin, outDir);
+
+    const cssTsSource = [
+      'import { Css } from "./Css";',
+      'export const zebraRows = "zebraRows";',
+      "export const css = {",
+      "  [`.${zebraRows} tbody tr:nth-child(even) td`]: Css.black.$,",
+      "};",
+    ].join("\n");
+
+    const cssTsResult = onLoadCallback({
+      path: join(root, "src", "DataGrid.css.ts"),
+      contents: cssTsSource,
+    });
+    expect(cssTsResult).toBeDefined();
+    expect(cssTsResult?.loader).toBe("ts");
+    expect(cssTsResult?.contents).toBe(cssTsSource);
+
+    onLoadCallback({
+      path: join(root, "src", "DataGrid.tsx"),
+      contents: `import { Css } from "./Css"; export const s = Css.df.$;`,
+    });
+
+    onEndCallback();
+
+    const css = readFileSync(join(outDir, "truss.css"), "utf8");
+    expect(css).toBe(
+      [
+        "/* @truss p:3000 c:df */",
+        ".df { display: flex; }",
+        "/* @truss arbitrary:start */",
+        ".zebraRows tbody tr:nth-child(even) td {",
+        "  color: #353535;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
+    );
+  });
+
+  test("collects raw-string .css.ts files without a Css import", () => {
+    const root = createTempRoot();
+    const outDir = join(root, "dist");
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
+    const { onLoadCallback, onEndCallback } = setupPlugin(plugin, outDir);
+
+    onLoadCallback({
+      path: join(root, "src", "App.css.ts"),
+      contents: `export const css = { body: "margin: 0;\\nfont-size: 14px !important;" };`,
+    });
+
+    onEndCallback();
+
+    const css = readFileSync(join(outDir, "truss.css"), "utf8");
+    expect(css).toBe(
+      [
+        "/* @truss arbitrary:start */",
+        "body {",
+        "  margin: 0;",
+        "  font-size: 14px !important;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
+    );
+  });
+
   test("writes truss.css on build end", () => {
     const root = createTempRoot();
     const outDir = join(root, "dist");
