@@ -1,3 +1,9 @@
+## [2.12.0](https://github.com/homebound-team/truss/compare/v2.11.3...v2.12.0) (2026-03-29)
+
+### Features
+
+* Add Css.raw for things like `!important`. ([#216](https://github.com/homebound-team/truss/issues/216)) ([8101538](https://github.com/homebound-team/truss/commit/81015381da964bb3bcfd74f5124fbf4527185051))
+
 ## [2.11.3](https://github.com/homebound-team/truss/compare/v2.11.2...v2.11.3) (2026-03-28)
 
 ### Bug Fixes
