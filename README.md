@@ -61,9 +61,11 @@ And a static, build-time generated CSS file:
 
 ## Quick Features
 
-- Inline CSS-in-JS that is build-time compiled to a single static CSS stylesheet.
+- Inline CSS-in-JS that is build-time compiled to a single static CSS stylesheet:
   - `<div css={Css.mt1.black.$}>` -> `<div class="mt1 black">`
+  - Zero runtime overhead for static styles 🚀 
   - Vite plugin emits a single `truss-(contenthash).css`, for optimal caching and performance
+  - Homebound's main 400k LOC React SPA has a 100kb uncompressed `truss.css` file
 
 - Naturally use dynamic values:
   - `Css.mt(someValue).$` or
@@ -103,7 +105,7 @@ And a static, build-time generated CSS file:
   - Just regular TypeScript (...with code-generation & build-time Vite plugins)
 
 - Why not Tailwinds?
-  - Our abbreviations are shorter 🩳 
+  - Our abbreviations are shorter 🩳
   - Composing styles property-by-property with POJO spreads instead of class name strings is more natural and less error-prone
   - Easier escape hatches to dynamic values & dynamic selectors
   - We just like Truss better 🤷 😀
