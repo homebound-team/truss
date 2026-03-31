@@ -1712,6 +1712,26 @@ describe("transform", () => {
     );
   });
 
+  test("conditional branch inherits earlier media and relationship context", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const row = Css.newMarker();
+      const s = Css.ifSm.when(row, "ancestor", ":hover").if(selected).blue.$;
+    `).toHaveTrussOutput(
+      `
+      const row = Css.newMarker();
+      const s = { ...(selected ? { color: "sm_wh_anc_h_row_blue" } : {}) };
+    `,
+      `
+        @media screen and (max-width: 599px) {
+          ._row_mrk:hover .sm_wh_anc_h_row_blue.sm_wh_anc_h_row_blue {
+            color: #526675;
+          }
+        }
+      `,
+    );
+  });
+
   test("conditional same-property replacement does not merge base class into branch", () => {
     // Css.bgBlue.if(selected).bgWhite.$ — when selected, bgWhite replaces bgBlue entirely.
     // The base class should NOT be merged into the then branch.
@@ -2316,6 +2336,48 @@ describe("transform", () => {
     `,
       `
       .wh_anyS_h_row_blue:has(~ ._row_mrk:hover), ._row_mrk:hover ~ .wh_anyS_h_row_blue {
+        color: #526675;
+      }
+    `,
+    );
+  });
+
+  test("Css.when(row, 'ancestor', ':hover').ifSm.blue.$", () => {
+    expectTrussTransform(
+      `
+      import { Css } from "./Css";
+      const row = Css.newMarker();
+      const s = Css.when(row, "ancestor", ":hover").ifSm.blue.$;
+    `,
+    ).toHaveTrussOutput(
+      `
+      const row = Css.newMarker();
+      const s = { color: "sm_wh_anc_h_row_blue" };
+    `,
+      `
+      @media screen and (max-width: 599px) {
+        ._row_mrk:hover .sm_wh_anc_h_row_blue.sm_wh_anc_h_row_blue {
+          color: #526675;
+        }
+      }
+    `,
+    );
+  });
+
+  test("Css.when(row, 'ancestor', ':hover').onFocus.blue.$", () => {
+    expectTrussTransform(
+      `
+      import { Css } from "./Css";
+      const row = Css.newMarker();
+      const s = Css.when(row, "ancestor", ":hover").onFocus.blue.$;
+    `,
+    ).toHaveTrussOutput(
+      `
+      const row = Css.newMarker();
+      const s = { color: "f_wh_anc_h_row_blue" };
+    `,
+      `
+      ._row_mrk:hover .f_wh_anc_h_row_blue:focus {
         color: #526675;
       }
     `,

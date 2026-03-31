@@ -26,11 +26,11 @@ const RELATIONSHIP_BASE: Record<string, number> = {
 /**
  * Compute the numeric priority for a single AtomicRule.
  *
- * I.e. `{ cssProperty: "border-top-color", pseudoClass: ":hover", mediaQuery: "@media ..." }`
- * → 4000 (physical longhand) + 130 (:hover) + 200 (@media) = 4330
+ * I.e. a rule with `declarations: [{ cssProperty: "border-top-color", ... }]`, `pseudoClass: ":hover"`,
+ * `mediaQuery: "@media ..."` → 4000 (physical longhand) + 130 (:hover) + 200 (@media) = 4330
  */
 export function computeRulePriority(rule: AtomicRule): number {
-  let priority = getPropertyPriority(rule.cssProperty);
+  let priority = getPropertyPriority(rule.declarations[0].cssProperty);
 
   if (rule.pseudoElement) {
     priority += PSEUDO_ELEMENT_PRIORITY;
@@ -60,10 +60,7 @@ export function computeRulePriority(rule: AtomicRule): number {
 
 /** Returns true if this rule uses CSS custom property var() values. */
 function isVariableRule(rule: AtomicRule): boolean {
-  if (rule.declarations) {
-    return rule.declarations.some((d) => d.cssVarName !== undefined);
-  }
-  return rule.cssVarName !== undefined;
+  return rule.declarations.some((d) => d.cssVarName !== undefined);
 }
 
 /**

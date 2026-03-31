@@ -18,14 +18,33 @@ function chain(segments: ResolvedSegment[]): ResolvedChain {
   return { parts: [{ type: "unconditional", segments }], markers: [], errors: [] };
 }
 
+/** Helper to build an AtomicRule from shorthand fields. */
+function rule(fields: {
+  className: string;
+  cssProperty: string;
+  cssValue: string;
+  cssVarName?: string;
+  pseudoClass?: string;
+  mediaQuery?: string;
+  pseudoElement?: string;
+  declarations?: AtomicRule["declarations"];
+  whenSelector?: AtomicRule["whenSelector"];
+}): AtomicRule {
+  const { className, cssProperty, cssValue, cssVarName, declarations, ...rest } = fields;
+  return {
+    className,
+    declarations: declarations ?? [{ cssProperty, cssValue, cssVarName }],
+    ...rest,
+  };
+}
+
 describe("collectAtomicRules", () => {
   test("static single-property segment", () => {
     const seg: ResolvedSegment = { abbr: "df", defs: { display: "flex" } };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("df")).toMatchObject({
       className: "df",
-      cssProperty: "display",
-      cssValue: "flex",
+      declarations: [{ cssProperty: "display", cssValue: "flex" }],
     });
   });
 
@@ -37,13 +56,11 @@ describe("collectAtomicRules", () => {
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("bs_solid")).toMatchObject({
       className: "bs_solid",
-      cssProperty: "border-style",
-      cssValue: "solid",
+      declarations: [{ cssProperty: "border-style", cssValue: "solid" }],
     });
     expect(rules.get("bw_1px")).toMatchObject({
       className: "bw_1px",
-      cssProperty: "border-width",
-      cssValue: "1px",
+      declarations: [{ cssProperty: "border-width", cssValue: "1px" }],
     });
   });
 
@@ -56,8 +73,7 @@ describe("collectAtomicRules", () => {
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("h_blue")).toMatchObject({
       className: "h_blue",
-      cssProperty: "color",
-      cssValue: "#526675",
+      declarations: [{ cssProperty: "color", cssValue: "#526675" }],
       pseudoClass: ":hover",
     });
   });
@@ -71,9 +87,28 @@ describe("collectAtomicRules", () => {
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("sm_blue")).toMatchObject({
       className: "sm_blue",
-      cssProperty: "color",
-      cssValue: "#526675",
+      declarations: [{ cssProperty: "color", cssValue: "#526675" }],
       mediaQuery: "@media screen and (max-width: 599px)",
+    });
+  });
+
+  test("static with media query and relationship selector", () => {
+    const seg: ResolvedSegment = {
+      abbr: "blue",
+      defs: { color: "#526675" },
+      mediaQuery: "@media screen and (max-width: 599px)",
+      whenPseudo: { relationship: "ancestor", pseudo: ":hover" },
+    };
+    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    expect(rules.get("sm_wh_anc_h_blue")).toMatchObject({
+      className: "sm_wh_anc_h_blue",
+      declarations: [{ cssProperty: "color", cssValue: "#526675" }],
+      mediaQuery: "@media screen and (max-width: 599px)",
+      whenSelector: {
+        relationship: "ancestor",
+        markerClass: "_mrk",
+        pseudo: ":hover",
+      },
     });
   });
 
@@ -86,8 +121,7 @@ describe("collectAtomicRules", () => {
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("placeholder_blue")).toMatchObject({
       className: "placeholder_blue",
-      cssProperty: "color",
-      cssValue: "#526675",
+      declarations: [{ cssProperty: "color", cssValue: "#526675" }],
       pseudoElement: "::placeholder",
     });
   });
@@ -104,9 +138,7 @@ describe("collectAtomicRules", () => {
     expect(result.needsMaybeInc).toBe(true);
     expect(result.rules.get("mt_var")).toMatchObject({
       className: "mt_var",
-      cssProperty: "margin-top",
-      cssValue: "var(--marginTop)",
-      cssVarName: "--marginTop",
+      declarations: [{ cssProperty: "margin-top", cssValue: "var(--marginTop)", cssVarName: "--marginTop" }],
     });
   });
 
@@ -121,9 +153,6 @@ describe("collectAtomicRules", () => {
     const result = collectAtomicRules([chain([seg])], testMapping);
     expect(result.rules.get("sq_var")).toMatchObject({
       className: "sq_var",
-      cssProperty: "height",
-      cssValue: "var(--height)",
-      cssVarName: "--height",
       declarations: [
         { cssProperty: "height", cssValue: "var(--height)", cssVarName: "--height" },
         { cssProperty: "width", cssValue: "var(--width)", cssVarName: "--width" },
@@ -142,10 +171,8 @@ describe("collectAtomicRules", () => {
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("h_bc_var")).toMatchObject({
       className: "h_bc_var",
-      cssProperty: "border-color",
-      cssValue: "var(--h_borderColor)",
+      declarations: [{ cssProperty: "border-color", cssValue: "var(--h_borderColor)", cssVarName: "--h_borderColor" }],
       pseudoClass: ":hover",
-      cssVarName: "--h_borderColor",
     });
   });
 
@@ -158,8 +185,7 @@ describe("collectAtomicRules", () => {
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("h_n_d_black")).toMatchObject({
       className: "h_n_d_black",
-      cssProperty: "color",
-      cssValue: "#353535",
+      declarations: [{ cssProperty: "color", cssValue: "#353535" }],
       pseudoClass: ":hover:not(:disabled)",
     });
   });
@@ -167,14 +193,16 @@ describe("collectAtomicRules", () => {
 
 describe("generateCssText", () => {
   test("base rule with annotation", () => {
-    const rules = new Map<string, AtomicRule>([["df", { className: "df", cssProperty: "display", cssValue: "flex" }]]);
+    const rules = new Map<string, AtomicRule>([
+      ["df", rule({ className: "df", cssProperty: "display", cssValue: "flex" })],
+    ]);
     const css = generateCssText(rules);
     expect(css).toBe("/* @truss p:3000 c:df */\n.df { display: flex; }");
   });
 
   test("pseudo-class rule", () => {
     const rules = new Map<string, AtomicRule>([
-      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "#526675", pseudoClass: ":hover" }],
+      ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "#526675", pseudoClass: ":hover" })],
     ]);
     const css = generateCssText(rules);
     expect(css).toBe("/* @truss p:3130 c:h_blue */\n.h_blue:hover { color: #526675; }");
@@ -184,12 +212,12 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "sm_blue",
-        {
+        rule({
           className: "sm_blue",
           cssProperty: "color",
           cssValue: "#526675",
           mediaQuery: "@media screen and (max-width: 599px)",
-        },
+        }),
       ],
     ]);
     const css = generateCssText(rules);
@@ -202,13 +230,13 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "sm_h_blue",
-        {
+        rule({
           className: "sm_h_blue",
           cssProperty: "color",
           cssValue: "#526675",
           mediaQuery: "@media screen and (max-width: 599px)",
           pseudoClass: ":hover",
-        },
+        }),
       ],
     ]);
     const css = generateCssText(rules);
@@ -217,16 +245,40 @@ describe("generateCssText", () => {
     );
   });
 
+  test("media + relationship + pseudo keeps all selector axes", () => {
+    const rules = new Map<string, AtomicRule>([
+      [
+        "sm_f_wh_anc_h_blue",
+        rule({
+          className: "sm_f_wh_anc_h_blue",
+          cssProperty: "color",
+          cssValue: "#526675",
+          mediaQuery: "@media screen and (max-width: 599px)",
+          pseudoClass: ":focus",
+          whenSelector: {
+            relationship: "ancestor",
+            markerClass: "_mrk",
+            pseudo: ":hover",
+          },
+        }),
+      ],
+    ]);
+    const css = stripAnnotations(generateCssText(rules));
+    expect(css).toBe(
+      "@media screen and (max-width: 599px) { ._mrk:hover .sm_f_wh_anc_h_blue.sm_f_wh_anc_h_blue:focus { color: #526675; } }",
+    );
+  });
+
   test("pseudo-element rule", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "placeholder_blue",
-        {
+        rule({
           className: "placeholder_blue",
           cssProperty: "color",
           cssValue: "#526675",
           pseudoElement: "::placeholder",
-        },
+        }),
       ],
     ]);
     const css = generateCssText(rules);
@@ -237,12 +289,12 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "h_n_d_black",
-        {
+        rule({
           className: "h_n_d_black",
           cssProperty: "color",
           cssValue: "#353535",
           pseudoClass: ":hover:not(:disabled)",
-        },
+        }),
       ],
     ]);
     const css = generateCssText(rules);
@@ -253,12 +305,12 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "mt_var",
-        {
+        rule({
           className: "mt_var",
           cssProperty: "margin-top",
           cssValue: "var(--marginTop)",
           cssVarName: "--marginTop",
-        },
+        }),
       ],
     ]);
     const css = generateCssText(rules);
@@ -276,7 +328,7 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "sq_var",
-        {
+        rule({
           className: "sq_var",
           cssProperty: "height",
           cssValue: "var(--height)",
@@ -285,7 +337,7 @@ describe("generateCssText", () => {
             { cssProperty: "height", cssValue: "var(--height)", cssVarName: "--height" },
             { cssProperty: "width", cssValue: "var(--width)", cssVarName: "--width" },
           ],
-        },
+        }),
       ],
     ]);
     const css = generateCssText(rules);
@@ -305,15 +357,15 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "sm_blue",
-        {
+        rule({
           className: "sm_blue",
           cssProperty: "color",
           cssValue: "blue",
           mediaQuery: "@media screen and (max-width: 599px)",
-        },
+        }),
       ],
-      ["black", { className: "black", cssProperty: "color", cssValue: "black" }],
-      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
+      ["black", rule({ className: "black", cssProperty: "color", cssValue: "black" })],
+      ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const baseIdx = css.indexOf(".black {");
@@ -327,14 +379,14 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "w_var",
-        {
+        rule({
           className: "w_var",
           cssProperty: "width",
           cssValue: "var(--width)",
           cssVarName: "--width",
-        },
+        }),
       ],
-      ["w100", { className: "w100", cssProperty: "width", cssValue: "100%" }],
+      ["w100", rule({ className: "w100", cssProperty: "width", cssValue: "100%" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const staticIdx = css.indexOf(".w100 {");
@@ -344,9 +396,9 @@ describe("generateCssText", () => {
 
   test("pseudo ordering: hover before focus before active", () => {
     const rules = new Map<string, AtomicRule>([
-      ["a_red", { className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" }],
-      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
-      ["f_green", { className: "f_green", cssProperty: "color", cssValue: "green", pseudoClass: ":focus" }],
+      ["a_red", rule({ className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" })],
+      ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" })],
+      ["f_green", rule({ className: "f_green", cssProperty: "color", cssValue: "green", pseudoClass: ":focus" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const hoverIdx = css.indexOf(".h_blue:hover");
@@ -358,8 +410,8 @@ describe("generateCssText", () => {
 
   test("shorthand border-color emits before longhand border-top-color", () => {
     const rules = new Map<string, AtomicRule>([
-      ["btc_red", { className: "btc_red", cssProperty: "border-top-color", cssValue: "red" }],
-      ["bc_white", { className: "bc_white", cssProperty: "border-color", cssValue: "white" }],
+      ["btc_red", rule({ className: "btc_red", cssProperty: "border-top-color", cssValue: "red" })],
+      ["bc_white", rule({ className: "bc_white", cssProperty: "border-color", cssValue: "white" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const bcIdx = css.indexOf(".bc_white {");
@@ -371,21 +423,21 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       [
         "btc_var",
-        {
+        rule({
           className: "btc_var",
           cssProperty: "border-top-color",
           cssValue: "var(--borderTopColor)",
           cssVarName: "--borderTopColor",
-        },
+        }),
       ],
       [
         "bc_var",
-        {
+        rule({
           className: "bc_var",
           cssProperty: "border-color",
           cssValue: "var(--borderColor)",
           cssVarName: "--borderColor",
-        },
+        }),
       ],
     ]);
     const css = stripAnnotations(generateCssText(rules));
@@ -396,8 +448,8 @@ describe("generateCssText", () => {
 
   test("shorthand margin emits before longhand margin-top", () => {
     const rules = new Map<string, AtomicRule>([
-      ["mt0", { className: "mt0", cssProperty: "margin-top", cssValue: "0" }],
-      ["m0", { className: "m0", cssProperty: "margin", cssValue: "0" }],
+      ["mt0", rule({ className: "mt0", cssProperty: "margin-top", cssValue: "0" })],
+      ["m0", rule({ className: "m0", cssProperty: "margin", cssValue: "0" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const mIdx = css.indexOf(".m0 {");
@@ -407,8 +459,8 @@ describe("generateCssText", () => {
 
   test("shorthand padding emits before padding-left", () => {
     const rules = new Map<string, AtomicRule>([
-      ["pl8", { className: "pl8", cssProperty: "padding-left", cssValue: "8px" }],
-      ["p0", { className: "p0", cssProperty: "padding", cssValue: "0" }],
+      ["pl8", rule({ className: "pl8", cssProperty: "padding-left", cssValue: "8px" })],
+      ["p0", rule({ className: "p0", cssProperty: "padding", cssValue: "0" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const pIdx = css.indexOf(".p0 {");
@@ -418,9 +470,9 @@ describe("generateCssText", () => {
 
   test("border (shorthand-of-shorthands) before border-color (shorthand-of-longhands) before border-top-color (longhand)", () => {
     const rules = new Map<string, AtomicRule>([
-      ["btc_red", { className: "btc_red", cssProperty: "border-top-color", cssValue: "red" }],
-      ["bc_blue", { className: "bc_blue", cssProperty: "border-color", cssValue: "blue" }],
-      ["b_none", { className: "b_none", cssProperty: "border", cssValue: "none" }],
+      ["btc_red", rule({ className: "btc_red", cssProperty: "border-top-color", cssValue: "red" })],
+      ["bc_blue", rule({ className: "bc_blue", cssProperty: "border-color", cssValue: "blue" })],
+      ["b_none", rule({ className: "b_none", cssProperty: "border", cssValue: "none" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const borderIdx = css.indexOf(".b_none {");
@@ -432,14 +484,14 @@ describe("generateCssText", () => {
 
   test("same-priority rules are deterministic regardless of insertion order", () => {
     const rulesForward = new Map<string, AtomicRule>([
-      ["absolute", { className: "absolute", cssProperty: "position", cssValue: "absolute" }],
-      ["bgBlue700", { className: "bgBlue700", cssProperty: "background-color", cssValue: "blue" }],
-      ["bgWhite", { className: "bgWhite", cssProperty: "background-color", cssValue: "white" }],
+      ["absolute", rule({ className: "absolute", cssProperty: "position", cssValue: "absolute" })],
+      ["bgBlue700", rule({ className: "bgBlue700", cssProperty: "background-color", cssValue: "blue" })],
+      ["bgWhite", rule({ className: "bgWhite", cssProperty: "background-color", cssValue: "white" })],
     ]);
     const rulesReverse = new Map<string, AtomicRule>([
-      ["bgWhite", { className: "bgWhite", cssProperty: "background-color", cssValue: "white" }],
-      ["bgBlue700", { className: "bgBlue700", cssProperty: "background-color", cssValue: "blue" }],
-      ["absolute", { className: "absolute", cssProperty: "position", cssValue: "absolute" }],
+      ["bgWhite", rule({ className: "bgWhite", cssProperty: "background-color", cssValue: "white" })],
+      ["bgBlue700", rule({ className: "bgBlue700", cssProperty: "background-color", cssValue: "blue" })],
+      ["absolute", rule({ className: "absolute", cssProperty: "position", cssValue: "absolute" })],
     ]);
     // Both insertion orders must produce the same output
     expect(generateCssText(rulesForward)).toBe(generateCssText(rulesReverse));
@@ -454,9 +506,9 @@ describe("generateCssText", () => {
 
   test("disabled pseudo-class sorts after hover and active", () => {
     const rules = new Map<string, AtomicRule>([
-      ["d_gray", { className: "d_gray", cssProperty: "color", cssValue: "gray", pseudoClass: ":disabled" }],
-      ["h_blue", { className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" }],
-      ["a_red", { className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" }],
+      ["d_gray", rule({ className: "d_gray", cssProperty: "color", cssValue: "gray", pseudoClass: ":disabled" })],
+      ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" })],
+      ["a_red", rule({ className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" })],
     ]);
     const css = stripAnnotations(generateCssText(rules));
     const hoverIdx = css.indexOf(".h_blue:hover");
@@ -470,14 +522,16 @@ describe("generateCssText", () => {
 
 describe("computeRulePriority", () => {
   test("property tiers: shorthand-of-shorthands < shorthand-of-longhands < longhand < physical longhand", () => {
-    const border = computeRulePriority({ className: "b", cssProperty: "border", cssValue: "none" });
-    const borderColor = computeRulePriority({ className: "bc", cssProperty: "border-color", cssValue: "white" });
-    const color = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
-    const borderTopColor = computeRulePriority({
-      className: "btc",
-      cssProperty: "border-top-color",
-      cssValue: "red",
-    });
+    const border = computeRulePriority(rule({ className: "b", cssProperty: "border", cssValue: "none" }));
+    const borderColor = computeRulePriority(rule({ className: "bc", cssProperty: "border-color", cssValue: "white" }));
+    const color = computeRulePriority(rule({ className: "c", cssProperty: "color", cssValue: "red" }));
+    const borderTopColor = computeRulePriority(
+      rule({
+        className: "btc",
+        cssProperty: "border-top-color",
+        cssValue: "red",
+      }),
+    );
     expect(border).toBe(1000);
     expect(borderColor).toBe(2000);
     expect(color).toBe(3000);
@@ -485,49 +539,61 @@ describe("computeRulePriority", () => {
   });
 
   test("pseudo-class adds to property priority", () => {
-    const base = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
-    const hover = computeRulePriority({
-      className: "h_c",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":hover",
-    });
-    const active = computeRulePriority({
-      className: "a_c",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":active",
-    });
+    const base = computeRulePriority(rule({ className: "c", cssProperty: "color", cssValue: "red" }));
+    const hover = computeRulePriority(
+      rule({
+        className: "h_c",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":hover",
+      }),
+    );
+    const active = computeRulePriority(
+      rule({
+        className: "a_c",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":active",
+      }),
+    );
     expect(base).toBe(3000);
     expect(hover).toBe(3130);
     expect(active).toBe(3170);
   });
 
   test("pseudo-class priority normalizes camelCase and kebab-case names", () => {
-    const focusWithin = computeRulePriority({
-      className: "fw_c",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":focus-within",
-    });
-    const focusWithinCamel = computeRulePriority({
-      className: "fw_c_alt",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":focusWithin",
-    });
-    const focusVisible = computeRulePriority({
-      className: "fv_c",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":focus-visible",
-    });
-    const focusVisibleCamel = computeRulePriority({
-      className: "fv_c_alt",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":focusVisible",
-    });
+    const focusWithin = computeRulePriority(
+      rule({
+        className: "fw_c",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":focus-within",
+      }),
+    );
+    const focusWithinCamel = computeRulePriority(
+      rule({
+        className: "fw_c_alt",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":focusWithin",
+      }),
+    );
+    const focusVisible = computeRulePriority(
+      rule({
+        className: "fv_c",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":focus-visible",
+      }),
+    );
+    const focusVisibleCamel = computeRulePriority(
+      rule({
+        className: "fv_c_alt",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":focusVisible",
+      }),
+    );
     expect(focusWithin).toBe(3140);
     expect(focusWithinCamel).toBe(3140);
     expect(focusVisible).toBe(3160);
@@ -535,66 +601,78 @@ describe("computeRulePriority", () => {
   });
 
   test("custom pseudo selectors use the leading pseudo for priority", () => {
-    const priority = computeRulePriority({
-      className: "h_n_d_c",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":hover:not(:disabled)",
-    });
+    const priority = computeRulePriority(
+      rule({
+        className: "h_n_d_c",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":hover:not(:disabled)",
+      }),
+    );
     expect(priority).toBe(3130);
   });
 
   test("media query adds 200", () => {
-    const base = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
-    const media = computeRulePriority({
-      className: "sm_c",
-      cssProperty: "color",
-      cssValue: "red",
-      mediaQuery: "@media (max-width: 599px)",
-    });
+    const base = computeRulePriority(rule({ className: "c", cssProperty: "color", cssValue: "red" }));
+    const media = computeRulePriority(
+      rule({
+        className: "sm_c",
+        cssProperty: "color",
+        cssValue: "red",
+        mediaQuery: "@media (max-width: 599px)",
+      }),
+    );
     expect(media - base).toBe(200);
   });
 
   test("pseudo-element adds 5000", () => {
-    const base = computeRulePriority({ className: "c", cssProperty: "color", cssValue: "red" });
-    const pe = computeRulePriority({
-      className: "ph_c",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoElement: "::placeholder",
-    });
+    const base = computeRulePriority(rule({ className: "c", cssProperty: "color", cssValue: "red" }));
+    const pe = computeRulePriority(
+      rule({
+        className: "ph_c",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoElement: "::placeholder",
+      }),
+    );
     expect(pe - base).toBe(5000);
   });
 
   test("additive composition: hover + media", () => {
-    const priority = computeRulePriority({
-      className: "sm_h_c",
-      cssProperty: "color",
-      cssValue: "red",
-      pseudoClass: ":hover",
-      mediaQuery: "@media (max-width: 599px)",
-    });
+    const priority = computeRulePriority(
+      rule({
+        className: "sm_h_c",
+        cssProperty: "color",
+        cssValue: "red",
+        pseudoClass: ":hover",
+        mediaQuery: "@media (max-width: 599px)",
+      }),
+    );
     // 3000 (longhand) + 130 (:hover) + 200 (@media)
     expect(priority).toBe(3330);
   });
 
   test("variable rules get +0.5 to sort after static rules for same property", () => {
-    const staticRule = computeRulePriority({ className: "w100", cssProperty: "width", cssValue: "100%" });
-    const varRule = computeRulePriority({
-      className: "w_var",
-      cssProperty: "width",
-      cssValue: "var(--width)",
-      cssVarName: "--width",
-    });
+    const staticRule = computeRulePriority(rule({ className: "w100", cssProperty: "width", cssValue: "100%" }));
+    const varRule = computeRulePriority(
+      rule({
+        className: "w_var",
+        cssProperty: "width",
+        cssValue: "var(--width)",
+        cssVarName: "--width",
+      }),
+    );
     expect(varRule).toBe(staticRule + 0.5);
   });
 
   test("unknown properties default to 3000 (longhand)", () => {
-    const priority = computeRulePriority({
-      className: "custom",
-      cssProperty: "some-unknown-property",
-      cssValue: "value",
-    });
+    const priority = computeRulePriority(
+      rule({
+        className: "custom",
+        cssProperty: "some-unknown-property",
+        cssValue: "value",
+      }),
+    );
     expect(priority).toBe(3000);
   });
 });

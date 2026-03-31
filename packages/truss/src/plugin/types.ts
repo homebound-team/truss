@@ -6,6 +6,21 @@ export interface TrussMapping {
   abbreviations: Record<string, TrussMappingEntry>;
 }
 
+/** A `when()` relationship selector context that can stack with other condition axes. */
+export interface WhenCondition {
+  pseudo: string;
+  markerNode?: any;
+  relationship?: string;
+}
+
+/** The active modifier axes while resolving a Css chain. */
+export interface ResolvedConditionContext {
+  mediaQuery: string | null;
+  pseudoClass: string | null;
+  pseudoElement: string | null;
+  whenPseudo: WhenCondition | null;
+}
+
 /**
  * A single abbreviation entry from `Css.json`.
  *
@@ -25,9 +40,9 @@ export type TrussMappingEntry =
  * A resolved chain segment — one abbreviation resolved to its CSS effect.
  *
  * The `defs` field always contains flat CSS property/value pairs (e.g. `{ color: "#353535" }`).
- * Condition context (media query, pseudo-class, pseudo-element) is tracked via separate fields,
- * NOT nested into defs. Consumers use the condition fields for class name prefixing and CSS rule
- * generation.
+ * Condition context (media query, pseudo-class, pseudo-element, relationship selector) is tracked
+ * via separate fields, NOT nested into defs. Consumers use the condition fields for class name
+ * prefixing and CSS rule generation.
  */
 export interface ResolvedSegment {
   /** The abbreviation name, i.e. "df", "black", "mt", "ba". */
@@ -41,7 +56,7 @@ export interface ResolvedSegment {
   /** If inside a pseudo-element context (e.g. "::placeholder", "::selection"). */
   pseudoElement?: string | null;
   /** If inside a `when()` relationship selector context, the relationship + pseudo selector info. */
-  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string };
+  whenPseudo?: WhenCondition | null;
   /** For variable entries: the CSS prop names. */
   variableProps?: string[];
   /** For variable entries: whether the value uses maybeInc. */

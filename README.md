@@ -63,7 +63,7 @@ And a static, build-time generated CSS file:
 
 - Inline CSS-in-JS that is build-time compiled to a single static CSS stylesheet:
   - `<div css={Css.mt1.black.$}>` -> `<div class="mt1 black">`
-  - Zero runtime overhead for static styles 🚀 
+  - Zero runtime overhead for static styles 🚀
   - Vite plugin emits a single `truss-(contenthash).css`, for optimal caching and performance
   - Homebound's main 400k LOC React SPA has a 100kb uncompressed `truss.css` file
 
@@ -350,6 +350,9 @@ Instead, Truss provides chain commands like `onHover`, `ifSm`, and `ifMd` that t
 
 ```tsx
 function MyReactComponent(props: {}) {
+  // Default is mx2/black.
+  // ...unless hovered, then blue
+  // ...unless hovered & small screen, then blue & mx1
   return <div css={Css.mx2.black.onHover.blue.ifSm.mx1.$}>...</div>;
 }
 ```
@@ -380,6 +383,44 @@ const row = Css.newMarker();
 <tr css={Css.markerOf(row).$}>
   <td css={Css.when(row, "ancestor", ":hover").blue.$}>...</td>
 </tr>;
+```
+
+### Chaining Modifiers
+
+Truss reads `Css...$` chains left-to-right.
+
+Conditions accumulate by "axis", and only the latest modifier on the same axis replaces the previous one.
+
+The available axes are:
+
+| Modifier | Description                         |
+| -------- |-------------------------------------|
+| `if(cond)` / `else` | Starts a runtime boolean branch     |
+| `ifSm`, `ifMd`, `if("@media ...")` | Sets the active media-query         |
+| `onHover`, `onFocus`, `when(":hover")` | Sets the "this element" selector    |
+| `when(marker, "ancestor", ":hover")`   | Sets the "related element" selector |
+| `element("::placeholder")`             | Sets the pseudo-element             |
+
+Examples:
+
+```tsx
+Css.ifSm.onHover.blue.$;
+// small screens && hover => blue
+
+Css.ifSm.if(selected).blue.$;
+// small screens && hovered => blue
+
+Css.ifSm.black.else.white.$;
+// small screens => black, others => white
+
+Css.ifSm.when(row, "ancestor", ":hover").blue.$;
+// small screens && ancestor hovered => blue
+
+Css.when(row, "ancestor", ":hover").onFocus.blue.$;
+// ancestor hovered && element focused => blue
+
+Css.onHover.onFocus.blue.$;
+// last same-element pseudo wins (:focus)
 ```
 
 ## Arbitrary _Build-time_ Selectors
@@ -570,6 +611,8 @@ const row = Css.newMarker();
   <td css={Css.when(row, "ancestor", ":hover").blue.$}>...</td>
 </tr>;
 ```
+
+See [Chaining Modifiers](#chaining-modifiers) for how boolean `if(...)`, breakpoint `ifSm`, and `when(...)` stack and reset.
 
 ## Custom Selectors with `.css.ts` and `Css.className(...)`
 
