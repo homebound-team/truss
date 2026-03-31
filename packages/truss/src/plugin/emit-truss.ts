@@ -1,27 +1,37 @@
 import * as t from "@babel/types";
 import type { ResolvedChain } from "./resolve-chain";
-import type { ResolvedSegment, TrussMapping } from "./types";
+import type { ResolvedSegment, TrussMapping, WhenCondition } from "./types";
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 
-// -- Atomic CSS rule model --
+// ── Atomic CSS rule model ─────────────────────────────────────────────
 
-/** A single atomic CSS rule: one class, one selector, one or more declarations. */
+/**
+ * A single atomic CSS rule: one class, one selector, one or more declarations.
+ *
+ * I.e. `.black { color: #353535; }` is one AtomicRule with a single declaration,
+ * while `sq(x)` produces one AtomicRule with two declarations (`height` + `width`).
+ */
 export interface AtomicRule {
+  /** I.e. `"sm_h_blue"` — the generated class name including condition prefixes. */
   className: string;
-  cssProperty: string;
-  cssValue: string;
-  declarations?: Array<{
+  /**
+   * The CSS property/value pairs this rule sets. Always has at least one entry.
+   *
+   * I.e. `[{ cssProperty: "color", cssValue: "#526675" }]` for a static rule, or
+   * `[{ cssProperty: "height", cssValue: "var(--height)", cssVarName: "--height" },
+   *   { cssProperty: "width", cssValue: "var(--width)", cssVarName: "--width" }]` for `sq(x)`.
+   */
+  declarations: Array<{
     cssProperty: string;
     cssValue: string;
+    /** I.e. `"--marginTop"` — present when this declaration uses a CSS custom property. */
     cssVarName?: string;
   }>;
   pseudoClass?: string;
   mediaQuery?: string;
   pseudoElement?: string;
-  /** If true, this is a `var(--name)` rule that needs an `@property` declaration. */
-  cssVarName?: string;
-  /** For when() rules: the relationship selector context. */
+  /** I.e. `when(row, "ancestor", ":hover")` → `{ relationship: "ancestor", markerClass: "_row_mrk", pseudo: ":hover" }`. */
   whenSelector?: {
     relationship: string;
     markerClass: string;
@@ -29,7 +39,9 @@ export interface AtomicRule {
   };
 }
 
-/** Pseudo-class short suffixes for class naming. */
+// ── Class-name constants and abbreviation maps ────────────────────────
+
+/** I.e. `:hover` → `_h`, `:focus-visible` → `_fv`. */
 const PSEUDO_SUFFIX: Record<string, string> = {
   ":hover": "_h",
   ":focus": "_f",
@@ -41,7 +53,7 @@ const PSEUDO_SUFFIX: Record<string, string> = {
   ":last-of-type": "_lot",
 };
 
-/** Extra pseudo selector abbreviations used when() class names need static-but-safe tokens. */
+/** I.e. extends PSEUDO_SUFFIX with `:not` → `_n`, `:has` → `_has` for when() class tokens. */
 const PSEUDO_SELECTOR_SUFFIX: Record<string, string> = {
   ...PSEUDO_SUFFIX,
   ":not": "_n",
@@ -50,7 +62,7 @@ const PSEUDO_SELECTOR_SUFFIX: Record<string, string> = {
   ":has": "_has",
 };
 
-/** Short abbreviations for relationship types in when() class names. */
+/** I.e. `"ancestor"` → `"anc"`, `"siblingAfter"` → `"sibA"`. */
 const RELATIONSHIP_SHORT: Record<string, string> = {
   ancestor: "anc",
   descendant: "desc",
@@ -59,10 +71,12 @@ const RELATIONSHIP_SHORT: Record<string, string> = {
   anySibling: "anyS",
 };
 
-/** Default marker class name (used when no explicit marker is provided). */
+// ── Marker class helpers ──────────────────────────────────────────────
+
+/** I.e. the shared default marker class is `_mrk`. */
 export const DEFAULT_MARKER_CLASS = "_mrk";
 
-/** Derive a marker class name from a marker AST node (or use the default). */
+/** I.e. `markerClassName(row)` → `"_row_mrk"`, `markerClassName()` → `"_mrk"`. */
 export function markerClassName(markerNode?: { type: string; name?: string }): string {
   if (!markerNode) return DEFAULT_MARKER_CLASS;
   if (markerNode.type === "Identifier" && markerNode.name) {
@@ -71,54 +85,21 @@ export function markerClassName(markerNode?: { type: string; name?: string }): s
   return "_marker_mrk";
 }
 
-/**
- * Build a when() class name prefix from whenPseudo info.
- *
- * I.e. `when(marker, "ancestor", ":hover")` → `"wh_anc_h_"`,
- * `when(row, "ancestor", ":hover")` → `"wh_anc_h_row_"`.
- */
-function whenPrefix(whenPseudo: { pseudo: string; markerNode?: any; relationship?: string }): string {
+// ── Class-name prefix builders ────────────────────────────────────────
+
+/** I.e. `when(marker, "ancestor", ":hover")` → `"wh_anc_h_"`, `when(row, …)` → `"wh_anc_h_row_"`. */
+function whenPrefix(whenPseudo: WhenCondition): string {
   const rel = RELATIONSHIP_SHORT[whenPseudo.relationship ?? "ancestor"] ?? "anc";
   const pseudoTag = pseudoSelectorTag(whenPseudo.pseudo);
   const markerPart = whenPseudo.markerNode?.type === "Identifier" ? `${whenPseudo.markerNode.name}_` : "";
   return `wh_${rel}_${pseudoTag}_${markerPart}`;
 }
 
-/** Convert a pseudo selector into a safe class-name token while preserving raw selector emission. */
-function pseudoSelectorTag(pseudo: string): string {
-  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, (match) => {
-    return `_${pseudoIdentifierTag(match)}_`;
-  });
-  const cleaned = replaced
-    .replace(/[^a-zA-Z0-9]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-  return cleaned || "pseudo";
-}
-
-function pseudoIdentifierTag(pseudo: string): string {
-  const normalized = normalizePseudoIdentifier(pseudo);
-  const known = PSEUDO_SELECTOR_SUFFIX[normalized];
-  if (known) {
-    return known.replace(/^_/, "");
-  }
-  return normalized.replace(/^::?/, "").replace(/-/g, "_");
-}
-
-function normalizePseudoIdentifier(pseudo: string): string {
-  const prefixMatch = pseudo.match(/^::?/);
-  const prefix = prefixMatch?.[0] ?? "";
-  const name = pseudo.slice(prefix.length).replace(/[A-Z]/g, (match) => {
-    return `-${match.toLowerCase()}`;
-  });
-  return `${prefix}${name}`;
-}
-
 /**
  * Build a condition prefix string for class naming.
  *
- * Conditions are prefixed so class names read naturally in the DOM:
- * I.e. `h_bgBlack` reads as "on hover, bgBlack".
+ * I.e. `conditionPrefix(":hover", smMedia, null, breakpoints)` → `"sm_h_"`,
+ * so the final class reads `sm_h_bgBlack` ("on sm + hover, bgBlack").
  */
 function conditionPrefix(
   pseudoClass: string | null | undefined,
@@ -132,7 +113,7 @@ function conditionPrefix(
     parts.push(`${pseudoElement.replace(/^::/, "")}_`);
   }
   if (mediaQuery && breakpoints) {
-    // Find breakpoint name, i.e. "ifSm" → "sm_"
+    // I.e. find breakpoint name: "ifSm" → "sm_"
     const bpKey = Object.entries(breakpoints).find(([, v]) => v === mediaQuery)?.[0];
     if (bpKey) {
       const shortName = bpKey.replace(/^if/, "").toLowerCase();
@@ -149,14 +130,49 @@ function conditionPrefix(
   return parts.join("");
 }
 
-/** Convert camelCase CSS property to kebab-case (handles vendor prefixes like WebkitTransform). */
+// ── Pseudo-selector tokenizers ────────────────────────────────────────
+
+/** I.e. `":hover:not(:disabled)"` → `"h_n_d"` (a safe class-name token). */
+function pseudoSelectorTag(pseudo: string): string {
+  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, (match) => {
+    return `_${pseudoIdentifierTag(match)}_`;
+  });
+  const cleaned = replaced
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  return cleaned || "pseudo";
+}
+
+/** I.e. `":hover"` → `"h"`, `":focus-visible"` → `"fv"`, `":first-of-type"` → `"fot"`. */
+function pseudoIdentifierTag(pseudo: string): string {
+  const normalized = normalizePseudoIdentifier(pseudo);
+  const known = PSEUDO_SELECTOR_SUFFIX[normalized];
+  if (known) {
+    return known.replace(/^_/, "");
+  }
+  return normalized.replace(/^::?/, "").replace(/-/g, "_");
+}
+
+/** I.e. `":focusVisible"` → `":focus-visible"` (camelCase → kebab-case after the colon prefix). */
+function normalizePseudoIdentifier(pseudo: string): string {
+  const prefixMatch = pseudo.match(/^::?/);
+  const prefix = prefixMatch?.[0] ?? "";
+  const name = pseudo.slice(prefix.length).replace(/[A-Z]/g, (match) => {
+    return `-${match.toLowerCase()}`;
+  });
+  return `${prefix}${name}`;
+}
+
+// ── CSS property / value helpers ──────────────────────────────────────
+
+/** I.e. `"backgroundColor"` → `"background-color"`, `"WebkitTransform"` → `"-webkit-transform"`. */
 export function camelToKebab(s: string): string {
   return s.replace(/^(Webkit|Moz|Ms|O)/, (m) => `-${m.toLowerCase()}`).replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }
 
-/** Clean a CSS value for use in a class name. */
+/** I.e. `"-8px"` → `"neg8px"`, `"0 0 0 1px blue"` → `"0_0_0_1px_blue"`. */
 function cleanValueForClassName(value: string): string {
-  // I.e. -8px → neg8px, 16px → 16px, "0 0 0 1px blue" → 0_0_0_1px_blue
   let cleaned = value;
   if (cleaned.startsWith("-")) {
     cleaned = "neg" + cleaned.slice(1);
@@ -167,12 +183,18 @@ function cleanValueForClassName(value: string): string {
     .replace(/^_|_$/g, "");
 }
 
+/** I.e. `"backgroundColor"` → `"bg"` (from the abbreviation table), or the raw name as fallback. */
+function getPropertyAbbreviation(cssProp: string): string {
+  return cssPropertyAbbreviations[cssProp] ?? cssProp;
+}
+
+// ── Longhand lookup (canonical abbreviation reuse) ────────────────────
+
 /**
  * Build a reverse lookup from `"cssProperty\0cssValue"` → canonical abbreviation name.
  *
- * For each single-property static abbreviation in the mapping, records the
- * canonical name so multi-property abbreviations can reuse it.
  * I.e. `{ paddingTop: "8px" }` → `"pt1"`, `{ borderStyle: "solid" }` → `"bss"`.
+ * Used so multi-property abbreviations can reuse existing single-property class names.
  */
 function buildLonghandLookup(mapping: TrussMapping): Map<string, string> {
   const lookup = new Map<string, string>();
@@ -196,7 +218,7 @@ function buildLonghandLookup(mapping: TrussMapping): Map<string, string> {
 let cachedMapping: TrussMapping | null = null;
 let cachedLookup: Map<string, string> | null = null;
 
-/** Get or build the longhand lookup for a mapping. */
+/** I.e. returns the cached `buildLonghandLookup` result, rebuilding only when the mapping changes. */
 function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
   if (cachedMapping !== mapping) {
     cachedMapping = mapping;
@@ -205,10 +227,7 @@ function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
   return cachedLookup!;
 }
 
-/** Get the short abbreviation for a CSS property, falling back to the raw name. */
-function getPropertyAbbreviation(cssProp: string): string {
-  return cssPropertyAbbreviations[cssProp] ?? cssProp;
-}
+// ── Static base class-name computation ────────────────────────────────
 
 /**
  * Compute the base class name for a static segment.
@@ -233,11 +252,9 @@ function computeStaticBaseName(
   if (seg.argResolved !== undefined) {
     const valuePart = cleanValueForClassName(seg.argResolved);
     if (isMultiProp) {
-      // Try to find a canonical single-property abbreviation for this longhand
       const lookup = getLonghandLookup(mapping);
       const canonical = lookup.get(`${cssProp}\0${cssValue}`);
       if (canonical) return canonical;
-      // Use the actual CSS value (not argResolved) so fixed extra defs share classes
       // I.e. lineClamp("3") display:-webkit-box → `d_negwebkit_box`, not `d_3`
       return `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
     }
@@ -245,7 +262,6 @@ function computeStaticBaseName(
   }
 
   if (isMultiProp) {
-    // Try to find a canonical single-property abbreviation for this longhand
     const lookup = getLonghandLookup(mapping);
     const canonical = lookup.get(`${cssProp}\0${cssValue}`);
     if (canonical) return canonical;
@@ -255,7 +271,7 @@ function computeStaticBaseName(
   return abbr;
 }
 
-// -- Collecting atomic rules from resolved chains --
+// ── Collecting atomic rules from resolved chains ──────────────────────
 
 export interface CollectedRules {
   rules: Map<string, AtomicRule>;
@@ -265,8 +281,8 @@ export interface CollectedRules {
 /**
  * Collect all atomic CSS rules from resolved chains.
  *
- * Each segment maps directly to one or more atomic rules based on its
- * condition context (mediaQuery, pseudoClass, pseudoElement, whenPseudo).
+ * I.e. walks every segment in every chain part and registers one AtomicRule
+ * per CSS declaration, keyed by the prefixed class name.
  */
 export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMapping): CollectedRules {
   const rules = new Map<string, AtomicRule>();
@@ -302,15 +318,22 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
   return { rules, needsMaybeInc };
 }
 
-/** Compute the class name prefix and optional whenSelector for a segment. */
+/**
+ * Compute the class name prefix and optional whenSelector for a segment.
+ *
+ * I.e. a segment with `pseudoClass: ":hover"` and `mediaQuery: smMedia` gets
+ * prefix `"sm_h_"`, while one with `whenPseudo: { relationship: "ancestor", pseudo: ":hover" }`
+ * also gets its `whenSelector` populated for CSS rule generation.
+ */
 function segmentContext(
   seg: ResolvedSegment,
   mapping: TrussMapping,
 ): { prefix: string; whenSelector?: AtomicRule["whenSelector"] } {
+  const prefix = `${conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints)}${seg.whenPseudo ? whenPrefix(seg.whenPseudo) : ""}`;
   if (seg.whenPseudo) {
     const wp = seg.whenPseudo;
     return {
-      prefix: whenPrefix(wp),
+      prefix,
       whenSelector: {
         relationship: wp.relationship ?? "ancestor",
         markerClass: markerClassName(wp.markerNode),
@@ -318,10 +341,10 @@ function segmentContext(
       },
     };
   }
-  return { prefix: conditionPrefix(seg.pseudoClass, seg.mediaQuery, seg.pseudoElement, mapping.breakpoints) };
+  return { prefix };
 }
 
-/** Build the base AtomicRule fields (non-when conditions). */
+/** I.e. extracts `pseudoClass`, `mediaQuery`, `pseudoElement` from a segment for AtomicRule fields. */
 function baseRuleFields(seg: ResolvedSegment): Pick<AtomicRule, "pseudoClass" | "mediaQuery" | "pseudoElement"> {
   return {
     pseudoClass: seg.pseudoClass ?? undefined,
@@ -330,7 +353,11 @@ function baseRuleFields(seg: ResolvedSegment): Pick<AtomicRule, "pseudoClass" | 
   };
 }
 
-/** Collect atomic rules for a static segment (may have multiple CSS properties). */
+/**
+ * Collect atomic rules for a static segment (may have multiple CSS properties).
+ *
+ * I.e. `Css.ba.$` (borderStyle + borderWidth) registers one AtomicRule per longhand property.
+ */
 function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const { prefix, whenSelector } = segmentContext(seg, mapping);
   const isMultiProp = Object.keys(seg.defs).length > 1;
@@ -343,16 +370,20 @@ function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment
     if (!rules.has(className)) {
       rules.set(className, {
         className,
-        cssProperty: camelToKebab(cssProp),
-        cssValue,
-        ...(!whenSelector && baseRuleFields(seg)),
+        declarations: [{ cssProperty: camelToKebab(cssProp), cssValue }],
+        ...baseRuleFields(seg),
         whenSelector,
       });
     }
   }
 }
 
-/** Collect atomic rules for a variable segment. */
+/**
+ * Collect atomic rules for a variable segment.
+ *
+ * I.e. `Css.mt(x).$` registers a rule with `var(--marginTop)` and an `@property` declaration,
+ * plus any extra static defs like `display: -webkit-box` for `lineClamp(n)`.
+ */
 function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
   const { prefix, whenSelector } = segmentContext(seg, mapping);
 
@@ -365,23 +396,13 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
     if (!existingRule) {
       rules.set(className, {
         className,
-        cssProperty: declaration.cssProperty,
-        cssValue: declaration.cssValue,
         declarations: [declaration],
-        cssVarName: varName,
-        ...(!whenSelector && baseRuleFields(seg)),
+        ...baseRuleFields(seg),
         whenSelector,
       });
       continue;
     }
 
-    existingRule.declarations ??= [
-      {
-        cssProperty: existingRule.cssProperty,
-        cssValue: existingRule.cssValue,
-        cssVarName: existingRule.cssVarName,
-      },
-    ];
     if (
       !existingRule.declarations.some((entry) => {
         return entry.cssProperty === declaration.cssProperty;
@@ -391,7 +412,7 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
     }
   }
 
-  // Extra static defs alongside variable props
+  // I.e. lineClamp(n) also needs `display: -webkit-box` alongside the variable props
   if (seg.variableExtraDefs) {
     for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
       const cssValue = String(value);
@@ -402,9 +423,8 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
       if (!rules.has(extraName)) {
         rules.set(extraName, {
           className: extraName,
-          cssProperty: camelToKebab(cssProp),
-          cssValue,
-          ...(!whenSelector && baseRuleFields(seg)),
+          declarations: [{ cssProperty: camelToKebab(cssProp), cssValue }],
+          ...baseRuleFields(seg),
           whenSelector,
         });
       }
@@ -412,27 +432,25 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
   }
 }
 
-// -- CSS text generation --
+// ── CSS text generation ───────────────────────────────────────────────
 
 /**
  * Generate the full CSS text from collected rules, sorted by StyleX priority.
  *
- * Uses an additive priority system where property tier + pseudo + at-rule priorities
- * are summed to produce a single sort key, guaranteeing longhands beat shorthands,
- * pseudo-classes follow LVFHA order, and at-rules override base styles.
- *
- * Each rule is preceded by a `/* @truss p:<priority> c:<className> *\/` annotation
- * that enables deterministic merging of CSS from independently-built libraries.
+ * I.e. produces output like:
+ * ```
+ * /* @truss p:3000 c:black *\/
+ * .black { color: #353535; }
+ * /* @truss p:3200 c:sm_blue *\/
+ * @media screen and (max-width: 599px) { .sm_blue.sm_blue { color: #526675; } }
+ * ```
  */
 export function generateCssText(rules: Map<string, AtomicRule>): string {
   const allRules = Array.from(rules.values());
 
-  // Single flat sort by computed priority
   sortRulesByPriority(allRules);
 
-  // Pre-compute priorities for annotations (mirrors sort order)
   const priorities = allRules.map(computeRulePriority);
-
   const lines: string[] = [];
 
   for (let i = 0; i < allRules.length; i++) {
@@ -442,7 +460,7 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
     lines.push(formatRule(rule));
   }
 
-  // @property declarations for variable rules
+  // I.e. `@property --marginTop { syntax: "*"; inherits: false; }` for variable rules
   for (const rule of allRules) {
     for (const declaration of getRuleDeclarations(rule)) {
       if (declaration.cssVarName) {
@@ -455,76 +473,86 @@ export function generateCssText(rules: Map<string, AtomicRule>): string {
   return lines.join("\n");
 }
 
-/** Format a single rule into its CSS text, dispatching by rule type. */
+// ── CSS rule formatting ───────────────────────────────────────────────
+
+/**
+ * Format a single rule into its CSS text, dispatching by rule kind.
+ *
+ * I.e. a base rule → `.black { color: #353535; }`,
+ * a media rule → `@media (...) { .sm_blue.sm_blue { color: #526675; } }`,
+ * a when rule → `._mrk:hover .wh_anc_h_blue { color: #526675; }`.
+ */
 function formatRule(rule: AtomicRule): string {
-  if (rule.whenSelector) return formatWhenRule(rule);
-  if (rule.mediaQuery && rule.pseudoClass) return formatMediaPseudoRule(rule);
-  if (rule.mediaQuery && rule.pseudoElement) return formatMediaPseudoElementRule(rule);
-  if (rule.mediaQuery) return formatMediaRule(rule);
-  if (rule.pseudoClass && rule.pseudoElement) return formatPseudoRule(rule);
-  if (rule.pseudoElement) return formatPseudoElementRule(rule);
-  if (rule.pseudoClass) return formatPseudoRule(rule);
-  return formatBaseRule(rule);
-}
-
-function formatBaseRule(rule: AtomicRule): string {
-  return formatRuleBlock(`.${rule.className}`, rule);
-}
-
-function formatPseudoRule(rule: AtomicRule): string {
-  const pe = rule.pseudoElement ? rule.pseudoElement : "";
-  return formatRuleBlock(`.${rule.className}${rule.pseudoClass}${pe}`, rule);
-}
-
-function formatPseudoElementRule(rule: AtomicRule): string {
-  return formatRuleBlock(`.${rule.className}${rule.pseudoElement}`, rule);
-}
-
-function formatWhenRule(rule: AtomicRule): string {
   const whenSelector = rule.whenSelector;
-  if (!whenSelector) {
-    return formatBaseRule(rule);
-  }
+  if (whenSelector) return formatWhenRule(rule, whenSelector);
+  const selector = buildTargetSelector(rule, !!rule.mediaQuery);
+  return formatRuleWithOptionalMedia(rule, selector);
+}
 
+/**
+ * Format a when()-relationship rule with the correct combinator per relationship kind.
+ *
+ * I.e. ancestor → `._mrk:hover .target { … }`,
+ * descendant → `.target:has(._mrk:hover) { … }`,
+ * anySibling → `.target:has(~ ._mrk:hover), ._mrk:hover ~ .target { … }`.
+ */
+function formatWhenRule(rule: AtomicRule, whenSelector: NonNullable<AtomicRule["whenSelector"]>): string {
   const markerSelector = `.${whenSelector.markerClass}${whenSelector.pseudo}`;
-  const targetSelector = `.${rule.className}`;
+  const duplicateClassName = !!rule.mediaQuery;
 
   if (whenSelector.relationship === "ancestor") {
-    return formatRuleBlock(`${markerSelector} ${targetSelector}`, rule);
+    return formatRuleWithOptionalMedia(rule, `${markerSelector} ${buildTargetSelector(rule, duplicateClassName)}`);
   }
   if (whenSelector.relationship === "descendant") {
-    return formatRuleBlock(`${targetSelector}:has(${markerSelector})`, rule);
+    return formatRuleWithOptionalMedia(rule, buildTargetSelector(rule, duplicateClassName, `:has(${markerSelector})`));
   }
   if (whenSelector.relationship === "siblingAfter") {
-    return formatRuleBlock(`${targetSelector}:has(~ ${markerSelector})`, rule);
+    return formatRuleWithOptionalMedia(
+      rule,
+      buildTargetSelector(rule, duplicateClassName, `:has(~ ${markerSelector})`),
+    );
   }
   if (whenSelector.relationship === "siblingBefore") {
-    return formatRuleBlock(`${markerSelector} ~ ${targetSelector}`, rule);
+    return formatRuleWithOptionalMedia(rule, `${markerSelector} ~ ${buildTargetSelector(rule, duplicateClassName)}`);
   }
   if (whenSelector.relationship === "anySibling") {
-    return formatRuleBlock(`${targetSelector}:has(~ ${markerSelector}), ${markerSelector} ~ ${targetSelector}`, rule);
+    const afterSelector = buildTargetSelector(rule, duplicateClassName, `:has(~ ${markerSelector})`);
+    const beforeSelector = `${markerSelector} ~ ${buildTargetSelector(rule, duplicateClassName)}`;
+    return formatRuleWithOptionalMedia(rule, `${afterSelector}, ${beforeSelector}`);
   }
 
-  return formatRuleBlock(`${markerSelector} ${targetSelector}`, rule);
+  // I.e. unknown relationship falls back to ancestor-style descendant combinator
+  return formatRuleWithOptionalMedia(rule, `${markerSelector} ${buildTargetSelector(rule, duplicateClassName)}`);
 }
 
-function formatMediaRule(rule: AtomicRule): string {
-  return formatNestedRuleBlock(rule.mediaQuery!, `.${rule.className}.${rule.className}`, rule);
+/**
+ * Assemble the target element's CSS selector from all active condition slots.
+ *
+ * I.e. `buildTargetSelector(rule, true)` → `.sm_h_blue.sm_h_blue:hover`,
+ * `buildTargetSelector(rule, false, ":has(._mrk:hover)")` → `.wh_anc_h_blue:has(._mrk:hover)`.
+ */
+function buildTargetSelector(rule: AtomicRule, duplicateClassName: boolean, extraPseudoClass?: string): string {
+  const classSelector = duplicateClassName ? `.${rule.className}.${rule.className}` : `.${rule.className}`;
+  const pseudoClass = rule.pseudoClass ?? "";
+  const relationshipPseudoClass = extraPseudoClass ?? "";
+  const pseudoElement = rule.pseudoElement ?? "";
+  return `${classSelector}${pseudoClass}${relationshipPseudoClass}${pseudoElement}`;
 }
 
-function formatMediaPseudoRule(rule: AtomicRule): string {
-  return formatNestedRuleBlock(rule.mediaQuery!, `.${rule.className}.${rule.className}${rule.pseudoClass}`, rule);
+/** I.e. wraps the selector in a media-query block when `rule.mediaQuery` is set. */
+function formatRuleWithOptionalMedia(rule: AtomicRule, selector: string): string {
+  if (rule.mediaQuery) {
+    return formatNestedRuleBlock(rule.mediaQuery, selector, rule);
+  }
+  return formatRuleBlock(selector, rule);
 }
 
-function formatMediaPseudoElementRule(rule: AtomicRule): string {
-  const pe = rule.pseudoElement ?? "";
-  return formatNestedRuleBlock(rule.mediaQuery!, `.${rule.className}.${rule.className}${pe}`, rule);
-}
-
+/** I.e. returns the rule's declarations array (always has at least one entry). */
 function getRuleDeclarations(rule: AtomicRule): Array<{ cssProperty: string; cssValue: string; cssVarName?: string }> {
-  return rule.declarations ?? [{ cssProperty: rule.cssProperty, cssValue: rule.cssValue, cssVarName: rule.cssVarName }];
+  return rule.declarations;
 }
 
+/** I.e. `.black { color: #353535; }`. */
 function formatRuleBlock(selector: string, rule: AtomicRule): string {
   const body = getRuleDeclarations(rule)
     .map((declaration) => {
@@ -534,6 +562,7 @@ function formatRuleBlock(selector: string, rule: AtomicRule): string {
   return `${selector} { ${body} }`;
 }
 
+/** I.e. `@media (...) { .sm_blue.sm_blue { color: #526675; } }`. */
 function formatNestedRuleBlock(wrapper: string, selector: string, rule: AtomicRule): string {
   const body = getRuleDeclarations(rule)
     .map((declaration) => {
@@ -543,20 +572,22 @@ function formatNestedRuleBlock(wrapper: string, selector: string, rule: AtomicRu
   return `${wrapper} { ${selector} { ${body} } }`;
 }
 
-// -- AST generation for style hash objects --
+// ── AST generation for style hash objects ─────────────────────────────
 
 /**
- * Build the style hash AST for a list of segments (from one Css.*.$  expression).
+ * Build the style hash AST for a list of segments (from one `Css.*.$` expression).
  *
  * Groups segments by CSS property and builds space-separated class bundles.
- * Returns an array of ObjectProperty nodes for `{ display: "df", color: "black blue_h" }`.
+ * I.e. `[blue, h_white]` → `{ color: "blue h_white" }`.
+ *
+ * Variable entries produce tuples: `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`.
  */
 export function buildStyleHashProperties(
   segments: ResolvedSegment[],
   mapping: TrussMapping,
   maybeIncHelperName?: string | null,
 ): t.ObjectProperty[] {
-  // Group: cssProperty -> list of { className, isVariable, isConditional, varName, argNode, incremented, appendPx }
+  // I.e. cssProperty → list of { className, isVariable, isConditional, varName, argNode, ... }
   const propGroups = new Map<
     string,
     Array<{
@@ -571,12 +602,16 @@ export function buildStyleHashProperties(
     }>
   >();
 
-  /** Push an entry, replacing earlier base-level entries when a new base-level entry overrides the same property. */
+  /**
+   * Push an entry, replacing earlier base-level entries when a new base-level entry
+   * overrides the same property.
+   *
+   * I.e. `Css.blue.black.$` → the later `black` replaces `blue` for `color`,
+   * but `Css.blue.onHover.black.$` accumulates both because `onHover.black` is conditional.
+   */
   function pushEntry(cssProp: string, entry: typeof propGroups extends Map<string, Array<infer E>> ? E : never): void {
     if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
     const entries = propGroups.get(cssProp)!;
-    // A later base-level entry replaces earlier base-level entries for the same property.
-    // Conditional entries (hover/media) always accumulate alongside base entries.
     if (!entry.isConditional) {
       for (let i = entries.length - 1; i >= 0; i--) {
         if (!entries[i].isConditional) {
@@ -609,7 +644,7 @@ export function buildStyleHashProperties(
         });
       }
 
-      // Extra static defs
+      // I.e. lineClamp(n) also contributes static extra defs like `display: -webkit-box`
       if (seg.variableExtraDefs) {
         for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
           const cssValue = String(value);
@@ -632,7 +667,7 @@ export function buildStyleHashProperties(
     }
   }
 
-  // Build AST properties
+  // Build AST ObjectProperty nodes
   const properties: t.ObjectProperty[] = [];
 
   for (const [cssProp, entries] of Array.from(propGroups.entries())) {
@@ -640,15 +675,15 @@ export function buildStyleHashProperties(
     const variableEntries = entries.filter((e) => e.isVariable);
 
     if (variableEntries.length > 0) {
-      // Tuple: [classNames, { vars }]
+      // I.e. `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`
       const varsProps: t.ObjectProperty[] = [];
       for (const dyn of variableEntries) {
         let valueExpr: t.Expression = dyn.argNode as t.Expression;
         if (dyn.incremented) {
-          // Wrap with __maybeInc (or whatever name was reserved to avoid collisions)
+          // I.e. wrap with `__maybeInc(x)` for increment-based values
           valueExpr = t.callExpression(t.identifier(maybeIncHelperName ?? "__maybeInc"), [valueExpr]);
         } else if (dyn.appendPx) {
-          // Wrap with `${v}px`
+          // I.e. wrap with `` `${v}px` `` for Px delegate values
           valueExpr = t.templateLiteral(
             [t.templateElement({ raw: "", cooked: "" }, false), t.templateElement({ raw: "px", cooked: "px" }, true)],
             [valueExpr],
@@ -658,10 +693,9 @@ export function buildStyleHashProperties(
       }
 
       const tuple = t.arrayExpression([t.stringLiteral(classNames), t.objectExpression(varsProps)]);
-
       properties.push(t.objectProperty(toPropertyKey(cssProp), tuple));
     } else {
-      // Static: plain string
+      // I.e. static: `{ color: "blue h_white" }`
       properties.push(t.objectProperty(toPropertyKey(cssProp), t.stringLiteral(classNames)));
     }
   }
@@ -669,16 +703,22 @@ export function buildStyleHashProperties(
   return properties;
 }
 
-/** Build a CSS variable name from the real CSS property and class condition prefix. */
+// ── CSS variable naming ───────────────────────────────────────────────
+
+/** I.e. `toCssVariableName("sm_mt_var", "mt", "marginTop")` → `"--sm_marginTop"`. */
 function toCssVariableName(className: string, baseKey: string, cssProp: string): string {
   const baseClassName = `${baseKey}_var`;
   const cp = className.endsWith(baseClassName) ? className.slice(0, -baseClassName.length) : "";
   return `--${cp}${cssProp}`;
 }
 
-// -- Helper declarations --
+// ── Helper AST declarations ───────────────────────────────────────────
 
-/** Build the per-file increment helper: `const __maybeInc = (inc) => typeof inc === "string" ? inc : \`${inc * N}px\`` */
+/**
+ * Build the per-file increment helper declaration.
+ *
+ * I.e. `const __maybeInc = (inc) => { return typeof inc === "string" ? inc : \`${inc * 8}px\`; };`
+ */
 export function buildMaybeIncDeclaration(helperName: string, increment: number): t.VariableDeclaration {
   const incParam = t.identifier("inc");
   const body = t.blockStatement([
@@ -699,16 +739,21 @@ export function buildMaybeIncDeclaration(helperName: string, increment: number):
   ]);
 }
 
-/** Use identifier keys when legal, otherwise string literal keys. */
+/** I.e. `"color"` → `t.identifier("color")`, `"box-shadow"` → `t.stringLiteral("box-shadow")`. */
 function toPropertyKey(key: string): t.Identifier | t.StringLiteral {
   return isValidIdentifier(key) ? t.identifier(key) : t.stringLiteral(key);
 }
 
+/** I.e. `"color"` → true, `"box-shadow"` → false. */
 function isValidIdentifier(s: string): boolean {
   return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(s);
 }
 
-/** Build a runtime lookup table declaration: `const __typography = { f24: { fontSize: "f24" }, ... }`. */
+/**
+ * Build a runtime lookup table declaration for typography.
+ *
+ * I.e. `const __typography = { f24: { fontSize: "f24", lineHeight: "lh32" }, ... };`
+ */
 export function buildRuntimeLookupDeclaration(
   lookupName: string,
   segmentsByName: Record<string, ResolvedSegment[]>,

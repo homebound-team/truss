@@ -1,5 +1,12 @@
 import type * as t from "@babel/types";
-import type { TrussMapping, TrussMappingEntry, ResolvedSegment, MarkerSegment } from "./types";
+import type {
+  MarkerSegment,
+  ResolvedConditionContext,
+  ResolvedSegment,
+  TrussMapping,
+  TrussMappingEntry,
+  WhenCondition,
+} from "./types";
 
 /**
  * A resolved chain that may contain conditional (if/else) sections.
@@ -21,6 +28,97 @@ export interface ResolvedChain {
 export type ResolvedChainPart =
   | { type: "unconditional"; segments: ResolvedSegment[] }
   | { type: "conditional"; conditionNode: any; thenSegments: ResolvedSegment[]; elseSegments: ResolvedSegment[] };
+
+function emptyConditionContext(): ResolvedConditionContext {
+  return {
+    mediaQuery: null,
+    pseudoClass: null,
+    pseudoElement: null,
+    whenPseudo: null,
+  };
+}
+
+function cloneConditionContext(context: ResolvedConditionContext): ResolvedConditionContext {
+  return {
+    mediaQuery: context.mediaQuery,
+    pseudoClass: context.pseudoClass,
+    pseudoElement: context.pseudoElement,
+    whenPseudo: context.whenPseudo ? { ...context.whenPseudo } : null,
+  };
+}
+
+function segmentWithConditionContext(
+  segment: Omit<ResolvedSegment, "mediaQuery" | "pseudoClass" | "pseudoElement" | "whenPseudo">,
+  context: ResolvedConditionContext,
+): ResolvedSegment {
+  return {
+    ...segment,
+    mediaQuery: context.mediaQuery,
+    pseudoClass: context.pseudoClass,
+    pseudoElement: context.pseudoElement,
+    whenPseudo: context.whenPseudo,
+  };
+}
+
+function applyModifierNodeToConditionContext(
+  context: ResolvedConditionContext,
+  node: ChainNode,
+  mapping: TrussMapping,
+): void {
+  if ((node as any).type === "__mediaQuery") {
+    context.mediaQuery = (node as any).mediaQuery;
+    return;
+  }
+
+  if (node.type === "getter") {
+    if (isPseudoMethod(node.name)) {
+      context.pseudoClass = pseudoSelector(node.name);
+      return;
+    }
+    if (mapping.breakpoints && node.name in mapping.breakpoints) {
+      context.mediaQuery = mapping.breakpoints[node.name];
+    }
+    return;
+  }
+
+  if (node.type !== "call") {
+    return;
+  }
+
+  if (node.name === "ifContainer") {
+    try {
+      context.mediaQuery = containerSelectorFromCall(node);
+    } catch {
+      // Ignore invalid modifiers here; resolveChain() will report the real error.
+    }
+    return;
+  }
+
+  if (node.name === "element") {
+    if (node.args.length === 1 && node.args[0].type === "StringLiteral") {
+      context.pseudoElement = node.args[0].value;
+    }
+    return;
+  }
+
+  if (node.name === "when") {
+    try {
+      const resolved = resolveWhenCall(node);
+      if (resolved.kind === "selector") {
+        context.pseudoClass = resolved.pseudo;
+      } else {
+        context.whenPseudo = resolved;
+      }
+    } catch {
+      // Ignore invalid modifiers here; resolveChain() will report the real error.
+    }
+    return;
+  }
+
+  if (isPseudoMethod(node.name)) {
+    context.pseudoClass = pseudoSelector(node.name);
+  }
+}
 
 /**
  * High-level chain resolver that handles if/else by splitting into parts.
@@ -53,15 +151,17 @@ export type ResolvedChainPart =
  * - **`when(":hover")`** — Same-element selector pseudo. Behaves like a custom
  *   pseudo-class context and stacks with media queries.
  *
- * - **`when(marker, "ancestor", ":hover")`** — Relationship pseudo. Resets both
- *   media query and pseudo-class contexts.
+ * - **`when(marker, "ancestor", ":hover")`** — Relationship selector. Sets the
+ *   relationship selector context and stacks with same-element pseudos, pseudo-elements,
+ *   and media queries.
  *
  * - **`ifContainer({ gt, lt })`** — Container query. Sets the media query
  *   context to an `@container` query string.
  *
- * Contexts accumulate left-to-right until explicitly replaced. A media query
- * set by `ifSm` persists through `onHover` (they stack). A new `if(bool)`
- * resets all contexts for its branches.
+ * Contexts accumulate left-to-right until explicitly replaced within the same
+ * axis. A media query set by `ifSm` persists through `onHover` and `when(...)`.
+ * A boolean `if(bool)` nests the chain but inherits the currently-active
+ * modifier axes into both branches.
  */
 export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): ResolvedChain {
   const parts: ResolvedChainPart[] = [];
@@ -89,6 +189,30 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
   // Split chain at if/else boundaries
   let i = 0;
   let currentNodes: ChainNode[] = [];
+  let currentContext = emptyConditionContext();
+  let currentNodesStartContext = emptyConditionContext();
+
+  function flushCurrentNodes(): void {
+    if (currentNodes.length === 0) {
+      return;
+    }
+
+    parts.push({
+      type: "unconditional",
+      segments: resolveChain(currentNodes, mapping, currentNodesStartContext),
+    });
+    currentNodes = [];
+    currentNodesStartContext = cloneConditionContext(currentContext);
+  }
+
+  function pushCurrentNode(nodeToPush: ChainNode): void {
+    if (currentNodes.length === 0) {
+      currentNodesStartContext = cloneConditionContext(currentContext);
+    }
+
+    currentNodes.push(nodeToPush);
+    applyModifierNodeToConditionContext(currentContext, nodeToPush, mapping);
+  }
 
   while (i < filteredChain.length) {
     const node = filteredChain[i];
@@ -96,17 +220,15 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
     if (mediaStart) {
       const elseIndex = findElseIndex(filteredChain, i + 1);
       if (elseIndex !== -1) {
-        if (currentNodes.length > 0) {
-          parts.push({ type: "unconditional", segments: resolveChain(currentNodes, mapping) });
-          currentNodes = [];
-        }
+        flushCurrentNodes();
+        const branchContext = cloneConditionContext(currentContext);
 
         const thenNodes = mediaStart.thenNodes
           ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
           : filteredChain.slice(i, elseIndex);
         const elseNodes = [makeMediaQueryNode(mediaStart.inverseMediaQuery), ...filteredChain.slice(elseIndex + 1)];
-        const thenSegs = resolveChain(thenNodes, mapping);
-        const elseSegs = resolveChain(elseNodes, mapping);
+        const thenSegs = resolveChain(thenNodes, mapping, branchContext);
+        const elseSegs = resolveChain(elseNodes, mapping, branchContext);
         parts.push({ type: "unconditional", segments: [...thenSegs, ...elseSegs] });
         i = filteredChain.length;
         break;
@@ -117,16 +239,15 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
       // if(stringLiteral) → media query pseudo, not a boolean conditional
       if (node.conditionNode.type === "StringLiteral") {
         const mediaQuery: string = (node.conditionNode as any).value;
-        currentNodes.push({ type: "__mediaQuery" as any, mediaQuery } as any);
+        pushCurrentNode({ type: "__mediaQuery" as any, mediaQuery } as any);
         i++;
         continue;
       }
 
       // Flush any accumulated unconditional nodes
-      if (currentNodes.length > 0) {
-        parts.push({ type: "unconditional", segments: resolveChain(currentNodes, mapping) });
-        currentNodes = [];
-      }
+      flushCurrentNodes();
+      const branchContext = cloneConditionContext(currentContext);
+
       // Collect "then" nodes until "else" or end
       const thenNodes: ChainNode[] = [];
       const elseNodes: ChainNode[] = [];
@@ -149,8 +270,8 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
         }
         i++;
       }
-      const thenSegs = resolveChain(thenNodes, mapping);
-      const elseSegs = resolveChain(elseNodes, mapping);
+      const thenSegs = resolveChain(thenNodes, mapping, branchContext);
+      const elseSegs = resolveChain(elseNodes, mapping, branchContext);
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
@@ -158,15 +279,13 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
         elseSegments: elseSegs,
       });
     } else {
-      currentNodes.push(node);
+      pushCurrentNode(node);
       i++;
     }
   }
 
   // Flush remaining unconditional nodes
-  if (currentNodes.length > 0) {
-    parts.push({ type: "unconditional", segments: resolveChain(currentNodes, mapping) });
-  }
+  flushCurrentNodes();
 
   // Collect error messages from all resolved segments
   const segmentErrors: string[] = [];
@@ -245,21 +364,19 @@ function invertMediaQuery(query: string): string {
  * Returns an array of ResolvedSegment with flat defs (no condition nesting).
  * Does NOT handle if/else — use resolveFullChain for that.
  */
-export function resolveChain(chain: ChainNode[], mapping: TrussMapping): ResolvedSegment[] {
+export function resolveChain(
+  chain: ChainNode[],
+  mapping: TrussMapping,
+  initialContext: ResolvedConditionContext = emptyConditionContext(),
+): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
-  // Track media query and pseudo-class separately so they can stack.
-  // e.g. Css.ifSm.onHover.blue.$ → both mediaQuery and pseudoClass are set
-  let currentMediaQuery: string | null = null;
-  let currentPseudoClass: string | null = null;
-  let currentPseudoElement: string | null = null;
-  let currentWhenPseudo: { pseudo: string; markerNode?: any; relationship?: string } | null = null;
+  const context = cloneConditionContext(initialContext);
 
   for (const node of chain) {
     try {
       // Synthetic media query node injected by resolveFullChain for if("@media...")
       if ((node as any).type === "__mediaQuery") {
-        currentMediaQuery = (node as any).mediaQuery;
-        currentWhenPseudo = null;
+        context.mediaQuery = (node as any).mediaQuery;
         continue;
       }
 
@@ -268,15 +385,13 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
 
         // Pseudo-class getters: onHover, onFocus, etc.
         if (isPseudoMethod(abbr)) {
-          currentPseudoClass = pseudoSelector(abbr);
-          currentWhenPseudo = null;
+          context.pseudoClass = pseudoSelector(abbr);
           continue;
         }
 
         // Breakpoint getters: ifSm, ifMd, ifLg, etc.
         if (mapping.breakpoints && abbr in mapping.breakpoints) {
-          currentMediaQuery = mapping.breakpoints[abbr];
-          currentWhenPseudo = null;
+          context.mediaQuery = mapping.breakpoints[abbr];
           continue;
         }
 
@@ -289,10 +404,10 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           abbr,
           entry,
           mapping,
-          currentMediaQuery,
-          currentPseudoClass,
-          currentPseudoElement,
-          currentWhenPseudo,
+          context.mediaQuery,
+          context.pseudoClass,
+          context.pseudoElement,
+          context.whenPseudo,
         );
         segments.push(...resolved);
       } else if (node.type === "call") {
@@ -300,8 +415,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
 
         // Container query call: ifContainer({ gt, lt, name? })
         if (abbr === "ifContainer") {
-          currentMediaQuery = containerSelectorFromCall(node);
-          currentWhenPseudo = null;
+          context.mediaQuery = containerSelectorFromCall(node);
           continue;
         }
 
@@ -310,10 +424,10 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           const seg = resolveAddCall(
             node,
             mapping,
-            currentMediaQuery,
-            currentPseudoClass,
-            currentPseudoElement,
-            currentWhenPseudo,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
           );
           segments.push(seg);
           continue;
@@ -323,10 +437,10 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
         if (abbr === "className") {
           const seg = resolveClassNameCall(
             node,
-            currentMediaQuery,
-            currentPseudoClass,
-            currentPseudoElement,
-            currentWhenPseudo,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
           );
           segments.push(seg);
           continue;
@@ -336,9 +450,10 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
           const resolved = resolveTypographyCall(
             node,
             mapping,
-            currentMediaQuery,
-            currentPseudoClass,
-            currentPseudoElement,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
           );
           segments.push(...resolved);
           continue;
@@ -351,7 +466,7 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
               `element() requires exactly one string literal argument (e.g. "::placeholder")`,
             );
           }
-          currentPseudoElement = (node.args[0] as any).value;
+          context.pseudoElement = (node.args[0] as any).value;
           continue;
         }
 
@@ -359,20 +474,16 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
         if (abbr === "when") {
           const resolved = resolveWhenCall(node);
           if (resolved.kind === "selector") {
-            currentPseudoClass = resolved.pseudo;
-            currentWhenPseudo = null;
+            context.pseudoClass = resolved.pseudo;
           } else {
-            currentPseudoClass = null;
-            currentMediaQuery = null;
-            currentWhenPseudo = resolved;
+            context.whenPseudo = resolved;
           }
           continue;
         }
 
         // Simple pseudo-class calls (backward compat — pseudos are now getters)
         if (isPseudoMethod(abbr)) {
-          currentPseudoClass = pseudoSelector(abbr);
-          currentWhenPseudo = null;
+          context.pseudoClass = pseudoSelector(abbr);
           if (node.args.length > 0) {
             throw new UnsupportedPatternError(
               `${abbr}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
@@ -392,10 +503,10 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
             entry,
             node,
             mapping,
-            currentMediaQuery,
-            currentPseudoClass,
-            currentPseudoElement,
-            currentWhenPseudo,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
           );
           segments.push(seg);
         } else if (entry.kind === "delegate") {
@@ -404,10 +515,10 @@ export function resolveChain(chain: ChainNode[], mapping: TrussMapping): Resolve
             entry,
             node,
             mapping,
-            currentMediaQuery,
-            currentPseudoClass,
-            currentPseudoElement,
-            currentWhenPseudo,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
           );
           segments.push(seg);
         } else {
@@ -435,6 +546,7 @@ function typographyLookupKeySuffix(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo: WhenCondition | null,
   breakpoints?: Record<string, string>,
 ): string {
   const parts: string[] = [];
@@ -446,7 +558,27 @@ function typographyLookupKeySuffix(
     parts.push("mq");
   }
   if (pseudoClass) parts.push(pseudoClass.replace(/^:+/, "").replace(/-/g, "_"));
+  if (whenPseudo) parts.push(whenLookupKeyPart(whenPseudo));
   return parts.join("_");
+}
+
+function whenLookupKeyPart(whenPseudo: WhenCondition): string {
+  const parts = ["when", whenPseudo.relationship ?? "ancestor", sanitizeLookupToken(whenPseudo.pseudo)];
+
+  if (whenPseudo.markerNode?.type === "Identifier" && whenPseudo.markerNode.name) {
+    parts.push(whenPseudo.markerNode.name);
+  }
+
+  return parts.join("_");
+}
+
+function sanitizeLookupToken(value: string): string {
+  return (
+    value
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "") || "value"
+  );
 }
 
 /** Resolve `typography(key)` into either direct segments or a runtime lookup-backed segment. */
@@ -456,6 +588,7 @@ function resolveTypographyCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo: WhenCondition | null,
 ): ResolvedSegment[] {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`typography() expects exactly 1 argument, got ${node.args.length}`);
@@ -463,7 +596,7 @@ function resolveTypographyCall(
 
   const argAst = node.args[0];
   if (argAst.type === "StringLiteral") {
-    return resolveTypographyEntry(argAst.value, mapping, mediaQuery, pseudoClass, pseudoElement);
+    return resolveTypographyEntry(argAst.value, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo);
   }
 
   const typography = mapping.typography ?? [];
@@ -471,12 +604,12 @@ function resolveTypographyCall(
     throw new UnsupportedPatternError(`typography() is unavailable because no typography abbreviations were generated`);
   }
 
-  const suffix = typographyLookupKeySuffix(mediaQuery, pseudoClass, pseudoElement, mapping.breakpoints);
+  const suffix = typographyLookupKeySuffix(mediaQuery, pseudoClass, pseudoElement, whenPseudo, mapping.breakpoints);
   const lookupKey = suffix ? `typography__${suffix}` : "typography";
   const segmentsByName: Record<string, ResolvedSegment[]> = {};
 
   for (const name of typography) {
-    segmentsByName[name] = resolveTypographyEntry(name, mapping, mediaQuery, pseudoClass, pseudoElement);
+    segmentsByName[name] = resolveTypographyEntry(name, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo);
   }
 
   return [
@@ -499,6 +632,7 @@ function resolveTypographyEntry(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
+  whenPseudo: WhenCondition | null,
 ): ResolvedSegment[] {
   if (!(mapping.typography ?? []).includes(name)) {
     throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
@@ -509,9 +643,9 @@ function resolveTypographyEntry(
     throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
   }
 
-  const resolved = resolveEntry(name, entry, mapping, mediaQuery, pseudoClass, pseudoElement, null);
+  const resolved = resolveEntry(name, entry, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo);
   for (const segment of resolved) {
-    if (segment.variableProps || segment.whenPseudo) {
+    if (segment.variableProps) {
       throw new UnsupportedPatternError(`Typography abbreviation "${name}" cannot require runtime arguments`);
     }
   }
@@ -526,14 +660,18 @@ function resolveEntry(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
-  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
+  whenPseudo: WhenCondition | null,
 ): ResolvedSegment[] {
+  const context: ResolvedConditionContext = {
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  };
+
   switch (entry.kind) {
     case "static": {
-      if (whenPseudo) {
-        return [{ abbr, defs: entry.defs, whenPseudo }];
-      }
-      return [{ abbr, defs: entry.defs, mediaQuery, pseudoClass, pseudoElement }];
+      return [segmentWithConditionContext({ abbr, defs: entry.defs }, context)];
     }
     case "alias": {
       const result: ResolvedSegment[] = [];
@@ -563,7 +701,7 @@ function resolveVariableCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
-  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
+  whenPseudo: WhenCondition | null,
 ): ResolvedSegment {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
@@ -592,7 +730,7 @@ function resolveDelegateCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
-  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
+  whenPseudo: WhenCondition | null,
 ): ResolvedSegment {
   const targetEntry = mapping.abbreviations[entry.target];
   if (!targetEntry || targetEntry.kind !== "variable") {
@@ -630,9 +768,15 @@ function buildParameterizedSegment(params: {
   mediaQuery: string | null;
   pseudoClass: string | null;
   pseudoElement: string | null;
-  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null;
+  whenPseudo: WhenCondition | null;
 }): ResolvedSegment {
   const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, whenPseudo } = params;
+  const context: ResolvedConditionContext = {
+    mediaQuery: params.mediaQuery,
+    pseudoClass: params.pseudoClass,
+    pseudoElement: params.pseudoElement,
+    whenPseudo,
+  };
 
   if (literalValue !== null) {
     const defs: Record<string, unknown> = {};
@@ -640,35 +784,21 @@ function buildParameterizedSegment(params: {
       defs[prop] = literalValue;
     }
     if (extraDefs) Object.assign(defs, extraDefs);
-    if (whenPseudo) {
-      return { abbr, defs, whenPseudo, argResolved: literalValue };
-    }
-    return {
-      abbr,
-      defs,
-      mediaQuery: params.mediaQuery,
-      pseudoClass: params.pseudoClass,
-      pseudoElement: params.pseudoElement,
-      argResolved: literalValue,
-    };
+    return segmentWithConditionContext({ abbr, defs, argResolved: literalValue }, context);
   }
 
-  const base: ResolvedSegment = {
-    abbr,
-    defs: {},
-    variableProps: props,
-    incremented,
-    variableExtraDefs: extraDefs,
-    argNode: argAst,
-  };
+  const base = segmentWithConditionContext(
+    {
+      abbr,
+      defs: {},
+      variableProps: props,
+      incremented,
+      variableExtraDefs: extraDefs,
+      argNode: argAst,
+    },
+    context,
+  );
   if (appendPx) base.appendPx = true;
-  if (whenPseudo) {
-    base.whenPseudo = whenPseudo;
-  } else {
-    base.mediaQuery = params.mediaQuery;
-    base.pseudoClass = params.pseudoClass;
-    base.pseudoElement = params.pseudoElement;
-  }
   return base;
 }
 
@@ -677,7 +807,7 @@ function resolveClassNameCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
-  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
+  whenPseudo: WhenCondition | null,
 ): ResolvedSegment {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`className() expects exactly 1 argument, got ${node.args.length}`);
@@ -717,7 +847,7 @@ function resolveAddCall(
   mediaQuery: string | null,
   pseudoClass: string | null,
   pseudoElement: string | null,
-  whenPseudo?: { pseudo: string; markerNode?: any; relationship?: string } | null,
+  whenPseudo: WhenCondition | null,
 ): ResolvedSegment {
   const isAddCss = node.name === "addCss";
 
@@ -774,35 +904,30 @@ function resolveAddCall(
   const valueArg = node.args[1];
   const literalValue = tryEvaluateAddLiteral(valueArg);
 
-  if (whenPseudo) {
-    if (literalValue !== null) {
-      return { abbr: propName, defs: { [propName]: literalValue }, whenPseudo, argResolved: literalValue };
-    } else {
-      return { abbr: propName, defs: {}, whenPseudo, variableProps: [propName], incremented: false, argNode: valueArg };
-    }
-  }
+  const context: ResolvedConditionContext = {
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  };
 
   if (literalValue !== null) {
-    return {
-      abbr: propName,
-      defs: { [propName]: literalValue },
-      mediaQuery,
-      pseudoClass,
-      pseudoElement,
-      argResolved: literalValue,
-    };
-  } else {
-    return {
+    return segmentWithConditionContext(
+      { abbr: propName, defs: { [propName]: literalValue }, argResolved: literalValue },
+      context,
+    );
+  }
+
+  return segmentWithConditionContext(
+    {
       abbr: propName,
       defs: {},
-      mediaQuery,
-      pseudoClass,
-      pseudoElement,
       variableProps: [propName],
       incremented: false,
       argNode: valueArg,
-    };
-  }
+    },
+    context,
+  );
 }
 
 /** Try to evaluate a literal for add() — strings, numbers, and template literals with no expressions. */

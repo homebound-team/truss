@@ -350,6 +350,9 @@ Instead, Truss provides chain commands like `onHover`, `ifSm`, and `ifMd` that t
 
 ```tsx
 function MyReactComponent(props: {}) {
+  // Default is mx2/black.
+  // ...unless hovered, then blue
+  // ...unless hovered & small screen, then blue & mx1
   return <div css={Css.mx2.black.onHover.blue.ifSm.mx1.$}>...</div>;
 }
 ```
@@ -382,38 +385,42 @@ const row = Css.newMarker();
 </tr>;
 ```
 
-### Conditional Chain Precedence
+### Chaining Modifiers
 
-Truss reads `Css...$` chains left-to-right, but the different conditional helpers are not interchangeable:
+Truss reads `Css...$` chains left-to-right.
 
-| Chain step                             | Effect on following styles                   | Stacks with                                                      | Resets / replaces                                                                                                     |
-| -------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `if(cond)` / `else`                    | Starts a runtime boolean branch              | Nothing from the active modifier context carries into the branch | Starts a fresh branch; earlier breakpoint, pseudo, and `when(...)` context is discarded inside `then` / `else`        |
-| `ifSm`, `ifMd`, `if("@media ...")`     | Sets the active media-query context          | Same-element pseudos like `onHover` or `when(":hover")`          | Replaces the previous media query; also clears relationship `when(marker, ...)`                                       |
-| `onHover`, `onFocus`, `when(":hover")` | Sets the active same-element pseudo selector | The current media query                                          | Replaces the previous pseudo selector; also clears relationship `when(marker, ...)`                                   |
-| `when(marker, "ancestor", ":hover")`   | Sets a relationship selector                 | Nothing else in the chain                                        | Clears the current media query and pseudo selector; a later media or pseudo modifier clears the relationship selector |
+Conditions accumulate by "axis", and only the latest modifier on the same axis replaces the previous one.
 
-- `if(cond)` is the main exception: styles written before the `if` stay as unconditional base styles, but the active modifier context does not carry into the branch.
-- If you want a breakpoint or pseudo only inside the branch, put it after the boolean `if`: `Css.if(selected).ifSm.blue.$`, not `Css.ifSm.if(selected).blue.$`.
-- `Css.ifSm.onHover.blue.$` and `Css.ifSm.when(":hover").blue.$` both stack, because they are media-query + same-element-pseudo combinations.
-- Relationship `when(...)` does not currently combine with `ifSm` / `if("@media ...")` or with `onHover`. Whichever one appears later wins by resetting the earlier context.
-- `else` also works with breakpoint/media conditionals: `Css.ifSm.black.else.white.$` means "black in `sm`, white in the inverse query".
+The available axes are:
+
+| Modifier | Description                         |
+| -------- |-------------------------------------|
+| `if(cond)` / `else` | Starts a runtime boolean branch     |
+| `ifSm`, `ifMd`, `if("@media ...")` | Sets the active media-query         |
+| `onHover`, `onFocus`, `when(":hover")` | Sets the "this element" selector    |
+| `when(marker, "ancestor", ":hover")`   | Sets the "related element" selector |
+| `element("::placeholder")`             | Sets the pseudo-element             |
+
+Examples:
 
 ```tsx
 Css.ifSm.onHover.blue.$;
-// small screens + hover
-
-Css.if(selected).ifSm.blue.else.black.$;
-// the then-branch contains the sm condition
+// small screens && hover => blue
 
 Css.ifSm.if(selected).blue.$;
-// ifSm does not carry into the boolean branch
+// small screens && hovered => blue
 
 Css.ifSm.black.else.white.$;
-// else = inverse media query
+// small screens => black, others => white
 
 Css.ifSm.when(row, "ancestor", ":hover").blue.$;
-// relationship when resets ifSm; this is not "sm + ancestor:hover"
+// small screens && ancestor hovered => blue
+
+Css.when(row, "ancestor", ":hover").onFocus.blue.$;
+// ancestor hovered && element focused => blue
+
+Css.onHover.onFocus.blue.$;
+// last same-element pseudo wins (:focus)
 ```
 
 ## Arbitrary _Build-time_ Selectors
@@ -605,7 +612,7 @@ const row = Css.newMarker();
 </tr>;
 ```
 
-See [Conditional Chain Precedence](#conditional-chain-precedence) for how boolean `if(...)`, breakpoint `ifSm`, and `when(...)` stack and reset.
+See [Chaining Modifiers](#chaining-modifiers) for how boolean `if(...)`, breakpoint `ifSm`, and `when(...)` stack and reset.
 
 ## Custom Selectors with `.css.ts` and `Css.className(...)`
 
