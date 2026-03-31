@@ -139,7 +139,7 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
  * Build ObjectExpression members from a list of segments.
  *
  * Normal segments are batched and processed by buildStyleHashProperties.
- * Special segments (styleArrayArg, typographyLookup, classNameArg) produce
+ * Special segments (styleArrayArg, typographyLookup, classNameArg, styleArg) produce
  * spread members or reserved metadata properties.
  */
 function buildStyleHashMembers(
@@ -149,6 +149,7 @@ function buildStyleHashMembers(
   const members: (t.ObjectProperty | t.SpreadElement)[] = [];
   const normalSegs: ResolvedSegment[] = [];
   const classNameArgs: t.Expression[] = [];
+  const styleKeyCounts = new Map<string, number>();
 
   function flushNormal(): void {
     if (normalSegs.length > 0) {
@@ -163,6 +164,12 @@ function buildStyleHashMembers(
     if (seg.classNameArg) {
       // I.e. `Css.className(cls).df.$` becomes `className_cls: cls` in the style hash.
       classNameArgs.push(t.cloneNode(seg.classNameArg, true) as t.Expression);
+      continue;
+    }
+
+    if (seg.styleArg) {
+      flushNormal();
+      members.push(buildInlineStyleMember(seg.styleArg as t.Expression, styleKeyCounts));
       continue;
     }
 
@@ -194,7 +201,7 @@ function buildStyleHashMembers(
     // In debug mode, add the abbreviation name as a marker className for multi-property
     // segments so engineers can see the origin in the DOM. I.e. `Css.bb.$` adds "bb"
     // alongside "bbs_solid bbw_1px", and `Css.lineClamp(n).$` adds "lineClamp".
-    if (options.debug && !seg.classNameArg && !seg.styleArrayArg && !seg.typographyLookup) {
+    if (options.debug && !seg.classNameArg && !seg.styleArg && !seg.styleArrayArg && !seg.typographyLookup) {
       const isMultiProp = Object.keys(seg.defs).length > 1;
       const hasExtraDefs = seg.variableExtraDefs && Object.keys(seg.variableExtraDefs).length > 0;
       if (isMultiProp || hasExtraDefs) {
@@ -219,7 +226,7 @@ function buildCustomClassNameMembers(classNameArgs: t.Expression[]): t.ObjectPro
   const counts = new Map<string, number>();
 
   return classNameArgs.map((arg) => {
-    const baseKey = `className_${sanitizeClassNameKey(arg)}`;
+    const baseKey = `className_${sanitizeMetadataKey(arg)}`;
     const count = (counts.get(baseKey) ?? 0) + 1;
     counts.set(baseKey, count);
     const key = count === 1 ? baseKey : `${baseKey}_${count}`;
@@ -227,8 +234,16 @@ function buildCustomClassNameMembers(classNameArgs: t.Expression[]): t.ObjectPro
   });
 }
 
-/** Derive a valid JS identifier suffix from a className arg. I.e. `"my-btn"` → `my_btn`, `cls` → `cls`. */
-function sanitizeClassNameKey(arg: t.Expression): string {
+function buildInlineStyleMember(arg: t.Expression, counts: Map<string, number>): t.ObjectProperty {
+  const baseKey = `style_${sanitizeMetadataKey(arg)}`;
+  const count = (counts.get(baseKey) ?? 0) + 1;
+  counts.set(baseKey, count);
+  const key = count === 1 ? baseKey : `${baseKey}_${count}`;
+  return t.objectProperty(t.identifier(key), t.cloneNode(arg, true));
+}
+
+/** Derive a valid JS identifier suffix from metadata args. I.e. `"my-btn"` → `my_btn`, `vars` → `vars`. */
+function sanitizeMetadataKey(arg: t.Expression): string {
   const raw = t.isStringLiteral(arg)
     ? arg.value
     : t.isTemplateLiteral(arg) && arg.expressions.length === 0 && arg.quasis.length === 1
@@ -286,7 +301,7 @@ function buildAddCssObjectMembers(styleObject: t.ObjectExpression): (t.ObjectPro
 function collectConditionalOnlyProps(segments: ResolvedSegment[]): Set<string> {
   const allProps = new Map<string, boolean>();
   for (const seg of segments) {
-    if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.classNameArg) continue;
+    if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.classNameArg || seg.styleArg) continue;
     const hasCondition = !!(seg.pseudoClass || seg.mediaQuery || seg.pseudoElement || seg.whenPseudo);
     const props = seg.variableProps ?? Object.keys(seg.defs);
     for (const prop of props) {
@@ -439,6 +454,8 @@ function injectDebugInfo(
       !(
         (t.isIdentifier(p.key) && p.key.name.startsWith("className_")) ||
         (t.isStringLiteral(p.key) && p.key.value.startsWith("className_")) ||
+        (t.isIdentifier(p.key) && p.key.name.startsWith("style_")) ||
+        (t.isStringLiteral(p.key) && p.key.value.startsWith("style_")) ||
         (t.isIdentifier(p.key) && p.key.name === "__marker") ||
         (t.isStringLiteral(p.key) && p.key.value === "__marker")
       )

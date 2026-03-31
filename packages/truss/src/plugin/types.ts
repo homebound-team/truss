@@ -73,6 +73,8 @@ export interface ResolvedSegment {
   isAddCss?: boolean;
   /** For custom class names inserted via `className(...)`. */
   classNameArg?: any;
+  /** For custom inline style objects inserted via `style(...)`. */
+  styleArg?: any;
   /** The evaluated literal value of the argument, if it was a compile-time constant. */
   argResolved?: string;
   /** For runtime typography lookups: the lookup metadata and runtime key node. */

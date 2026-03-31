@@ -8,6 +8,8 @@ export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
 export type Properties = Properties1<string | 0, string>;
 
+export type InlineStyle = Record<string, string | number | undefined>;
+
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
 type Opts<T> = { rules: T; enabled: boolean; important: boolean; selector: string | undefined; elseApplied: boolean };
@@ -650,6 +652,12 @@ class CssBuilder<T extends Properties> {
   /** Marker for the build-time transform to append a raw className. */
   className(className: string): CssBuilder<T> {
     void className;
+    return this;
+  }
+
+  /** Marker for the build-time transform to append raw inline styles. */
+  style(inlineStyle: InlineStyle): CssBuilder<T> {
+    void inlineStyle;
     return this;
   }
 

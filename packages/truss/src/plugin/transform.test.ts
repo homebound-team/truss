@@ -1990,6 +1990,37 @@ describe("transform", () => {
     );
   });
 
+  test("custom style passthrough: Css.blue.mt(x).style(iconVars).$", () => {
+    expectTrussTransform(
+      `
+      import { Css } from "./Css";
+      const x = getMargin();
+      const iconVars = { "--icon-primary": color, "--icon-secondary": secondaryColor };
+      const el = <div css={Css.blue.mt(x).style(iconVars).$} />;
+    `,
+    ).toHaveTrussOutput(
+      `
+      import { trussProps } from "@homebound/truss/runtime";
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+      const x = getMargin();
+      const iconVars = { "--icon-primary": color, "--icon-secondary": secondaryColor };
+      const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }], style_iconVars: iconVars })} />;
+    `,
+      `
+      .blue {
+        color: #526675;
+      }
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
   test("className merging: css + variable className expression", () => {
     expectTrussTransform(
       `

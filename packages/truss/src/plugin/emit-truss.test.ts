@@ -13,31 +13,6 @@ const testMapping: TrussMapping = {
   abbreviations: {},
 };
 
-/** Helper to build a minimal ResolvedChain from segments. */
-function chain(segments: ResolvedSegment[]): ResolvedChain {
-  return { parts: [{ type: "unconditional", segments }], markers: [], errors: [] };
-}
-
-/** Helper to build an AtomicRule from shorthand fields. */
-function rule(fields: {
-  className: string;
-  cssProperty: string;
-  cssValue: string;
-  cssVarName?: string;
-  pseudoClass?: string;
-  mediaQuery?: string;
-  pseudoElement?: string;
-  declarations?: AtomicRule["declarations"];
-  whenSelector?: AtomicRule["whenSelector"];
-}): AtomicRule {
-  const { className, cssProperty, cssValue, cssVarName, declarations, ...rest } = fields;
-  return {
-    className,
-    declarations: declarations ?? [{ cssProperty, cssValue, cssVarName }],
-    ...rest,
-  };
-}
-
 describe("collectAtomicRules", () => {
   test("static single-property segment", () => {
     const seg: ResolvedSegment = { abbr: "df", defs: { display: "flex" } };
@@ -683,4 +658,29 @@ function stripAnnotations(css: string): string {
     .split("\n")
     .filter((line) => !line.startsWith("/* @truss "))
     .join("\n");
+}
+
+/** Helper to build a minimal ResolvedChain from segments. */
+function chain(segments: ResolvedSegment[]): ResolvedChain {
+  return { parts: [{ type: "unconditional", segments }], markers: [], errors: [] };
+}
+
+/** Helper to build an AtomicRule from shorthand fields. */
+function rule(fields: {
+  className: string;
+  cssProperty: string;
+  cssValue: string;
+  cssVarName?: string;
+  pseudoClass?: string;
+  mediaQuery?: string;
+  pseudoElement?: string;
+  declarations?: AtomicRule["declarations"];
+  whenSelector?: AtomicRule["whenSelector"];
+}): AtomicRule {
+  const { className, cssProperty, cssValue, cssVarName, declarations, ...rest } = fields;
+  return {
+    className,
+    declarations: declarations ?? [{ cssProperty, cssValue, cssVarName }],
+    ...rest,
+  };
 }

@@ -46,20 +46,28 @@ Which our Vite/esbuild plugins compile to production HTML output:
   <div class="pt1 pb1 pr1 pl1 bss bw1 bcBlack h_bcBlue br2 cursorPointer h_bgLightGray">
     Border box with padding and radius
   </div>
-  <div class="bgBlue h_bgBlack white pt1 pb1 pr1 pl1 br2 cursorPointer">
-    Blue background with white text
-  </div>
+  <div class="bgBlue h_bgBlack white pt1 pb1 pr1 pl1 br2 cursorPointer">Blue background with white text</div>
 </div>
 ```
 
 And a static, build-time generated CSS file:
 
 ```css
-.df { display: flex; }
-.black { color: black }
-.pt1 { padding-top: 8px }
-.bcBlack { background-color: black }
-.h_bcBlue:hover { background-color: blue; }
+.df {
+  display: flex;
+}
+.black {
+  color: black;
+}
+.pt1 {
+  padding-top: 8px;
+}
+.bcBlack {
+  background-color: black;
+}
+.h_bcBlue:hover {
+  background-color: blue;
+}
 ```
 
 ## Quick Features
@@ -107,7 +115,7 @@ And a static, build-time generated CSS file:
   - No editor support or IDE extensions required for great DX
   - Just regular TypeScript (...with code-generation & build-time Vite plugins)
 
-And the elephant 🐘 in the room: 
+And the elephant 🐘 in the room:
 
 - Why not Tailwinds?
   - Our abbreviations are shorter 🩳
@@ -546,6 +554,51 @@ function Preview(props: { bottomMargin: number }) {
   return <div>...</div>;
 }
 ```
+
+## `Css.className(...)` and `Css.style(...)`
+
+For the occasional case where a `Css.*.$` chain needs to attach a raw `className` or inline `style`, Truss provides two build-time passthrough helpers:
+
+- `Css.className(value)` appends one or more raw classes to the final element
+- `Css.style(value)` appends raw inline styles to the final element's `style` prop
+
+Example:
+
+```tsx
+const iconVars = {
+  "--icon-primary": color,
+  "--icon-secondary": secondaryColor,
+  "--icon-stroke": color,
+};
+
+return <div css={Css.blue.mt(getMargin()).className("my-icon").style(iconVars).$} />;
+```
+
+Which compiles to output equivalent to:
+
+```tsx
+return (
+  <div
+    className="my-icon blue mt_var"
+    style={{
+      "--marginTop": getMargin(),
+      ...iconVars,
+    }}
+  />
+);
+```
+
+Typical use cases are:
+
+- `Css.className(...)` for attaching a class exported from a `.css.ts` file or a third-party class hook
+- `Css.style(...)` for custom CSS variables or a small amount of inline style data that should travel with the element
+
+These are intentionally escape hatches:
+
+- they only work in normal build-time `css={...}` expressions
+- they are not supported inside `RuntimeStyle` / `useRuntimeStyle`
+- they are not supported in `.css.ts` arbitrary-selector rules
+- they cannot be used inside modifier contexts like `ifSm`, `onHover`, `when(...)`, or `element(...)`
 
 ## Truss Command
 

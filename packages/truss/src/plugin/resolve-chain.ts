@@ -446,6 +446,19 @@ export function resolveChain(
           continue;
         }
 
+        // Raw inline style passthrough, i.e. `Css.mt(x).style(vars).$`
+        if (abbr === "style") {
+          const seg = resolveStyleCall(
+            node,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
+          );
+          segments.push(seg);
+          continue;
+        }
+
         if (abbr === "typography") {
           const resolved = resolveTypographyCall(
             node,
@@ -830,6 +843,35 @@ function resolveClassNameCall(
     abbr: "className",
     defs: {},
     classNameArg: arg,
+  };
+}
+
+function resolveStyleCall(
+  node: CallChainNode,
+  mediaQuery: string | null,
+  pseudoClass: string | null,
+  pseudoElement: string | null,
+  whenPseudo: WhenCondition | null,
+): ResolvedSegment {
+  if (node.args.length !== 1) {
+    throw new UnsupportedPatternError(`style() expects exactly 1 argument, got ${node.args.length}`);
+  }
+
+  const arg = node.args[0];
+  if (arg.type === "SpreadElement") {
+    throw new UnsupportedPatternError(`style() does not support spread arguments`);
+  }
+
+  if (mediaQuery || pseudoClass || pseudoElement || whenPseudo) {
+    throw new UnsupportedPatternError(
+      `style() cannot be used inside media query, pseudo-class, pseudo-element, or when() contexts`,
+    );
+  }
+
+  return {
+    abbr: "style",
+    defs: {},
+    styleArg: arg,
   };
 }
 
