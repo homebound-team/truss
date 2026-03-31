@@ -1,3 +1,9 @@
+## [2.15.2](https://github.com/homebound-team/truss/compare/v2.15.1...v2.15.2) (2026-03-31)
+
+### Bug Fixes
+
+* Change if/when/conditional stacking to be more consistent. ([#223](https://github.com/homebound-team/truss/issues/223)) ([d9db285](https://github.com/homebound-team/truss/commit/d9db285066e4f9a0e8aa79dcd54d7e037e7068dc))
+
 ## [2.15.1](https://github.com/homebound-team/truss/compare/v2.15.0...v2.15.1) (2026-03-29)
 
 ### Bug Fixes
