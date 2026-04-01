@@ -191,14 +191,16 @@ We recommend checking the `src/Css.ts` file into your repository, with the ratio
 
 ### Vite Plugin Setup (pre-compiled libraries)
 
-Truss generates both `Css.ts` and `Css.json`:
+If you're building a component library with Truss that will be consumed by downstream applications, the recommended approach is to compile the library's `Css.*.$` expressions into a pre-built `truss.css` file that the consuming application's Vite plugin can merge with its own Truss-generated CSS, into a single, unified/deduped `truss.css` output file.
+
+Within the library build, Truss will generate a both `Css.ts` and `Css.json`:
 
 - `Css.ts` is the typed `Css.*.$` DSL to use in your component code,
 - `Css.json` is a metadata file consumed by the Truss Vite plugin at build time.
 
-Libraries compile their own `Css.*.$` expressions and ship a pre-built `truss.css` alongside compiled JS. The consuming application only transforms its own source files, then merges the library's `truss.css` into a unified stylesheet. This works because Truss's CSS output is deterministic -- the same abbreviation always produces the same class name and CSS rule.
+The component library then ships _both_ the `Css.ts` DSL and the `Css.json` metadata file for downstream applications to use for a) styling the application's own components, and then b) creating a unified design system + application code `truss.css` file for production usage.
 
-Install the build dependency:
+Within the component library, install the build dependency:
 
 ```bash
 npm install --save-dev @homebound/truss
@@ -212,7 +214,7 @@ npm install --save-dev @homebound/truss
      outputPath: "./src/Css.ts",
      // optional: defaults to ./src/Css.json based on outputPath
      mappingOutputPath: "./src/Css.json",
-     // ...palette/fonts/increment/etc
+     // ...any palette/fonts/increment/etc configuration...
    });
    ```
 
