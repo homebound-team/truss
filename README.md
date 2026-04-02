@@ -15,34 +15,38 @@ Truss is a TypeScript DSL for writing utility CSS (think Tailwinds or Tachyons) 
 Writing Truss code looks like:
 
 ```tsx
-import { Css } from "/src/Css.ts";
+import { Css } from "src/Css.ts";
 
-<h1 css={Css.f24.black.$}>Truss v2</h1>
+function App() {
+  return (
+    <h1 css={Css.f24.black.$}>Truss v2</h1>
 
-<p css={Css.bodyText.$}>This demo uses the Truss DSL.</p>
+    <p css={Css.bodyText.$}>This demo uses the Truss DSL.</p>
 
-<div css={Css.df.gap1.$}>
-  <div css={Css.p1.ba.bcBlack.br2.cursorPointer.onHover.bcBlue.bgLightGray.$}>
-    Border box with padding and radius
-  </div>
-  <div css={Css.bgBlue.white.p1.br2.cursorPointer.onHover.bgBlack.$}>
-    Blue background with white text
-  </div>
-</div>
+    <div css={Css.df.gap1.$}>
+      <div css={Css.p1.ba.bcBlack.br2.cursorPointer.onHover.bcBlue.bgLightGray.$}>
+        Border box with padding and radius
+      </div>
+      <div css={Css.bgBlue.white.p1.br2.cursorPointer.onHover.bgBlack.$}>
+        Blue background with white text
+      </div>
+    </div>
+  );
+}
 ```
 
 Which our Vite/esbuild plugins compile to production HTML output:
 
 ```html
-<h1 class="f24 black" data-truss-src="App.tsx:8">Truss v2</h1>
+<h1 class="f24 black">Truss v2</h1>
 
-<p class="f14 black" data-truss-src="App.tsx:10">This demo uses the Truss DSL.</p>
+<p class="f14 black">This demo uses the Truss DSL.</p>
 
-<div class="df gap1" data-truss-src="App.tsx:12">
-  <div class="pt1 pb1 pr1 pl1 bss bw1 bcBlack h_bcBlue br2 cursorPointer h_bgLightGray" data-truss-src="App.tsx:13">
+<div class="df gap1">
+  <div class="pt1 pb1 pr1 pl1 bss bw1 bcBlack h_bcBlue br2 cursorPointer h_bgLightGray">
     Border box with padding and radius
   </div>
-  <div class="bgBlue h_bgBlack white pt1 pb1 pr1 pl1 br2 cursorPointer" data-truss-src="App.tsx:16">
+  <div class="bgBlue h_bgBlack white pt1 pb1 pr1 pl1 br2 cursorPointer">
     Blue background with white text
   </div>
 </div>
@@ -51,12 +55,11 @@ Which our Vite/esbuild plugins compile to production HTML output:
 And a static, build-time generated CSS file:
 
 ```css
-.df { display: flexl };
-.black { color: black };
-.pt1 { padding-top: 8px };
-.bcBlack: { background-color: black };
+.df { display: flex; }
+.black { color: black }
+.pt1 { padding-top: 8px }
+.bcBlack { background-color: black }
 .h_bcBlue:hover { background-color: blue; }
-// etc...
 ```
 
 ## Quick Features
@@ -76,10 +79,10 @@ And a static, build-time generated CSS file:
 - Pseudo-selectors and breakpoints:
   - `Css.white.onHover.black.$` or
   - `Css.ifSm.mx1.$`
-  - Intentionally limited to the styling the immediate element
+  - Intentionally limited to "only styling yourself"--discourages "styling at a distance" that breaks encapsulation
   - See the "Pseudo-Selectors" section below for rationale & escape hatches
 
-- `Css` expressions are "just POJOs", so naturally amenable to composition
+- `Css` expressions are "just POJOs" that natural compose
   - `<div css={{ ...Css.mt2.$, ...(someCondition ? Css.bgRed.$ : Css.bgGreen.$) }} />`
   - The last-set value _per property_ wins, i.e. not "the last class name"
   - Extremely natural to build up complex styles with conditionals, view logic, etc.
@@ -88,7 +91,7 @@ And a static, build-time generated CSS file:
   - No long class names that compound into a "wall of text"
   - No IDE plugins needed to make your JSX readable again 😅
   - Consistent `FooBar` -> `fb` abbreviation pattern:
-    - `justify-content: flex-start` is `jcfs`,
+    - `justify-content: flex-start` is `jcfs`
     - Easier to memorize/read
   - See [Why Tachyons](#why-tachyons-instead-of-tailwinds)
 
@@ -104,14 +107,17 @@ And a static, build-time generated CSS file:
   - No editor support or IDE extensions required for great DX
   - Just regular TypeScript (...with code-generation & build-time Vite plugins)
 
+And the elephant 🐘 in the room: 
+
 - Why not Tailwinds?
   - Our abbreviations are shorter 🩳
-  - Composing styles property-by-property with POJO spreads instead of class name strings is more natural and less error-prone
+  - Composing styles with POJO spreads instead of class name strings is more ergonomic
   - Easier escape hatches to dynamic values & dynamic selectors
+  - "Modifier chains" of `ifSm.blue.p2.m2` is more succinct than repeating class name modifiers
   - We just like Truss better 🤷 😀
 
 - Why not StyleX?
-  - StyleX arrays for composition instead of objects, which did not work for our legacy Truss v1 codebases
+  - StyleX uses arrays/array spreads for runtime composition instead of objects, which did not work for our legacy Truss v1 codebases
   - Too strict with no escape hatches for dynamic/transient CSS/selectors, which are rare but still occur
   - ...but we heavily crib StyleX's atomic CSS priority system 🙏
 
@@ -395,10 +401,10 @@ Conditions accumulate by "axis", and only the latest modifier on the same axis r
 
 The available axes are:
 
-| Modifier | Description                         |
-| -------- |-------------------------------------|
-| `if(cond)` / `else` | Starts a runtime boolean branch     |
-| `ifSm`, `ifMd`, `if("@media ...")` | Sets the active media-query         |
+| Modifier                               | Description                         |
+| -------------------------------------- | ----------------------------------- |
+| `if(cond)` / `else`                    | Starts a runtime boolean branch     |
+| `ifSm`, `ifMd`, `if("@media ...")`     | Sets the active media-query         |
 | `onHover`, `onFocus`, `when(":hover")` | Sets the "this element" selector    |
 | `when(marker, "ancestor", ":hover")`   | Sets the "related element" selector |
 | `element("::placeholder")`             | Sets the pseudo-element             |
