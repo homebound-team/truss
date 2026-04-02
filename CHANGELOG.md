@@ -1,3 +1,9 @@
+## [2.16.0](https://github.com/homebound-team/truss/compare/v2.15.2...v2.16.0) (2026-04-02)
+
+### Features
+
+* Add Css.style for setting CSS custom variables. ([#225](https://github.com/homebound-team/truss/issues/225)) ([bcc7518](https://github.com/homebound-team/truss/commit/bcc7518a825891ee1637b83ec5b78edb5042fc21))
+
 ## [2.15.2](https://github.com/homebound-team/truss/compare/v2.15.1...v2.15.2) (2026-03-31)
 
 ### Bug Fixes
