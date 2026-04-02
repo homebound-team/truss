@@ -12,6 +12,8 @@ export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
 export type Properties = Properties1<string | 0, string>;
 
+export type InlineStyle = Record<string, string | number | undefined>;
+
 /** A marker token used with `when`/`markerOf` etc. */
 export type Marker = symbol;
 
@@ -2741,6 +2743,12 @@ class CssBuilder<T extends Properties> {
   className(className: string): CssBuilder<T> {
     void className;
     return this.unsupportedRuntime("className() cannot be used in RuntimeStyle css expressions.");
+  }
+
+  /** Marker for the build-time transform to append raw inline styles. */
+  style(inlineStyle: InlineStyle): CssBuilder<T> {
+    void inlineStyle;
+    return this.unsupportedRuntime("style() cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Convert a style hash into `{ className, style }` props for manual spreading into non-`css=` contexts. */

@@ -22,6 +22,17 @@ describe("trussProps", () => {
     expect(result).toEqual({ className: "custom custom-2 df" });
   });
 
+  test("passes through custom inline style entries", () => {
+    const result = trussProps({
+      style_iconVars: { "--icon-primary": "red", "--icon-secondary": undefined },
+      display: "df",
+    });
+    expect(result).toEqual({
+      className: "df",
+      style: { "--icon-primary": "red" },
+    });
+  });
+
   test("handles variable tuples with CSS variables", () => {
     const result = trussProps({ marginTop: ["mt_var", { "--marginTop": "16px" }] });
     expect(result).toEqual({
@@ -37,6 +48,28 @@ describe("trussProps", () => {
     expect(result).toEqual({
       className: "bc_var bc_var_h",
       style: { "--borderColor": "red", "--h_borderColor": "blue" },
+    });
+  });
+
+  test("later custom inline styles override earlier variable tuple values", () => {
+    const result = trussProps({
+      marginTop: ["mt_var", { "--marginTop": "16px" }],
+      style_iconVars: { "--marginTop": "24px" },
+    });
+    expect(result).toEqual({
+      className: "mt_var",
+      style: { "--marginTop": "24px" },
+    });
+  });
+
+  test("later variable tuple values override earlier custom inline styles", () => {
+    const result = trussProps({
+      style_iconVars: { "--marginTop": "24px" },
+      marginTop: ["mt_var", { "--marginTop": "16px" }],
+    });
+    expect(result).toEqual({
+      className: "mt_var",
+      style: { "--marginTop": "16px" },
     });
   });
 

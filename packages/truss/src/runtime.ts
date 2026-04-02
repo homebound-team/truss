@@ -25,8 +25,9 @@ export type TrussStyleValue =
 
 /** A property-keyed style hash where each key owns one logical CSS property. */
 export type TrussCustomClassNameValue = string | ReadonlyArray<string | false | null | undefined>;
-export type TrussStyleHash = Record<string, TrussStyleValue | TrussCustomClassNameValue>;
 export type RuntimeStyleDeclarationValue = string | number | null | undefined;
+export type TrussInlineStyleValue = Record<string, RuntimeStyleDeclarationValue> | false | null | undefined;
+export type TrussStyleHash = Record<string, TrussStyleValue | TrussCustomClassNameValue | TrussInlineStyleValue>;
 export type RuntimeStyleDeclarations = Record<string, RuntimeStyleDeclarationValue | Record<string, unknown>>;
 export type RuntimeStyleCss = Record<string, RuntimeStyleDeclarations | string>;
 
@@ -38,7 +39,7 @@ let trussStyleElement: TrussStyleElement | null = null;
 export function trussProps(
   ...hashes: ReadonlyArray<TrussStyleHash | false | null | undefined>
 ): Record<string, unknown> {
-  const merged: Record<string, TrussStyleValue> = {};
+  const merged: Record<string, unknown> = {};
 
   for (const hash of hashes) {
     if (!hash || typeof hash !== "object") continue;
@@ -46,7 +47,7 @@ export function trussProps(
   }
 
   const classNames: string[] = [];
-  const inlineStyle: Record<string, string> = {};
+  const inlineStyle: Record<string, unknown> = {};
   const debugSources: string[] = [];
 
   for (const [key, value] of Object.entries(merged)) {
@@ -64,19 +65,25 @@ export function trussProps(
       continue;
     }
 
-    if (shouldValidateTrussStyleValues) assertValidTrussStyleValue(key, value);
+    if (key.startsWith("style_")) {
+      appendInlineStyles(inlineStyle, value);
+      continue;
+    }
 
-    if (typeof value === "string") {
+    if (shouldValidateTrussStyleValues) assertValidTrussStyleValue(key, value);
+    const trussValue = value as TrussStyleValue;
+
+    if (typeof trussValue === "string") {
       // I.e. "df" or "black blue_h"
-      classNames.push(value);
+      classNames.push(trussValue);
       continue;
     }
 
     // Tuple: [classNames, varsOrDebug?, maybeDebug?]
-    classNames.push(value[0]);
+    classNames.push(trussValue[0]);
 
-    for (let i = 1; i < value.length; i++) {
-      const el = value[i];
+    for (let i = 1; i < trussValue.length; i++) {
+      const el = trussValue[i];
       if (el instanceof TrussDebugInfo) {
         debugSources.push(el.src);
       } else if (typeof el === "object" && el !== null) {
@@ -112,6 +119,21 @@ function appendCustomClassNames(classNames: string[], value: unknown): void {
     if (typeof entry === "string") {
       // I.e. `className_button: ["button", cond && "selected"]`
       classNames.push(entry);
+    }
+  }
+}
+
+function appendInlineStyles(inlineStyle: Record<string, unknown>, value: unknown): void {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return;
+  }
+
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined || entry === null) {
+      continue;
+    }
+    if (typeof entry === "string" || typeof entry === "number") {
+      inlineStyle[key] = entry;
     }
   }
 }
@@ -192,7 +214,7 @@ export interface RuntimeStyleProps {
  * The injected `<style>` element is appended on mount and removed on unmount.
  *
  * Note: Only flat `Css.*.$` expressions are supported here; selector/marker helpers like
- * `onHover`, `when`, `ifSm`, `ifContainer`, `element`, and `className()` are rejected
+ * `onHover`, `when`, `ifSm`, `ifContainer`, `element`, `className()`, and `style()` are rejected
  * at runtime.
  */
 export function RuntimeStyle(props: RuntimeStyleProps): null {
@@ -220,7 +242,7 @@ export function RuntimeStyle(props: RuntimeStyleProps): null {
  * The injected `<style>` element is appended on mount and removed on unmount.
  *
  * Note: Only flat `Css.*.$` expressions are supported here; selector/marker helpers like
- * `onHover`, `when`, `ifSm`, `ifContainer`, `element`, and `className()` are rejected
+ * `onHover`, `when`, `ifSm`, `ifContainer`, `element`, `className()`, and `style()` are rejected
  * at runtime.
  */
 export function useRuntimeStyle(css: RuntimeStyleCss): void {
@@ -273,7 +295,7 @@ function formatRuntimeStyleRule(selector: string, declarations: RuntimeStyleDecl
 }
 
 function runtimeStyleUnsupportedValueMessage(selector: string, property: string): string {
-  return `RuntimeStyle selector \`${selector}\` has an unsupported nested value for \`${property}\`. Only flat Css expressions can be used here; selector/marker/className helpers like onHover, when, ifSm, ifContainer, element, and className() are not supported.`;
+  return `RuntimeStyle selector \`${selector}\` has an unsupported nested value for \`${property}\`. Only flat Css expressions can be used here; selector/marker/className helpers like onHover, when, ifSm, ifContainer, element, className(), and style() are not supported.`;
 }
 
 function camelToKebabRuntime(property: string): string {
