@@ -439,6 +439,20 @@ describe("Truss CssBuilder", () => {
       expect(div.style.getPropertyValue("--marginTop")).toBe("16px");
     });
 
+    test("css prop merges custom inline styles from Css.style", () => {
+      const n = 2;
+      const iconVars = {
+        "--icon-primary": Palette.Blue,
+        "--icon-secondary": Palette.White,
+      };
+      const r = render(<div css={Css.blue.mt(n).style(iconVars).$}>Test</div>);
+      const div = r.container.firstChild as HTMLElement;
+      expect(div).toHaveStyle({ color: "#526675" });
+      expect(div.style.getPropertyValue("--marginTop")).toBe("16px");
+      expect(div.style.getPropertyValue("--icon-primary")).toBe("#526675");
+      expect(div.style.getPropertyValue("--icon-secondary")).toBe("#fcfcfa");
+    });
+
     test("css prop applies variable styles with literal", () => {
       const r = render(<div css={Css.mt(2).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
