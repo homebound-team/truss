@@ -189,7 +189,7 @@ function resolveCssExpression(
     if (n.type === "else") return { error: "else is not supported in .css.ts files" };
   }
 
-  const resolved = resolveFullChain(chain, mapping);
+  const resolved = resolveFullChain(chain, mapping, cssBindingName);
 
   // Check for errors from resolution
   if (resolved.errors.length > 0) {

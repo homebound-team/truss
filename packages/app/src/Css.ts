@@ -2346,7 +2346,17 @@ class CssBuilder<T extends Properties> {
     relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter",
     pseudo: string,
   ): CssBuilder<T>;
-  when(_selectorOrMarker: string | Marker, _relationship?: string, _pseudo?: string): CssBuilder<T> {
+  /**
+   * Apply different styles for each selector in the object.
+   *
+   * `when({ ":hover": Css.blue.$, ":focus": Css.red.$ })`
+   */
+  when(selectors: Record<string, T>): CssBuilder<T>;
+  when(
+    _selectorOrMarker: string | Marker | Record<string, T>,
+    _relationship?: string,
+    _pseudo?: string,
+  ): CssBuilder<T> {
     return this.unsupportedRuntime("when() cannot be used in RuntimeStyle css expressions.");
   }
 

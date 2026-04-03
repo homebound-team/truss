@@ -2415,6 +2415,106 @@ describe("transform", () => {
     );
   });
 
+  test("Css.when({ ':hover': Css.blue.$, ':focus': Css.white.$ }).black.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.black.when({ ":hover": Css.blue.$, ":focus": Css.white.$ }).$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "black h_blue f_white" };
+    `,
+      `
+        .black {
+          color: #353535;
+        }
+        .h_blue:hover {
+          color: #526675;
+        }
+        .f_white:focus {
+          color: #fcfcfa;
+        }
+      `,
+    );
+  });
+
+  test("Css.ifSm.when({ ':hover': Css.blue.$, '[aria-disabled=true]': Css.white.$ }).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifSm.when({ ":hover": Css.blue.$, "[aria-disabled=true]": Css.white.$ }).$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "sm_h_blue sm_aria_disabled_true_white" };
+    `,
+      `
+        @media screen and (max-width: 599px) {
+          .sm_aria_disabled_true_white.sm_aria_disabled_true_white[aria-disabled=true] {
+            color: #fcfcfa;
+          }
+        }
+        @media screen and (max-width: 599px) {
+          .sm_h_blue.sm_h_blue:hover {
+            color: #526675;
+          }
+        }
+      `,
+    );
+  });
+
+  test("Css.when({ ':focus': Css.white.onDisabled.blue.$ }).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.when({ ":focus": Css.white.onDisabled.blue.$ }).$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "f_white d_blue" };
+    `,
+      `
+        .d_blue:disabled {
+          color: #526675;
+        }
+        .f_white:focus {
+          color: #fcfcfa;
+        }
+      `,
+    );
+  });
+
+  test("Css.when({ hover: Css.blue.$ }).black.$ emits console.error", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.black.when({ hover: Css.blue.$ }).$;
+    `).toHaveTrussOutput(
+      `
+      console.error("[truss] Unsupported pattern: when({ ... }) selector keys must be string literals (test.tsx:2)");
+      const s = { color: "black" };
+    `,
+      `
+        .black {
+          color: #353535;
+        }
+      `,
+    );
+  });
+
+  test("Css.when({ ':hover': notCss }).black.$ emits console.error", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const notCss = { color: "blue" };
+      const s = Css.black.when({ ":hover": notCss }).$;
+    `).toHaveTrussOutput(
+      `
+      console.error("[truss] Unsupported pattern: when({ ... }) values must be Css.*.$ expressions (test.tsx:3)");
+      const notCss = { color: "blue" };
+      const s = { color: "black" };
+    `,
+      `
+        .black {
+          color: #353535;
+        }
+      `,
+    );
+  });
+
   test("Css.when with removed 2-arg relationship form emits console.error", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
