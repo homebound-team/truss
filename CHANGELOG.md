@@ -1,3 +1,9 @@
+## [2.17.0](https://github.com/homebound-team/truss/compare/v2.16.0...v2.17.0) (2026-04-03)
+
+### Features
+
+* Don't emit data-truss-src in tests. ([#227](https://github.com/homebound-team/truss/issues/227)) ([e93bb7a](https://github.com/homebound-team/truss/commit/e93bb7abce2432445b1f73f3cadb66d321668091))
+
 ## [2.16.0](https://github.com/homebound-team/truss/compare/v2.15.2...v2.16.0) (2026-04-02)
 
 ### Features
