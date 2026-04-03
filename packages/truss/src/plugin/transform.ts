@@ -93,13 +93,16 @@ export function transformTruss(
         hasRuntimeStyleCssUsage = true;
         return;
       }
+      if (isInsideWhenObjectValue(path, cssBindingName)) {
+        return;
+      }
 
       const parentPath = path.parentPath;
       if (parentPath && parentPath.isMemberExpression() && t.isIdentifier(parentPath.node.property, { name: "$" })) {
         return;
       }
 
-      const resolvedChain = resolveFullChain(chain, mapping);
+      const resolvedChain = resolveFullChain(chain, mapping, cssBindingName);
       sites.push({ path, resolvedChain });
 
       const line = path.node.loc?.start.line ?? null;
@@ -288,6 +291,30 @@ function isRuntimeStyleCssAttribute(path: NodePath<t.JSXAttribute>): boolean {
   const openingElementPath = path.parentPath;
   if (!openingElementPath || !openingElementPath.isJSXOpeningElement()) return false;
   return t.isJSXIdentifier(openingElementPath.node.name, { name: "RuntimeStyle" });
+}
+
+function isInsideWhenObjectValue(path: NodePath<t.MemberExpression>, cssBindingName: string): boolean {
+  let current: NodePath<t.Node> | null = path.parentPath;
+
+  while (current) {
+    if (current.isObjectExpression()) {
+      const parent = current.parentPath;
+      if (
+        parent?.isCallExpression() &&
+        parent.node.arguments[0] === current.node &&
+        t.isMemberExpression(parent.node.callee) &&
+        !parent.node.callee.computed &&
+        t.isIdentifier(parent.node.callee.property, { name: "when" }) &&
+        extractChain(parent.node.callee.object as t.Expression, cssBindingName)
+      ) {
+        return true;
+      }
+    }
+
+    current = current.parentPath;
+  }
+
+  return false;
 }
 
 /** Collect typography runtime lookups from all resolved chains. */

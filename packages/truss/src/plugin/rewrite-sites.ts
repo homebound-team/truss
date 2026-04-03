@@ -95,6 +95,23 @@ function getCssAttributePath(path: NodePath<t.MemberExpression>): NodePath<t.JSX
 function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOptions): t.ObjectExpression {
   const members: (t.ObjectProperty | t.SpreadElement)[] = [];
   const previousProperties = new Map<string, t.ObjectProperty>();
+  const pendingUnconditionalSegments: ResolvedSegment[] = [];
+
+  function flushPendingUnconditionalSegments(): void {
+    // I.e. `Css.black.when({ ":hover": Css.blue.$ }).$` becomes one merged `color: "black h_blue"` entry.
+    if (pendingUnconditionalSegments.length === 0) {
+      return;
+    }
+
+    const partMembers = buildStyleHashMembers(pendingUnconditionalSegments, options);
+    members.push(...partMembers);
+    for (const member of partMembers) {
+      if (t.isObjectProperty(member)) {
+        previousProperties.set(propertyName(member.key), member);
+      }
+    }
+    pendingUnconditionalSegments.length = 0;
+  }
 
   if (chain.markers.length > 0) {
     const markerClasses = chain.markers.map((marker) => {
@@ -105,14 +122,9 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
 
   for (const part of chain.parts) {
     if (part.type === "unconditional") {
-      const partMembers = buildStyleHashMembers(part.segments, options);
-      members.push(...partMembers);
-      for (const member of partMembers) {
-        if (t.isObjectProperty(member)) {
-          previousProperties.set(propertyName(member.key), member);
-        }
-      }
+      pendingUnconditionalSegments.push(...part.segments);
     } else {
+      flushPendingUnconditionalSegments();
       // Conditional: ...(cond ? { then } : { else })
       const thenMembers = mergeConditionalBranchMembers(
         buildStyleHashMembers(part.thenSegments, options),
@@ -131,6 +143,8 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
       );
     }
   }
+
+  flushPendingUnconditionalSegments();
 
   return t.objectExpression(members);
 }

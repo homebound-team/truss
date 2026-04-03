@@ -7,6 +7,7 @@ import type {
   TrussMappingEntry,
   WhenCondition,
 } from "./types";
+import { extractChain } from "./ast-utils";
 
 /**
  * A resolved chain that may contain conditional (if/else) sections.
@@ -151,6 +152,10 @@ function applyModifierNodeToConditionContext(
  * - **`when(":hover")`** — Same-element selector pseudo. Behaves like a custom
  *   pseudo-class context and stacks with media queries.
  *
+ * - **`when({ ":hover": Css.blue.$ })`** — Object form. Each value is resolved
+ *   like an inline `Css.*.$` chain using the selector key as its initial
+ *   pseudo-class context, while inheriting the current media/when context.
+ *
  * - **`when(marker, "ancestor", ":hover")`** — Relationship selector. Sets the
  *   relationship selector context and stacks with same-element pseudos, pseudo-elements,
  *   and media queries.
@@ -163,9 +168,15 @@ function applyModifierNodeToConditionContext(
  * A boolean `if(bool)` nests the chain but inherits the currently-active
  * modifier axes into both branches.
  */
-export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): ResolvedChain {
+export function resolveFullChain(
+  chain: ChainNode[],
+  mapping: TrussMapping,
+  cssBindingName?: string,
+  initialContext: ResolvedConditionContext = emptyConditionContext(),
+): ResolvedChain {
   const parts: ResolvedChainPart[] = [];
   const markers: MarkerSegment[] = [];
+  const nestedErrors: string[] = [];
 
   // Pre-scan for marker nodes and strip them from the chain
   const filteredChain: ChainNode[] = [];
@@ -189,8 +200,8 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
   // Split chain at if/else boundaries
   let i = 0;
   let currentNodes: ChainNode[] = [];
-  let currentContext = emptyConditionContext();
-  let currentNodesStartContext = emptyConditionContext();
+  let currentContext = cloneConditionContext(initialContext);
+  let currentNodesStartContext = cloneConditionContext(initialContext);
 
   function flushCurrentNodes(): void {
     if (currentNodes.length === 0) {
@@ -199,7 +210,7 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
 
     parts.push({
       type: "unconditional",
-      segments: resolveChain(currentNodes, mapping, currentNodesStartContext),
+      segments: resolveChain(currentNodes, mapping, currentNodesStartContext, cssBindingName),
     });
     currentNodes = [];
     currentNodesStartContext = cloneConditionContext(currentContext);
@@ -227,12 +238,22 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
           ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
           : filteredChain.slice(i, elseIndex);
         const elseNodes = [makeMediaQueryNode(mediaStart.inverseMediaQuery), ...filteredChain.slice(elseIndex + 1)];
-        const thenSegs = resolveChain(thenNodes, mapping, branchContext);
-        const elseSegs = resolveChain(elseNodes, mapping, branchContext);
+        const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName);
+        const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName);
         parts.push({ type: "unconditional", segments: [...thenSegs, ...elseSegs] });
         i = filteredChain.length;
         break;
       }
+    }
+
+    if (isWhenObjectCall(node)) {
+      flushCurrentNodes();
+      const resolved = resolveWhenObjectSelectors(node, mapping, cssBindingName, currentContext);
+      parts.push(...resolved.parts);
+      markers.push(...resolved.markers);
+      nestedErrors.push(...resolved.errors);
+      i++;
+      continue;
     }
 
     if (node.type === "if") {
@@ -270,8 +291,8 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
         }
         i++;
       }
-      const thenSegs = resolveChain(thenNodes, mapping, branchContext);
-      const elseSegs = resolveChain(elseNodes, mapping, branchContext);
+      const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName);
+      const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName);
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
@@ -298,7 +319,106 @@ export function resolveFullChain(chain: ChainNode[], mapping: TrussMapping): Res
     }
   }
 
-  return { parts, markers, errors: [...scanErrors, ...segmentErrors] };
+  return { parts, markers, errors: [...new Set([...scanErrors, ...nestedErrors, ...segmentErrors])] };
+}
+
+/** Detect `when({ ... })` so object-form selector groups can be resolved specially. */
+function isWhenObjectCall(node: ChainNode): node is CallChainNode {
+  return (
+    node.type === "call" && node.name === "when" && node.args.length === 1 && node.args[0].type === "ObjectExpression"
+  );
+}
+
+/**
+ * Resolve `when({ ":hover": Css.blue.$, ... })` by recursively resolving each
+ * nested `Css.*.$` value with the selector key as its initial pseudo-class.
+ */
+function resolveWhenObjectSelectors(
+  node: CallChainNode,
+  mapping: TrussMapping,
+  cssBindingName: string | undefined,
+  initialContext: ResolvedConditionContext,
+): ResolvedChain {
+  if (!cssBindingName) {
+    return {
+      parts: [],
+      markers: [],
+      errors: [new UnsupportedPatternError(`when({ ... }) requires a resolvable Css binding`).message],
+    };
+  }
+
+  const objectArg = node.args[0];
+  if (objectArg.type !== "ObjectExpression") {
+    throw new UnsupportedPatternError(`when({ ... }) requires an object literal argument`);
+  }
+
+  const parts: ResolvedChainPart[] = [];
+  const markers: MarkerSegment[] = [];
+  const errors: string[] = [];
+
+  for (const property of objectArg.properties) {
+    try {
+      if (property.type === "SpreadElement") {
+        throw new UnsupportedPatternError(`when({ ... }) does not support spread properties`);
+      }
+      if (property.type !== "ObjectProperty") {
+        throw new UnsupportedPatternError(`when({ ... }) only supports plain object properties`);
+      }
+      if (property.computed || property.key.type !== "StringLiteral") {
+        throw new UnsupportedPatternError(`when({ ... }) selector keys must be string literals`);
+      }
+
+      const value = unwrapExpression(property.value as t.Expression);
+      if (
+        value.type !== "MemberExpression" ||
+        value.computed ||
+        value.property.type !== "Identifier" ||
+        value.property.name !== "$"
+      ) {
+        throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
+      }
+
+      const innerChain = extractChain(value.object as t.Expression, cssBindingName);
+      if (!innerChain) {
+        throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
+      }
+
+      const selectorContext = cloneConditionContext(initialContext);
+      selectorContext.pseudoClass = property.key.value;
+      const resolved = resolveFullChain(innerChain, mapping, cssBindingName, selectorContext);
+      parts.push(...resolved.parts);
+      markers.push(...resolved.markers);
+      errors.push(...resolved.errors);
+    } catch (err) {
+      if (err instanceof UnsupportedPatternError) {
+        errors.push(err.message);
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  return { parts, markers, errors: [...new Set(errors)] };
+}
+
+/** Flatten nested `when({ ... })` parts back into plain segments for `resolveChain()`. */
+function flattenWhenObjectParts(resolved: ResolvedChain): ResolvedSegment[] {
+  const segments: ResolvedSegment[] = [];
+
+  // I.e. `resolveChain()` needs a flat segment list, even though `when({ ... })` is resolved via `resolveFullChain()`.
+  for (const part of resolved.parts) {
+    if (part.type !== "unconditional") {
+      throw new UnsupportedPatternError(`when({ ... }) values cannot use if()/else in this context`);
+    }
+
+    segments.push(...part.segments);
+  }
+
+  for (const err of resolved.errors) {
+    segments.push({ abbr: "__error", defs: {}, error: err });
+  }
+
+  return segments;
 }
 
 function getMediaConditionalStartNode(
@@ -368,6 +488,7 @@ export function resolveChain(
   chain: ChainNode[],
   mapping: TrussMapping,
   initialContext: ResolvedConditionContext = emptyConditionContext(),
+  cssBindingName?: string,
 ): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
   const context = cloneConditionContext(initialContext);
@@ -485,6 +606,12 @@ export function resolveChain(
 
         // Generic when(selector) or when(marker, relationship, pseudo)
         if (abbr === "when") {
+          if (isWhenObjectCall(node)) {
+            const resolved = resolveWhenObjectSelectors(node, mapping, cssBindingName, context);
+            segments.push(...flattenWhenObjectParts(resolved));
+            continue;
+          }
+
           const resolved = resolveWhenCall(node);
           if (resolved.kind === "selector") {
             context.pseudoClass = resolved.pseudo;
@@ -1186,6 +1313,26 @@ function objectPropertyName(node: t.Expression | t.Identifier | t.PrivateName): 
   if (node.type === "Identifier") return node.name;
   if (node.type === "StringLiteral") return node.value;
   return null;
+}
+
+/** Unwrap TS/paren wrappers so nested `when({ ... })` values can be validated uniformly. */
+function unwrapExpression(node: t.Expression): t.Expression {
+  let current = node;
+
+  while (true) {
+    if (
+      current.type === "ParenthesizedExpression" ||
+      current.type === "TSAsExpression" ||
+      current.type === "TSTypeAssertion" ||
+      current.type === "TSNonNullExpression" ||
+      current.type === "TSSatisfiesExpression"
+    ) {
+      current = current.expression;
+      continue;
+    }
+
+    return current;
+  }
 }
 
 function numericLiteralValue(node: t.Expression | t.SpreadElement, errorMessage: string): number {

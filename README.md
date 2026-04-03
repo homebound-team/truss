@@ -394,12 +394,27 @@ For arbitrary pseudo-selectors not covered above, use `when`:
 // Simple pseudo-selector
 <div css={Css.when(":hover:not(:disabled)").black.$} />;
 
+// Group multiple same-element selectors together
+const buttonCss = Css.bgBlack.white.when({
+  ":hover": Css.bgBlue.$,
+  ":focus": Css.bcWhite.$,
+  "[aria-disabled=true]": Css.bgLightGray.$,
+}).$;
+
 // Marker-based relationship (react to an ancestor's hover)
 const row = Css.newMarker();
 <tr css={Css.markerOf(row).$}>
   <td css={Css.when(row, "ancestor", ":hover").blue.$}>...</td>
 </tr>;
 ```
+
+The object form of `when` is useful when you want to compare multiple pseudo-selectors side-by-side. Each value is its own `Css.*.$` expression, but the result has the same merge semantics as if you had written one longer chain.
+
+Importantly, the object keys do **not** stack/AND together with each other. Each key is resolved independently.
+
+- `Css.when({ ":hover": Css.blue.$, ":focus": Css.white.$ }).$` means `:hover` blue and `:focus` white
+- it does **not** mean `:hover:focus`
+- if you want AND behavior, put the full combined selector in the key, i.e. `":hover:focus"` or `":hover:not(:disabled)"`
 
 ### Chaining Modifiers
 
@@ -632,48 +647,6 @@ const fonts: FontConfig = {
 ```
 
 Also see the [Customization](#customization) section for more advanced configuration options.
-
-## Pseudo-Selectors and Media Queries
-
-Unlike Tachyons and Tailwinds, Truss does not create duplicate/repetitive abbreviations for every pseudo-selector and breakpoint variant (e.g. `md-blue` or `lg-red`).
-
-Instead, Truss provides chain commands like `onHover`, `ifSm`, and `ifMd` that then "modify" the commands that come after them:
-
-```tsx
-function MyReactComponent(props: {}) {
-  return <div css={Css.mx2.black.onHover.blue.ifSm.mx1.$}>...</div>;
-}
-```
-
-Where `sm` resolves from the breakpoints you define in `truss-config.ts`.
-
-The available pseudo-class modifiers are:
-
-| Modifier         | CSS Pseudo-Class |
-| ---------------- | ---------------- |
-| `onHover`        | `:hover`         |
-| `onFocus`        | `:focus`         |
-| `onFocusVisible` | `:focus-visible` |
-| `onFocusWithin`  | `:focus-within`  |
-| `onActive`       | `:active`        |
-| `onDisabled`     | `:disabled`      |
-| `ifFirstOfType`  | `:first-of-type` |
-| `ifLastOfType`   | `:last-of-type`  |
-
-For arbitrary pseudo-selectors not covered above, use `when`:
-
-```tsx
-// Simple pseudo-selector
-<div css={Css.when(":hover:not(:disabled)").black.$} />;
-
-// Marker-based relationship (react to an ancestor's hover)
-const row = Css.newMarker();
-<tr css={Css.markerOf(row).$}>
-  <td css={Css.when(row, "ancestor", ":hover").blue.$}>...</td>
-</tr>;
-```
-
-See [Chaining Modifiers](#chaining-modifiers) for how boolean `if(...)`, breakpoint `ifSm`, and `when(...)` stack and reset.
 
 ## Custom Selectors with `.css.ts` and `Css.className(...)`
 
