@@ -32,6 +32,7 @@ export type RuntimeStyleDeclarations = Record<string, RuntimeStyleDeclarationVal
 export type RuntimeStyleCss = Record<string, RuntimeStyleDeclarations | string>;
 
 const shouldValidateTrussStyleValues = resolveShouldValidateTrussStyleValues();
+const shouldEmitTrussSrcAttribute = resolveShouldEmitTrussSrcAttribute();
 const TRUSS_CSS_CHUNKS = "__trussCssChunks__";
 let trussStyleElement: TrussStyleElement | null = null;
 
@@ -100,7 +101,7 @@ export function trussProps(
     props.style = inlineStyle;
   }
 
-  if (debugSources.length > 0) {
+  if (shouldEmitTrussSrcAttribute && debugSources.length > 0) {
     props["data-truss-src"] = [...new Set(debugSources)].join("; ");
   }
 
@@ -340,6 +341,14 @@ function resolveShouldValidateTrussStyleValues(): boolean {
     return !viteEnv.PROD;
   }
   return false;
+}
+
+/** Omit unstable source labels from rendered props during Vitest runs. */
+function resolveShouldEmitTrussSrcAttribute(): boolean {
+  if (typeof process !== "undefined" && typeof process.env.VITEST === "string") {
+    return false;
+  }
+  return true;
 }
 
 function getOrCreateTrussStyleElement(): TrussStyleElement {

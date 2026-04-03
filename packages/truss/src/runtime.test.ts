@@ -83,36 +83,60 @@ describe("trussProps", () => {
     expect(result).toEqual({ className: "df black" });
   });
 
-  test("collects debug info into data-truss-src", () => {
+  test("does not emit data-truss-src in Vitest", () => {
     const result = trussProps({
       display: ["df", new TrussDebugInfo("MyComponent.tsx:5")],
       color: "black",
     });
     expect(result).toEqual({
       className: "df black",
-      "data-truss-src": "MyComponent.tsx:5",
     });
   });
 
-  test("deduplicates debug sources", () => {
+  test("still emits data-truss-src outside Vitest", async () => {
+    const previousVitest = process.env.VITEST;
+
+    delete process.env.VITEST;
+
+    try {
+      vi.resetModules();
+      const runtime = await import("./runtime");
+      const result = runtime.trussProps({
+        display: ["df", new runtime.TrussDebugInfo("MyComponent.tsx:5")],
+        color: "black",
+      });
+
+      expect(result).toEqual({
+        className: "df black",
+        "data-truss-src": "MyComponent.tsx:5",
+      });
+    } finally {
+      if (previousVitest === undefined) {
+        delete process.env.VITEST;
+      } else {
+        process.env.VITEST = previousVitest;
+      }
+      vi.resetModules();
+    }
+  });
+
+  test("omits deduplicated debug sources in Vitest", () => {
     const result = trussProps(
       { display: ["df", new TrussDebugInfo("A.tsx:1")] },
       { color: ["black", new TrussDebugInfo("A.tsx:1")] },
     );
     expect(result).toEqual({
       className: "df black",
-      "data-truss-src": "A.tsx:1",
     });
   });
 
-  test("handles variable tuple with debug info", () => {
+  test("handles variable tuple with debug info in Vitest without data-truss-src", () => {
     const result = trussProps({
       marginTop: ["mt_var", { "--marginTop": "16px" }, new TrussDebugInfo("File.tsx:3")],
     });
     expect(result).toEqual({
       className: "mt_var",
       style: { "--marginTop": "16px" },
-      "data-truss-src": "File.tsx:3",
     });
   });
 
@@ -192,13 +216,12 @@ describe("mergeProps", () => {
     });
   });
 
-  test("passes through debug info", () => {
+  test("omits debug info in Vitest", () => {
     const result = mergeProps("existing", undefined, {
       display: ["df", new TrussDebugInfo("X.tsx:1")],
     });
     expect(result).toEqual({
       className: "existing df",
-      "data-truss-src": "X.tsx:1",
     });
   });
 });
