@@ -432,6 +432,12 @@ The available axes are:
 | `when(marker, "ancestor", ":hover")`   | Sets the "related element" selector |
 | `element("::placeholder")`             | Sets the pseudo-element             |
 
+If you want to stop accumulating modifier context and start a new condition branch in the same chain, use `Css.end`.
+
+- `end` resets the active media query, pseudo-class, pseudo-element, and `when(...)` relationship context
+- this is especially useful for expressing an "or" across conditions in one chain
+- `end` does **not** terminate a runtime `if(cond)` / `else` branch
+
 Examples:
 
 ```tsx
@@ -452,6 +458,12 @@ Css.when(row, "ancestor", ":hover").onFocus.blue.$;
 
 Css.onHover.onFocus.blue.$;
 // last same-element pseudo wins (:focus)
+
+Css.ifSm.onHover.blue.end.onFocus.white.$;
+// (small screens && hover => blue) OR (focus => white)
+
+Css.when(row, "ancestor", ":hover").ifSm.blue.end.bgWhite.$;
+// small screens && ancestor hovered => blue, plus unconditional bgWhite
 ```
 
 ## Arbitrary _Build-time_ Selectors

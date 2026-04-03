@@ -2667,6 +2667,50 @@ describe("transform", () => {
     );
   });
 
+  test("Css.end resets accumulated breakpoint and pseudo context", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifSm.onHover.blue.end.onFocus.white.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "sm_h_blue f_white" };
+    `,
+      `
+      .f_white:focus {
+        color: #fcfcfa;
+      }
+      @media screen and (max-width: 599px) {
+        .sm_h_blue.sm_h_blue:hover {
+          color: #526675;
+        }
+      }
+    `,
+    );
+  });
+
+  test("Css.end resets when() and breakpoint context", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const row = Css.newMarker();
+      const s = Css.when(row, "ancestor", ":hover").ifSm.blue.end.bgWhite.$;
+    `).toHaveTrussOutput(
+      `
+      const row = Css.newMarker();
+      const s = { color: "sm_wh_anc_h_row_blue", backgroundColor: "bgWhite" };
+    `,
+      `
+      .bgWhite {
+        background-color: #fcfcfa;
+      }
+      @media screen and (max-width: 599px) {
+        ._row_mrk:hover .sm_wh_anc_h_row_blue.sm_wh_anc_h_row_blue {
+          color: #526675;
+        }
+      }
+    `,
+    );
+  });
+
   test("base + breakpoint + pseudo: Css.black.ifSm.onHover.blue.$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";

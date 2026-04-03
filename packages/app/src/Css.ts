@@ -2418,6 +2418,11 @@ class CssBuilder<T extends Properties> {
     return new CssBuilder({ ...this.opts, enabled: !this.enabled, elseApplied: true });
   }
 
+  /** Reset active conditional modifiers for subsequent styles. */
+  get end(): CssBuilder<T> {
+    return this.newCss({ selector: undefined, elseApplied: false });
+  }
+
   add<P extends Properties>(props: P): CssBuilder<T & P>;
   add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
   add<K extends keyof Properties>(propOrStyles: K | Properties, value?: Properties[K]): CssBuilder<any> {
