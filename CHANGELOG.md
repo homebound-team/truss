@@ -1,3 +1,9 @@
+## [2.18.0](https://github.com/homebound-team/truss/compare/v2.17.0...v2.18.0) (2026-04-03)
+
+### Features
+
+* Add Css.when object literal. ([#229](https://github.com/homebound-team/truss/issues/229)) ([515fc10](https://github.com/homebound-team/truss/commit/515fc107a30dc07f9ec3da228ccf9d7ca26a33a8))
+
 ## [2.17.0](https://github.com/homebound-team/truss/compare/v2.16.0...v2.17.0) (2026-04-03)
 
 ### Features
