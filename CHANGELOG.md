@@ -1,3 +1,9 @@
+## [2.19.0](https://github.com/homebound-team/truss/compare/v2.18.0...v2.19.0) (2026-04-03)
+
+### Features
+
+* Add Css.end for better conditional controls. ([#230](https://github.com/homebound-team/truss/issues/230)) ([2ab3f05](https://github.com/homebound-team/truss/commit/2ab3f0599640a26645f254bf42f1c78060290326))
+
 ## [2.18.0](https://github.com/homebound-team/truss/compare/v2.17.0...v2.18.0) (2026-04-03)
 
 ### Features
