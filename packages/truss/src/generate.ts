@@ -202,6 +202,11 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ enabled: !this.enabled, elseApplied: true });
   }
 
+  /** Reset active conditional modifiers for subsequent styles. */
+  get end() {
+    return this.newCss({ selector: undefined, elseApplied: false });
+  }
+
   get important() { return this.newCss({ important: true }); }
 
   /** Adds new properties, either a specific key/value or a Properties object, to the current css. */
@@ -558,6 +563,11 @@ class CssBuilder<T extends Properties> {
       throw new Error("else was already called");
     }
     return new CssBuilder({ ...this.opts, enabled: !this.enabled, elseApplied: true });
+  }
+
+  /** Reset active conditional modifiers for subsequent styles. */
+  get end(): CssBuilder<T> {
+    return this.newCss({ selector: undefined, elseApplied: false });
   }
 
   add<P extends Properties>(props: P): CssBuilder<T & P>;

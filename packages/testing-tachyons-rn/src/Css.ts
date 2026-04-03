@@ -603,6 +603,11 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ enabled: !this.enabled, elseApplied: true });
   }
 
+  /** Reset active conditional modifiers for subsequent styles. */
+  get end() {
+    return this.newCss({ selector: undefined, elseApplied: false });
+  }
+
   get important() {
     return this.newCss({ important: true });
   }

@@ -48,6 +48,13 @@ function cloneConditionContext(context: ResolvedConditionContext): ResolvedCondi
   };
 }
 
+function resetConditionContext(context: ResolvedConditionContext): void {
+  context.mediaQuery = null;
+  context.pseudoClass = null;
+  context.pseudoElement = null;
+  context.whenPseudo = null;
+}
+
 function segmentWithConditionContext(
   segment: Omit<ResolvedSegment, "mediaQuery" | "pseudoClass" | "pseudoElement" | "whenPseudo">,
   context: ResolvedConditionContext,
@@ -72,6 +79,10 @@ function applyModifierNodeToConditionContext(
   }
 
   if (node.type === "getter") {
+    if (node.name === "end") {
+      resetConditionContext(context);
+      return;
+    }
     if (isPseudoMethod(node.name)) {
       context.pseudoClass = pseudoSelector(node.name);
       return;
@@ -163,8 +174,13 @@ function applyModifierNodeToConditionContext(
  * - **`ifContainer({ gt, lt })`** — Container query. Sets the media query
  *   context to an `@container` query string.
  *
+ * - **`end`** — Resets the active media query, pseudo-class, pseudo-element,
+ *   and `when(...)` relationship-selector context so subsequent styles start
+ *   from the base condition state again.
+ *
  * Contexts accumulate left-to-right until explicitly replaced within the same
- * axis. A media query set by `ifSm` persists through `onHover` and `when(...)`.
+ * axis or cleared with `end`. A media query set by `ifSm` persists through
+ * `onHover` and `when(...)`.
  * A boolean `if(bool)` nests the chain but inherits the currently-active
  * modifier axes into both branches.
  */
@@ -503,6 +519,11 @@ export function resolveChain(
 
       if (node.type === "getter") {
         const abbr = node.name;
+
+        if (abbr === "end") {
+          resetConditionContext(context);
+          continue;
+        }
 
         // Pseudo-class getters: onHover, onFocus, etc.
         if (isPseudoMethod(abbr)) {
