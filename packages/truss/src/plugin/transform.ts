@@ -5,7 +5,7 @@ import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import { basename } from "path";
 import type { TrussMapping, ResolvedSegment } from "./types";
-import { resolveFullChain, type ResolvedChain } from "./resolve-chain";
+import { resolveFullChain, type CssChainReferenceResolver, type ResolvedChain } from "./resolve-chain";
 import {
   collectTopLevelBindings,
   reservePreferredName,
@@ -102,7 +102,8 @@ export function transformTruss(
         return;
       }
 
-      const resolvedChain = resolveFullChain(chain, mapping, cssBindingName);
+      const resolveCssChainReference = buildCssChainReferenceResolver(path, cssBindingName);
+      const resolvedChain = resolveFullChain(chain, mapping, cssBindingName, undefined, resolveCssChainReference);
       sites.push({ path, resolvedChain });
 
       const line = path.node.loc?.start.line ?? null;
@@ -315,6 +316,71 @@ function isInsideWhenObjectValue(path: NodePath<t.MemberExpression>, cssBindingN
   }
 
   return false;
+}
+
+function buildCssChainReferenceResolver(
+  path: NodePath<t.MemberExpression>,
+  cssBindingName: string,
+): CssChainReferenceResolver {
+  return (node) => {
+    return resolveCssChainReference(path, node, cssBindingName, new Set<string>());
+  };
+}
+
+/**
+ * Follow lexical bindings like `const same = Css.blue.$` back to their original
+ * `Css.*.$` expression so `when({ ":hover": same })` can resolve the same as
+ * an inline value. This stays in the transform layer because it depends on Babel
+ * scope/NodePath lookup, not just chain semantics.
+ */
+function resolveCssChainReference(
+  path: NodePath<t.Node>,
+  node: t.Expression,
+  cssBindingName: string,
+  seen: Set<string>,
+): ReturnType<typeof extractChain> {
+  const value = unwrapReferenceExpression(node);
+
+  if (t.isMemberExpression(value) && !value.computed && t.isIdentifier(value.property, { name: "$" })) {
+    return extractChain(value.object as t.Expression, cssBindingName);
+  }
+
+  if (!t.isIdentifier(value) || seen.has(value.name)) {
+    return null;
+  }
+
+  const binding = path.scope.getBinding(value.name);
+  if (!binding?.constant || !binding.path.isVariableDeclarator()) {
+    return null;
+  }
+
+  const init = binding.path.node.init;
+  if (!init || !t.isExpression(init)) {
+    return null;
+  }
+
+  seen.add(value.name);
+  return resolveCssChainReference(binding.path, init, cssBindingName, seen);
+}
+
+/** Strip TS/paren wrappers before checking whether a reference points at `Css.*.$`. */
+function unwrapReferenceExpression(node: t.Expression): t.Expression {
+  let current = node;
+
+  while (true) {
+    if (
+      t.isParenthesizedExpression(current) ||
+      t.isTSAsExpression(current) ||
+      t.isTSTypeAssertion(current) ||
+      t.isTSNonNullExpression(current) ||
+      t.isTSSatisfiesExpression(current)
+    ) {
+      current = current.expression;
+      continue;
+    }
+
+    return current;
+  }
 }
 
 /** Collect typography runtime lookups from all resolved chains. */

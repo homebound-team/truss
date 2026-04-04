@@ -213,6 +213,15 @@ describe("transformCssTs", () => {
     );
   });
 
+  test("error: when object modifier with referenced Css value produces inline comment", () => {
+    const css = transformCssTs(
+      `import { Css } from "./Css"; const same = Css.blue.$; export const css = { ".foo": Css.when({ ":hover": same }).$ };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(n(`/* [truss] unsupported: ".foo" — when() modifiers are not supported in .css.ts files */`));
+  });
+
   test("error: unknown abbreviation produces inline comment", () => {
     const css = transformCssTs(
       `import { Css } from "./Css"; export const css = { ".foo": Css.totallyBogus.$ };`,

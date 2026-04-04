@@ -2479,6 +2479,70 @@ describe("transform", () => {
     );
   });
 
+  test("Css.when({ ':focus': same, ':hover': same }).$ resolves referenced Css values", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+
+      function Example() {
+        const same = Css.blue.$;
+        return <div css={Css.when({ ":focus": same, ":hover": same }).$} />;
+      }
+    `).toHaveTrussOutput(
+      `
+      function Example() {
+        const same = { color: "blue" };
+        return <div className="f_blue h_blue" />;
+      }
+    `,
+      `
+        .blue {
+          color: #526675;
+        }
+        .h_blue:hover {
+          color: #526675;
+        }
+        .f_blue:focus {
+          color: #526675;
+        }
+      `,
+    );
+  });
+
+  test("Css.when({ ':focus': same, ':hover': same }).$ stacks referenced breakpoint context", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+
+      function Example() {
+        const same = Css.ifSm.blue.$;
+        return <div css={Css.when({ ":focus": same, ":hover": same }).$} />;
+      }
+    `).toHaveTrussOutput(
+      `
+      function Example() {
+        const same = { color: "sm_blue" };
+        return <div className="sm_f_blue sm_h_blue" />;
+      }
+    `,
+      `
+        @media screen and (max-width: 599px) {
+          .sm_blue.sm_blue {
+            color: #526675;
+          }
+        }
+        @media screen and (max-width: 599px) {
+          .sm_h_blue.sm_h_blue:hover {
+            color: #526675;
+          }
+        }
+        @media screen and (max-width: 599px) {
+          .sm_f_blue.sm_f_blue:focus {
+            color: #526675;
+          }
+        }
+      `,
+    );
+  });
+
   test("Css.when({ hover: Css.blue.$ }).black.$ emits console.error", () => {
     expectTrussTransform(`
       import { Css } from "./Css";

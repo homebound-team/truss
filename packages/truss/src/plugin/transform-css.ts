@@ -187,6 +187,9 @@ function resolveCssExpression(
   for (const n of chain) {
     if (n.type === "if") return { error: "if() conditionals are not supported in .css.ts files" };
     if (n.type === "else") return { error: "else is not supported in .css.ts files" };
+    if (n.type === "call" && n.name === "when") {
+      return { error: "when() modifiers are not supported in .css.ts files" };
+    }
   }
 
   const resolved = resolveFullChain(chain, mapping, cssBindingName);
