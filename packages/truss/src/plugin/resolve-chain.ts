@@ -16,6 +16,17 @@ import { extractChain } from "./ast-utils";
  */
 export type CssChainReferenceResolver = (node: t.Expression) => ChainNode[] | null;
 
+export interface ResolveChainCtx {
+  /** The Truss mapping that defines abbreviations, breakpoints, and typography resolution. */
+  mapping: TrussMapping;
+  /** The local identifier bound to the generated `Css` export, if one exists in this file. */
+  cssBindingName?: string;
+  /** The starting modifier state for this resolution pass, i.e. inherited media/pseudo context. */
+  initialContext?: ResolvedConditionContext;
+  /** Optional lexical binding resolver for `const same = Css.blue.$` style references. */
+  resolveCssChainReference?: CssChainReferenceResolver;
+}
+
 /**
  * A resolved chain that may contain conditional (if/else) sections.
  *
@@ -191,13 +202,9 @@ function applyModifierNodeToConditionContext(
  * A boolean `if(bool)` nests the chain but inherits the currently-active
  * modifier axes into both branches.
  */
-export function resolveFullChain(
-  chain: ChainNode[],
-  mapping: TrussMapping,
-  cssBindingName?: string,
-  initialContext: ResolvedConditionContext = emptyConditionContext(),
-  resolveCssChainReference?: CssChainReferenceResolver,
-): ResolvedChain {
+export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): ResolvedChain {
+  const { mapping } = ctx;
+  const initialContext = ctx.initialContext ?? emptyConditionContext();
   const parts: ResolvedChainPart[] = [];
   const markers: MarkerSegment[] = [];
   const nestedErrors: string[] = [];
@@ -234,7 +241,7 @@ export function resolveFullChain(
 
     parts.push({
       type: "unconditional",
-      segments: resolveChain(currentNodes, mapping, currentNodesStartContext, cssBindingName, resolveCssChainReference),
+      segments: resolveChain({ ...ctx, initialContext: currentNodesStartContext }, currentNodes),
     });
     currentNodes = [];
     currentNodesStartContext = cloneConditionContext(currentContext);
@@ -262,8 +269,8 @@ export function resolveFullChain(
           ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
           : filteredChain.slice(i, elseIndex);
         const elseNodes = [makeMediaQueryNode(mediaStart.inverseMediaQuery), ...filteredChain.slice(elseIndex + 1)];
-        const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
-        const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
+        const thenSegs = resolveChain({ ...ctx, initialContext: branchContext }, thenNodes);
+        const elseSegs = resolveChain({ ...ctx, initialContext: branchContext }, elseNodes);
         parts.push({ type: "unconditional", segments: [...thenSegs, ...elseSegs] });
         i = filteredChain.length;
         break;
@@ -272,13 +279,7 @@ export function resolveFullChain(
 
     if (isWhenObjectCall(node)) {
       flushCurrentNodes();
-      const resolved = resolveWhenObjectSelectors(
-        node,
-        mapping,
-        cssBindingName,
-        currentContext,
-        resolveCssChainReference,
-      );
+      const resolved = resolveWhenObjectSelectors(ctx, node, currentContext);
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
       nestedErrors.push(...resolved.errors);
@@ -321,8 +322,8 @@ export function resolveFullChain(
         }
         i++;
       }
-      const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
-      const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
+      const thenSegs = resolveChain({ ...ctx, initialContext: branchContext }, thenNodes);
+      const elseSegs = resolveChain({ ...ctx, initialContext: branchContext }, elseNodes);
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
@@ -364,12 +365,11 @@ function isWhenObjectCall(node: ChainNode): node is CallChainNode {
  * nested `Css.*.$` value with the selector key as its initial pseudo-class.
  */
 function resolveWhenObjectSelectors(
+  ctx: ResolveChainCtx,
   node: CallChainNode,
-  mapping: TrussMapping,
-  cssBindingName: string | undefined,
   initialContext: ResolvedConditionContext,
-  resolveCssChainReference?: CssChainReferenceResolver,
 ): ResolvedChain {
+  const { cssBindingName } = ctx;
   if (!cssBindingName) {
     return {
       parts: [],
@@ -400,14 +400,14 @@ function resolveWhenObjectSelectors(
       }
 
       const value = unwrapExpression(property.value as t.Expression);
-      const innerChain = resolveWhenObjectValueChain(value, cssBindingName, resolveCssChainReference);
+      const innerChain = resolveWhenObjectValueChain(ctx, value);
       if (!innerChain) {
         throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
       }
 
       const selectorContext = cloneConditionContext(initialContext);
       selectorContext.pseudoClass = property.key.value;
-      const resolved = resolveFullChain(innerChain, mapping, cssBindingName, selectorContext, resolveCssChainReference);
+      const resolved = resolveFullChain({ ...ctx, initialContext: selectorContext }, innerChain);
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
       errors.push(...resolved.errors);
@@ -432,11 +432,8 @@ function resolveWhenObjectSelectors(
  * Babel scope/NodePath traversal state, while `resolve-chain.ts` is kept focused
  * on chain semantics rather than lexical binding analysis.
  */
-function resolveWhenObjectValueChain(
-  value: t.Expression,
-  cssBindingName: string | undefined,
-  resolveCssChainReference?: CssChainReferenceResolver,
-): ChainNode[] | null {
+function resolveWhenObjectValueChain(ctx: ResolveChainCtx, value: t.Expression): ChainNode[] | null {
+  const { cssBindingName, resolveCssChainReference } = ctx;
   if (
     cssBindingName &&
     value.type === "MemberExpression" &&
@@ -533,13 +530,9 @@ function invertMediaQuery(query: string): string {
  * Returns an array of ResolvedSegment with flat defs (no condition nesting).
  * Does NOT handle if/else — use resolveFullChain for that.
  */
-export function resolveChain(
-  chain: ChainNode[],
-  mapping: TrussMapping,
-  initialContext: ResolvedConditionContext = emptyConditionContext(),
-  cssBindingName?: string,
-  resolveCssChainReference?: CssChainReferenceResolver,
-): ResolvedSegment[] {
+export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): ResolvedSegment[] {
+  const { mapping, cssBindingName } = ctx;
+  const initialContext = ctx.initialContext ?? emptyConditionContext();
   const segments: ResolvedSegment[] = [];
   const context = cloneConditionContext(initialContext);
 
@@ -662,13 +655,7 @@ export function resolveChain(
         // Generic when(selector) or when(marker, relationship, pseudo)
         if (abbr === "when") {
           if (isWhenObjectCall(node)) {
-            const resolved = resolveWhenObjectSelectors(
-              node,
-              mapping,
-              cssBindingName,
-              context,
-              resolveCssChainReference,
-            );
+            const resolved = resolveWhenObjectSelectors(ctx, node, context);
             segments.push(...flattenWhenObjectParts(resolved));
             continue;
           }
