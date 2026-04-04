@@ -432,6 +432,23 @@ describe("Truss CssBuilder", () => {
       expect(div).toHaveStyle({ display: "flex" });
     });
 
+    test("css prop ignores undefined custom class names", () => {
+      const maybeClassName: string | undefined = undefined;
+      const r = render(
+        <div
+          css={{
+            ...Css.className(maybeClassName).$,
+            ...Css.df.$,
+          }}
+        >
+          Test
+        </div>,
+      );
+      const div = r.container.firstChild as HTMLElement;
+      expect(div.className).toEqual("df");
+      expect(div).toHaveStyle({ display: "flex" });
+    });
+
     test("css prop applies variable styles with variable", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$}>Test</div>);

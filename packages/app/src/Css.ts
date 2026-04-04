@@ -2446,7 +2446,7 @@ class CssBuilder<T extends Properties> {
   }
 
   /** Marker for the build-time transform to append a raw className. */
-  className(className: string): CssBuilder<T> {
+  className(className: string | undefined): CssBuilder<T> {
     void className;
     return this.unsupportedRuntime("className() cannot be used in RuntimeStyle css expressions.");
   }
