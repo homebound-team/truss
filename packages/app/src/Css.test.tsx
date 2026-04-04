@@ -1,7 +1,7 @@
 import React from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
-import { Css, Palette, RuntimeStyle, useRuntimeStyle, type Only, type Xss } from "./Css";
+import { Css, Palette, RuntimeStyle, useRuntimeStyle, type Only, type Properties, type Xss } from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
 
 afterEach(cleanup);
@@ -589,6 +589,29 @@ describe("Truss CssBuilder", () => {
   });
 
   describe("pseudo with overlapping base property", () => {
+    test("when object literal preserves merged keys for TypeScript", () => {
+      const styles = Css.bgBlack.when({
+        ":hover": Css.blue.$,
+        ":focus": Css.bcWhite.$,
+      }).$;
+
+      const requiresBackgroundColor: { backgroundColor: Properties["backgroundColor"] } = styles;
+      const requiresColor: { color: Properties["color"] } = styles;
+      const requiresBorderColor: { borderColor: Properties["borderColor"] } = styles;
+
+      void requiresBackgroundColor;
+      void requiresColor;
+      void requiresBorderColor;
+
+      // @ts-expect-error `display` is not part of the grouped-selector style hash.
+      const invalidDisplay: { display: Properties["display"] } = styles;
+      void invalidDisplay;
+
+      const r = render(<div css={styles}>Grouped selectors</div>);
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ backgroundColor: "#353535" });
+    });
+
     test("onHover on same property emits correct default and hover CSS rules", () => {
       // Css.bgBlue.onHover.bgBlack.$ — both set backgroundColor.
       // The plugin merges them into: backgroundColor: { default: "#526675", ":hover": "#353535" }

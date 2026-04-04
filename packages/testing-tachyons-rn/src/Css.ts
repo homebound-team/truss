@@ -6,6 +6,9 @@ import { Properties as Properties1 } from "csstype";
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
+type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void ? I
+  : never;
+
 export type Properties = Properties1<string | 0, string>;
 
 export type InlineStyle = Record<string, string | number | undefined>;
