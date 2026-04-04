@@ -1,3 +1,9 @@
+## [2.19.2](https://github.com/homebound-team/truss/compare/v2.19.1...v2.19.2) (2026-04-04)
+
+### Bug Fixes
+
+* Allow Css.when to reference variable bindings. ([#232](https://github.com/homebound-team/truss/issues/232)) ([5740aa1](https://github.com/homebound-team/truss/commit/5740aa1e26417b445075de6579ac40bc75b93b14))
+
 ## [2.19.1](https://github.com/homebound-team/truss/compare/v2.19.0...v2.19.1) (2026-04-04)
 
 ### Bug Fixes
