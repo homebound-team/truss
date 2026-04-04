@@ -103,7 +103,7 @@ export function transformTruss(
       }
 
       const resolveCssChainReference = buildCssChainReferenceResolver(path, cssBindingName);
-      const resolvedChain = resolveFullChain(chain, mapping, cssBindingName, undefined, resolveCssChainReference);
+      const resolvedChain = resolveFullChain({ mapping, cssBindingName, resolveCssChainReference }, chain);
       sites.push({ path, resolvedChain });
 
       const line = path.node.loc?.start.line ?? null;

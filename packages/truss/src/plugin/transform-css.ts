@@ -192,7 +192,7 @@ function resolveCssExpression(
     }
   }
 
-  const resolved = resolveFullChain(chain, mapping, cssBindingName);
+  const resolved = resolveFullChain({ mapping, cssBindingName }, chain);
 
   // Check for errors from resolution
   if (resolved.errors.length > 0) {
