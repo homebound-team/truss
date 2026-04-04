@@ -10,6 +10,9 @@ export { RuntimeStyle, useRuntimeStyle } from "@homebound/truss/runtime";
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
 
+type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void ? I
+  : never;
+
 export type Properties = Properties1<string | 0, string>;
 
 export type InlineStyle = Record<string, string | number | undefined>;
@@ -2663,9 +2666,9 @@ class CssBuilder<T extends Properties> {
    *
    * `when({ ":hover": Css.blue.$, ":focus": Css.red.$ })`
    */
-  when(selectors: Record<string, T>): CssBuilder<T>;
+  when<W extends Record<string, Properties>>(selectors: W): CssBuilder<T & UnionToIntersection<W[keyof W]>>;
   when(
-    _selectorOrMarker: string | Marker | Record<string, T>,
+    _selectorOrMarker: string | Marker | Record<string, Properties>,
     _relationship?: string,
     _pseudo?: string,
   ): CssBuilder<T> {

@@ -348,7 +348,7 @@ Truss ships two build plugins. Both transform `Css.*.$` expressions into plain o
 
 If you are targeting React Native instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
 
-## Pseudo-Selectors and Media Queries
+## Pseudo-Selectors 
 
 Truss intentionally limits the selectors you can use in `Css.*.$` chains to:
 
