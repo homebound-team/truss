@@ -1,3 +1,9 @@
+## [2.19.1](https://github.com/homebound-team/truss/compare/v2.19.0...v2.19.1) (2026-04-04)
+
+### Bug Fixes
+
+* Fix types for Css.when with literal. ([#231](https://github.com/homebound-team/truss/issues/231)) ([941fc25](https://github.com/homebound-team/truss/commit/941fc25a9c05749c803c79506529cc86ab760980))
+
 ## [2.19.0](https://github.com/homebound-team/truss/compare/v2.18.0...v2.19.0) (2026-04-03)
 
 ### Features
