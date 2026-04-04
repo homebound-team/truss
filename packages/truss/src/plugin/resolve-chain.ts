@@ -10,6 +10,13 @@ import type {
 import { extractChain } from "./ast-utils";
 
 /**
+ * Optional hook for resolving identifier references like `const same = Css.blue.$`
+ * back into a `ChainNode[]`, so the core chain resolver can stay decoupled from
+ * Babel scope/AST traversal concerns.
+ */
+export type CssChainReferenceResolver = (node: t.Expression) => ChainNode[] | null;
+
+/**
  * A resolved chain that may contain conditional (if/else) sections.
  *
  * I.e. `ChainNode` from ast-utils.ts is just the raw AST chain from `Css` to `.$`, which may contain if/else
@@ -189,6 +196,7 @@ export function resolveFullChain(
   mapping: TrussMapping,
   cssBindingName?: string,
   initialContext: ResolvedConditionContext = emptyConditionContext(),
+  resolveCssChainReference?: CssChainReferenceResolver,
 ): ResolvedChain {
   const parts: ResolvedChainPart[] = [];
   const markers: MarkerSegment[] = [];
@@ -226,7 +234,7 @@ export function resolveFullChain(
 
     parts.push({
       type: "unconditional",
-      segments: resolveChain(currentNodes, mapping, currentNodesStartContext, cssBindingName),
+      segments: resolveChain(currentNodes, mapping, currentNodesStartContext, cssBindingName, resolveCssChainReference),
     });
     currentNodes = [];
     currentNodesStartContext = cloneConditionContext(currentContext);
@@ -254,8 +262,8 @@ export function resolveFullChain(
           ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
           : filteredChain.slice(i, elseIndex);
         const elseNodes = [makeMediaQueryNode(mediaStart.inverseMediaQuery), ...filteredChain.slice(elseIndex + 1)];
-        const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName);
-        const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName);
+        const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
+        const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
         parts.push({ type: "unconditional", segments: [...thenSegs, ...elseSegs] });
         i = filteredChain.length;
         break;
@@ -264,7 +272,13 @@ export function resolveFullChain(
 
     if (isWhenObjectCall(node)) {
       flushCurrentNodes();
-      const resolved = resolveWhenObjectSelectors(node, mapping, cssBindingName, currentContext);
+      const resolved = resolveWhenObjectSelectors(
+        node,
+        mapping,
+        cssBindingName,
+        currentContext,
+        resolveCssChainReference,
+      );
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
       nestedErrors.push(...resolved.errors);
@@ -307,8 +321,8 @@ export function resolveFullChain(
         }
         i++;
       }
-      const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName);
-      const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName);
+      const thenSegs = resolveChain(thenNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
+      const elseSegs = resolveChain(elseNodes, mapping, branchContext, cssBindingName, resolveCssChainReference);
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
@@ -354,6 +368,7 @@ function resolveWhenObjectSelectors(
   mapping: TrussMapping,
   cssBindingName: string | undefined,
   initialContext: ResolvedConditionContext,
+  resolveCssChainReference?: CssChainReferenceResolver,
 ): ResolvedChain {
   if (!cssBindingName) {
     return {
@@ -385,23 +400,14 @@ function resolveWhenObjectSelectors(
       }
 
       const value = unwrapExpression(property.value as t.Expression);
-      if (
-        value.type !== "MemberExpression" ||
-        value.computed ||
-        value.property.type !== "Identifier" ||
-        value.property.name !== "$"
-      ) {
-        throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
-      }
-
-      const innerChain = extractChain(value.object as t.Expression, cssBindingName);
+      const innerChain = resolveWhenObjectValueChain(value, cssBindingName, resolveCssChainReference);
       if (!innerChain) {
         throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
       }
 
       const selectorContext = cloneConditionContext(initialContext);
       selectorContext.pseudoClass = property.key.value;
-      const resolved = resolveFullChain(innerChain, mapping, cssBindingName, selectorContext);
+      const resolved = resolveFullChain(innerChain, mapping, cssBindingName, selectorContext, resolveCssChainReference);
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
       errors.push(...resolved.errors);
@@ -415,6 +421,33 @@ function resolveWhenObjectSelectors(
   }
 
   return { parts, markers, errors: [...new Set(errors)] };
+}
+
+/**
+ * Resolve a `when({ ... })` value into an inner `ChainNode[]`.
+ *
+ * I.e. this accepts either a direct `Css.blue.$` member expression or a
+ * transform-provided reference resolver for identifiers like `const same = Css.blue.$`.
+ * The reference lookup itself stays outside this file because it depends on
+ * Babel scope/NodePath traversal state, while `resolve-chain.ts` is kept focused
+ * on chain semantics rather than lexical binding analysis.
+ */
+function resolveWhenObjectValueChain(
+  value: t.Expression,
+  cssBindingName: string | undefined,
+  resolveCssChainReference?: CssChainReferenceResolver,
+): ChainNode[] | null {
+  if (
+    cssBindingName &&
+    value.type === "MemberExpression" &&
+    !value.computed &&
+    value.property.type === "Identifier" &&
+    value.property.name === "$"
+  ) {
+    return extractChain(value.object as t.Expression, cssBindingName);
+  }
+
+  return resolveCssChainReference?.(value) ?? null;
 }
 
 /** Flatten nested `when({ ... })` parts back into plain segments for `resolveChain()`. */
@@ -505,6 +538,7 @@ export function resolveChain(
   mapping: TrussMapping,
   initialContext: ResolvedConditionContext = emptyConditionContext(),
   cssBindingName?: string,
+  resolveCssChainReference?: CssChainReferenceResolver,
 ): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
   const context = cloneConditionContext(initialContext);
@@ -628,7 +662,13 @@ export function resolveChain(
         // Generic when(selector) or when(marker, relationship, pseudo)
         if (abbr === "when") {
           if (isWhenObjectCall(node)) {
-            const resolved = resolveWhenObjectSelectors(node, mapping, cssBindingName, context);
+            const resolved = resolveWhenObjectSelectors(
+              node,
+              mapping,
+              cssBindingName,
+              context,
+              resolveCssChainReference,
+            );
             segments.push(...flattenWhenObjectParts(resolved));
             continue;
           }
