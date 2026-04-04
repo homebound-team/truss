@@ -1,3 +1,9 @@
+## [2.19.3](https://github.com/homebound-team/truss/compare/v2.19.2...v2.19.3) (2026-04-04)
+
+### Bug Fixes
+
+* Allow Css.className to be undefined. ([#234](https://github.com/homebound-team/truss/issues/234)) ([92a3fd2](https://github.com/homebound-team/truss/commit/92a3fd297fd4fa52ef8429072af8376b4c39b74d))
+
 ## [2.19.2](https://github.com/homebound-team/truss/compare/v2.19.1...v2.19.2) (2026-04-04)
 
 ### Bug Fixes
