@@ -3277,13 +3277,13 @@ describe("transform", () => {
     );
   });
 
-  test("add with CssProp argument composes inline as spread", () => {
+  test("with CssProp argument composes inline as spread", () => {
     expectTrussTransform(
       `
       import { Css } from "./Css";
       const base = getBase();
       const sizeStyles = getSize();
-      const s = Css.df.add(base).add(sizeStyles).black.$;
+      const s = Css.df.with(base).with(sizeStyles).black.$;
     `,
     ).toHaveTrussOutput(
       `
@@ -3302,36 +3302,12 @@ describe("transform", () => {
     );
   });
 
-  test("addCss with CssProp argument composes inline as spread", () => {
-    expectTrussTransform(`
-      import { Css } from "./Css";
-      const height = getHeight();
-      const s = Css.df.bgBlue.addCss(height).black.$;
-    `).toHaveTrussOutput(
-      `
-      const height = getHeight();
-      const s = { display: "df", backgroundColor: "bgBlue", ...height, color: "black" };
-    `,
-      `
-      .bgBlue {
-        background-color: #526675;
-      }
-      .black {
-        color: #353535;
-      }
-      .df {
-        display: flex;
-      }
-    `,
-    );
-  });
-
-  test("addCss supports destructured fallback expressions", () => {
+  test("with supports destructured fallback expressions", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
       function Panel(props) {
         const { height } = props.xss;
-        return <div css={Css.h(1).df.bgBlue.addCss({ height }).black.$} />;
+        return <div css={Css.h(1).df.bgBlue.with({ height }).black.$} />;
       }
     `).toHaveTrussOutput(
       `
@@ -3358,10 +3334,10 @@ describe("transform", () => {
     );
   });
 
-  test("addCss object literals pass through Truss style values", () => {
+  test("with object literals skip undefined values", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
-       const s = Css.h(1).addCss({ height }).$;
+       const s = Css.h(1).with({ height }).$;
     `).toHaveTrussOutput(
       `
       const s = { height: "h_8px", ...(height === undefined ? {} : { height: height }) };
@@ -3374,29 +3350,67 @@ describe("transform", () => {
     );
   });
 
-  test("addCss rejects wrong arity", () => {
+  test("with rejects wrong arity", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
-      const s = Css.addCss("height", "8px").$;
+      const s = Css.with("height", "8px").$;
     `).toHaveTrussOutput(
       `
-      console.error("[truss] Unsupported pattern: addCss() requires exactly 1 argument (an existing CssProp/style hash expression) (test.tsx:2)");
+      console.error("[truss] Unsupported pattern: with() requires exactly 1 argument (test.tsx:2)");
       const s = {};
     `,
       ``,
     );
   });
 
-  test("add with object literal emits console.error", () => {
+  test("add with object literal expands into individual properties", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
-      const s = Css.add({ wordBreak: "break-word" }).$;
+      const s = Css.add({ wordBreak: "break-word", display: "grid" }).$;
     `).toHaveTrussOutput(
       `
-      console.error("[truss] Unsupported pattern: add(cssProp) does not accept object literals -- pass an existing CssProp expression instead (test.tsx:2)");
+      const s = { wordBreak: "wbbw", display: "dg" };
+    `,
+      `
+      .dg {
+        display: grid;
+      }
+      .wbbw {
+        word-break: break-word;
+      }
+    `,
+    );
+  });
+
+  test("add with single non-object arg emits error (use with instead)", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const base = getBase();
+      const s = Css.add(base).$;
+    `).toHaveTrussOutput(
+      `
+      console.error("[truss] Unsupported pattern: add() requires 1 or 2 arguments (property name and value, or an object literal), got 1. Supported overloads are add({ prop: value }), add(\\"propName\\", value), and with(cssProp) (test.tsx:3)");
+      const base = getBase();
       const s = {};
     `,
       ``,
+    );
+  });
+
+  test("add with Css expression arg emits error (use with instead): Css.add(Css.black.$).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.add(Css.black.$).$;
+    `).toHaveTrussOutput(
+      `
+      console.error("[truss] Unsupported pattern: add() requires 1 or 2 arguments (property name and value, or an object literal), got 1. Supported overloads are add({ prop: value }), add(\\"propName\\", value), and with(cssProp) (test.tsx:2)");
+      const s = {};
+    `,
+      `
+      .black {
+        color: #353535;
+      }
+    `,
     );
   });
 

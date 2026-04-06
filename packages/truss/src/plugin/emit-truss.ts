@@ -1,6 +1,6 @@
 import * as t from "@babel/types";
 import type { ResolvedChain } from "./resolve-chain";
-import type { ResolvedSegment, TrussMapping, WhenCondition } from "./types";
+import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCondition } from "./types";
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 
@@ -189,43 +189,6 @@ function getPropertyAbbreviation(cssProp: string): string {
 }
 
 // ── Longhand lookup (canonical abbreviation reuse) ────────────────────
-
-/**
- * Build a reverse lookup from `"cssProperty\0cssValue"` → canonical abbreviation name.
- *
- * I.e. `{ paddingTop: "8px" }` → `"pt1"`, `{ borderStyle: "solid" }` → `"bss"`.
- * Used so multi-property abbreviations can reuse existing single-property class names.
- */
-function buildLonghandLookup(mapping: TrussMapping): Map<string, string> {
-  const lookup = new Map<string, string>();
-  for (const [abbrev, entry] of Object.entries(mapping.abbreviations)) {
-    if (entry.kind !== "static") continue;
-    const props = Object.keys(entry.defs);
-    if (props.length !== 1) continue;
-    const prop = props[0];
-    const value = String(entry.defs[prop]);
-    const key = `${prop}\0${value}`;
-    // First match wins — if multiple abbreviations produce the same declaration,
-    // the one that appears first in the mapping is canonical.
-    if (!lookup.has(key)) {
-      lookup.set(key, abbrev);
-    }
-  }
-  return lookup;
-}
-
-/** Cached longhand lookup per mapping (keyed by identity). */
-let cachedMapping: TrussMapping | null = null;
-let cachedLookup: Map<string, string> | null = null;
-
-/** I.e. returns the cached `buildLonghandLookup` result, rebuilding only when the mapping changes. */
-function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
-  if (cachedMapping !== mapping) {
-    cachedMapping = mapping;
-    cachedLookup = buildLonghandLookup(mapping);
-  }
-  return cachedLookup!;
-}
 
 // ── Static base class-name computation ────────────────────────────────
 

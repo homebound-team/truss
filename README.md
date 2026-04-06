@@ -738,7 +738,40 @@ However, this line will not compile because `mt2` is statically typed as `{ marg
 
 The `Css` DSL also iteratively types itself, i.e. `Css.ml1.mr2.$` is still statically typed as `{ marginLeft: number; marginRight: number }`, instead of being based just on the last-used abbreviation.
 
-You can also destructure an `xss` value for component logic, and then re-apply specific overrides with `addCss(...)`. A useful pattern is to put the component's fallback/default earlier in the chain, and let the caller's destructured override win later:
+### `add()` — Creating Css Expressions from Style Names/Values
+
+Use `add()` to create Css expressions from raw CSS property names and values. This is for when you need a CSS property that doesn't have a Truss abbreviation:
+
+```tsx
+// Single property
+const s = Css.df.add("boxShadow", "0 0 0 1px blue").$;
+
+// Multiple properties via object literal
+const s = Css.df.add({ wordBreak: "break-word", boxShadow: "0 0 0 1px blue" }).$;
+```
+
+The arguments to `add()` are real CSS property names and values--not Css expressions. If you pass a Css expression (from `Css.*.$`) to `add()`, you'll get an error directing you to use `with()` instead.
+
+### `with()` — Composing Css Expressions
+
+Use `with()` to compose an existing Css expression into a chain. Where `add()` takes style names/values, `with()` takes the result of other `Css.*.$` expressions:
+
+```tsx
+const base = Css.df.black.$;
+const s = Css.mt2.with(base).$;
+```
+
+The most common way to compose Css expressions is with object spreads (`{ ...Css.black.$, ...other }`), but spreads have a limitation: if both sides set the same CSS property, the later spread replaces the earlier one at the object level. This means `{ ...Css.black.$, ...colorOnHover }` would clobber `black` even if `colorOnHover` targets a different selector like `:hover`.
+
+`with()` incorporates the expression into the chain so the build-time plugin can see both values and generate the correct atomic classes for each:
+
+```tsx
+const s = Css.black.with(colorOnHover).mt2.$;
+```
+
+Here `colorOnHover` might be `Css.onHover.blue.$`--the `black` base color and the hover color target different selectors, so both are preserved.
+
+`with()` also accepts partial style hashes and automatically skips `undefined` values, which is useful for destructured XSS overrides:
 
 ```tsx
 import { Css, type Only, type Xss } from "src/Css";
@@ -749,13 +782,11 @@ function Panel<X extends Only<PanelXss, X>>(props: { xss?: X }) {
   const xss = props.xss as Partial<PanelXss> | undefined;
   const { height } = xss ?? {};
 
-  return <div css={Css.h(1).black.addCss({ height }).$}>panel</div>;
+  return <div css={Css.h(1).black.with({ height }).$}>panel</div>;
 }
 ```
 
-In this example, `Css.h(1)` provides the default height, and `addCss({ height })` only overrides it when the caller actually passed a `height` xss value.
-
-This is very similar to doing a spread on `...{ height }` but note that, if the spread height is `undefined`, this will drop any previous `height` values--the `addCss` method will noticed the `undefined` and skip it.
+Here `Css.h(1)` provides the default height, and `with({ height })` only overrides it when the caller actually passed a `height` value. Unlike a raw spread `...{ height }`, an `undefined` height won't clobber the earlier `h(1)` default.
 
 Truss conventionally uses the `xss` prop name for "the component's allowed extension styles" as a play on the `css` prop name, with the `x` representing the "extension" concept, but otherwise there is nothing special about the name of the `xss` prop.
 

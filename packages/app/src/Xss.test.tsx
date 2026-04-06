@@ -12,7 +12,7 @@ describe("Xss", () => {
     const css = {
       // Spread out `height` as an example where we'd want to move it around within the component
       // (as-is there is no reason to destructure it, vs. letting it stay in `...rest`
-      ...Css.h(1).df.bgBlue.addCss({ height }).$,
+      ...Css.h(1).df.bgBlue.with({ height }).$,
       ...rest,
     };
 
@@ -45,9 +45,9 @@ describe("Xss", () => {
     });
   });
 
-  test("addCss ignores undefined height instead of unsetting an earlier height", () => {
+  test("with ignores undefined height instead of unsetting an earlier height", () => {
     const height: Xss<"height">["height"] | undefined = undefined;
-    const r = render(<div css={Css.h(1).addCss({ height }).$} />);
+    const r = render(<div css={Css.h(1).with({ height }).$} />);
     const el = r.container.firstChild as HTMLElement;
     expect(getComputedStyle(el).height).toBe("8px");
     expect(el).toHaveStyle({ height: "8px" });

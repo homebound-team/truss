@@ -1,11 +1,12 @@
 import type * as t from "@babel/types";
-import type {
-  MarkerSegment,
-  ResolvedConditionContext,
-  ResolvedSegment,
-  TrussMapping,
-  TrussMappingEntry,
-  WhenCondition,
+import {
+  getLonghandLookup,
+  type MarkerSegment,
+  type ResolvedConditionContext,
+  type ResolvedSegment,
+  type TrussMapping,
+  type TrussMappingEntry,
+  type WhenCondition,
 } from "./types";
 import { extractChain } from "./ast-utils";
 
@@ -588,9 +589,22 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
           continue;
         }
 
-        // add(prop, value) / addCss(cssProp)
-        if (abbr === "add" || abbr === "addCss") {
-          const seg = resolveAddCall(
+        // with(cssProp) — compose an existing Css expression
+        if (abbr === "with") {
+          const seg = resolveWithCall(
+            node,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
+          );
+          segments.push(seg);
+          continue;
+        }
+
+        // add(prop, value) / add({...})
+        if (abbr === "add") {
+          const segs = resolveAddCall(
             node,
             mapping,
             context.mediaQuery,
@@ -598,7 +612,7 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
             context.pseudoElement,
             context.whenPseudo,
           );
-          segments.push(seg);
+          segments.push(...segs);
           continue;
         }
 
@@ -1051,11 +1065,47 @@ function resolveStyleCall(
 }
 
 /**
- * Resolve an `add(...)` or `addCss(...)` call.
+ * Resolve a `with(cssProp)` call — compose an existing Css expression or partial
+ * style hash into the chain.
+ *
+ * - `with(expr)` — spread an existing Css expression into the chain output
+ * - `with({ height })` — inline a partial style hash, skipping undefined values
+ */
+function resolveWithCall(
+  node: CallChainNode,
+  mediaQuery: string | null,
+  pseudoClass: string | null,
+  pseudoElement: string | null,
+  whenPseudo: WhenCondition | null,
+): ResolvedSegment {
+  if (node.args.length !== 1) {
+    throw new UnsupportedPatternError(`with() requires exactly 1 argument`);
+  }
+  const styleArg = node.args[0];
+  if (styleArg.type === "SpreadElement") {
+    throw new UnsupportedPatternError(`with() does not support spread arguments`);
+  }
+  // Object literal: skip undefined values (the old addCss({ height }) pattern)
+  if (styleArg.type === "ObjectExpression") {
+    return {
+      abbr: "__composed_css_prop",
+      defs: {},
+      styleArrayArg: styleArg,
+      isAddCss: true,
+    };
+  }
+  return {
+    abbr: "__composed_css_prop",
+    defs: {},
+    styleArrayArg: styleArg,
+  };
+}
+
+/**
+ * Resolve an `add(...)` call.
  *
  * Supported overloads:
- * - `add(cssProp)` to inline an existing CssProp array into the chain output
- * - `addCss(cssProp)` to inline an existing Truss style hash into the chain output
+ * - `add({ prop: value, ... })` to add real CSS property/value pairs (alias for multiple add calls)
  * - `add("propName", value)` for an arbitrary CSS property/value pair
  */
 function resolveAddCall(
@@ -1065,28 +1115,13 @@ function resolveAddCall(
   pseudoClass: string | null,
   pseudoElement: string | null,
   whenPseudo: WhenCondition | null,
-): ResolvedSegment {
-  const isAddCss = node.name === "addCss";
-
-  if (isAddCss) {
-    if (node.args.length !== 1) {
-      throw new UnsupportedPatternError(
-        `addCss() requires exactly 1 argument (an existing CssProp/style hash expression)`,
-      );
-    }
-
-    const styleArg = node.args[0];
-    if (styleArg.type === "SpreadElement") {
-      // I.e. reject call-arg spread like `addCss(...xss)`; callers should use `addCss(xss)` or `addCss({ ...xss })`.
-      throw new UnsupportedPatternError(`addCss() does not support spread arguments`);
-    }
-    return {
-      abbr: "__composed_css_prop",
-      defs: {},
-      styleArrayArg: styleArg,
-      isAddCss: true,
-    };
-  }
+): ResolvedSegment[] {
+  const context: ResolvedConditionContext = {
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  };
 
   if (node.args.length === 1) {
     const styleArg = node.args[0];
@@ -1094,21 +1129,19 @@ function resolveAddCall(
       throw new UnsupportedPatternError(`add() does not support spread arguments`);
     }
     if (styleArg.type === "ObjectExpression") {
-      throw new UnsupportedPatternError(
-        `add(cssProp) does not accept object literals -- pass an existing CssProp expression instead`,
-      );
+      // New behavior: expand object literal into individual property/value segments
+      return resolveAddObjectLiteral(styleArg as any, mapping, context);
     }
-    return {
-      abbr: "__composed_css_prop",
-      defs: {},
-      styleArrayArg: styleArg,
-    };
+    throw new UnsupportedPatternError(
+      `add() requires 1 or 2 arguments (property name and value, or an object literal), got ${node.args.length}. ` +
+        `Supported overloads are add({ prop: value }), add("propName", value), and with(cssProp)`,
+    );
   }
 
   if (node.args.length !== 2) {
     throw new UnsupportedPatternError(
-      `add() requires exactly 2 arguments (property name and value), got ${node.args.length}. ` +
-        `Supported overloads are add(cssProp), addCss(cssProp), and add("propName", value)`,
+      `add() requires 1 or 2 arguments (property name and value, or an object literal), got ${node.args.length}. ` +
+        `Supported overloads are add({ prop: value }), add("propName", value), and with(cssProp)`,
     );
   }
 
@@ -1121,21 +1154,14 @@ function resolveAddCall(
   const valueArg = node.args[1];
   const literalValue = tryEvaluateAddLiteral(valueArg);
 
-  const context: ResolvedConditionContext = {
-    mediaQuery,
-    pseudoClass,
-    pseudoElement,
-    whenPseudo,
-  };
-
   if (literalValue !== null) {
-    return segmentWithConditionContext(
+    return [segmentWithConditionContext(
       { abbr: propName, defs: { [propName]: literalValue }, argResolved: literalValue },
       context,
-    );
+    )];
   }
 
-  return segmentWithConditionContext(
+  return [segmentWithConditionContext(
     {
       abbr: propName,
       defs: {},
@@ -1144,7 +1170,67 @@ function resolveAddCall(
       argNode: valueArg,
     },
     context,
-  );
+  )];
+}
+
+/**
+ * Expand an `add({ prop1: value1, prop2: value2 })` object literal into individual segments,
+ * as if the user had called `add("prop1", value1).add("prop2", value2)`.
+ *
+ * When a property/value pair matches an existing abbreviation in the mapping (e.g.
+ * `{ display: "grid" }` → `dg`), the canonical abbreviation is reused.
+ */
+function resolveAddObjectLiteral(
+  obj: import("@babel/types").ObjectExpression,
+  mapping: TrussMapping,
+  context: ResolvedConditionContext,
+): ResolvedSegment[] {
+  const segments: ResolvedSegment[] = [];
+  for (const property of obj.properties) {
+    if (property.type === "SpreadElement") {
+      throw new UnsupportedPatternError(`add({...}) does not support spread properties -- use with() instead`);
+    }
+    if (property.type !== "ObjectProperty" || property.computed) {
+      throw new UnsupportedPatternError(`add({...}) only supports simple property keys`);
+    }
+    let propName: string;
+    if (property.key.type === "Identifier") {
+      propName = property.key.name;
+    } else if (property.key.type === "StringLiteral") {
+      propName = (property.key as any).value;
+    } else {
+      throw new UnsupportedPatternError(`add({...}) property keys must be identifiers or string literals`);
+    }
+    const valueNode = property.value;
+    const literalValue = tryEvaluateAddLiteral(valueNode as any);
+    if (literalValue !== null) {
+      // Check if this prop/value matches an existing abbreviation in the mapping
+      const canonicalAbbr = findCanonicalAbbreviation(mapping, propName, literalValue);
+      if (canonicalAbbr) {
+        const entry = mapping.abbreviations[canonicalAbbr];
+        segments.push(segmentWithConditionContext(
+          { abbr: canonicalAbbr, defs: (entry as any).defs },
+          context,
+        ));
+      } else {
+        segments.push(segmentWithConditionContext(
+          { abbr: propName, defs: { [propName]: literalValue }, argResolved: literalValue },
+          context,
+        ));
+      }
+    } else {
+      segments.push(segmentWithConditionContext(
+        { abbr: propName, defs: {}, variableProps: [propName], incremented: false, argNode: valueNode },
+        context,
+      ));
+    }
+  }
+  return segments;
+}
+
+/** Find a canonical abbreviation whose static defs exactly match `{ prop: value }`. */
+function findCanonicalAbbreviation(mapping: TrussMapping, prop: string, value: string): string | null {
+  return getLonghandLookup(mapping).get(`${prop}\0${value}`) ?? null;
 }
 
 /** Try to evaluate a literal for add() — strings, numbers, and template literals with no expressions. */
