@@ -1,421 +1,306 @@
 # Migrating to Native Truss
 
-This guide covers migrating from the legacy runtime truss target (`target: "emotion"` in v1, renamed to `target: "react-native"` in v2) to the native build-time target. The native target uses a Vite plugin that transforms `Css.*.$` chains into property-keyed style hashes and emits atomic CSS at build time.
+This guide reflects the migration we actually made in this repo: from the legacy runtime Truss setup to native build-time Truss.
 
-## What changes
+Native Truss compiles `Css.*.$` usage at build time with `trussPlugin({ mapping: "./src/Css.json" })`. In this repo, the source of truth is `truss-config.ts`; `src/Css.ts` and `src/Css.json` are generated outputs.
 
-| Aspect       | Before (emotion/fela)                                               | After (native)                                                      |
-| ------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Runtime      | Fela atomic CSS renderer via `@homebound/fast-css-prop` JSX runtime | Build-time transform, minimal runtime (`trussProps` / `mergeProps`) |
-| `css` prop   | Accepts plain CSS objects (via custom JSX runtime)                  | Accepts `CssProp` style hashes (via declaration merging)            |
-| `Css.*.$`    | Returns a CSS properties object                                     | Returns a property-keyed style hash (plain object)                  |
-| `xss` type   | `Xss<P>` = `Pick<Properties, P>` — a CSS object                     | Same type signature, values are style hashes at runtime             |
-| Plugin chain | None (runtime-only)                                                 | `trussPlugin` (pre) -> React SWC                                    |
+## What changed
 
-## What just works (no changes needed)
+| Aspect                  | Before                                                | After                                                                                   |
+| ----------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Runtime                 | Runtime styling plus Emotion-era globals/test helpers | Build-time transform via `trussPlugin`, runtime helpers from `@homebound/truss/runtime` |
+| Generated files         | Older generated `Css.ts` shape                        | Generated `src/Css.ts` **and** `src/Css.json`                                           |
+| `css` prop typing       | Runtime-specific setup                                | Generated React module augmentation with `css?: Properties`                             |
+| Self selectors          | Inline selector keys / `addIn()` patterns             | `onHover`, `onFocusWithin`, `ifFirstOfType`, `when(...)`, `element(...)`                |
+| Cross-element selectors | Nested selector objects                               | Markers + `when(marker, relationship, pseudo)`                                          |
+| Globals                 | Emotion `Global` / `emotionTheme.ts`                  | `MuiCssBaseline` globals or plain CSS                                                   |
+| Tests                   | `@emotion/jest` serializers/matchers                  | `@homebound/truss/vitest` `toHaveStyle`                                                 |
+| Tooling                 | App Vite config only                                  | Every Vite pipeline needs the Truss plugin, including Storybook                         |
 
-The vast majority of code migrates with zero changes. The truss build plugin understands all of these patterns:
+## What just works
 
-### Static chains
+Most plain `Css.*.$` usage migrated cleanly.
+
+### Static and dynamic chains
 
 ```tsx
-primary: {
-  baseStyles: Css.bgBlue600.white.$,
-  hoverStyles: Css.bgBlue700.$,
-}
-
 const labelStyles = Css.sm.$;
 const descStyles = Css.sm.gray700.$;
-```
 
-### Multi-property chains
-
-```tsx
 const iconButtonNormal = Css.hPx(28).wPx(28).br8.bw2.$;
 const iconButtonCompact = Css.hPx(18).wPx(18).br4.bw1.$;
-```
 
-### Dynamic calls with literals
-
-```tsx
-sm: Css.hPx(32).pxPx(12).$,
-md: Css.hPx(40).px2.$,
-lg: Css.hPx(48).px3.$,
-```
-
-Literal arguments (numbers, strings) are resolved at build time into static atomic classes. `Css.hPx(32).$` becomes `{ height: "h_32px" }`.
-
-### Dynamic calls with variables
-
-```tsx
 css={Css.relative.oh.h(height).w(width).df.fd(!horizontal ? "column" : "row").$}
 ```
 
-Variable arguments produce CSS custom property classes. The class points at a `var(--prop)` and the runtime value is set via inline style. This works transparently.
-
-### Conditionals (if/else)
+### Conditionals and breakpoints
 
 ```tsx
-Css.hPx(fieldHeight - maybeSmaller)
-  .if(compact)
-  .hPx(compactFieldHeight - maybeSmaller).$;
-
 Css.if(stickyHeader).sticky.topPx(stickyOffset).z(zIndices.stickyHeader).$;
+
+Css.ifSm.df.$;
+Css.df.ifMd.blue.$;
+Css.bgBlue.ifSm.bgBlack.$;
 ```
 
-### Pseudo-class getters
+### Spread / `xss` composition
 
 ```tsx
-Css.df.jcsb.gapPx(12).aic.p2.md.outline("none").onHover.bgGray100.$
-
-<Link css={Css.smSb.gray700.onHover.gray900.$} />
+const buttonCss = {
+  ...baseStyles,
+  ...(active ? Css.black.$ : {}),
+  ...(isHovered ? Css.blue.$ : {}),
+  ...xss,
+};
 ```
 
-When base and pseudo set the same property (like `Css.gray700.onHover.gray900.$`), they are merged into a single property entry with a space-separated class bundle: `{ color: "gray700 h_gray900" }`.
-
-### `useHover` + `.if(isHovered)` pattern
+### Aliases and palette values
 
 ```tsx
-const { hoverProps, isHovered } = useHover({ isDisabled });
-css={{
-  ...baseStyles(type),
-  ...(isHovered && cardHoverStyles),
-  ...(isDisabled && disabledStyles),
-}}
-```
-
-This pattern uses JS booleans, not CSS selectors — it works identically.
-
-### Breakpoints
-
-```tsx
-Css.ifSm.df.$; // display: flex only on small screens
-Css.df.ifMd.blue.$; // flex always, blue text on medium screens
-Css.bgBlue.ifSm.bgBlack.$; // blue bg default, black bg on small (merged)
-```
-
-### Aliases
-
-```tsx
-// If your truss-config.ts defines:
-// aliases: { bodyText: ["f14", "black"] }
-Css.bodyText.$; // expands to f14 + black segments
-```
-
-### Palette enum
-
-```tsx
+Css.bodyText.$;
 Css.color(xss?.color ?? Palette.White).bgColor(xss?.backgroundColor ?? Palette.Blue700).$;
 ```
 
-`Palette` is still exported from the generated `Css.ts`.
+### Self selectors via `when()` and pseudo getters
 
-### Spread / xss pattern
+These are supported now, including combined pseudo/attribute selectors on the same element.
 
 ```tsx
-<h3 css={{
-  ...Css.md.$,
-  ...(!isFirst && Css.mt4.$),
-  ...xss,
-}}>
+const primaryButtonCss = Css.bgBlack.bcTransparent.white.when({
+  ":hover": Css.bgBlackFaded.bcTransparent.$,
+  ":active": Css.bgBlackFaded.bcTransparent.$,
+  ":focus": Css.bcWhite.$,
+  ":disabled": Css.bgGray400.$,
+  "[aria-disabled=true]": Css.bgGray400.$,
+}).$;
+
+Css.when(":hover:not(:disabled)").bgBlue800.$;
+Css.onFocusWithin.bcBlue700.$;
+Css.bcTaupe.bt.ifFirstOfType.add("borderTop", "none").$;
+Css.when(":last-child").bb.bcDarkTransparentGray.$;
 ```
 
-Object spread composition is the primary composition mechanism. Because `Css.*.$` returns property-keyed objects, later spreads naturally override earlier ones at the CSS property level:
+### Pseudo-elements via `element()`
 
 ```tsx
-const baseStyles = {
-  ...Css.df.aic.$,
+const accordionCss = {
+  ...Css.p2.m0.bgTransparent.shadowNone.bt.bcDarkTransparentGray.$,
+  ...Css.when(":last-child").bb.bcDarkTransparentGray.$,
+  ...Css.element("::before").add("backgroundColor", "unset").$,
 };
-
-const buttonStyles = {
-  ...baseStyles,
-  ...(active && { ...Css.black.$ }),
-  ...(isHovered && { ...Css.blue.$ }),
-};
 ```
 
-### css prop on JSX
+### Relationship selectors via markers
 
 ```tsx
-<label css={{
-  ...Css.relative.cursorPointer.df.wmaxc.usn.$,
-  ...(labelStyle === "form" && Css.fdc.$),
-  ...(isDisabled && Css.cursorNotAllowed.gray400.$),
-}}>
+const rowMarker = Css.newMarker();
+
+<tr css={Css.markerOf(rowMarker).$} />
+<td css={Css.when(rowMarker, "ancestor", ":hover").bgBlue100.cursorPointer.$} />
 ```
 
-The plugin rewrites `css={...}` into `{...trussProps(...)}` spread attributes. The `Css` import is removed at build time.
+### `Css.props()`, `className()`, and `style()`
 
-### Markers and relationship selectors
+Use these when an API does not accept a `css` prop directly.
 
 ```tsx
-// Parent applies a marker:
-<tr css={Css.marker.cursorPointer.$}>
+<Menu PaperProps={Css.props(Css.shadowDark.br3.$)} />
 
-// Child reacts to parent hover:
-<td css={Css.when(marker, "ancestor", ":hover").bgBlue100.$}>
+const expandedClassName = Css.props(Css.m0.bt.bcDarkTransparentGray.$).className as string;
 
-// Named markers for specificity:
-const row = Css.newMarker();
-<tr css={Css.markerOf(row).$}>
-<td css={Css.when(row, "ancestor", ":hover").bgBlue100.$}>
+<svg css={{ ...Css.style(iconVars).onFocus.outline0.bw1.bsDashed.bcGray600.$, ...xss }} />
+
+<div css={Css.df.className(isFullScreen ? "document-canvas-fill" : "").$} />
 ```
 
----
+## What still needs manual changes
 
-## What needs changes
+### `addIn()` is not supported
 
-### `addIn()` — NOT SUPPORTED
+Every `addIn()` call needs a manual rewrite, but the replacement is often simpler than the old runtime version.
 
-The `addIn()` method is not supported. Each use needs manual migration.
-
-**Why:** The native approach intentionally does not support arbitrary descendant/child selectors. This is a core design constraint for style determinism — atomic classes must map to single property declarations so that object spread provides correct override semantics.
-
-#### Self pseudo-classes via addIn -> native pseudo getters
+#### Self selectors: use `when()` or pseudo getters
 
 ```tsx
 // BEFORE
-Css.display("contents").addIn(":active:not(:has(a))", Css.add("pointerEvents", "none").$).$;
+Css.addIn("&:hover:not(:disabled)", Css.bgBlue800.$).$;
 
-// AFTER — decompose into JS boolean
-const { isPressed } = usePress({});
-Css.display("contents").if(isPressed).add("pointerEvents", "none").$;
+// AFTER
+Css.when(":hover:not(:disabled)").bgBlue800.$;
 ```
 
-#### Pseudo-elements via addIn -> real DOM elements
+#### Pseudo-elements: use `element()`
 
 ```tsx
 // BEFORE
-Css.relative
-  .addIn("&:before, &:after", { ...circleCss, ...Css.add("content", "' '").absolute.dib.$ })
-  .addIn("&:before", Css.leftPx(-12).add("animationDelay", "0").$)
-  .addIn("&:after", Css.rightPx(-12).add("animationDelay", "600ms").$).$
+Css.addIn("&:before", Css.add("backgroundColor", "unset").$).$;
 
-// AFTER — use real elements
-<span css={Css.relative.$}>
-  <span css={Css.leftPx(-12).add("animationDelay", "0").absolute.dib.$} />
-  <span />
-  <span css={Css.rightPx(-12).add("animationDelay", "600ms").absolute.dib.$} />
-</span>
+// AFTER
+{
+  ...Css.element("::before").add("backgroundColor", "unset").$,
+}
 ```
 
-#### Descendant selectors via addIn -> pass styles via props
+#### Structural selectors on self: use `ifFirstOfType` / `ifLastOfType` or `when()`
 
 ```tsx
 // BEFORE
-Css.addIn("& > div:first-of-type", style.firstRowCss).$
+Css.addIn("&:first-child", Css.bt.bcTaupe.add("borderTop", "none").$).$;
 
-// AFTER — pass styles to child components via props
-<Row css={isFirst ? style.firstRowCss : undefined}>
+// AFTER
+Css.bt.bcTaupe.ifFirstOfType.add("borderTop", "none").$;
 ```
 
-#### addIn with structural pseudo-classes on self
+#### Cross-element selectors: use markers
 
 ```tsx
 // BEFORE
-bordered && { "&:first-child": Css.bl.bcGray200.$, "&:last-child": Css.br.bcGray200.$ };
+{
+  "&:hover > *": Css.cursorPointer.bgBlue100.$,
+}
 
-// AFTER — use JS booleans
-Css.if(isFirst).bl.bcGray200.if(isLast).br.bcGray200.$;
+// AFTER
+const rowMarker = Css.newMarker();
+
+<tr css={Css.markerOf(rowMarker).$} />
+<td css={Css.when(rowMarker, "ancestor", ":hover").cursorPointer.bgBlue100.$} />
 ```
 
-#### Third-party element selectors -> .css.ts scoped stylesheet
+#### Third-party DOM you do not control: use `.css.ts` or plain CSS
 
-```tsx
-// BEFORE
-const trixCssOverrides = {
-  "& trix-editor": Css.bgWhite.sm.gray900.bn.p1.$,
-  "& trix-toolbar": Css.m1.$,
-  "& .trix-button": Css.bgWhite.sm.$,
-};
-
-// AFTER — use a .css.ts file for scoped selector rules
+```ts
 // trix-overrides.css.ts
-import { Css } from "./Css";
-export default {
-  ".rich-text-wrapper trix-editor": Css.bgWhite.sm.gray900.bn.p1.$,
+import { Css } from "src/Css";
+
+export const css = {
+  ".rich-text-wrapper trix-editor": Css.bgWhite.sm.gray900.bsn.p1.$,
   ".rich-text-wrapper trix-toolbar": Css.m1.$,
   ".rich-text-wrapper .trix-button": Css.bgWhite.sm.$,
 };
 ```
 
-### Inline emotion selector keys — NOT SUPPORTED
+### Inline selector object keys inside `css={{}}` are not supported
 
-Inline CSS object keys like `"&:hover"`, `"& > div"` are an emotion/fela feature, not part of the truss DSL.
+These Emotion-style keys still need to move to Truss helpers.
 
 ```tsx
 // BEFORE
 {
   ...rowStyles,
-  "&:hover > *": Css.bgColor(style.rowHoverColor ?? Palette.Blue100).$,
-  "&:hover": Css.cursorPointer.$,
+  "&:focus-within": Css.bcBlue700.$,
+  "&::before": Css.add("backgroundColor", "unset").$,
 }
-
-// AFTER — use markers for ancestor hover
-// Parent:
-<tr css={Css.marker.cursorPointer.onHover.cursorPointer.$}>
-// Child:
-<td css={Css.when(marker, "ancestor", ":hover").bgColor(style.rowHoverColor ?? Palette.Blue100).$}>
-```
-
-```tsx
-// BEFORE
-"&:focus-within": Css.bcBlue700.$
-
-// AFTER — use useFocusWithin hook
-const { focusWithinProps, isFocusWithin } = useFocusWithin({});
-<div {...focusWithinProps} css={Css.if(isFocusWithin).bcBlue700.$}>
-```
-
-### Combined pseudo-classes — decompose to JS
-
-```tsx
-// BEFORE
-"&:hover:not(:active) > div": Css.bgGray100.$
-
-// AFTER — decompose into JS booleans
-const { isHovered } = useHover({});
-const { isPressed } = usePress({});
-// On the child div:
-css={Css.if(isHovered && !isPressed).bgGray100.$}
-```
-
-```tsx
-// BEFORE
-":hover:not([data-disabled='true'])": Css.bgColor(Palette.Blue800).$
 
 // AFTER
-css={Css.if(isHovered && !disabled).bgColor(Palette.Blue800).$}
-```
-
-### `@keyframes` — use plain CSS or .css.ts
-
-```tsx
-// BEFORE (emotion css tagged template)
-const ourReset = css`
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-// AFTER — define in a .css.ts file or plain CSS file
-// animations.css
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+{
+  ...rowStyles,
+  ...Css.onFocusWithin.bcBlue700.$,
+  ...Css.element("::before").add("backgroundColor", "unset").$,
 }
 ```
 
-### CssReset / global styles — keep as standalone CSS
+### Global styles need to move out of Emotion `Global`
 
-```tsx
-// BEFORE
-const modernNormalizeReset = css`...`;
+In this repo, we deleted `src/theme/emotionTheme.ts`, removed `globalStyles`, and moved those globals into `MuiCssBaseline` overrides in `src/theme/muiTheme.ts`.
 
-// AFTER — ship as a plain CSS file (reset.css)
-// Global resets are orthogonal to Truss. Import as: import "./reset.css";
+Keep resets and app-wide rules in one of these places:
+
+- `MuiCssBaseline` overrides
+- plain `.css`
+- selector-oriented `.css.ts`
+
+### Tests need Truss-aware assertions
+
+Replace Emotion serializers/matchers with Truss helpers:
+
+```ts
+import { toHaveStyle } from "@homebound/truss/vitest";
+
+expect.extend({ toHaveStyle });
 ```
 
-### SVG child selectors — use currentColor
+## Type and runtime changes
 
-```tsx
-// BEFORE
-<svg css={{ "& > path": { fill: "blue" } }}>
+### The generated `css` prop type is `Properties`
 
-// AFTER — set color on svg, use currentColor in SVG markup
-<svg css={Css.blue.$}>
-  <path fill="currentColor" />
-</svg>
-```
-
----
-
-## Type changes
-
-### `CssProp`
-
-Before: `CssProp` was `StandardProperties & { [Key in '&${string}']?: StandardProperties }` (a CSS object with optional nested selectors).
-
-After: `CssProp` is a property-keyed style hash (a plain object mapping CSS property names to atomic class name strings or variable tuples). The generated `Css.ts` includes React module augmentation:
+In this repo's generated `src/Css.ts`, React is augmented like this:
 
 ```ts
 declare module "react" {
   interface HTMLAttributes<T> {
-    css?: CssProp;
+    css?: Properties;
   }
   interface SVGAttributes<T> {
-    css?: CssProp;
+    css?: Properties;
+  }
+  namespace JSX {
+    interface IntrinsicAttributes {
+      css?: Properties;
+    }
   }
 }
 ```
 
-No separate JSX runtime is needed. The truss plugin rewrites `css={...}` at build time.
+So the guide should talk about generated `Properties` style hashes, not a separate `CssProp` type.
 
-### `Xss<P>`
+### `Xss<P>` still works
 
-The `Xss` type and the `Only` constraint pattern work the same way at the type level. At runtime, the values are style hashes instead of CSS objects, but the type signatures are compatible.
+The `Only<Xss<...>, X>` pattern still works the same way at call sites. The runtime shape changed, but the component API pattern did not.
 
-```tsx
-// This pattern still works:
-interface TagProps<X> {
-  xss?: X;
-}
-function Tag<X extends Only<Xss<TagXss>, X>>(props: TagProps<X>) { ... }
-```
+### `Css.props()` is the bridge for non-`css` APIs
 
-### No more `@homebound/fast-css-prop`
+`Css.props(styles)` returns `{ className, style }` and is the preferred bridge for:
 
-The custom JSX runtime (`jsxImportSource: "@homebound/fast-css-prop"`) is no longer needed. Remove it from your Vite config:
+- MUI `PaperProps`
+- `classes` APIs that want a class name string
+- manual prop spreading into non-`css` contexts
+
+### `RuntimeStyle` exists, but selector helpers stay build-time only
+
+`src/Css.ts` now re-exports `RuntimeStyle` and `useRuntimeStyle` from `@homebound/truss/runtime`.
+
+Use them only for genuinely runtime-only styling. Selector helpers like `when()`, `marker`, `element()`, and `ifContainer()` still belong in the build-time path.
+
+### No more custom JSX runtime
+
+The active JSX runtime config was removed. In this repo that meant deleting `jsxImportSource` from `tsconfig.json` and adding the Truss Vite plugin:
 
 ```diff
 // vite.config.ts
-- plugins: [react({ jsxImportSource: "@homebound/fast-css-prop" })],
+- plugins: [react()],
 + plugins: [trussPlugin({ mapping: "./src/Css.json" }), react()],
 ```
 
----
-
 ## Setup checklist
 
-1. Run `yarn codegen` to regenerate `Css.ts` + `Css.json`
-2. Add the Vite plugin:
+1. Upgrade `@homebound/truss` to the native version used by your repo.
+2. Remove active runtime-specific JSX config such as `jsxImportSource`.
+3. Add `trussPlugin({ mapping: "./src/Css.json" })` to `vite.config.ts`.
+4. Add the same plugin to every other Vite pipeline, especially Storybook.
+5. Run `yarn truss` to regenerate `src/Css.ts` and `src/Css.json`.
+6. Commit the generated files, but treat `truss-config.ts` as the source of truth.
+7. Remove runtime-only styling deps you no longer need. In this migration that included `@emotion/react`, `@emotion/cache`, `@emotion/jest`, and `@stitches/react`.
+8. Migrate `addIn()` and inline selector keys to `when()`, pseudo getters, `element()`, markers, or `.css.ts`.
+9. Move Emotion `Global` usage and `emotionTheme.ts` globals into `MuiCssBaseline` or plain CSS.
+10. Update tests to use `@homebound/truss/vitest` matchers.
+11. Keep Storybook wrappers aligned with the app: `StylesProvider injectFirst`, shared `MuiThemeProvider`, and `CssBaseline`.
 
-   ```ts
-   import { trussPlugin } from "@homebound/truss/plugin";
-   import react from "@vitejs/plugin-react";
+## Best practices
 
-   export default defineConfig({
-     plugins: [trussPlugin({ mapping: "./src/Css.json" }), react()],
-   });
-   ```
+- Treat `truss-config.ts` as the only hand-edited Truss source. Do not manually edit `src/Css.ts` or `src/Css.json`.
+- Prefer dedicated helpers when they exist: `bc*` for border colors, `wPx`/`hPx`/`sqPx`/`mwPx` over generic raw-value patterns.
+- Prefer `when()` / `onHover` / `onFocusWithin` / `ifFirstOfType` / `element()` for selectors on the same element.
+- Use markers only for relationships between elements. If you own both components and can pass `xss` directly, that is often simpler.
+- Use `Css.props()` for library APIs that want `className`, `style`, `PaperProps`, or `classes` instead of a `css` prop.
+- Use `Css.style()` for CSS variables and `className()` only to stitch in an existing global class.
+- Keep global resets in one place: `MuiCssBaseline`, plain CSS, or selector-oriented `.css.ts` files.
+- Keep Storybook and app styling wrappers in sync so stories render the same baseline/global styles as the app.
+- In tests, assert styles with `toHaveStyle` instead of Emotion snapshot serializers.
 
-3. Remove `jsxImportSource: "@homebound/fast-css-prop"` from Vite/tsconfig
-4. Remove `@homebound/fast-css-prop` and `fela`/`fela-dom` dependencies
-5. Migrate `addIn()` calls
-6. Migrate inline emotion selector keys
-7. Migrate `@keyframes` to plain CSS or `.css.ts` files
-8. Move CssReset global styles to a plain CSS file
+## Repo-specific gotchas we hit
 
----
-
-## Migration effort summary
-
-| Pattern                         | Count     | Effort          | Notes                          |
-| ------------------------------- | --------- | --------------- | ------------------------------ |
-| `Css.*.$` static/dynamic chains | ~hundreds | **None**        | Just works                     |
-| `.if(bool)` conditionals        | ~175      | **None**        | Just works                     |
-| `useHover` + `.if(isHovered)`   | ~48       | **None**        | Just works                     |
-| `.onHover` / `.onFocus` etc.    | ~31       | **None**        | Just works                     |
-| Breakpoints (`.ifSm`, `.ifMd`)  | varies    | **None**        | Just works                     |
-| `Palette` enum                  | ~many     | **None**        | Just works                     |
-| Aliases                         | ~many     | **None**        | Just works                     |
-| Spread/xss                      | ~many     | **None**        | Just works                     |
-| Markers / `when()`              | varies    | **None**        | Just works                     |
-| `.addIn()`                      | ~35       | **Medium**      | Manual migration per call site |
-| Inline selector keys            | ~56       | **Medium-High** | Manual migration               |
-| `@keyframes`                    | ~4        | **Low**         | Move to plain CSS              |
-| `ifContainer()`                 | ~2        | **None**        | Supported natively             |
-| CssReset globals                | ~4 blocks | **Low**         | Move to plain CSS file         |
-| Third-party widget selectors    | ~15       | **Low**         | Scoped stylesheet / .css.ts    |
-| `::before`/`::after`            | ~7        | **Low-Med**     | Replace with real DOM elements |
+- Border color helpers changed from `b*` to `bc*` (`bTaupe` -> `bcTaupe`, `bGray400` -> `bcGray400`).
+- A lot of old nested selector code became cleaner with `when({ ... })`.
+- Some style-only class name hooks moved to `Css.props(...).className`.
+- App and Storybook both needed the Truss plugin.
+- Global font/reset rules moved from Emotion globals into `MuiCssBaseline`.
