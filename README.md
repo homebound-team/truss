@@ -763,7 +763,9 @@ const s = Css.mt2.with(base).$;
 
 The most common way to compose Css expressions is with object spreads (`{ ...Css.black.$, ...other }`), but spreads have a limitation: if both sides set the same CSS property, the later spread replaces the earlier one at the object level. This means `{ ...Css.black.$, ...colorOnHover }` would clobber `black` even if `colorOnHover` targets a different selector like `:hover`.
 
-`with()` incorporates the expression into the chain so the build-time plugin can see both values and generate the correct atomic classes for each:
+This spread behavior is on purpose, b/c it makes "the last definition win", and not result in a hodge-podge of behavior.
+
+That said, if/when you specifically need to preserve both defintions, you can use `Css.with`:
 
 ```tsx
 const s = Css.black.with(colorOnHover).mt2.$;
