@@ -52,6 +52,9 @@ export function trussProps(
   const debugSources: string[] = [];
 
   for (const [key, value] of Object.entries(merged)) {
+    // $css is the Css expression marker — skip it
+    if (key === "$css") continue;
+
     // __marker is a special key — its value is a marker class name, not a CSS property
     if (key === "__marker") {
       if (typeof value === "string") {
@@ -285,6 +288,7 @@ function formatRawRuntimeStyleRule(selector: string, raw: string): string {
 function formatRuntimeStyleRule(selector: string, declarations: RuntimeStyleDeclarations): string {
   const lines: string[] = [];
   for (const [property, value] of Object.entries(declarations)) {
+    if (property === "$css") continue;
     if (value === undefined || value === null) continue;
     if (typeof value !== "string" && typeof value !== "number") {
       throw new Error(runtimeStyleUnsupportedValueMessage(selector, property));
@@ -334,12 +338,8 @@ function resolveShouldValidateTrussStyleValues(): boolean {
     return process.env.NODE_ENV !== "production";
   }
   const viteEnv = (import.meta as ImportMeta & { env?: { DEV?: boolean; PROD?: boolean } }).env;
-  if (typeof viteEnv?.DEV === "boolean") {
-    return viteEnv.DEV;
-  }
-  if (typeof viteEnv?.PROD === "boolean") {
-    return !viteEnv.PROD;
-  }
+  if (typeof viteEnv?.DEV === "boolean") return viteEnv.DEV;
+  if (typeof viteEnv?.PROD === "boolean") return !viteEnv.PROD;
   return false;
 }
 
