@@ -154,10 +154,7 @@ class CssBuilder<T extends Properties> {
 
   ${lines.join("\n  ").replace(/ +\n/g, "\n")}
     
-  get $(): T {
-    const result = maybeImportant(sortObject(this.rules), this.opts.important);
-    return result;
-  }
+  get $(): T { maybeImportant(sortObject(this.rules), this.opts.important); }
 
   if(bp: Breakpoint): CssBuilder<T>;
   if(cond: boolean): CssBuilder<T>;
@@ -480,7 +477,7 @@ class CssBuilder<T extends Properties> {
     if (this.selector !== undefined) {
       throw new Error("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
     }
-    return { ...this.rules } as any;
+    return this.rules as any;
   }
 
   get onHover() {
