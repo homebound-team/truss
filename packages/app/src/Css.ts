@@ -2284,7 +2284,7 @@ class CssBuilder<T extends Properties> {
     if (this.selector !== undefined) {
       throw new Error("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
     }
-    return { ...this.rules, $css: true } as any;
+    return { ...this.rules } as any;
   }
 
   get onHover() {

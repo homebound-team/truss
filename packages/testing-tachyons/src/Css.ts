@@ -2295,7 +2295,6 @@ class CssBuilder<T extends Properties> {
 
   get $(): T {
     const result = maybeImportant(sortObject(this.rules), this.opts.important);
-    (result as any).$css = true;
     return result;
   }
 
