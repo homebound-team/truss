@@ -154,7 +154,7 @@ class CssBuilder<T extends Properties> {
 
   ${lines.join("\n  ").replace(/ +\n/g, "\n")}
     
-  get $(): T { maybeImportant(sortObject(this.rules), this.opts.important); }
+  get $(): T { return maybeImportant(sortObject(this.rules), this.opts.important); }
 
   if(bp: Breakpoint): CssBuilder<T>;
   if(cond: boolean): CssBuilder<T>;
@@ -421,11 +421,10 @@ function generateStylexCssBuilder(config: Config, sections: Record<string, Utili
 // See your project's \`truss-config.ts\` to make configuration changes (fonts, increments, etc).
 // Target: native (build-time plugin)
 
-import { trussProps } from "@homebound/truss/runtime";
-export { RuntimeStyle, useRuntimeStyle } from "@homebound/truss/runtime";
+import { trussProps, useRuntimeStyle as _useRuntimeStyle } from "@homebound/truss/runtime";
 
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
-export type Only<X, T> = X & Record<Exclude<keyof T, keyof X>, never>;
+export type Only<X, T> = X & Record<Exclude<keyof T, keyof X | "__kind">, never>;
 
 type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void
   ? I
@@ -438,6 +437,15 @@ export type ${def("InlineStyle")} = Record<string, string | number | undefined>;
 /** A marker token used with \`when\`/\`markerOf\` etc. */
 export type Marker = symbol;
 
+/** Discriminates between build-time and runtime Css expressions. */
+export type StyleKind = "buildtime" | "runtime";
+
+/** The result of \`Css.*.$\` — for use in \`css=\` props (transformed at build time). */
+export type ${def("BuildtimeStyles")} = Properties & { readonly __kind: "buildtime" };
+
+/** The result of \`RuntimeCss.*.$\` — for use in \`useRuntimeStyle\`. */
+export type ${def("RuntimeStyles")} = Properties & { readonly __kind: "runtime" };
+
 ${typographyType}
 
 // Augment React types so all JSX elements accept the \`css\` prop:
@@ -445,14 +453,14 @@ ${typographyType}
 // - JSX.IntrinsicAttributes covers custom components (Card, Page, etc.)
 declare module "react" {
   interface HTMLAttributes<T> {
-    css?: Properties;
+    css?: BuildtimeStyles;
   }
   interface SVGAttributes<T> {
-    css?: Properties;
+    css?: BuildtimeStyles;
   }
   namespace JSX {
     interface IntrinsicAttributes {
-      css?: Properties;
+      css?: BuildtimeStyles;
     }
   }
 }
@@ -465,12 +473,12 @@ type Opts<T> = {
   runtimeError: string | undefined;
 };
 
-class CssBuilder<T extends Properties> {
+class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   constructor(private opts: Opts<T>) {}
 
   ${lines.join("\n  ").replace(/ +\n/g, "\n")}
 
-  get $(): T {
+  get $(): T & { readonly __kind: S } {
     if (this.opts.runtimeError) {
       throw new Error(this.opts.runtimeError);
     }
@@ -506,12 +514,12 @@ class CssBuilder<T extends Properties> {
   }
 
   /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
-  get marker(): CssBuilder<T> {
+  get marker(): CssBuilder<T, S> {
     return this.unsupportedRuntime("marker cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Marks this element with a user-defined marker. */
-  markerOf(_marker: Marker): CssBuilder<T> {
+  markerOf(_marker: Marker): CssBuilder<T, S> {
     return this.unsupportedRuntime("markerOf() cannot be used in RuntimeStyle css expressions.");
   }
 
@@ -520,7 +528,7 @@ class CssBuilder<T extends Properties> {
     return Symbol("truss-marker");
   }
 
-  typography(key: Typography): CssBuilder<T> {
+  typography(key: Typography): CssBuilder<T, S> {
     return (this as any)[key];
   }
 
@@ -530,25 +538,25 @@ class CssBuilder<T extends Properties> {
     * \`when(\":hover\")\` — same semantics as \`onHover\`
     * \`when(\":hover:not(:disabled)\")\` — hover only while enabled
     */
-  when(selector: string): CssBuilder<T>;
+  when(selector: string): CssBuilder<T, S>;
   /**
     * Styles after this \`when\` are applied based on a marker relationship + pseudo selector.
     *
     * \`when(marker, "ancestor", ":hover")\` — react to marker ancestor hover
     * \`when(row, "descendant", ":focus")\` — react to a marked descendant focus
     */
-  when(marker: Marker, relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter", pseudo: string): CssBuilder<T>;
+  when(marker: Marker, relationship: "ancestor" | "descendant" | "anySibling" | "siblingBefore" | "siblingAfter", pseudo: string): CssBuilder<T, S>;
   /**
     * Apply different styles for each selector in the object.
     *
     * \`when({ ":hover": Css.blue.$, ":focus": Css.red.$ })\`
     */
-  when<W extends Record<string, Properties>>(selectors: W): CssBuilder<T & UnionToIntersection<W[keyof W]>>;
+  when<W extends Record<string, Properties>>(selectors: W): CssBuilder<T & UnionToIntersection<W[keyof W]>, S>;
   when(
     _selectorOrMarker: string | Marker | Record<string, Properties>,
     _relationship?: string,
     _pseudo?: string,
-  ): CssBuilder<T> {
+  ): CssBuilder<T, S> {
     return this.unsupportedRuntime("when() cannot be used in RuntimeStyle css expressions.");
   }
 
@@ -557,24 +565,24 @@ class CssBuilder<T extends Properties> {
   }
 
   /** Apply styles within a pseudo-element (e.g. \`"::placeholder"\`, \`"::selection"\`). */
-  element(_pseudoElement: string): CssBuilder<T> {
+  element(_pseudoElement: string): CssBuilder<T, S> {
     return this.unsupportedRuntime("element() cannot be used in RuntimeStyle css expressions.");
   }
 
   ${breakpointIfs}
 
   /** Conditionally apply styles when \`cond\` is true. */
-  if(cond: boolean): CssBuilder<T>;
+  if(cond: boolean): CssBuilder<T, S>;
   /** Apply styles within a media query (e.g. \`Breakpoints.sm\` or a raw \`@media\` string). */
-  if(mediaQuery: string): CssBuilder<T>;
-  if(condOrMediaQuery: boolean | string): CssBuilder<T> {
+  if(mediaQuery: string): CssBuilder<T, S>;
+  if(condOrMediaQuery: boolean | string): CssBuilder<T, S> {
     if (typeof condOrMediaQuery === "boolean") {
-      return new CssBuilder({ ...this.opts, enabled: condOrMediaQuery, elseApplied: false });
+      return new CssBuilder({ ...this.opts, enabled: condOrMediaQuery, elseApplied: false }) as CssBuilder<T, S>;
     }
     return this.unsupportedRuntime("if(mediaQuery) cannot be used in RuntimeStyle css expressions.");
   }
 
-  get else(): CssBuilder<T> {
+  get else(): CssBuilder<T, S> {
     if (this.selector !== undefined) {
       if (this.opts.elseApplied) {
         throw new Error("else was already called");
@@ -584,18 +592,18 @@ class CssBuilder<T extends Properties> {
     if (this.opts.elseApplied) {
       throw new Error("else was already called");
     }
-    return new CssBuilder({ ...this.opts, enabled: !this.enabled, elseApplied: true });
+    return new CssBuilder({ ...this.opts, enabled: !this.enabled, elseApplied: true }) as CssBuilder<T, S>;
   }
 
   /** Reset active conditional modifiers for subsequent styles. */
-  get end(): CssBuilder<T> {
+  get end(): CssBuilder<T, S> {
     return this.newCss({ selector: undefined, elseApplied: false });
   }
 
   /** Add real CSS property/value pairs, either as add("prop", value) or add({ prop: value, ... }). */
-  add<P extends Properties>(props: P): CssBuilder<T & P>;
-  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
-  add<K extends keyof Properties>(propOrStyles: K | Properties, value?: Properties[K]): CssBuilder<any> {
+  add<P extends Properties>(props: P): CssBuilder<T & P, S>;
+  add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }, S>;
+  add<K extends keyof Properties>(propOrStyles: K | Properties, value?: Properties[K]): CssBuilder<any, S> {
     if (!this.enabled) return this;
 
     const newRules = typeof propOrStyles === "string" ? { [propOrStyles]: value } : propOrStyles;
@@ -609,8 +617,8 @@ class CssBuilder<T extends Properties> {
   }
 
   /** Compose an existing Css expression or partial style hash into this builder, skipping undefined values. */
-  with<P extends Properties>(cssProp: P): CssBuilder<T & P>;
-  with(cssProp: Properties): CssBuilder<any> {
+  with<P extends Properties>(cssProp: P): CssBuilder<T & P, S>;
+  with(cssProp: Properties): CssBuilder<any, S> {
     if (!this.enabled) return this;
     const { $css, ...rest } = cssProp as any;
     const filtered = omitUndefinedValues(rest);
@@ -622,13 +630,13 @@ class CssBuilder<T extends Properties> {
 
 
   /** Marker for the build-time transform to append a raw className. */
-  className(className: string | undefined): CssBuilder<T> {
+  className(className: string | undefined): CssBuilder<T, S> {
     void className;
     return this.unsupportedRuntime("className() cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Marker for the build-time transform to append raw inline styles. */
-  style(inlineStyle: InlineStyle): CssBuilder<T> {
+  style(inlineStyle: InlineStyle): CssBuilder<T, S> {
     void inlineStyle;
     return this.unsupportedRuntime("style() cannot be used in RuntimeStyle css expressions.");
   }
@@ -652,11 +660,11 @@ class CssBuilder<T extends Properties> {
   private get selector(): string | undefined {
     return this.opts.selector;
   }
-  private unsupportedRuntime(message: string): CssBuilder<T> {
+  private unsupportedRuntime(message: string): CssBuilder<T, S> {
     return this.newCss({ runtimeError: message });
   }
-  private newCss(opts: Partial<Opts<T>>): CssBuilder<T> {
-    return new CssBuilder({ ...this.opts, ...opts });
+  private newCss(opts: Partial<Opts<T>>): CssBuilder<T, S> {
+    return new CssBuilder({ ...this.opts, ...opts }) as CssBuilder<T, S>;
   }
 }
 
@@ -694,14 +702,28 @@ export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 /** The shared marker token for \`when(marker, relationship, pseudo)\`. */
 export const marker: Marker = Symbol.for("truss-default-marker");
 
-/** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({
+/** An entry point for build-time Css expressions. Use with \`css=\` props. */
+export const Css = new CssBuilder<{}, "buildtime">({
   rules: {},
   enabled: true,
   selector: undefined,
   elseApplied: false,
   runtimeError: undefined,
 });
+
+/** An entry point for runtime Css expressions. Use with \`useRuntimeStyle\`. */
+export const ${def("RuntimeCss")} = new CssBuilder<{}, "runtime">({
+  rules: {},
+  enabled: true,
+  selector: undefined,
+  elseApplied: false,
+  runtimeError: undefined,
+});
+
+/** Hook that injects dynamic CSS at runtime. Only accepts \`RuntimeCss.*.$\` expressions. */
+export function ${def("useRuntimeStyle")}(css: Record<string, RuntimeStyles | string>): void {
+  _useRuntimeStyle(css as any);
+}
 
 ${typeAliasCode}
 

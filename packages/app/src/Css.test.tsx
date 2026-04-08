@@ -1,7 +1,7 @@
 import React from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
-import { Css, Palette, RuntimeStyle, useRuntimeStyle, type Only, type Properties, type Xss } from "./Css";
+import { Css, Palette, RuntimeCss, useRuntimeStyle, type Only, type Properties, type Xss } from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
 
 afterEach(cleanup);
@@ -17,8 +17,15 @@ const chipElement = <Chip xss={Css.bgBlue.mr1.$} />;
 // @ts-expect-error `display` is not part of `ChipXss`, so `Css.df.$` should be rejected.
 const invalidChipElement = <Chip xss={Css.df.$} />;
 
+// @ts-expect-error `Css.$` returns `BuildtimeStyles`, not `RuntimeStyles` — rejected by `useRuntimeStyle`.
+const buildtimeInRuntimeHook: Parameters<typeof useRuntimeStyle>[0] = { ".sel": Css.blue.$ };
+// @ts-expect-error `RuntimeCss.$` returns `RuntimeStyles`, not `BuildtimeStyles` — rejected by `css=` prop.
+const runtimeInBuildtimeProp: React.HTMLAttributes<HTMLDivElement>["css"] = RuntimeCss.blue.$;
+
 void chipElement;
 void invalidChipElement;
+void buildtimeInRuntimeHook;
+void runtimeInBuildtimeProp;
 
 /**
  * The truss plugin transforms `Css.*.$` expressions at build time and injects
@@ -489,86 +496,9 @@ describe("Truss CssBuilder", () => {
     });
   });
 
-  describe("RuntimeStyle", () => {
-    test("injects selector rules from runtime Css expressions", () => {
-      const space = 2;
-      const r = render(
-        <>
-          <RuntimeStyle css={{ ".runtime-style-target": Css.mt(space).black.$ }} />
-          <div className="runtime-style-target">Runtime</div>
-        </>,
-      );
-
-      const el = r.container.querySelector(".runtime-style-target") as HTMLElement;
-      const style = document.querySelector("style[data-truss-runtime-style]") as HTMLStyleElement;
-
-      expect(style).not.toBeNull();
-      expect(style.textContent).toBe(`.runtime-style-target {
-  margin-top: 16px;
-  color: #353535;
-}`);
-      expect(el).toHaveStyle({ marginTop: "16px", color: "#353535" });
-    });
-
-    test("supports raw CSS strings alongside Css expressions", () => {
-      const r = render(
-        <>
-          <RuntimeStyle
-            css={{
-              ".runtime-style-mixed": Css.df.$,
-              "[data-runtime-raw='yes']": "background-color: rgb(1, 2, 3);",
-            }}
-          />
-          <div className="runtime-style-mixed" data-runtime-raw="yes">
-            Runtime
-          </div>
-        </>,
-      );
-
-      const el = r.container.querySelector(".runtime-style-mixed") as HTMLElement;
-      const style = document.querySelector("style[data-truss-runtime-style]") as HTMLStyleElement;
-
-      expect(style.textContent).toBe(`.runtime-style-mixed {
-  display: flex;
-}
-
-[data-runtime-raw='yes'] {
-  background-color: rgb(1, 2, 3);
-}`);
-      expect(el).toHaveStyle({ display: "flex", backgroundColor: "rgb(1, 2, 3)" });
-    });
-
-    test("removes the injected style tag on unmount", () => {
-      const r = render(<RuntimeStyle css={{ ".runtime-style-target": Css.blue.$ }} />);
-
-      expect(document.querySelectorAll("style[data-truss-runtime-style]").length).toBe(1);
-
-      r.unmount();
-
-      expect(document.querySelectorAll("style[data-truss-runtime-style]").length).toBe(0);
-    });
-
-    test("throws for unsupported selector-based Css expressions", () => {
-      expect(() => {
-        render(<RuntimeStyle css={{ ".runtime-style-target": Css.onHover.blue.$ }} />);
-      }).toThrowError("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
-    });
-
-    test("accepts arbitrary object literals (not just Css expressions)", () => {
-      const r = render(
-        <>
-          <RuntimeStyle css={{ ".arbitrary-target": { color: "#353535", marginTop: "8px" } }} />
-          <div className="arbitrary-target">Arbitrary</div>
-        </>,
-      );
-      const el = r.container.querySelector(".arbitrary-target") as HTMLElement;
-      expect(el).toHaveStyle({ color: "#353535", marginTop: "8px" });
-    });
-  });
-
   describe("useRuntimeStyle", () => {
     function UseRuntimeStyleHarness(props: { space: number }) {
-      useRuntimeStyle({ ".hook-target": Css.mt(props.space).black.$ });
+      useRuntimeStyle({ ".hook-target": RuntimeCss.mt(props.space).black.$ });
       return <div className="hook-target">Hook</div>;
     }
 
@@ -587,6 +517,37 @@ describe("Truss CssBuilder", () => {
       expect(document.querySelectorAll("style[data-truss-runtime-style]").length).toBe(1);
       r.unmount();
       expect(document.querySelectorAll("style[data-truss-runtime-style]").length).toBe(0);
+    });
+
+    test("supports raw CSS strings alongside RuntimeCss expressions", () => {
+      function Harness() {
+        useRuntimeStyle({
+          ".runtime-style-mixed": RuntimeCss.df.$,
+          "[data-runtime-raw='yes']": "background-color: rgb(1, 2, 3);",
+        });
+        return (
+          <div className="runtime-style-mixed" data-runtime-raw="yes">
+            Runtime
+          </div>
+        );
+      }
+      const r = render(<Harness />);
+      const el = r.container.querySelector(".runtime-style-mixed") as HTMLElement;
+      const style = document.querySelector("style[data-truss-runtime-style]") as HTMLStyleElement;
+      expect(style.textContent).toBe(
+        `.runtime-style-mixed {\n  display: flex;\n}\n\n[data-runtime-raw='yes'] {\n  background-color: rgb(1, 2, 3);\n}`,
+      );
+      expect(el).toHaveStyle({ display: "flex", backgroundColor: "rgb(1, 2, 3)" });
+    });
+
+    test("throws for unsupported selector-based Css expressions", () => {
+      function Harness() {
+        useRuntimeStyle({ ".target": RuntimeCss.onHover.blue.$ });
+        return null;
+      }
+      expect(() => {
+        render(<Harness />);
+      }).toThrowError("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
     });
   });
 
