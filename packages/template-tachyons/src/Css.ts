@@ -2867,8 +2867,8 @@ export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 export const marker: Marker = Symbol.for("truss-default-marker");
 
 /** An entry point for build-time Css expressions. Use with `css=` props. */
-export const Css = new CssBuilder<{}, "buildtime">({
-  rules: {},
+export const Css = new CssBuilder<Pick<Properties, never>, "buildtime">({
+  rules: {} as Pick<Properties, never>,
   enabled: true,
   selector: undefined,
   elseApplied: false,
@@ -2876,8 +2876,8 @@ export const Css = new CssBuilder<{}, "buildtime">({
 });
 
 /** An entry point for runtime Css expressions. Use with `useRuntimeStyle`. */
-export const RuntimeCss = new CssBuilder<{}, "runtime">({
-  rules: {},
+export const RuntimeCss = new CssBuilder<Pick<Properties, never>, "runtime">({
+  rules: {} as Pick<Properties, never>,
   enabled: true,
   selector: undefined,
   elseApplied: false,
