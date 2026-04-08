@@ -122,19 +122,19 @@ describe("transform", () => {
     );
   });
 
-  test("RuntimeStyle css object keeps nested Css expressions for runtime evaluation", () => {
+  test("RuntimeCss expressions inside useRuntimeStyle are not transformed", () => {
     expectTrussTransform(`
-      import { RuntimeStyle } from "@homebound/truss/runtime";
-      import { Css } from "./Css";
+      import { useRuntimeStyle } from "@homebound/truss/runtime";
+      import { Css, RuntimeCss } from "./Css";
       const space = 2;
-      const styles = <RuntimeStyle css={{ ".foo": Css.blue.$, ".bar": Css.mt(space).$ }} />;
+      useRuntimeStyle({ ".foo": RuntimeCss.blue.$, ".bar": RuntimeCss.mt(space).$ });
       const el = <div css={Css.df.$} />;
     `).toHaveTrussOutput(
       `
-      import { RuntimeStyle } from "@homebound/truss/runtime";
-      import { Css } from "./Css";
+      import { useRuntimeStyle } from "@homebound/truss/runtime";
+      import { RuntimeCss } from "./Css";
       const space = 2;
-      const styles = <RuntimeStyle css={{ ".foo": Css.blue.$, ".bar": Css.mt(space).$ }} />;
+      useRuntimeStyle({ ".foo": RuntimeCss.blue.$, ".bar": RuntimeCss.mt(space).$ });
       const el = <div className="df" />;
     `,
       `
@@ -145,50 +145,13 @@ describe("transform", () => {
     );
   });
 
-  test("returns null for files that only use RuntimeStyle css object literals", () => {
-    expect(
-      transformTruss(
-        snippet(`
-          import { RuntimeStyle } from "@homebound/truss/runtime";
-          import { Css } from "./Css";
-          const styles = <RuntimeStyle css={{ ".foo": Css.blue.$ }} />;
-        `),
-        "test.tsx",
-        mapping,
-      ),
-    ).toBeNull();
-  });
-
-  test("useRuntimeStyle object literal keeps nested Css expressions for runtime evaluation", () => {
-    expectTrussTransform(`
-      import { useRuntimeStyle } from "@homebound/truss/runtime";
-      import { Css } from "./Css";
-      const space = 2;
-      useRuntimeStyle({ ".foo": Css.blue.$, ".bar": Css.mt(space).$ });
-      const el = <div css={Css.df.$} />;
-    `).toHaveTrussOutput(
-      `
-      import { useRuntimeStyle } from "@homebound/truss/runtime";
-      import { Css } from "./Css";
-      const space = 2;
-      useRuntimeStyle({ ".foo": Css.blue.$, ".bar": Css.mt(space).$ });
-      const el = <div className="df" />;
-    `,
-      `
-      .df {
-        display: flex;
-      }
-    `,
-    );
-  });
-
-  test("returns null for files that only use useRuntimeStyle", () => {
+  test("returns null for files that only use RuntimeCss with useRuntimeStyle", () => {
     expect(
       transformTruss(
         snippet(`
           import { useRuntimeStyle } from "@homebound/truss/runtime";
-          import { Css } from "./Css";
-          useRuntimeStyle({ ".foo": Css.blue.$ });
+          import { RuntimeCss } from "./Css";
+          useRuntimeStyle({ ".foo": RuntimeCss.blue.$ });
         `),
         "test.tsx",
         mapping,

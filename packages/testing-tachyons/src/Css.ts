@@ -2294,8 +2294,7 @@ class CssBuilder<T extends Properties> {
   }
 
   get $(): T {
-    const result = maybeImportant(sortObject(this.rules), this.opts.important);
-    return result;
+    return maybeImportant(sortObject(this.rules), this.opts.important);
   }
 
   if(bp: Breakpoint): CssBuilder<T>;

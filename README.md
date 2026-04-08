@@ -108,7 +108,7 @@ And a static, build-time generated CSS file:
   - [See example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below
 
 - Escape hatch to arbitrary/runtime selectors
-  - `useRuntimeStyle({ body: Css.blue.$ })`
+  - `useRuntimeStyle({ body: RuntimeCss.blue.$ })`
   - Only applied when the component is mounted
 
 - Type-checking built in 💪
@@ -348,7 +348,7 @@ Truss ships two build plugins. Both transform `Css.*.$` expressions into plain o
 
 If you are targeting React Native instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
 
-## Pseudo-Selectors 
+## Pseudo-Selectors
 
 Truss intentionally limits the selectors you can use in `Css.*.$` chains to:
 
@@ -548,36 +548,35 @@ export const css = {
 When selector rules are either:
 
 - 1. Fundamentally driven by runtime values that change the selector itself, or
-- 2. Should be only transiently injecteda/applied while a component is mounted
+- 2. Should be only transiently injected/applied while a component is mounted
 
-Truss also provides a `RuntimeStyle` component:
+Truss provides a `useRuntimeStyle` hook paired with a dedicated `RuntimeCss` entry point:
 
 ```tsx
-import { Css, RuntimeStyle } from "./Css";
+import { RuntimeCss, useRuntimeStyle } from "./Css";
 
 function Preview(props: { accent: string }) {
-  return (
-    <>
-      <RuntimeStyle
-        css={{
-          ".preview [data-selected='true']": Css.bc(props.accent).bgWhite.$,
-        }}
-      />
-      <div className="preview">...</div>
-    </>
-  );
+  useRuntimeStyle({
+    ".preview [data-selected='true']": RuntimeCss.bc(props.accent).bgWhite.$,
+  });
+  return <div className="preview">...</div>;
 }
 ```
 
-`RuntimeStyle` evaluates its `Css` expressions at runtime, injects a `<style>` tag into the DOM, and removes that tag when the component unmounts. Use it for ephemeral selectors or selector rules that depend on runtime values; use `.css.ts` when the rule is static/global and should be baked into the build output.
+`RuntimeCss` is the runtime counterpart to `Css`. Both share the same abbreviations and chaining API, but they produce different types:
 
-The same behavior is available as the `useRuntimeStyle` hook for cases where you prefer a hook over a component:
+- `Css.blue.$` returns `BuildtimeStyles` — for use in `css=` props (transformed at build time by the Vite plugin)
+- `RuntimeCss.blue.$` returns `RuntimeStyles` — for use in `useRuntimeStyle` (evaluated at runtime)
+
+TypeScript enforces this separation: passing `Css.blue.$` to `useRuntimeStyle` or `RuntimeCss.blue.$` to a `css=` prop will produce a compile error.
+
+`useRuntimeStyle` evaluates its `RuntimeCss` expressions at runtime, injects a `<style>` tag into the DOM, and removes that tag when the component unmounts. Use it for ephemeral selectors or selector rules that depend on runtime values; use `.css.ts` when the rule is static/global and should be baked into the build output.
 
 ```tsx
-import { Css, useRuntimeStyle } from "./Css";
+import { RuntimeCss, useRuntimeStyle } from "./Css";
 
 function Preview(props: { bottomMargin: number }) {
-  useRuntimeStyle({ body: Css.mbPx(props.bottomMargin).$ });
+  useRuntimeStyle({ body: RuntimeCss.mbPx(props.bottomMargin).$ });
   return <div>...</div>;
 }
 ```
@@ -623,7 +622,7 @@ Typical use cases are:
 These are intentionally escape hatches:
 
 - they only work in normal build-time `css={...}` expressions
-- they are not supported inside `RuntimeStyle` / `useRuntimeStyle`
+- they are not supported inside `useRuntimeStyle`
 - they are not supported in `.css.ts` arbitrary-selector rules
 - they cannot be used inside modifier contexts like `ifSm`, `onHover`, `when(...)`, or `element(...)`
 
