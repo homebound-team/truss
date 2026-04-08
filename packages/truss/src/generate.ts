@@ -31,7 +31,7 @@ export async function generate(config: Config): Promise<void> {
   }
 
   if (target === "react-native") {
-    const output = generateCssBuilder(config).toString();
+    const output = generateReactNativeBuilder(config).toString();
     await fs.writeFile(outputPath, output);
     return;
   }
@@ -39,7 +39,7 @@ export async function generate(config: Config): Promise<void> {
   throw new Error(`Unsupported truss target "${target}". Use "web" (default) or "react-native".`);
 }
 
-function generateCssBuilder(config: Config): Code {
+function generateReactNativeBuilder(config: Config): Code {
   const { fonts, increment, extras, typeAliases, breakpoints = {}, palette } = config;
   const sections = generateSections(config);
 
@@ -115,7 +115,6 @@ ${typographyType}
 type Opts<T> = {
   rules: T,
   enabled: boolean,
-  important: boolean,
   selector: string | undefined,
   elseApplied: boolean,
 };
@@ -154,7 +153,7 @@ class CssBuilder<T extends Properties> {
 
   ${lines.join("\n  ").replace(/ +\n/g, "\n")}
     
-  get $(): T { return maybeImportant(sortObject(this.rules), this.opts.important); }
+  get $(): T { return sortObject(this.rules); }
 
   if(bp: Breakpoint): CssBuilder<T>;
   if(cond: boolean): CssBuilder<T>;
@@ -211,8 +210,6 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: undefined, elseApplied: false });
   }
 
-  get important() { return this.newCss({ important: true }); }
-
   /** Add real CSS property/value pairs, either as add("prop", value) or add({ prop: value, ... }). */
   add<P extends Properties>(props: P): CssBuilder<T & P>;
   add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
@@ -240,25 +237,6 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ rules: rules as any });
   }
 
-  /** Adds new properties, either a specific key/value or a Properties object, to a nested selector. */
-  addIn<P extends Properties>(selector: string, props: P | undefined): CssBuilder<T & P>;
-  addIn<K extends keyof Properties>(selector: string, prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
-  addIn<K extends keyof Properties>(selector: string, propOrProperties: K | Properties, value?: Properties[K]): CssBuilder<any> {
-    const newRules = typeof propOrProperties === "string" ?  { [propOrProperties]: value } : propOrProperties;
-    if (!this.enabled) return this;
-    if (newRules === undefined) {
-      return this;
-    }
-    const rules = { ...this.rules, [selector]: { ...(this.rules as any)[selector], ...newRules } };
-    return this.newCss({ rules: rules as any });
-  }
-
-  /** Marker for the build-time transform to append a raw className. */
-  className(className: string | undefined): CssBuilder<T> {
-    void className;
-    return this;
-  }
-
   /** Marker for the build-time transform to append raw inline styles. */
   style(inlineStyle: InlineStyle): CssBuilder<T> {
     void inlineStyle;
@@ -280,16 +258,6 @@ function sortObject<T extends object>(obj: T): T {
       acc[key as keyof T] = obj[key as keyof T];
       return acc;
     }, ({} as any) as T) as T;
-}
-
-/** Conditionally adds \`important!\` to everything. */
-function maybeImportant<T extends object>(obj: T, important: boolean): T {
-  if (important) {
-    Object.keys(obj).forEach(key => {
-      (obj as any)[key] = \`\${(obj as any)[key]} !important\`;
-    });
-  }
-  return obj;
 }
 
 /** Converts \`inc\` into pixels value with a \`px\` suffix. */
@@ -324,7 +292,7 @@ export enum Palette {
 export type Xss<P extends keyof Properties> = Pick<Properties, P>;
 
 /** An entry point for Css expressions. CssBuilder is immutable so this is safe to share. */
-export const Css = new CssBuilder({ rules: {}, enabled: true, important: false, selector: undefined, elseApplied: false });
+export const Css = new CssBuilder({ rules: {}, enabled: true, selector: undefined, elseApplied: false });
 
 ${typeAliasCode}
 
