@@ -430,7 +430,18 @@ type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) e
   ? I
   : never;
 
-export type ${def("Properties")} = ${CssProperties}<string | 0, string>;
+/** Raw CSS properties from csstype, without any style-kind brand. */
+type RawCssProperties = ${CssProperties}<string | 0, string>;
+
+/**
+ * CSS properties with an optional buildtime brand.
+ *
+ * \`Properties\` is the standard type for passing CSS style objects around.
+ * It carries an optional \`__kind\` discriminator so that \`RuntimeStyles\`
+ * (which has \`__kind: "runtime"\`) is rejected when assigned to a
+ * \`Properties\` slot like the \`css=\` prop.
+ */
+export type ${def("Properties")} = RawCssProperties & { readonly __kind?: "buildtime" };
 
 export type ${def("InlineStyle")} = Record<string, string | number | undefined>;
 
@@ -441,10 +452,10 @@ export type Marker = symbol;
 export type StyleKind = "buildtime" | "runtime";
 
 /** The result of \`Css.*.$\` — for use in \`css=\` props (transformed at build time). */
-export type ${def("BuildtimeStyles")} = Properties & { readonly __kind: "buildtime" };
+export type ${def("BuildtimeStyles")} = RawCssProperties & { readonly __kind: "buildtime" };
 
 /** The result of \`RuntimeCss.*.$\` — for use in \`useRuntimeStyle\`. */
-export type ${def("RuntimeStyles")} = Properties & { readonly __kind: "runtime" };
+export type ${def("RuntimeStyles")} = RawCssProperties & { readonly __kind: "runtime" };
 
 ${typographyType}
 
@@ -453,14 +464,14 @@ ${typographyType}
 // - JSX.IntrinsicAttributes covers custom components (Card, Page, etc.)
 declare module "react" {
   interface HTMLAttributes<T> {
-    css?: BuildtimeStyles;
+    css?: Properties;
   }
   interface SVGAttributes<T> {
-    css?: BuildtimeStyles;
+    css?: Properties;
   }
   namespace JSX {
     interface IntrinsicAttributes {
-      css?: BuildtimeStyles;
+      css?: Properties;
     }
   }
 }
