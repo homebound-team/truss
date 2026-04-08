@@ -1,3 +1,9 @@
+## [2.21.3](https://github.com/homebound-team/truss/compare/v2.21.2...v2.21.3) (2026-04-08)
+
+### Bug Fixes
+
+* Fix css.ts imports w/o the ts extension. ([#242](https://github.com/homebound-team/truss/issues/242)) ([1e7b9bf](https://github.com/homebound-team/truss/commit/1e7b9bf58fb7ca6d53fc37ccf0aa511d927b8299))
+
 ## [2.21.2](https://github.com/homebound-team/truss/compare/v2.21.1...v2.21.2) (2026-04-08)
 
 ### Bug Fixes
