@@ -1,3 +1,9 @@
+## [2.21.2](https://github.com/homebound-team/truss/compare/v2.21.1...v2.21.2) (2026-04-08)
+
+### Bug Fixes
+
+* Fix lint error. ([#240](https://github.com/homebound-team/truss/issues/240)) ([03ebace](https://github.com/homebound-team/truss/commit/03ebace9666720ceb3afc9366694fd644daf800a))
+
 ## [2.21.1](https://github.com/homebound-team/truss/compare/v2.21.0...v2.21.1) (2026-04-08)
 
 ### Bug Fixes
