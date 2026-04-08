@@ -37,9 +37,9 @@ describe("App", () => {
     expect(box).toHaveStyle({
       borderStyle: "solid",
       borderWidth: "1px",
-      borderRadius: ".25rem",
       cursor: "pointer",
     });
+    expect(hasCssDeclaration(box, "border-radius", { hover: false, value: "0.25rem" })).toBe(true);
     expect(hasCssDeclaration(box, "border-color", { hover: false })).toBe(true);
     expect(hasCssDeclaration(box, "border-color", { hover: true })).toBe(true);
   });

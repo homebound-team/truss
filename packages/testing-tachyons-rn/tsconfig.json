@@ -1,10 +1,11 @@
 {
-  "extends": "@homebound/tsconfig/tsconfig.json",
+  "extends": "../../tsconfig.package.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es5",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "target": "ES2022",
     "sourceMap": true,
-    "downlevelIteration": true,
+    "rootDir": "./src",
     "outDir": "build/",
     "jsx": "react"
   },
