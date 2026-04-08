@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { tmpdir } from "os";
 import { trussPlugin } from "./index";
@@ -399,6 +399,72 @@ describe("trussPlugin", () => {
         "/* @truss arbitrary:start */",
         ".lib-grid td { background-color: #fcfcfa; }",
         "/* @truss arbitrary:end */",
+        "/* @truss arbitrary:start */",
+        ".app-container {",
+        "  display: flex;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
+    );
+  });
+
+  test("includes app .css.ts blocks when imported with bare .css extension", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+      blue: { kind: "static", defs: { color: "#526675" } },
+    });
+
+    const libCssDir = join(root, "node_modules", "@company", "library", "dist");
+    mkdirSync(libCssDir, { recursive: true });
+    writeFileSync(
+      join(libCssDir, "truss.css"),
+      ["/* @truss p:3000 c:blue */", ".blue { color: #526675; }"].join("\n"),
+      "utf8",
+    );
+
+    // App has a .css.ts file
+    const appCssTsPath = join(root, "src", "App.css.ts");
+    mkdirSync(dirname(appCssTsPath), { recursive: true });
+    writeFileSync(
+      appCssTsPath,
+      ['import { Css } from "./Css";', "export const css = {", '  ".app-container": Css.df.$,', "};"].join("\n"),
+      "utf8",
+    );
+
+    const plugin = trussPlugin({
+      mapping: "./src/Css.json",
+      libraries: ["./node_modules/@company/library/dist/truss.css"],
+    });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    // The importing file uses bare `from "./App.css"` (no .ts) — rewriteCssTsImports
+    // detects the .css.ts file on disk and adds a ?truss-css side-effect import
+    const result = runTransform(
+      plugin,
+      `import { css } from "./App.css"; const el = <div className={css} />;`,
+      join(root, "src", "Page.tsx"),
+    );
+    expect(n(result?.code ?? "")).toBe(
+      n(`
+        import { css } from "./App.css";
+        import "./App.css.ts?truss-css";
+        const el = <div className={css} />;
+      `),
+    );
+
+    // Simulate Vite resolving and loading the virtual CSS module
+    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", appCssTsPath);
+    expect(resolvedId).toBeTruthy();
+    invokeHook(plugin.load, {} as unknown, resolvedId);
+
+    // The .css.ts content should be in the merged output
+    const css = getVirtualCss(plugin);
+    expect(css).toBe(
+      [
+        "/* @truss p:3000 c:blue */",
+        ".blue { color: #526675; }",
         "/* @truss arbitrary:start */",
         ".app-container {",
         "  display: flex;",
