@@ -7,7 +7,13 @@ import { generateCssText } from "./emit-truss";
 import { transformTruss } from "./transform";
 import { transformCssTs } from "./transform-css";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
-import { readTrussCss, mergeTrussCss, parseTrussCss, type ParsedTrussCss } from "./merge-css";
+import {
+  readTrussCss,
+  mergeTrussCss,
+  parseTrussCss,
+  annotateArbitraryCssBlock,
+  type ParsedTrussCss,
+} from "./merge-css";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
@@ -77,6 +83,8 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
   // Global CSS rule registry shared across all transform calls within a build
   const cssRegistry = new Map<string, AtomicRule>();
+  /** Arbitrary CSS blocks from app .css.ts files, keyed by source path. */
+  const arbitraryCssRegistry = new Map<string, string>();
   let cssVersion = 0;
   let lastSentVersion = 0;
 
@@ -107,15 +115,33 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     return libraryCache;
   }
 
+  /** Transform a `.css.ts` file and store the raw CSS in the arbitrary registry. */
+  function updateArbitraryCssRegistry(sourcePath: string, sourceCode: string): void {
+    const css = transformCssTs(sourceCode, sourcePath, ensureMapping()).trim();
+    if (css.length > 0) {
+      const prev = arbitraryCssRegistry.get(sourcePath);
+      arbitraryCssRegistry.set(sourcePath, css);
+      if (prev !== css) cssVersion++;
+    } else {
+      if (arbitraryCssRegistry.delete(sourcePath)) cssVersion++;
+    }
+  }
+
   /**
    * Generate the full CSS string from the global registry, merged with library CSS.
    *
    * When `libraries` are configured, parses each library's annotated truss.css,
    * combines with the app's own rules, deduplicates by class name, and sorts
    * by priority to produce a unified stylesheet.
+   *
+   * Also appends app-side `.css.ts` arbitrary CSS blocks collected during transform.
    */
   function collectCss(): string {
-    const appCss = generateCssText(cssRegistry);
+    const appCssParts = [generateCssText(cssRegistry)];
+    // Wrap all app .css.ts blocks in a single annotation (mirroring how the esbuild plugin handles them)
+    const allArbitrary = Array.from(arbitraryCssRegistry.values()).join("\n\n");
+    appCssParts.push(annotateArbitraryCssBlock(allArbitrary));
+    const appCss = appCssParts.filter((p) => p.length > 0).join("\n");
     const libs = loadLibraries();
     if (libs.length === 0) return appCss;
     // Parse the app's own annotated CSS and merge with library sources
@@ -136,8 +162,9 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
     buildStart() {
       ensureMapping();
-      // Reset registry and library cache at start of each build
+      // Reset registries and library cache at start of each build
       cssRegistry.clear();
+      arbitraryCssRegistry.clear();
       libraryCache = null;
       cssVersion = 0;
       lastSentVersion = 0;
@@ -272,7 +299,15 @@ __injectTrussCSS(${JSON.stringify(css)});
       // Re-add `.ts` to recover the original source file path
       const sourcePath = id.slice(VIRTUAL_CSS_PREFIX.length) + ".ts";
       const sourceCode = readFileSync(sourcePath, "utf8");
-      return transformCssTs(sourceCode, sourcePath, ensureMapping());
+
+      // Populate the arbitrary CSS registry on first load; subsequent updates
+      // happen in the transform hook when Vite re-transforms the changed file.
+      updateArbitraryCssRegistry(sourcePath, sourceCode);
+
+      // Return an empty stylesheet to Vite's CSS pipeline — the real CSS is now
+      // served via collectCss() (dev: /virtual:truss.css, build: truss-<hash>.css)
+      // so we avoid duplicating it in Vite's own CSS bundle.
+      return `/* [truss] ${sourcePath} — included via truss.css */`;
     },
 
     transform(code: string, id: string) {
@@ -304,6 +339,11 @@ __injectTrussCSS(${JSON.stringify(css)});
         // Keep `.css.ts` modules as normal TS so named exports like class-name
         // constants still work at runtime; only return code when we injected the
         // companion `?truss-css` side-effect import.
+        //
+        // Also update the arbitrary CSS registry so HMR picks up changes —
+        // the load hook only runs on first resolve, so edits need to refresh
+        // the registry here where Vite re-transforms changed files.
+        updateArbitraryCssRegistry(fileId, code);
         return rewrittenImports.changed || testCssBootstrap.changed ? { code: transformedCode, map: null } : null;
       }
 
