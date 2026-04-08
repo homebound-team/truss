@@ -493,7 +493,7 @@ describe("trussPlugin .css.ts integration", () => {
     expect(resolved).toBeNull();
   });
 
-  test("load generates CSS from the virtual module", () => {
+  test("load stores CSS in the arbitrary registry and returns a placeholder", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -507,13 +507,13 @@ describe("trussPlugin .css.ts integration", () => {
 
     const virtualId = "\0truss-css:" + cssTs.slice(0, -3);
     const result = invokeHook(plugin.load, {} as any, virtualId);
-    expect(typeof result).toBe("string");
-    expect(n(result as string)).toBe(
-      n(`
-        .foo {
-          display: flex;
-        }
-      `),
+    // The virtual module returns a placeholder comment — real CSS is in collectCss()
+    expect(result).toBe(`/* [truss] ${cssTs} — included via truss.css */`);
+
+    // The CSS should be available via the dev virtual endpoint instead
+    const css = getVirtualCss(plugin);
+    expect(css).toBe(
+      ["/* @truss arbitrary:start */", ".foo {", "  display: flex;", "}", "/* @truss arbitrary:end */"].join("\n"),
     );
   });
 
@@ -588,6 +588,32 @@ describe("trussPlugin .css.ts integration", () => {
 
 function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
+}
+
+/** Simulate the dev virtual CSS endpoint by invoking configureServer and calling the middleware. */
+function getVirtualCss(plugin: ReturnType<typeof trussPlugin>): string {
+  let css = "";
+  const middlewares: Array<(req: unknown, res: unknown, next: unknown) => void> = [];
+  const fakeServer = {
+    middlewares: {
+      use(fn: (req: unknown, res: unknown, next: unknown) => void) {
+        middlewares.push(fn);
+      },
+    },
+    httpServer: { on() {} },
+  };
+  invokeHook(plugin.configureServer, {} as unknown, fakeServer);
+  const fakeReq = { url: "/virtual:truss.css" };
+  const fakeRes = {
+    setHeader() {},
+    end(content: string) {
+      css = content;
+    },
+  };
+  for (const mw of middlewares) {
+    mw(fakeReq, fakeRes, () => {});
+  }
+  return css;
 }
 
 function invokeHook(hook: unknown, thisArg: unknown, ...args: unknown[]): unknown {

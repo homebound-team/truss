@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
+import { dirname, join, resolve } from "path";
 import { tmpdir } from "os";
 import { trussPlugin } from "./index";
 
@@ -336,6 +336,74 @@ describe("trussPlugin", () => {
         ".df { display: flex; }",
         "/* @truss p:3000 c:fdc */",
         ".fdc { flex-direction: column; }",
+      ].join("\n"),
+    );
+  });
+
+  test("includes app .css.ts arbitrary blocks in merged CSS output", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+      blue: { kind: "static", defs: { color: "#526675" } },
+    });
+
+    // Library ships a truss.css with an atomic rule and an arbitrary block from its own .css.ts
+    const libCssDir = join(root, "node_modules", "@company", "library", "dist");
+    mkdirSync(libCssDir, { recursive: true });
+    writeFileSync(
+      join(libCssDir, "truss.css"),
+      [
+        "/* @truss p:3000 c:blue */",
+        ".blue { color: #526675; }",
+        "/* @truss arbitrary:start */",
+        ".lib-grid td { background-color: #fcfcfa; }",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
+      "utf8",
+    );
+
+    // App has a .css.ts file with its own CSS
+    const appCssTsPath = join(root, "src", "App.css.ts");
+    mkdirSync(dirname(appCssTsPath), { recursive: true });
+    writeFileSync(
+      appCssTsPath,
+      ['import { Css } from "./Css";', "export const css = {", '  ".app-container": Css.df.$,', "};"].join("\n"),
+      "utf8",
+    );
+
+    const plugin = trussPlugin({
+      mapping: "./src/Css.json",
+      libraries: ["./node_modules/@company/library/dist/truss.css"],
+    });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+
+    // App file imports the .css.ts — triggers import rewriting
+    runTransform(
+      plugin,
+      `import { css } from "./App.css.ts"; const el = <div className={css} />;`,
+      join(root, "src", "App.tsx"),
+    );
+
+    // Simulate resolving and loading the virtual CSS module
+    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", appCssTsPath);
+    expect(resolvedId).toBeTruthy();
+    invokeHook(plugin.load, {} as unknown, resolvedId);
+
+    // The merged CSS should include both the library's arbitrary block and the app's .css.ts content
+    const css = getVirtualCss(plugin);
+    expect(css).toBe(
+      [
+        "/* @truss p:3000 c:blue */",
+        ".blue { color: #526675; }",
+        "/* @truss arbitrary:start */",
+        ".lib-grid td { background-color: #fcfcfa; }",
+        "/* @truss arbitrary:end */",
+        "/* @truss arbitrary:start */",
+        ".app-container {",
+        "  display: flex;",
+        "}",
+        "/* @truss arbitrary:end */",
       ].join("\n"),
     );
   });
