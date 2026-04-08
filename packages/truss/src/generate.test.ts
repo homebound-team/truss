@@ -13,7 +13,7 @@ describe("generate", () => {
     } as any;
 
     await expect(generate(config)).rejects.toThrow(
-      'Unsupported truss target "emotion". Use "stylex" (default) or "react-native".',
+      'Unsupported truss target "emotion". Use "web" (default) or "react-native".',
     );
   });
 });

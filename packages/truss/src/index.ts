@@ -1,7 +1,7 @@
 export * from "src/config";
 export { defaultSections } from "src/sections/tachyons";
 export { generate } from "src/generate";
-export type { IncConfig, StylexEntry } from "src/methods";
+export type { IncConfig, WebEntry } from "src/methods";
 export {
   newAliasesMethods,
   newMethod,
@@ -11,6 +11,6 @@ export {
   newIncrementMethods,
   newParamMethod,
   newSetCssVariablesMethod,
-  startStylexCollection,
-  stopStylexCollection,
+  startWebCollection,
+  stopWebCollection,
 } from "src/methods";

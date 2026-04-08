@@ -65,16 +65,16 @@ export interface Config {
   /**
    * The target CSS runtime to generate for.
    *
-   * - `"stylex"` (default): Generates a StyleX-friendly CssBuilder (for IDE autocomplete + types) plus a
-   *   `Css.json` mapping file consumed by the truss Vite plugin, which transforms
-   *   `Css.*.$` expressions into file-local `stylex.create()` + `stylex.props()` calls at build time.
+   * - `"web"` (default): Generates a web CssBuilder (for IDE autocomplete + types) plus a
+   *   `Css.json` mapping file consumed by the truss Vite plugin, which compiles
+   *   `Css.*.$` expressions into atomic CSS output at build time.
    * - `"react-native"`: Generates a runtime CssBuilder that accumulates plain style objects,
    *   intended for React Native usage.
    */
-  target?: "react-native" | "stylex";
+  target?: "react-native" | "web";
 
   /**
-   * The output path for the truss mapping file (only used when target is "stylex").
+   * The output path for the truss mapping file (only used when target is "web").
    * Defaults to a `.json` sibling of `outputPath` (e.g. `./src/Css.json`).
    */
   mappingOutputPath?: string;

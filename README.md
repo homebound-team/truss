@@ -226,6 +226,7 @@ npm install --save-dev @homebound/truss
    // truss-config.ts
    export default defineConfig({
      outputPath: "./src/Css.ts",
+     target: "web",
      // optional: defaults to ./src/Css.json based on outputPath
      mappingOutputPath: "./src/Css.json",
      // ...any palette/fonts/increment/etc configuration...
@@ -346,7 +347,7 @@ Truss ships two build plugins. Both transform `Css.*.$` expressions into plain o
 
 ### React Native (experimental/mobile) Usage
 
-If you are targeting React Native instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
+For web usage, `target: "web"` is the default. If you are targeting React Native instead, set `target: "react-native"` in your `truss-config.ts` (and typically `defaultMethods: "tachyons-rn"`).
 
 ## Pseudo-Selectors
 
