@@ -1,3 +1,9 @@
+## [2.21.0](https://github.com/homebound-team/truss/compare/v2.20.1...v2.21.0) (2026-04-08)
+
+### Features
+
+* Add RuntimeCss as a separate const/type. ([#238](https://github.com/homebound-team/truss/issues/238)) ([d33d3cc](https://github.com/homebound-team/truss/commit/d33d3cc407d0e296c15f5670d54e3903094a051f))
+
 ## [2.20.1](https://github.com/homebound-team/truss/compare/v2.20.0...v2.20.1) (2026-04-08)
 
 ### Bug Fixes
