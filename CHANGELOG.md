@@ -1,3 +1,9 @@
+## [2.20.0](https://github.com/homebound-team/truss/compare/v2.19.3...v2.20.0) (2026-04-08)
+
+### Features
+
+* Add Css.with for Css expressions. ([#235](https://github.com/homebound-team/truss/issues/235)) ([4590e3c](https://github.com/homebound-team/truss/commit/4590e3c19332fee93570c6e23d29d74c25673de5))
+
 ## [2.19.3](https://github.com/homebound-team/truss/compare/v2.19.2...v2.19.3) (2026-04-04)
 
 ### Bug Fixes
