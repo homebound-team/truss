@@ -572,6 +572,60 @@ describe("trussPlugin .css.ts integration", () => {
     );
   });
 
+  test("transform rewrites bare .css imports when a .css.ts file exists on disk", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    // Create the .css.ts file so the filesystem check passes
+    const cssTs = join(root, "src", "component.css.ts");
+    writeFileSync(cssTs, `import { Css } from "./Css"; export const css = { ".foo": Css.df.$ };`, "utf8");
+
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root });
+
+    // Import uses bare ".css" (no .ts) — should still add the ?truss-css side-effect
+    const result = invokeHook(
+      plugin.transform,
+      {},
+      `import { someClassName } from "./component.css"; export function App() { return <div className={someClassName} />; }`,
+      join(root, "src", "App.tsx"),
+    );
+
+    expect(result).toMatchObject({ code: expect.any(String) });
+    expect(n((result as { code: string }).code)).toBe(
+      n(`
+        import { someClassName } from "./component.css";
+        import "./component.css.ts?truss-css";
+        export function App() {
+          return <div className={someClassName} />;
+        }
+      `),
+    );
+  });
+
+  test("transform ignores bare .css imports when no .css.ts file exists", () => {
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+
+    // No .css.ts file on disk — just a plain CSS import
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root });
+
+    const result = invokeHook(
+      plugin.transform,
+      {},
+      `import "./styles.css"; export function App() { return <div />; }`,
+      join(root, "src", "App.tsx"),
+    );
+
+    // Should NOT be rewritten — returns null (no transformation needed)
+    expect(result).toBeNull();
+  });
+
   test("resolveId ignores non-.css.ts imports", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
