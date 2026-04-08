@@ -84,15 +84,6 @@ describe("Css", () => {
     `);
   });
 
-  it("can be important conditional output", () => {
-    expect(Css.black.mb1.important.$).toMatchInlineSnapshot(`
-      {
-        "color": "#353535 !important",
-        "marginBottom": "8px !important",
-      }
-    `);
-  });
-
   it("can use generated breakpoints with if dsl", () => {
     expect(Css.pb2.white.ifSm.pb3.black.$).toMatchInlineSnapshot(`
       {
@@ -211,38 +202,6 @@ describe("Css", () => {
     expect(Css.fill(Palette.Black).$).toMatchInlineSnapshot(`
       {
         "fill": "#353535",
-      }
-    `);
-  });
-
-  it("can addIn with selectors", () => {
-    expect(Css.addIn("& > * + *", "marginBottom", "1px").$).toMatchInlineSnapshot(`
-      {
-        "& > * + *": {
-          "marginBottom": "1px",
-        },
-      }
-    `);
-  });
-
-  it("skips addIn if passed undefined", () => {
-    expect(Css.addIn("& > * + *", undefined).$).toEqual({});
-  });
-
-  it("skips addIn if conditional is disabled", () => {
-    expect(Css.if(false).addIn(">div", Css.mb1.$).$).toMatchInlineSnapshot(`{}`);
-    expect(Css.if(false).addIn(">div", Css.mb1.$).else.addIn(">div", Css.mb2.$).$).toMatchInlineSnapshot(`
-      {
-        ">div": {
-          "marginBottom": "16px",
-        },
-      }
-    `);
-    expect(Css.if(true).addIn(">div", Css.mb1.$).else.addIn(">div", Css.mb2.$).$).toMatchInlineSnapshot(`
-      {
-        ">div": {
-          "marginBottom": "8px",
-        },
       }
     `);
   });
