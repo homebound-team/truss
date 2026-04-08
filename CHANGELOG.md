@@ -1,3 +1,9 @@
+## [2.21.1](https://github.com/homebound-team/truss/compare/v2.21.0...v2.21.1) (2026-04-08)
+
+### Bug Fixes
+
+* The Properties type should be treated as buildtime. ([#239](https://github.com/homebound-team/truss/issues/239)) ([1624fe9](https://github.com/homebound-team/truss/commit/1624fe9c7639dee07244209488ad5b0d516790f6))
+
 ## [2.21.0](https://github.com/homebound-team/truss/compare/v2.20.1...v2.21.0) (2026-04-08)
 
 ### Features
