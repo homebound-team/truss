@@ -3,12 +3,12 @@ import { Properties } from "csstype";
 
 export type Prop = keyof Properties;
 
-// ── StyleX Collector ──────────────────────────────────────────────────
-// When stylex collection is enabled, each helper function pushes structured
-// metadata into this array as a side-effect. This lets the stylex code generator
+// ── Web Collector ─────────────────────────────────────────────────────
+// When web collection is enabled, each helper function pushes structured
+// metadata into this array as a side-effect. This lets the web code generator
 // reuse the existing section definitions without modifying any section files.
 
-export interface StylexEntry {
+export interface WebEntry {
   kind: "static" | "param" | "increment-param" | "px-delegate" | "alias" | "cssvar";
   abbr: string;
   /** For static: the CSS properties object, e.g. { display: "flex" } */
@@ -23,22 +23,22 @@ export interface StylexEntry {
   aliasTargets?: string[];
 }
 
-let _stylexCollector: StylexEntry[] | null = null;
+let _webCollector: WebEntry[] | null = null;
 
-/** Start collecting StylexEntry metadata from method helpers. */
-export function startStylexCollection(): void {
-  _stylexCollector = [];
+/** Start collecting WebEntry metadata from method helpers. */
+export function startWebCollection(): void {
+  _webCollector = [];
 }
 
 /** Stop collecting and return all accumulated entries. */
-export function stopStylexCollection(): StylexEntry[] {
-  const result = _stylexCollector!;
-  _stylexCollector = null;
+export function stopWebCollection(): WebEntry[] {
+  const result = _webCollector!;
+  _webCollector = null;
   return result;
 }
 
-function collect(entry: StylexEntry): void {
-  if (_stylexCollector) _stylexCollector.push(entry);
+function collect(entry: WebEntry): void {
+  if (_webCollector) _webCollector.push(entry);
 }
 
 /**
