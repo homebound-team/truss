@@ -1,3 +1,9 @@
+## [2.20.1](https://github.com/homebound-team/truss/compare/v2.20.0...v2.20.1) (2026-04-08)
+
+### Bug Fixes
+
+* Fix arbitrary css getting dropped. ([#237](https://github.com/homebound-team/truss/issues/237)) ([7f05953](https://github.com/homebound-team/truss/commit/7f05953b3e7140320e6802c78d9459de8d402804))
+
 ## [2.20.0](https://github.com/homebound-team/truss/compare/v2.19.3...v2.20.0) (2026-04-08)
 
 ### Features
