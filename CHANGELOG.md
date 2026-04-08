@@ -1,3 +1,9 @@
+## [2.21.4](https://github.com/homebound-team/truss/compare/v2.21.3...v2.21.4) (2026-04-08)
+
+### Bug Fixes
+
+* Rename some legacy stylex names to web. ([#243](https://github.com/homebound-team/truss/issues/243)) ([3ebf650](https://github.com/homebound-team/truss/commit/3ebf650050ce7385af4f3b5a593bc4a0073d2bcb))
+
 ## [2.21.3](https://github.com/homebound-team/truss/compare/v2.21.2...v2.21.3) (2026-04-08)
 
 ### Bug Fixes
