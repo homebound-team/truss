@@ -1,3 +1,9 @@
+## [2.21.5](https://github.com/homebound-team/truss/compare/v2.21.4...v2.21.5) (2026-04-08)
+
+### Bug Fixes
+
+* Remove important and addIn from RN output. ([#244](https://github.com/homebound-team/truss/issues/244)) ([a1deed2](https://github.com/homebound-team/truss/commit/a1deed24da297d6104267bf81292dc70d18ebb5b))
+
 ## [2.21.4](https://github.com/homebound-team/truss/compare/v2.21.3...v2.21.4) (2026-04-08)
 
 ### Bug Fixes
