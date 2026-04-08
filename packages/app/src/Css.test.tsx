@@ -553,6 +553,17 @@ describe("Truss CssBuilder", () => {
         render(<RuntimeStyle css={{ ".runtime-style-target": Css.onHover.blue.$ }} />);
       }).toThrowError("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
     });
+
+    test("accepts arbitrary object literals (not just Css expressions)", () => {
+      const r = render(
+        <>
+          <RuntimeStyle css={{ ".arbitrary-target": { color: "#353535", marginTop: "8px" } }} />
+          <div className="arbitrary-target">Arbitrary</div>
+        </>,
+      );
+      const el = r.container.querySelector(".arbitrary-target") as HTMLElement;
+      expect(el).toHaveStyle({ color: "#353535", marginTop: "8px" });
+    });
   });
 
   describe("useRuntimeStyle", () => {

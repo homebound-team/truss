@@ -69,7 +69,7 @@ export interface ResolvedSegment {
   argNode?: any;
   /** For composed Css props inserted via `add(cssProp)`. */
   styleArrayArg?: any;
-  /** True when the composed style arg came from `addCss(...)`. */
+  /** True when the composed style arg is an object literal that should skip undefined values. */
   isAddCss?: boolean;
   /** For custom class names inserted via `className(...)`. */
   classNameArg?: any;
@@ -100,4 +100,31 @@ export interface MarkerSegment {
   type: "marker";
   /** If set, the AST node of the user-provided marker variable. Otherwise, default marker. */
   markerNode?: any;
+}
+
+// ── Shared longhand lookup ───────────────────────────────────────────
+
+const _longhandCache = new WeakMap<TrussMapping, Map<string, string>>();
+
+/**
+ * Reverse lookup from `"cssProperty\0cssValue"` → canonical abbreviation name.
+ *
+ * I.e. `{ paddingTop: "8px" }` → `"pt1"`, `{ borderStyle: "solid" }` → `"bss"`.
+ * Cached per mapping via WeakMap.
+ */
+export function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
+  let lookup = _longhandCache.get(mapping);
+  if (lookup) return lookup;
+  lookup = new Map();
+  for (const [abbr, entry] of Object.entries(mapping.abbreviations)) {
+    if (entry.kind !== "static") continue;
+    const keys = Object.keys(entry.defs);
+    if (keys.length !== 1) continue;
+    const key = `${keys[0]}\0${entry.defs[keys[0]]}`;
+    // First match wins — if multiple abbreviations produce the same declaration,
+    // the one that appears first in the mapping is canonical.
+    if (!lookup.has(key)) lookup.set(key, abbr);
+  }
+  _longhandCache.set(mapping, lookup);
+  return lookup;
 }

@@ -2284,7 +2284,7 @@ class CssBuilder<T extends Properties> {
     if (this.selector !== undefined) {
       throw new Error("Selector-based Css helpers cannot be used in RuntimeStyle css expressions.");
     }
-    return this.rules as any;
+    return { ...this.rules } as any;
   }
 
   get onHover() {
@@ -2426,6 +2426,7 @@ class CssBuilder<T extends Properties> {
     return this.newCss({ selector: undefined, elseApplied: false });
   }
 
+  /** Add real CSS property/value pairs, either as add("prop", value) or add({ prop: value, ... }). */
   add<P extends Properties>(props: P): CssBuilder<T & P>;
   add<K extends keyof Properties>(prop: K, value: Properties[K]): CssBuilder<T & { [U in K]: Properties[K] }>;
   add<K extends keyof Properties>(propOrStyles: K | Properties, value?: Properties[K]): CssBuilder<any> {
@@ -2434,15 +2435,27 @@ class CssBuilder<T extends Properties> {
     }
 
     const newRules = typeof propOrStyles === "string" ? { [propOrStyles]: value } : propOrStyles;
+    if (typeof propOrStyles !== "string" && (newRules as any).$css) {
+      throw new Error("add() received a Css expression — use with() to compose Css expressions");
+    }
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...newRules } }
       : { ...this.rules, ...newRules };
     return this.newCss({ rules: rules as any });
   }
 
-  /** Inline a partial style hash, skipping any undefined values. */
-  addCss<P extends Properties>(props: P): CssBuilder<T & P> {
-    return this.add(omitUndefinedValues(props));
+  /** Compose an existing Css expression or partial style hash into this builder, skipping undefined values. */
+  with<P extends Properties>(cssProp: P): CssBuilder<T & P>;
+  with(cssProp: Properties): CssBuilder<any> {
+    if (!this.enabled) {
+      return this;
+    }
+    const { $css, ...rest } = cssProp as any;
+    const filtered = omitUndefinedValues(rest);
+    const rules = this.selector
+      ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...filtered } }
+      : { ...this.rules, ...filtered };
+    return this.newCss({ rules: rules as any });
   }
 
   /** Marker for the build-time transform to append a raw className. */
