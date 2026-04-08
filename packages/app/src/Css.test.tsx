@@ -652,4 +652,14 @@ describe("Truss CssBuilder", () => {
     const el = r.container.firstChild as HTMLElement;
     expect(el).toHaveStyle({ display: "flex", color: "#353535" });
   });
+
+  test("Properties type is buildtime-compatible and accepted by css= props", () => {
+    /** A helper that accepts a plain Properties value and applies it via css=. */
+    function applyStyles(styles: Properties) {
+      return <div css={styles} />;
+    }
+    const r = render(applyStyles(Css.df.black.$));
+    const el = r.container.firstChild as HTMLElement;
+    expect(el).toHaveStyle({ display: "flex", color: "#353535" });
+  });
 });
