@@ -8,7 +8,11 @@ export default defineConfig({
     vitest: "src/vitest.ts",
   },
   format: ["esm"],
-  dts: true,
+  dts: {
+    compilerOptions: {
+      ignoreDeprecations: "6.0",
+    },
+  },
   splitting: false,
   sourcemap: true,
   outDir: "build",
