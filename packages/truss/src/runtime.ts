@@ -6,6 +6,8 @@ import {
   TRUSS_MARKER_KEY,
 } from "./style-metadata";
 
+export { invertMediaQuery as __invertTrussMediaQuery } from "./media-query";
+
 /** A compact source label for a Truss CSS expression, used in debug mode. */
 export class TrussDebugInfo {
   /** I.e. `"FileName.tsx:line"` */
