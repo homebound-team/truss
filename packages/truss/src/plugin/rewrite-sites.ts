@@ -1,15 +1,10 @@
-import _traverse from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
-import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 import { buildStyleHashProperties, markerClassName } from "./emit-truss";
 import type { ResolvedSegment } from "./types";
-
-// Babel packages are CJS today; normalize default interop across loaders.
-const generate = ((_generate as unknown as { default?: typeof _generate }).default ?? _generate) as typeof _generate;
-const traverse = ((_traverse as unknown as { default?: typeof _traverse }).default ?? _traverse) as typeof _traverse;
+import { generate, traverse } from "./babel-utils";
 
 export interface ExpressionSite {
   path: NodePath<t.MemberExpression>;

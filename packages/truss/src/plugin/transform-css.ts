@@ -1,10 +1,10 @@
-import { parse } from "@babel/parser";
 import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import { extractChain, findCssImportBinding } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
 import { camelToKebab } from "./emit-truss";
+import { parseModule } from "./babel-utils";
 
 /**
  * Transform a `.css.ts` file into a plain CSS string.
@@ -29,11 +29,7 @@ import { camelToKebab } from "./emit-truss";
  * Returns the generated CSS string.
  */
 export function transformCssTs(code: string, filename: string, mapping: TrussMapping): string {
-  const ast = parse(code, {
-    sourceType: "module",
-    plugins: ["typescript", "jsx"],
-    sourceFilename: filename,
-  });
+  const ast = parseModule(code, filename);
 
   // Css import is optional — only needed when Css.*.$  chains are used
   const cssBindingName = findCssImportBinding(ast);
