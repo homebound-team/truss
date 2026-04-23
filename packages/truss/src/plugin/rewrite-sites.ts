@@ -5,6 +5,7 @@ import type { ResolvedChain } from "./resolve-chain";
 import { buildStyleHashProperties, markerClassName } from "./emit-truss";
 import type { ResolvedSegment } from "./types";
 import { generate, traverse } from "./babel-utils";
+import { TRUSS_CUSTOM_CLASS_PREFIX, TRUSS_INLINE_STYLE_PREFIX, TRUSS_MARKER_KEY } from "../style-metadata";
 
 export interface ExpressionSite {
   path: NodePath<t.MemberExpression>;
@@ -112,7 +113,7 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
     const markerClasses = chain.markers.map((marker) => {
       return markerClassName(marker.markerNode);
     });
-    members.push(t.objectProperty(t.identifier("__marker"), t.stringLiteral(markerClasses.join(" "))));
+    members.push(t.objectProperty(t.identifier(TRUSS_MARKER_KEY), t.stringLiteral(markerClasses.join(" "))));
   }
 
   for (const part of chain.parts) {
@@ -235,16 +236,16 @@ function buildCustomClassNameMembers(classNameArgs: t.Expression[]): t.ObjectPro
   const counts = new Map<string, number>();
 
   return classNameArgs.map((arg) => {
-    return buildMetadataMember("className", arg, counts);
+    return buildMetadataMember(TRUSS_CUSTOM_CLASS_PREFIX, arg, counts);
   });
 }
 
 function buildInlineStyleMember(arg: t.Expression, counts: Map<string, number>): t.ObjectProperty {
-  return buildMetadataMember("style", arg, counts);
+  return buildMetadataMember(TRUSS_INLINE_STYLE_PREFIX, arg, counts);
 }
 
 function buildMetadataMember(prefix: string, arg: t.Expression, counts: Map<string, number>): t.ObjectProperty {
-  const baseKey = `${prefix}_${sanitizeMetadataKey(arg)}`;
+  const baseKey = `${prefix}${sanitizeMetadataKey(arg)}`;
   const count = (counts.get(baseKey) ?? 0) + 1;
   counts.set(baseKey, count);
   const key = count === 1 ? baseKey : `${baseKey}_${count}`;
@@ -461,12 +462,12 @@ function injectDebugInfo(
     return (
       t.isObjectProperty(p) &&
       !(
-        (t.isIdentifier(p.key) && p.key.name.startsWith("className_")) ||
-        (t.isStringLiteral(p.key) && p.key.value.startsWith("className_")) ||
-        (t.isIdentifier(p.key) && p.key.name.startsWith("style_")) ||
-        (t.isStringLiteral(p.key) && p.key.value.startsWith("style_")) ||
-        (t.isIdentifier(p.key) && p.key.name === "__marker") ||
-        (t.isStringLiteral(p.key) && p.key.value === "__marker")
+        (t.isIdentifier(p.key) && p.key.name.startsWith(TRUSS_CUSTOM_CLASS_PREFIX)) ||
+        (t.isStringLiteral(p.key) && p.key.value.startsWith(TRUSS_CUSTOM_CLASS_PREFIX)) ||
+        (t.isIdentifier(p.key) && p.key.name.startsWith(TRUSS_INLINE_STYLE_PREFIX)) ||
+        (t.isStringLiteral(p.key) && p.key.value.startsWith(TRUSS_INLINE_STYLE_PREFIX)) ||
+        (t.isIdentifier(p.key) && p.key.name === TRUSS_MARKER_KEY) ||
+        (t.isStringLiteral(p.key) && p.key.value === TRUSS_MARKER_KEY)
       )
     );
   }) as t.ObjectProperty | undefined;

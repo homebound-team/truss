@@ -1,4 +1,10 @@
 import { useInsertionEffect } from "react";
+import {
+  TRUSS_CSS_MARKER_KEY,
+  TRUSS_CUSTOM_CLASS_PREFIX,
+  TRUSS_INLINE_STYLE_PREFIX,
+  TRUSS_MARKER_KEY,
+} from "./style-metadata";
 
 /** A compact source label for a Truss CSS expression, used in debug mode. */
 export class TrussDebugInfo {
@@ -53,23 +59,23 @@ export function trussProps(
 
   for (const [key, value] of Object.entries(merged)) {
     // $css is the Css expression marker — skip it
-    if (key === "$css") continue;
+    if (key === TRUSS_CSS_MARKER_KEY) continue;
 
     // __marker is a special key — its value is a marker class name, not a CSS property
-    if (key === "__marker") {
+    if (key === TRUSS_MARKER_KEY) {
       if (typeof value === "string") {
         classNames.push(value);
       }
       continue;
     }
 
-    if (key.startsWith("className_")) {
+    if (key.startsWith(TRUSS_CUSTOM_CLASS_PREFIX)) {
       // I.e. plugin-emitted raw class names that should flow straight into the final prop.
       appendCustomClassNames(classNames, value);
       continue;
     }
 
-    if (key.startsWith("style_")) {
+    if (key.startsWith(TRUSS_INLINE_STYLE_PREFIX)) {
       appendInlineStyles(inlineStyle, value);
       continue;
     }
@@ -288,7 +294,7 @@ function formatRawRuntimeStyleRule(selector: string, raw: string): string {
 function formatRuntimeStyleRule(selector: string, declarations: RuntimeStyleDeclarations): string {
   const lines: string[] = [];
   for (const [property, value] of Object.entries(declarations)) {
-    if (property === "$css") continue;
+    if (property === TRUSS_CSS_MARKER_KEY) continue;
     if (value === undefined || value === null) continue;
     if (typeof value !== "string" && typeof value !== "number") {
       throw new Error(runtimeStyleUnsupportedValueMessage(selector, property));
