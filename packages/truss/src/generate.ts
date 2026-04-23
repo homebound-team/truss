@@ -8,6 +8,7 @@ import { defaultSections } from "src/sections/tachyons";
 import { quote } from "src/utils";
 import { pascalCase } from "change-case";
 import { reactNativeSections } from "src/sections/tachyons-rn";
+import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
 
 const CssProperties = imp("Properties@csstype");
 
@@ -379,6 +380,13 @@ function generateWebCssBuilder(config: Config, sections: Record<string, UtilityM
     `}`,
   ];
 
+  const pseudoGetterCode = Object.entries(TRUSS_PSEUDO_METHODS).map(([name, selector]) => {
+    return code`
+      get ${name}() {
+        return this.newCss({ selector: ${quote(selector)} });
+      }`;
+  });
+
   const typographyType = code`
     export type ${def("Typography")} = ${Object.keys(fonts).map(quote).join(" | ")};
   `;
@@ -466,30 +474,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
     return this.rules as any;
   }
 
-  get onHover() {
-    return this.newCss({ selector: ":hover" });
-  }
-  get onFocus() {
-    return this.newCss({ selector: ":focus" });
-  }
-  get onFocusVisible() {
-    return this.newCss({ selector: ":focus-visible" });
-  }
-  get onFocusWithin() {
-    return this.newCss({ selector: ":focus-within" });
-  }
-  get onActive() {
-    return this.newCss({ selector: ":active" });
-  }
-  get onDisabled() {
-    return this.newCss({ selector: ":disabled" });
-  }
-  get ifFirstOfType() {
-    return this.newCss({ selector: ":first-of-type" });
-  }
-  get ifLastOfType() {
-    return this.newCss({ selector: ":last-of-type" });
-  }
+  ${pseudoGetterCode}
 
   /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
   get marker(): CssBuilder<T, S> {

@@ -3,6 +3,7 @@ import type { ResolvedChain } from "./resolve-chain";
 import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCondition } from "./types";
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
+import { trussPseudoSelectorTag } from "../pseudo-selectors";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 
@@ -41,27 +42,6 @@ export interface AtomicRule {
 
 // ── Class-name constants and abbreviation maps ────────────────────────
 
-/** I.e. `:hover` → `_h`, `:focus-visible` → `_fv`. */
-const PSEUDO_SUFFIX: Record<string, string> = {
-  ":hover": "_h",
-  ":focus": "_f",
-  ":focus-visible": "_fv",
-  ":focus-within": "_fw",
-  ":active": "_a",
-  ":disabled": "_d",
-  ":first-of-type": "_fot",
-  ":last-of-type": "_lot",
-};
-
-/** I.e. extends PSEUDO_SUFFIX with `:not` → `_n`, `:has` → `_has` for when() class tokens. */
-const PSEUDO_SELECTOR_SUFFIX: Record<string, string> = {
-  ...PSEUDO_SUFFIX,
-  ":not": "_n",
-  ":is": "_is",
-  ":where": "_where",
-  ":has": "_has",
-};
-
 /** I.e. `"ancestor"` → `"anc"`, `"siblingAfter"` → `"sibA"`. */
 const RELATIONSHIP_SHORT: Record<string, string> = {
   ancestor: "anc",
@@ -90,7 +70,7 @@ export function markerClassName(markerNode?: { type: string; name?: string }): s
 /** I.e. `when(marker, "ancestor", ":hover")` → `"wh_anc_h_"`, `when(row, …)` → `"wh_anc_h_row_"`. */
 function whenPrefix(whenPseudo: WhenCondition): string {
   const rel = RELATIONSHIP_SHORT[whenPseudo.relationship ?? "ancestor"] ?? "anc";
-  const pseudoTag = pseudoSelectorTag(whenPseudo.pseudo);
+  const pseudoTag = trussPseudoSelectorTag(whenPseudo.pseudo);
   const markerPart = whenPseudo.markerNode?.type === "Identifier" ? `${whenPseudo.markerNode.name}_` : "";
   return `wh_${rel}_${pseudoTag}_${markerPart}`;
 }
@@ -125,43 +105,9 @@ function conditionPrefix(
     parts.push("mq_");
   }
   if (pseudoClass) {
-    parts.push(`${pseudoSelectorTag(pseudoClass)}_`);
+    parts.push(`${trussPseudoSelectorTag(pseudoClass)}_`);
   }
   return parts.join("");
-}
-
-// ── Pseudo-selector tokenizers ────────────────────────────────────────
-
-/** I.e. `":hover:not(:disabled)"` → `"h_n_d"` (a safe class-name token). */
-function pseudoSelectorTag(pseudo: string): string {
-  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, (match) => {
-    return `_${pseudoIdentifierTag(match)}_`;
-  });
-  const cleaned = replaced
-    .replace(/[^a-zA-Z0-9]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-  return cleaned || "pseudo";
-}
-
-/** I.e. `":hover"` → `"h"`, `":focus-visible"` → `"fv"`, `":first-of-type"` → `"fot"`. */
-function pseudoIdentifierTag(pseudo: string): string {
-  const normalized = normalizePseudoIdentifier(pseudo);
-  const known = PSEUDO_SELECTOR_SUFFIX[normalized];
-  if (known) {
-    return known.replace(/^_/, "");
-  }
-  return normalized.replace(/^::?/, "").replace(/-/g, "_");
-}
-
-/** I.e. `":focusVisible"` → `":focus-visible"` (camelCase → kebab-case after the colon prefix). */
-function normalizePseudoIdentifier(pseudo: string): string {
-  const prefixMatch = pseudo.match(/^::?/);
-  const prefix = prefixMatch?.[0] ?? "";
-  const name = pseudo.slice(prefix.length).replace(/[A-Z]/g, (match) => {
-    return `-${match.toLowerCase()}`;
-  });
-  return `${prefix}${name}`;
 }
 
 // ── CSS property / value helpers ──────────────────────────────────────

@@ -10,6 +10,7 @@ import {
 } from "./types";
 import { extractChain } from "./ast-utils";
 import { invertMediaQuery } from "../media-query";
+import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
 
 /**
  * Optional hook for resolving identifier references like `const same = Css.blue.$`
@@ -103,8 +104,8 @@ function applyModifierNodeToConditionContext(
       resetConditionContext(context);
       return;
     }
-    if (isPseudoMethod(node.name)) {
-      context.pseudoClass = pseudoSelector(node.name);
+    if (isTrussPseudoMethod(node.name)) {
+      context.pseudoClass = trussPseudoSelector(node.name);
       return;
     }
     if (mapping.breakpoints && node.name in mapping.breakpoints) {
@@ -147,8 +148,8 @@ function applyModifierNodeToConditionContext(
     return;
   }
 
-  if (isPseudoMethod(node.name)) {
-    context.pseudoClass = pseudoSelector(node.name);
+  if (isTrussPseudoMethod(node.name)) {
+    context.pseudoClass = trussPseudoSelector(node.name);
   }
 }
 
@@ -533,8 +534,8 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
         }
 
         // Pseudo-class getters: onHover, onFocus, etc.
-        if (isPseudoMethod(abbr)) {
-          context.pseudoClass = pseudoSelector(abbr);
+        if (isTrussPseudoMethod(abbr)) {
+          context.pseudoClass = trussPseudoSelector(abbr);
           continue;
         }
 
@@ -663,8 +664,8 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
         }
 
         // Simple pseudo-class calls (backward compat — pseudos are now getters)
-        if (isPseudoMethod(abbr)) {
-          context.pseudoClass = pseudoSelector(abbr);
+        if (isTrussPseudoMethod(abbr)) {
+          context.pseudoClass = trussPseudoSelector(abbr);
           if (node.args.length > 0) {
             throw new UnsupportedPatternError(
               `${abbr}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
@@ -1303,25 +1304,6 @@ function isLegacyDefaultMarkerExpression(node: t.Expression | t.SpreadElement): 
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
-
-const PSEUDO_METHODS: Record<string, string> = {
-  onHover: ":hover",
-  onFocus: ":focus",
-  onFocusVisible: ":focus-visible",
-  onFocusWithin: ":focus-within",
-  onActive: ":active",
-  onDisabled: ":disabled",
-  ifFirstOfType: ":first-of-type",
-  ifLastOfType: ":last-of-type",
-};
-
-function isPseudoMethod(name: string): boolean {
-  return name in PSEUDO_METHODS;
-}
-
-function pseudoSelector(name: string): string {
-  return PSEUDO_METHODS[name];
-}
 
 /**
  * Try to evaluate a literal AST node to a string value.
