@@ -240,16 +240,16 @@ function buildCustomClassNameMembers(classNameArgs: t.Expression[]): t.ObjectPro
   const counts = new Map<string, number>();
 
   return classNameArgs.map((arg) => {
-    const baseKey = `className_${sanitizeMetadataKey(arg)}`;
-    const count = (counts.get(baseKey) ?? 0) + 1;
-    counts.set(baseKey, count);
-    const key = count === 1 ? baseKey : `${baseKey}_${count}`;
-    return t.objectProperty(t.identifier(key), t.cloneNode(arg, true));
+    return buildMetadataMember("className", arg, counts);
   });
 }
 
 function buildInlineStyleMember(arg: t.Expression, counts: Map<string, number>): t.ObjectProperty {
-  const baseKey = `style_${sanitizeMetadataKey(arg)}`;
+  return buildMetadataMember("style", arg, counts);
+}
+
+function buildMetadataMember(prefix: string, arg: t.Expression, counts: Map<string, number>): t.ObjectProperty {
+  const baseKey = `${prefix}_${sanitizeMetadataKey(arg)}`;
   const count = (counts.get(baseKey) ?? 0) + 1;
   counts.set(baseKey, count);
   const key = count === 1 ? baseKey : `${baseKey}_${count}`;
