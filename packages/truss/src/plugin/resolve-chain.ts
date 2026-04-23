@@ -236,27 +236,10 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
   const { mapping } = ctx;
   const initialContext = ctx.initialContext ?? emptyConditionContext();
   const parts: ResolvedChainPart[] = [];
-  const markers: MarkerSegment[] = [];
   const nestedErrors: string[] = [];
-
-  // Pre-scan for marker nodes and strip them from the chain
-  const filteredChain: ChainNode[] = [];
-  /** Errors found during marker scanning — attached to the chain result */
-  const scanErrors: string[] = [];
-  for (let j = 0; j < chain.length; j++) {
-    const node = chain[j];
-    if (node.type === "getter" && node.name === "marker") {
-      markers.push({ type: "marker" });
-    } else if (node.type === "call" && node.name === "markerOf") {
-      if (node.args.length !== 1) {
-        scanErrors.push("[truss] Unsupported pattern: markerOf() requires exactly one argument (a marker variable)");
-      } else {
-        markers.push({ type: "marker", markerNode: node.args[0] });
-      }
-    } else {
-      filteredChain.push(node);
-    }
-  }
+  const markerScan = scanMarkerNodes(chain);
+  const filteredChain = markerScan.chain;
+  const markers = [...markerScan.markers];
 
   // Split chain at if/else boundaries
   let i = 0;
@@ -369,18 +352,50 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
   // Flush remaining unconditional nodes
   flushCurrentNodes();
 
-  // Collect error messages from all resolved segments
-  const segmentErrors: string[] = [];
+  return { parts, markers, errors: [...new Set([...markerScan.errors, ...nestedErrors, ...segmentErrors(parts)])] };
+}
+
+/** Pull marker nodes out of a chain before style resolution. */
+function scanMarkerNodes(chain: ChainNode[]): { chain: ChainNode[]; markers: MarkerSegment[]; errors: string[] } {
+  const filteredChain: ChainNode[] = [];
+  const markers: MarkerSegment[] = [];
+  const errors: string[] = [];
+
+  for (const node of chain) {
+    if (node.type === "getter" && node.name === "marker") {
+      markers.push({ type: "marker" });
+      continue;
+    }
+
+    if (node.type === "call" && node.name === "markerOf") {
+      if (node.args.length !== 1) {
+        errors.push("[truss] Unsupported pattern: markerOf() requires exactly one argument (a marker variable)");
+      } else {
+        markers.push({ type: "marker", markerNode: node.args[0] });
+      }
+      continue;
+    }
+
+    filteredChain.push(node);
+  }
+
+  return { chain: filteredChain, markers, errors };
+}
+
+/** Collect unsupported-pattern errors from all resolved chain parts. */
+function segmentErrors(parts: ResolvedChainPart[]): string[] {
+  const errors: string[] = [];
+
   for (const part of parts) {
     const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
     for (const seg of segs) {
       if (seg.error) {
-        segmentErrors.push(seg.error);
+        errors.push(seg.error);
       }
     }
   }
 
-  return { parts, markers, errors: [...new Set([...scanErrors, ...nestedErrors, ...segmentErrors])] };
+  return errors;
 }
 
 /** Detect `when({ ... })` so object-form selector groups can be resolved specially. */
