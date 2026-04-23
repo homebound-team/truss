@@ -6,6 +6,7 @@ import type { AtomicRule } from "./emit-truss";
 import { generateCssText } from "./emit-truss";
 import { transformTruss } from "./transform";
 import { transformCssTs } from "./transform-css";
+import { loadMapping } from "./mapping-utils";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import {
   readTrussCss,
@@ -466,11 +467,6 @@ function injectTestCssBootstrapImport(code: string, shouldInject: boolean): { co
   };
 }
 
-/** Load a truss mapping file synchronously (for tests). */
-export function loadMapping(path: string): TrussMapping {
-  const raw = readFileSync(path, "utf8");
-  return JSON.parse(raw);
-}
-
 export type { TrussMapping, TrussMappingEntry } from "./types";
+export { loadMapping } from "./mapping-utils";
 export { trussEsbuildPlugin, type TrussEsbuildPluginOptions } from "./esbuild-plugin";

@@ -5,7 +5,7 @@ import type { AtomicRule } from "./emit-truss";
 import { generateCssText } from "./emit-truss";
 import { transformTruss } from "./transform";
 import { transformCssTs } from "./transform-css";
-import { loadMapping } from "./index";
+import { loadMapping } from "./mapping-utils";
 import { annotateArbitraryCssBlock } from "./merge-css";
 
 export interface TrussEsbuildPluginOptions {
