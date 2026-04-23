@@ -1,8 +1,15 @@
-export function hasCssDeclaration(el: HTMLElement, property: string, opts: { hover: boolean }): boolean {
+interface CssDeclarationOptions {
+  hover: boolean;
+  value?: string;
+}
+
+export function hasCssDeclaration(el: HTMLElement, property: string, opts: CssDeclarationOptions): boolean {
   return getCssRulesForElement(el).some((rule) => {
     const isHoverRule = rule.selectorText.includes(":hover");
     if (opts.hover !== isHoverRule) return false;
-    return rule.style.getPropertyValue(property).trim().length > 0;
+    const actualValue = rule.style.getPropertyValue(property).trim();
+    if (actualValue.length === 0) return false;
+    return opts.value === undefined || actualValue === opts.value;
   });
 }
 

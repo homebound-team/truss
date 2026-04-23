@@ -263,9 +263,9 @@ describe("Truss CssBuilder", () => {
         borderStyle: "solid",
         borderWidth: "1px",
         borderColor: "#353535",
-        borderRadius: ".25rem",
         paddingTop: "8px",
       });
+      expect(hasCssDeclaration(el, "border-radius", { hover: false, value: "0.25rem" })).toBe(true);
     });
   });
 

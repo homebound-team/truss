@@ -1,9 +1,11 @@
 {
-  "extends": "@homebound/tsconfig/tsconfig.json",
+  "extends": "../../tsconfig.package.json",
   "compilerOptions": {
     "module": "ESNext",
+    "moduleResolution": "bundler",
     "target": "ESNext",
     "sourceMap": true,
+    "rootDir": "./src",
     "outDir": "build/",
     "jsx": "react"
   },

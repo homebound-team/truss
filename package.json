@@ -4,7 +4,7 @@
   "license": "ISC",
   "private": true,
   "scripts": {
-    "build": "tspc --build && yarn workspace @homebound/truss run build",
+    "build": "tsc --build && yarn workspace @homebound/truss run build",
     "test": "yarn workspaces foreach --all run test",
     "semantic-release": "semantic-release",
     "codegen": "yarn build && yarn workspaces foreach -A run codegen"
@@ -24,14 +24,12 @@
     "@semantic-release/github": "^12.0.6",
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.1.0",
-    "@types/node": "~25.5.0",
-    "conventional-changelog-conventionalcommits": "^9.3.0",
-    "prettier": "^3.8.1",
+    "@types/node": "~25.5.2",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
+    "prettier": "^3.8.3",
     "semantic-release": "^25.0.3",
     "ts-node": "^10.9.2",
-    "ts-patch": "^3.3.0",
-    "typescript": "^5.9.3",
-    "typescript-transform-paths": "^3.5.6"
+    "typescript": "^6.0.3"
   },
   "packageManager": "yarn@4.6.0",
   "repository": {
