@@ -399,7 +399,9 @@ function segmentErrors(parts: ResolvedChainPart[]): string[] {
 }
 
 /** Detect `when({ ... })` so object-form selector groups can be resolved specially. */
-function isWhenObjectCall(node: ChainNode): node is CallChainNode {
+type WhenObjectCallChainNode = CallChainNode & { name: "when"; args: [t.ObjectExpression] };
+
+function isWhenObjectCall(node: ChainNode): node is WhenObjectCallChainNode {
   return (
     node.type === "call" && node.name === "when" && node.args.length === 1 && node.args[0].type === "ObjectExpression"
   );
