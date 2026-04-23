@@ -57,7 +57,7 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
         const classNames = extractStaticClassNames(styleHash);
         cssAttrPath.replaceWith(t.jsxAttribute(t.jsxIdentifier("className"), t.stringLiteral(classNames)));
       } else {
-        cssAttrPath.replaceWith(t.jsxSpreadAttribute(buildCssSpreadExpression(cssAttrPath, styleHash, line, options)));
+        cssAttrPath.replaceWith(buildCssSpreadAttribute(cssAttrPath, styleHash, line, options));
       }
     } else {
       // Non-JSX position → plain object expression with optional debug info
@@ -495,32 +495,34 @@ function injectDebugInfo(
 // JSX css= attribute handling
 // ---------------------------------------------------------------------------
 
-/** Build the spread expression for a JSX `css=` attribute. */
-function buildCssSpreadExpression(
+/** Build the spread attribute for a JSX `css=` attribute. */
+function buildCssSpreadAttribute(
   path: NodePath<t.JSXAttribute>,
   styleHash: t.Expression,
   line: number | null,
   options: RewriteSitesOptions,
-): t.Expression {
+): t.JSXSpreadAttribute {
   const existingClassNameExpr = removeExistingAttribute(path, "className");
   const existingStyleExpr = removeExistingAttribute(path, "style");
 
   if (!existingClassNameExpr && !existingStyleExpr) {
-    return buildPropsCall(styleHash, line, options);
+    return t.jsxSpreadAttribute(buildPropsCall(styleHash, line, options));
   }
 
   // mergeProps(className, style, hash)
   options.needsMergePropsHelper.current = true;
 
-  if (options.debug && line !== null) {
-    injectDebugInfo(styleHash as t.ObjectExpression, line, options);
+  if (options.debug && line !== null && t.isObjectExpression(styleHash)) {
+    injectDebugInfo(styleHash, line, options);
   }
 
-  return t.callExpression(t.identifier(options.mergePropsHelperName), [
-    existingClassNameExpr ?? t.identifier("undefined"),
-    existingStyleExpr ?? t.identifier("undefined"),
-    styleHash,
-  ]);
+  return t.jsxSpreadAttribute(
+    t.callExpression(t.identifier(options.mergePropsHelperName), [
+      existingClassNameExpr ?? t.identifier("undefined"),
+      existingStyleExpr ?? t.identifier("undefined"),
+      styleHash,
+    ]),
+  );
 }
 
 /** Emit `trussProps(hash)` call. In debug mode, injects debug info into the hash first. */
@@ -597,26 +599,7 @@ function rewriteCssPropsAndCssAttributes(options: RewriteSitesOptions): void {
       if (!t.isJSXExpressionContainer(value)) return;
       if (!t.isExpression(value.expression)) return;
 
-      const expr = value.expression;
-
-      const existingClassNameExpr = removeExistingAttribute(path, "className");
-      const existingStyleExpr = removeExistingAttribute(path, "style");
-
-      if (existingClassNameExpr || existingStyleExpr) {
-        options.needsMergePropsHelper.current = true;
-        path.replaceWith(
-          t.jsxSpreadAttribute(
-            t.callExpression(t.identifier(options.mergePropsHelperName), [
-              existingClassNameExpr ?? t.identifier("undefined"),
-              existingStyleExpr ?? t.identifier("undefined"),
-              expr,
-            ]),
-          ),
-        );
-      } else {
-        options.needsTrussPropsHelper.current = true;
-        path.replaceWith(t.jsxSpreadAttribute(t.callExpression(t.identifier(options.trussPropsHelperName), [expr])));
-      }
+      path.replaceWith(buildCssSpreadAttribute(path, value.expression, path.node.loc?.start.line ?? null, options));
     },
   });
 }
