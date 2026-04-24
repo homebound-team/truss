@@ -303,7 +303,11 @@ function collectSegmentRules(rules: Map<string, AtomicRule>, seg: ResolvedSegmen
   }
 }
 
-/** Build normalized class/property entries from a segment for CSS and AST emitters. */
+/**
+ * Build normalized class/property entries from a segment for CSS and AST emitters.
+ *
+ * I.e. convert one resolved segment into the shared model both CSS rules and style hashes consume.
+ */
 function styleEntriesForSegment(seg: ResolvedSegment, mapping: TrussMapping): StyleEntry[] {
   const { prefix } = segmentContext(seg, mapping);
   const isConditional = prefix !== "";
@@ -315,6 +319,11 @@ function styleEntriesForSegment(seg: ResolvedSegment, mapping: TrussMapping): St
   return staticStyleEntries(seg, mapping, prefix, isConditional, seg.defs);
 }
 
+/**
+ * Build entries for concrete CSS defs.
+ *
+ * I.e. `Css.ba.$` becomes separate `borderStyle -> bss` and `borderWidth -> bw1` entries.
+ */
 function staticStyleEntries(
   seg: ResolvedSegment,
   mapping: TrussMapping,
@@ -341,6 +350,11 @@ function staticStyleEntries(
   return entries;
 }
 
+/**
+ * Build entries for runtime variable CSS defs.
+ *
+ * I.e. `Css.mt(x).$` becomes `marginTop -> mt_var` plus `--marginTop` metadata.
+ */
 function variableStyleEntries(
   seg: ResolvedSegment,
   mapping: TrussMapping,
