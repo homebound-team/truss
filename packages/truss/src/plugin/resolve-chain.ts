@@ -92,26 +92,14 @@ function segmentWithConditionContext(
 /**
  * Apply context-only chain nodes like breakpoints/pseudos/end.
  *
- * `resolveFullChain` uses this in tolerant mode while pre-tracking context; `resolveChain`
- * uses strict mode so unsupported modifier shapes still produce user-facing errors.
+ * `resolveFullChain` catches errors at speculative context-tracking call sites;
+ * `resolveChain` lets them surface so unsupported patterns are reported.
  */
 function applyModifierNodeToConditionContext(
   context: ResolvedConditionContext,
   node: ChainNode,
   mapping: TrussMapping,
-  options: { ignoreErrors?: boolean } = {},
 ): boolean {
-  function apply(action: () => void): boolean {
-    try {
-      action();
-    } catch (error) {
-      if (!options.ignoreErrors) {
-        throw error;
-      }
-    }
-    return true;
-  }
-
   if ((node as any).type === "__mediaQuery") {
     context.mediaQuery = (node as any).mediaQuery;
     return true;
@@ -138,43 +126,39 @@ function applyModifierNodeToConditionContext(
   }
 
   if (node.name === "ifContainer") {
-    return apply(() => {
-      context.mediaQuery = containerSelectorFromCall(node);
-    });
+    context.mediaQuery = containerSelectorFromCall(node);
+    return true;
   }
 
   if (node.name === "element") {
-    return apply(() => {
-      if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
-        throw new UnsupportedPatternError(`element() requires exactly one string literal argument (e.g. "::placeholder")`);
-      }
-      context.pseudoElement = node.args[0].value;
-    });
+    if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
+      throw new UnsupportedPatternError(`element() requires exactly one string literal argument (e.g. "::placeholder")`);
+    }
+    context.pseudoElement = node.args[0].value;
+    return true;
   }
 
   if (node.name === "when") {
     if (isWhenObjectCall(node)) {
       return false;
     }
-    return apply(() => {
-      const resolved = resolveWhenCall(node);
-      if (resolved.kind === "selector") {
-        context.pseudoClass = resolved.pseudo;
-      } else {
-        context.whenPseudo = resolved;
-      }
-    });
+    const resolved = resolveWhenCall(node);
+    if (resolved.kind === "selector") {
+      context.pseudoClass = resolved.pseudo;
+    } else {
+      context.whenPseudo = resolved;
+    }
+    return true;
   }
 
   if (isTrussPseudoMethod(node.name)) {
-    return apply(() => {
-      context.pseudoClass = trussPseudoSelector(node.name);
-      if (node.args.length > 0) {
-        throw new UnsupportedPatternError(
-          `${node.name}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
-        );
-      }
-    });
+    context.pseudoClass = trussPseudoSelector(node.name);
+    if (node.args.length > 0) {
+      throw new UnsupportedPatternError(
+        `${node.name}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
+      );
+    }
+    return true;
   }
 
   return false;
@@ -266,7 +250,11 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
     }
 
     currentNodes.push(nodeToPush);
-    applyModifierNodeToConditionContext(currentContext, nodeToPush, mapping, { ignoreErrors: true });
+    try {
+      applyModifierNodeToConditionContext(currentContext, nodeToPush, mapping);
+    } catch {
+      // resolveChain() reports the real unsupported-pattern error later.
+    }
   }
 
   while (i < filteredChain.length) {
