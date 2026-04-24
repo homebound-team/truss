@@ -1,6 +1,6 @@
 {
   "name": "truss",
-  "version": "2.21.5",
+  "version": "2.21.6",
   "license": "ISC",
   "private": true,
   "scripts": {
