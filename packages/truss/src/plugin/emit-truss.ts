@@ -3,7 +3,7 @@ import type { ResolvedChain } from "./resolve-chain";
 import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCondition } from "./types";
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
-import { trussPseudoSelectorTag } from "../pseudo-selectors";
+import { pseudoSelectorPrefix } from "../pseudo-selectors";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 
@@ -84,9 +84,9 @@ export function markerClassName(markerNode?: { type: string; name?: string }): s
 /** I.e. `when(marker, "ancestor", ":hover")` → `"wh_anc_h_"`, `when(row, …)` → `"wh_anc_h_row_"`. */
 function whenPrefix(whenPseudo: WhenCondition): string {
   const rel = RELATIONSHIP_SHORT[whenPseudo.relationship ?? "ancestor"] ?? "anc";
-  const pseudoTag = trussPseudoSelectorTag(whenPseudo.pseudo);
+  const pseudoPrefix = pseudoSelectorPrefix(whenPseudo.pseudo);
   const markerPart = whenPseudo.markerNode?.type === "Identifier" ? `${whenPseudo.markerNode.name}_` : "";
-  return `wh_${rel}_${pseudoTag}_${markerPart}`;
+  return `wh_${rel}_${pseudoPrefix}_${markerPart}`;
 }
 
 /**
@@ -119,7 +119,7 @@ function conditionPrefix(
     parts.push("mq_");
   }
   if (pseudoClass) {
-    parts.push(`${trussPseudoSelectorTag(pseudoClass)}_`);
+    parts.push(`${pseudoSelectorPrefix(pseudoClass)}_`);
   }
   return parts.join("");
 }

@@ -10,8 +10,8 @@ export const TRUSS_PSEUDO_METHODS: Readonly<Record<string, string>> = {
   ifLastOfType: ":last-of-type",
 };
 
-/** Compact class-name tags for pseudo selectors. */
-const PSEUDO_SELECTOR_TAGS: Readonly<Record<string, string>> = {
+/** Compact class-name prefixes for pseudo selectors. */
+const PSEUDO_SELECTOR_PREFIXES: Readonly<Record<string, string>> = {
   ":hover": "h",
   ":focus": "f",
   ":focus-visible": "fv",
@@ -35,9 +35,9 @@ export function trussPseudoSelector(name: string): string {
 }
 
 /** I.e. `":hover:not(:disabled)"` -> `"h_n_d"`. */
-export function trussPseudoSelectorTag(pseudo: string): string {
-  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, function pseudoMatchToTag(match) {
-    return `_${pseudoIdentifierTag(match)}_`;
+export function pseudoSelectorPrefix(pseudo: string): string {
+  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, function pseudoMatchToPrefix(match) {
+    return `_${pseudoIdentifierPrefix(match)}_`;
   });
   const cleaned = replaced
     .replace(/[^a-zA-Z0-9]/g, "_")
@@ -47,9 +47,9 @@ export function trussPseudoSelectorTag(pseudo: string): string {
 }
 
 /** I.e. `":hover"` -> `"h"`, `":focus-visible"` -> `"fv"`. */
-function pseudoIdentifierTag(pseudo: string): string {
+function pseudoIdentifierPrefix(pseudo: string): string {
   const normalized = normalizePseudoIdentifier(pseudo);
-  const known = PSEUDO_SELECTOR_TAGS[normalized];
+  const known = PSEUDO_SELECTOR_PREFIXES[normalized];
   if (known) {
     return known;
   }
