@@ -1,11 +1,9 @@
-import { parse } from "@babel/parser";
-import _traverse from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
-import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import { basename } from "path";
 import type { TrussMapping, ResolvedSegment } from "./types";
 import { resolveFullChain, type CssChainReferenceResolver, type ResolvedChain } from "./resolve-chain";
+import { generate, parseModule, traverse } from "./babel-utils";
 import {
   collectTopLevelBindings,
   reservePreferredName,
@@ -25,10 +23,6 @@ import {
   buildRuntimeLookupDeclaration,
 } from "./emit-truss";
 import { rewriteExpressionSites, type ExpressionSite } from "./rewrite-sites";
-
-// Babel packages are CJS today; normalize default interop across loaders.
-const traverse = ((_traverse as unknown as { default?: typeof _traverse }).default ?? _traverse) as typeof _traverse;
-const generate = ((_generate as unknown as { default?: typeof _generate }).default ?? _generate) as typeof _generate;
 
 export interface TransformResult {
   code: string;
@@ -61,11 +55,7 @@ export function transformTruss(
   // Fast bail: skip files that don't reference Css or use JSX css= attributes
   if (!code.includes("Css") && !code.includes("css=")) return null;
 
-  const ast = parse(code, {
-    sourceType: "module",
-    plugins: ["typescript", "jsx"],
-    sourceFilename: filename,
-  });
+  const ast = parseModule(code, filename);
 
   // Step 1: Find the Css binding name — either from an import or a local `new CssBuilder(...)` declaration.
   // May be null when the file only has JSX css= attributes without importing Css.

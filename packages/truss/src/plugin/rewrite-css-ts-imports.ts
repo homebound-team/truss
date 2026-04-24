@@ -1,12 +1,8 @@
 import { existsSync } from "fs";
 import { dirname, resolve } from "path";
-import { parse } from "@babel/parser";
-import _generate from "@babel/generator";
 import * as t from "@babel/types";
 import { findLastImportIndex } from "./ast-utils";
-
-// Babel generator is published as CJS, so normalize default interop before using it.
-const generate = ((_generate as unknown as { default?: typeof _generate }).default ?? _generate) as typeof _generate;
+import { generate, parseModule } from "./babel-utils";
 
 export interface RewriteCssTsImportsResult {
   code: string;
@@ -34,11 +30,7 @@ export function rewriteCssTsImports(code: string, filename: string): RewriteCssT
 
   const importerDir = dirname(filename);
 
-  const ast = parse(code, {
-    sourceType: "module",
-    plugins: ["typescript", "jsx"],
-    sourceFilename: filename,
-  });
+  const ast = parseModule(code, filename);
 
   const existingCssSideEffects = new Set<string>();
   const neededCssSideEffects = new Set<string>();

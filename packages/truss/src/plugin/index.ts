@@ -1,19 +1,8 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { resolve, dirname, isAbsolute, join } from "path";
 import { createHash } from "crypto";
-import type { TrussMapping } from "./types";
-import type { AtomicRule } from "./emit-truss";
-import { generateCssText } from "./emit-truss";
-import { transformTruss } from "./transform";
-import { transformCssTs } from "./transform-css";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
-import {
-  readTrussCss,
-  mergeTrussCss,
-  parseTrussCss,
-  annotateArbitraryCssBlock,
-  type ParsedTrussCss,
-} from "./merge-css";
+import { createTrussTransformSession } from "./transform-session";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
@@ -72,7 +61,6 @@ const RESOLVED_VIRTUAL_TEST_CSS_ID = "\0" + VIRTUAL_TEST_CSS_ID;
  * In production, emits a content-hashed CSS asset (e.g. `assets/truss-abc123.css`) for long-term caching.
  */
 export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
-  let mapping: TrussMapping | null = null;
   let projectRoot: string;
   let debug = false;
   let isTest = false;
@@ -81,10 +69,6 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   /** The hashed CSS filename emitted during generateBundle, used by writeBundle to patch HTML. */
   let emittedCssFileName: string | null = null;
 
-  // Global CSS rule registry shared across all transform calls within a build
-  const cssRegistry = new Map<string, AtomicRule>();
-  /** Arbitrary CSS blocks from app .css.ts files, keyed by source path. */
-  const arbitraryCssRegistry = new Map<string, string>();
   let cssVersion = 0;
   let lastSentVersion = 0;
 
@@ -92,62 +76,14 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     return resolve(projectRoot || process.cwd(), opts.mapping);
   }
 
-  // Some tooling can call `transform` before `buildStart`; this keeps behavior
-  // resilient without requiring hook ordering assumptions.
-  function ensureMapping(): TrussMapping {
-    if (!mapping) {
-      mapping = loadMapping(mappingPath());
-    }
-    return mapping;
-  }
-
-  /** Cached parsed library CSS (loaded once per build). */
-  let libraryCache: ParsedTrussCss[] | null = null;
-
-  /** Load and cache all library truss.css files. */
-  function loadLibraries(): ParsedTrussCss[] {
-    if (!libraryCache) {
-      libraryCache = libraryPaths.map((libPath) => {
-        const resolved = resolve(projectRoot || process.cwd(), libPath);
-        return readTrussCss(resolved);
-      });
-    }
-    return libraryCache;
-  }
-
-  /** Transform a `.css.ts` file and store the raw CSS in the arbitrary registry. */
-  function updateArbitraryCssRegistry(sourcePath: string, sourceCode: string): void {
-    const css = transformCssTs(sourceCode, sourcePath, ensureMapping()).trim();
-    if (css.length > 0) {
-      const prev = arbitraryCssRegistry.get(sourcePath);
-      arbitraryCssRegistry.set(sourcePath, css);
-      if (prev !== css) cssVersion++;
-    } else {
-      if (arbitraryCssRegistry.delete(sourcePath)) cssVersion++;
-    }
-  }
-
-  /**
-   * Generate the full CSS string from the global registry, merged with library CSS.
-   *
-   * When `libraries` are configured, parses each library's annotated truss.css,
-   * combines with the app's own rules, deduplicates by class name, and sorts
-   * by priority to produce a unified stylesheet.
-   *
-   * Also appends app-side `.css.ts` arbitrary CSS blocks collected during transform.
-   */
-  function collectCss(): string {
-    const appCssParts = [generateCssText(cssRegistry)];
-    // Wrap all app .css.ts blocks in a single annotation (mirroring how the esbuild plugin handles them)
-    const allArbitrary = Array.from(arbitraryCssRegistry.values()).join("\n\n");
-    appCssParts.push(annotateArbitraryCssBlock(allArbitrary));
-    const appCss = appCssParts.filter((p) => p.length > 0).join("\n");
-    const libs = loadLibraries();
-    if (libs.length === 0) return appCss;
-    // Parse the app's own annotated CSS and merge with library sources
-    const appParsed = parseTrussCss(appCss);
-    return mergeTrussCss([...libs, appParsed]);
-  }
+  const session = createTrussTransformSession({
+    mappingPath,
+    projectRoot: () => projectRoot || process.cwd(),
+    libraries: libraryPaths,
+    onCssChanged() {
+      cssVersion++;
+    },
+  });
 
   return {
     name: "truss",
@@ -161,11 +97,9 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     },
 
     buildStart() {
-      ensureMapping();
+      session.ensureMapping();
       // Reset registries and library cache at start of each build
-      cssRegistry.clear();
-      arbitraryCssRegistry.clear();
-      libraryCache = null;
+      session.reset();
       cssVersion = 0;
       lastSentVersion = 0;
     },
@@ -180,7 +114,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // Serve the current collected CSS at the virtual endpoint
       server.middlewares.use((req: any, res: any, next: any) => {
         if (req.url !== VIRTUAL_CSS_ENDPOINT) return next();
-        const css = collectCss();
+        const css = session.collectCss();
         res.setHeader("Content-Type", "text/css");
         res.setHeader("Cache-Control", "no-store");
         res.end(css);
@@ -285,7 +219,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       if (id === RESOLVED_VIRTUAL_TEST_CSS_ID) {
         // Vitest/jsdom has no dev server stylesheet fetch, so inject the full
         // merged CSS payload once via a virtual side-effect module.
-        const css = collectCss();
+        const css = session.collectCss();
         return `
 import { __injectTrussCSS } from "@homebound/truss/runtime";
 
@@ -302,7 +236,7 @@ __injectTrussCSS(${JSON.stringify(css)});
 
       // Populate the arbitrary CSS registry on first load; subsequent updates
       // happen in the transform hook when Vite re-transforms the changed file.
-      updateArbitraryCssRegistry(sourcePath, sourceCode);
+      session.updateArbitraryCssRegistry(sourcePath, sourceCode);
 
       // Return an empty stylesheet to Vite's CSS pipeline — the real CSS is now
       // served via collectCss() (dev: /virtual:truss.css, build: truss-<hash>.css)
@@ -343,7 +277,7 @@ __injectTrussCSS(${JSON.stringify(css)});
         // Also update the arbitrary CSS registry so HMR picks up changes —
         // the load hook only runs on first resolve, so edits need to refresh
         // the registry here where Vite re-transforms changed files.
-        updateArbitraryCssRegistry(fileId, code);
+        session.updateArbitraryCssRegistry(fileId, code);
         return rewrittenImports.changed || testCssBootstrap.changed ? { code: transformedCode, map: null } : null;
       }
 
@@ -355,30 +289,10 @@ __injectTrussCSS(${JSON.stringify(css)});
 
       // For regular JS/TS modules that still use the DSL, run the full Truss
       // transform after the import rewrite so both behaviors compose.
-      const result = transformTruss(
-        transformedCode,
-        fileId,
-        ensureMapping(),
-        // In test mode (jsdom), inject CSS directly so document.styleSheets has rules
-        { debug, injectCss: isTest },
-      );
+      const result = session.transformCode(transformedCode, fileId, { debug, injectCss: isTest });
       if (!result) {
         if (!rewrittenImports.changed && !testCssBootstrap.changed) return null;
         return { code: transformedCode, map: null };
-      }
-
-      // Merge new rules into the global registry
-      if (result.rules) {
-        let hasNewRules = false;
-        for (const [className, rule] of result.rules) {
-          if (!cssRegistry.has(className)) {
-            cssRegistry.set(className, rule);
-            hasNewRules = true;
-          }
-        }
-        if (hasNewRules) {
-          cssVersion++;
-        }
       }
 
       return { code: result.code, map: result.map };
@@ -388,7 +302,7 @@ __injectTrussCSS(${JSON.stringify(css)});
 
     generateBundle(_options: any, _bundle: any) {
       if (!isBuild) return;
-      const css = collectCss();
+      const css = session.collectCss();
       if (!css) return;
 
       // Compute a content hash so the filename is cache-bustable.
@@ -466,11 +380,6 @@ function injectTestCssBootstrapImport(code: string, shouldInject: boolean): { co
   };
 }
 
-/** Load a truss mapping file synchronously (for tests). */
-export function loadMapping(path: string): TrussMapping {
-  const raw = readFileSync(path, "utf8");
-  return JSON.parse(raw);
-}
-
 export type { TrussMapping, TrussMappingEntry } from "./types";
+export { loadMapping } from "./mapping-utils";
 export { trussEsbuildPlugin, type TrussEsbuildPluginOptions } from "./esbuild-plugin";

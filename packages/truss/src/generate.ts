@@ -8,6 +8,7 @@ import { defaultSections } from "src/sections/tachyons";
 import { quote } from "src/utils";
 import { pascalCase } from "change-case";
 import { reactNativeSections } from "src/sections/tachyons-rn";
+import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
 
 const CssProperties = imp("Properties@csstype");
 
@@ -379,6 +380,13 @@ function generateWebCssBuilder(config: Config, sections: Record<string, UtilityM
     `}`,
   ];
 
+  const pseudoGetterCode = Object.entries(TRUSS_PSEUDO_METHODS).map(([name, selector]) => {
+    return code`
+      get ${name}() {
+        return this.newCss({ selector: ${quote(selector)} });
+      }`;
+  });
+
   const typographyType = code`
     export type ${def("Typography")} = ${Object.keys(fonts).map(quote).join(" | ")};
   `;
@@ -388,7 +396,7 @@ function generateWebCssBuilder(config: Config, sections: Record<string, UtilityM
 // See your project's \`truss-config.ts\` to make configuration changes (fonts, increments, etc).
 // Target: web (build-time plugin)
 
-import { trussProps, useRuntimeStyle as _useRuntimeStyle } from "@homebound/truss/runtime";
+import { trussProps, useRuntimeStyle as _useRuntimeStyle, __invertTrussMediaQuery } from "@homebound/truss/runtime";
 
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X | "__kind">, never>;
@@ -466,30 +474,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
     return this.rules as any;
   }
 
-  get onHover() {
-    return this.newCss({ selector: ":hover" });
-  }
-  get onFocus() {
-    return this.newCss({ selector: ":focus" });
-  }
-  get onFocusVisible() {
-    return this.newCss({ selector: ":focus-visible" });
-  }
-  get onFocusWithin() {
-    return this.newCss({ selector: ":focus-within" });
-  }
-  get onActive() {
-    return this.newCss({ selector: ":active" });
-  }
-  get onDisabled() {
-    return this.newCss({ selector: ":disabled" });
-  }
-  get ifFirstOfType() {
-    return this.newCss({ selector: ":first-of-type" });
-  }
-  get ifLastOfType() {
-    return this.newCss({ selector: ":last-of-type" });
-  }
+  ${pseudoGetterCode}
 
   /** Marks this element as a default hover marker (for ancestor pseudo selectors). */
   get marker(): CssBuilder<T, S> {
@@ -565,7 +550,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
       if (this.opts.elseApplied) {
         throw new Error("else was already called");
       }
-      return this.newCss({ selector: invertMediaQuery(this.selector), elseApplied: true });
+      return this.newCss({ selector: __invertTrussMediaQuery(this.selector), elseApplied: true });
     }
     if (this.opts.elseApplied) {
       throw new Error("else was already called");
@@ -706,29 +691,6 @@ export function ${def("useRuntimeStyle")}(css: Record<string, RuntimeStyles | st
 ${typeAliasCode}
 
 ${breakpointCode}
-
-function invertMediaQuery(query: string): string {
-  const screenPrefix = "@media screen and ";
-  if (query.startsWith(screenPrefix)) {
-    const conditions = query.slice(screenPrefix.length).trim();
-    const rangeMatch = conditions.match(/^\(min-width: (\d+)px\) and \(max-width: (\d+)px\)$/);
-    if (rangeMatch) {
-      const min = Number(rangeMatch[1]);
-      const max = Number(rangeMatch[2]);
-      return \`@media screen and (max-width: \${min - 1}px), screen and (min-width: \${max + 1}px)\`;
-    }
-    const minMatch = conditions.match(/^\(min-width: (\d+)px\)$/);
-    if (minMatch) {
-      return \`@media screen and (max-width: \${Number(minMatch[1]) - 1}px)\`;
-    }
-    const maxMatch = conditions.match(/^\(max-width: (\d+)px\)$/);
-    if (maxMatch) {
-      return \`@media screen and (min-width: \${Number(maxMatch[1]) + 1}px)\`;
-    }
-  }
-  return query.replace("@media", "@media not");
-}
-
 
 ${extras || ""}
   `;

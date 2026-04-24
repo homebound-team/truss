@@ -4,7 +4,7 @@ import { Properties as Properties1 } from "csstype";
 // See your project's `truss-config.ts` to make configuration changes (fonts, increments, etc).
 // Target: web (build-time plugin)
 
-import { trussProps, useRuntimeStyle as _useRuntimeStyle } from "@homebound/truss/runtime";
+import { __invertTrussMediaQuery, trussProps, useRuntimeStyle as _useRuntimeStyle } from "@homebound/truss/runtime";
 
 /** Given a type X, and the user's proposed type T, only allow keys in X and nothing else. */
 export type Only<X, T> = X & Record<Exclude<keyof T, keyof X | "__kind">, never>;
@@ -2744,7 +2744,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
       if (this.opts.elseApplied) {
         throw new Error("else was already called");
       }
-      return this.newCss({ selector: invertMediaQuery(this.selector), elseApplied: true });
+      return this.newCss({ selector: __invertTrussMediaQuery(this.selector), elseApplied: true });
     }
     if (this.opts.elseApplied) {
       throw new Error("else was already called");
@@ -2903,26 +2903,4 @@ export enum Breakpoints {
   mdAndDown = "@media screen and (max-width: 959px)",
   lg = "@media screen and (min-width: 960px)",
   mdOrLg = "@media screen and (min-width: 600px)",
-}
-
-function invertMediaQuery(query: string): string {
-  const screenPrefix = "@media screen and ";
-  if (query.startsWith(screenPrefix)) {
-    const conditions = query.slice(screenPrefix.length).trim();
-    const rangeMatch = conditions.match(/^(min-width: (d+)px) and (max-width: (d+)px)$/);
-    if (rangeMatch) {
-      const min = Number(rangeMatch[1]);
-      const max = Number(rangeMatch[2]);
-      return `@media screen and (max-width: ${min - 1}px), screen and (min-width: ${max + 1}px)`;
-    }
-    const minMatch = conditions.match(/^(min-width: (d+)px)$/);
-    if (minMatch) {
-      return `@media screen and (max-width: ${Number(minMatch[1]) - 1}px)`;
-    }
-    const maxMatch = conditions.match(/^(max-width: (d+)px)$/);
-    if (maxMatch) {
-      return `@media screen and (min-width: ${Number(maxMatch[1]) + 1}px)`;
-    }
-  }
-  return query.replace("@media", "@media not");
 }

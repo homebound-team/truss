@@ -1,12 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
-import type { TrussMapping } from "./types";
-import type { AtomicRule } from "./emit-truss";
-import { generateCssText } from "./emit-truss";
-import { transformTruss } from "./transform";
-import { transformCssTs } from "./transform-css";
-import { loadMapping } from "./index";
-import { annotateArbitraryCssBlock } from "./merge-css";
+import { createTrussTransformSession } from "./transform-session";
 
 export interface TrussEsbuildPluginOptions {
   /** Path to the Css.json mapping file (relative to cwd or absolute). */
@@ -33,10 +27,15 @@ export interface TrussEsbuildPluginOptions {
  * ```
  */
 export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
-  const cssRegistry = new Map<string, AtomicRule>();
-  const arbitraryCssRegistry = new Map<string, string>();
-  let mapping: TrussMapping | null = null;
   let outDir: string | undefined;
+  const session = createTrussTransformSession({
+    mappingPath() {
+      return resolve(process.cwd(), opts.mapping);
+    },
+    projectRoot() {
+      return process.cwd();
+    },
+  });
 
   return {
     name: "truss",
@@ -48,48 +47,23 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
         const code = readFileSync(args.path, "utf8");
 
         if (args.path.endsWith(".css.ts")) {
-          if (!mapping) {
-            mapping = loadMapping(resolve(process.cwd(), opts.mapping));
-          }
-
-          const css = annotateArbitraryCssBlock(transformCssTs(code, args.path, mapping));
-          if (css.length > 0) {
-            arbitraryCssRegistry.set(args.path, css);
-          } else {
-            arbitraryCssRegistry.delete(args.path);
-          }
-
+          session.updateArbitraryCssRegistry(args.path, code);
           return { contents: code, loader: loaderForPath(args.path) };
         }
 
         if (!code.includes("Css") && !code.includes("css=")) return undefined;
 
-        if (!mapping) {
-          mapping = loadMapping(resolve(process.cwd(), opts.mapping));
-        }
-
-        const result = transformTruss(code, args.path, mapping);
+        const result = session.transformCode(code, args.path);
         if (!result) return undefined;
-
-        // Merge rules into the shared registry
-        if (result.rules) {
-          for (const [className, rule] of result.rules) {
-            if (!cssRegistry.has(className)) {
-              cssRegistry.set(className, rule);
-            }
-          }
-        }
 
         return { contents: result.code, loader: loaderForPath(args.path) };
       });
 
       build.onEnd(() => {
-        if (cssRegistry.size === 0 && arbitraryCssRegistry.size === 0) return;
+        if (!session.hasCss()) return;
 
-        const cssParts = [generateCssText(cssRegistry), ...arbitraryCssRegistry.values()].filter(
-          (part) => part.length > 0,
-        );
-        const css = cssParts.join("\n");
+        const css = session.collectCss();
+        if (css.length === 0) return;
         const cssFileName = opts.outputCss ?? "truss.css";
         const cssPath = resolve(outDir ?? join(process.cwd(), "dist"), cssFileName);
 

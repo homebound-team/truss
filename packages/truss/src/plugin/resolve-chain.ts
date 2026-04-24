@@ -9,6 +9,8 @@ import {
   type WhenCondition,
 } from "./types";
 import { extractChain } from "./ast-utils";
+import { invertMediaQuery } from "../media-query";
+import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
 
 /**
  * Optional hook for resolving identifier references like `const same = Css.blue.$`
@@ -87,68 +89,79 @@ function segmentWithConditionContext(
   };
 }
 
+/**
+ * Apply context-only chain nodes like breakpoints/pseudos/end.
+ *
+ * `resolveFullChain` catches errors at speculative context-tracking call sites;
+ * `resolveChain` lets them surface so unsupported patterns are reported.
+ */
 function applyModifierNodeToConditionContext(
   context: ResolvedConditionContext,
   node: ChainNode,
   mapping: TrussMapping,
-): void {
+): boolean {
   if ((node as any).type === "__mediaQuery") {
     context.mediaQuery = (node as any).mediaQuery;
-    return;
+    return true;
   }
 
   if (node.type === "getter") {
     if (node.name === "end") {
       resetConditionContext(context);
-      return;
+      return true;
     }
-    if (isPseudoMethod(node.name)) {
-      context.pseudoClass = pseudoSelector(node.name);
-      return;
+    if (isTrussPseudoMethod(node.name)) {
+      context.pseudoClass = trussPseudoSelector(node.name);
+      return true;
     }
     if (mapping.breakpoints && node.name in mapping.breakpoints) {
       context.mediaQuery = mapping.breakpoints[node.name];
+      return true;
     }
-    return;
+    return false;
   }
 
   if (node.type !== "call") {
-    return;
+    return false;
   }
 
   if (node.name === "ifContainer") {
-    try {
-      context.mediaQuery = containerSelectorFromCall(node);
-    } catch {
-      // Ignore invalid modifiers here; resolveChain() will report the real error.
-    }
-    return;
+    context.mediaQuery = containerSelectorFromCall(node);
+    return true;
   }
 
   if (node.name === "element") {
-    if (node.args.length === 1 && node.args[0].type === "StringLiteral") {
-      context.pseudoElement = node.args[0].value;
+    if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
+      throw new UnsupportedPatternError(`element() requires exactly one string literal argument (e.g. "::placeholder")`);
     }
-    return;
+    context.pseudoElement = node.args[0].value;
+    return true;
   }
 
   if (node.name === "when") {
-    try {
-      const resolved = resolveWhenCall(node);
-      if (resolved.kind === "selector") {
-        context.pseudoClass = resolved.pseudo;
-      } else {
-        context.whenPseudo = resolved;
-      }
-    } catch {
-      // Ignore invalid modifiers here; resolveChain() will report the real error.
+    if (isWhenObjectCall(node)) {
+      return false;
     }
-    return;
+    const resolved = resolveWhenCall(node);
+    if (resolved.kind === "selector") {
+      context.pseudoClass = resolved.pseudo;
+    } else {
+      context.whenPseudo = resolved;
+    }
+    return true;
   }
 
-  if (isPseudoMethod(node.name)) {
-    context.pseudoClass = pseudoSelector(node.name);
+  if (isTrussPseudoMethod(node.name)) {
+    context.pseudoClass = trussPseudoSelector(node.name);
+    if (node.args.length > 0) {
+      throw new UnsupportedPatternError(
+        `${node.name}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
+      );
+    }
+    return true;
   }
+
+  return false;
 }
 
 /**
@@ -207,27 +220,10 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
   const { mapping } = ctx;
   const initialContext = ctx.initialContext ?? emptyConditionContext();
   const parts: ResolvedChainPart[] = [];
-  const markers: MarkerSegment[] = [];
   const nestedErrors: string[] = [];
-
-  // Pre-scan for marker nodes and strip them from the chain
-  const filteredChain: ChainNode[] = [];
-  /** Errors found during marker scanning — attached to the chain result */
-  const scanErrors: string[] = [];
-  for (let j = 0; j < chain.length; j++) {
-    const node = chain[j];
-    if (node.type === "getter" && node.name === "marker") {
-      markers.push({ type: "marker" });
-    } else if (node.type === "call" && node.name === "markerOf") {
-      if (node.args.length !== 1) {
-        scanErrors.push("[truss] Unsupported pattern: markerOf() requires exactly one argument (a marker variable)");
-      } else {
-        markers.push({ type: "marker", markerNode: node.args[0] });
-      }
-    } else {
-      filteredChain.push(node);
-    }
-  }
+  const markerScan = scanMarkerNodes(chain);
+  const filteredChain = markerScan.chain;
+  const markers = [...markerScan.markers];
 
   // Split chain at if/else boundaries
   let i = 0;
@@ -254,7 +250,11 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
     }
 
     currentNodes.push(nodeToPush);
-    applyModifierNodeToConditionContext(currentContext, nodeToPush, mapping);
+    try {
+      applyModifierNodeToConditionContext(currentContext, nodeToPush, mapping);
+    } catch {
+      // resolveChain() reports the real unsupported-pattern error later.
+    }
   }
 
   while (i < filteredChain.length) {
@@ -340,22 +340,56 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
   // Flush remaining unconditional nodes
   flushCurrentNodes();
 
-  // Collect error messages from all resolved segments
-  const segmentErrors: string[] = [];
+  return { parts, markers, errors: [...new Set([...markerScan.errors, ...nestedErrors, ...segmentErrors(parts)])] };
+}
+
+/** Pull marker nodes out of a chain before style resolution. */
+function scanMarkerNodes(chain: ChainNode[]): { chain: ChainNode[]; markers: MarkerSegment[]; errors: string[] } {
+  const filteredChain: ChainNode[] = [];
+  const markers: MarkerSegment[] = [];
+  const errors: string[] = [];
+
+  for (const node of chain) {
+    if (node.type === "getter" && node.name === "marker") {
+      markers.push({ type: "marker" });
+      continue;
+    }
+
+    if (node.type === "call" && node.name === "markerOf") {
+      if (node.args.length !== 1) {
+        errors.push("[truss] Unsupported pattern: markerOf() requires exactly one argument (a marker variable)");
+      } else {
+        markers.push({ type: "marker", markerNode: node.args[0] });
+      }
+      continue;
+    }
+
+    filteredChain.push(node);
+  }
+
+  return { chain: filteredChain, markers, errors };
+}
+
+/** Collect unsupported-pattern errors from all resolved chain parts. */
+function segmentErrors(parts: ResolvedChainPart[]): string[] {
+  const errors: string[] = [];
+
   for (const part of parts) {
     const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
     for (const seg of segs) {
       if (seg.error) {
-        segmentErrors.push(seg.error);
+        errors.push(seg.error);
       }
     }
   }
 
-  return { parts, markers, errors: [...new Set([...scanErrors, ...nestedErrors, ...segmentErrors])] };
+  return errors;
 }
 
 /** Detect `when({ ... })` so object-form selector groups can be resolved specially. */
-function isWhenObjectCall(node: ChainNode): node is CallChainNode {
+type WhenObjectCallChainNode = CallChainNode & { name: "when"; args: [t.ObjectExpression] };
+
+function isWhenObjectCall(node: ChainNode): node is WhenObjectCallChainNode {
   return (
     node.type === "call" && node.name === "when" && node.args.length === 1 && node.args[0].type === "ObjectExpression"
   );
@@ -502,28 +536,6 @@ function makeMediaQueryNode(mediaQuery: string): ChainNode {
   return { type: "__mediaQuery" as any, mediaQuery } as any;
 }
 
-function invertMediaQuery(query: string): string {
-  const screenPrefix = "@media screen and ";
-  if (query.startsWith(screenPrefix)) {
-    const conditions = query.slice(screenPrefix.length).trim();
-    const rangeMatch = conditions.match(/^\(min-width: (\d+)px\) and \(max-width: (\d+)px\)$/);
-    if (rangeMatch) {
-      const min = Number(rangeMatch[1]);
-      const max = Number(rangeMatch[2]);
-      return `@media screen and (max-width: ${min - 1}px), screen and (min-width: ${max + 1}px)`;
-    }
-    const minMatch = conditions.match(/^\(min-width: (\d+)px\)$/);
-    if (minMatch) {
-      return `@media screen and (max-width: ${Number(minMatch[1]) - 1}px)`;
-    }
-    const maxMatch = conditions.match(/^\(max-width: (\d+)px\)$/);
-    if (maxMatch) {
-      return `@media screen and (min-width: ${Number(maxMatch[1]) + 1}px)`;
-    }
-  }
-  return query.replace("@media", "@media not");
-}
-
 /**
  * Walks a Css member-expression chain (the AST between `Css` and `.$`) and
  * resolves each segment into CSS property definitions using the truss mapping.
@@ -539,31 +551,18 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
 
   for (const node of chain) {
     try {
-      // Synthetic media query node injected by resolveFullChain for if("@media...")
-      if ((node as any).type === "__mediaQuery") {
-        context.mediaQuery = (node as any).mediaQuery;
+      if (isWhenObjectCall(node)) {
+        const resolved = resolveWhenObjectSelectors(ctx, node, context);
+        segments.push(...flattenWhenObjectParts(resolved));
+        continue;
+      }
+
+      if (applyModifierNodeToConditionContext(context, node, mapping)) {
         continue;
       }
 
       if (node.type === "getter") {
         const abbr = node.name;
-
-        if (abbr === "end") {
-          resetConditionContext(context);
-          continue;
-        }
-
-        // Pseudo-class getters: onHover, onFocus, etc.
-        if (isPseudoMethod(abbr)) {
-          context.pseudoClass = pseudoSelector(abbr);
-          continue;
-        }
-
-        // Breakpoint getters: ifSm, ifMd, ifLg, etc.
-        if (mapping.breakpoints && abbr in mapping.breakpoints) {
-          context.mediaQuery = mapping.breakpoints[abbr];
-          continue;
-        }
 
         const entry = mapping.abbreviations[abbr];
         if (!entry) {
@@ -582,12 +581,6 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
         segments.push(...resolved);
       } else if (node.type === "call") {
         const abbr = node.name;
-
-        // Container query call: ifContainer({ gt, lt, name? })
-        if (abbr === "ifContainer") {
-          context.mediaQuery = containerSelectorFromCall(node);
-          continue;
-        }
 
         // with(cssProp) — compose an existing Css expression
         if (abbr === "with") {
@@ -652,45 +645,6 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
             context.whenPseudo,
           );
           segments.push(...resolved);
-          continue;
-        }
-
-        // Pseudo-element: element("::placeholder") etc.
-        if (abbr === "element") {
-          if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
-            throw new UnsupportedPatternError(
-              `element() requires exactly one string literal argument (e.g. "::placeholder")`,
-            );
-          }
-          context.pseudoElement = (node.args[0] as any).value;
-          continue;
-        }
-
-        // Generic when(selector) or when(marker, relationship, pseudo)
-        if (abbr === "when") {
-          if (isWhenObjectCall(node)) {
-            const resolved = resolveWhenObjectSelectors(ctx, node, context);
-            segments.push(...flattenWhenObjectParts(resolved));
-            continue;
-          }
-
-          const resolved = resolveWhenCall(node);
-          if (resolved.kind === "selector") {
-            context.pseudoClass = resolved.pseudo;
-          } else {
-            context.whenPseudo = resolved;
-          }
-          continue;
-        }
-
-        // Simple pseudo-class calls (backward compat — pseudos are now getters)
-        if (isPseudoMethod(abbr)) {
-          context.pseudoClass = pseudoSelector(abbr);
-          if (node.args.length > 0) {
-            throw new UnsupportedPatternError(
-              `${abbr}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
-            );
-          }
           continue;
         }
 
@@ -1324,25 +1278,6 @@ function isLegacyDefaultMarkerExpression(node: t.Expression | t.SpreadElement): 
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
-
-const PSEUDO_METHODS: Record<string, string> = {
-  onHover: ":hover",
-  onFocus: ":focus",
-  onFocusVisible: ":focus-visible",
-  onFocusWithin: ":focus-within",
-  onActive: ":active",
-  onDisabled: ":disabled",
-  ifFirstOfType: ":first-of-type",
-  ifLastOfType: ":last-of-type",
-};
-
-function isPseudoMethod(name: string): boolean {
-  return name in PSEUDO_METHODS;
-}
-
-function pseudoSelector(name: string): string {
-  return PSEUDO_METHODS[name];
-}
 
 /**
  * Try to evaluate a literal AST node to a string value.

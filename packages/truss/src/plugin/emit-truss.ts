@@ -3,6 +3,7 @@ import type { ResolvedChain } from "./resolve-chain";
 import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCondition } from "./types";
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
+import { pseudoSelectorPrefix } from "../pseudo-selectors";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 
@@ -39,28 +40,21 @@ export interface AtomicRule {
   };
 }
 
+interface StyleEntry {
+  cssProp: string;
+  className: string;
+  isVariable: boolean;
+  /** Whether this entry has a condition prefix (pseudo/media/when). */
+  isConditional: boolean;
+  /** Concrete CSS declaration value for emitted CSS rules. */
+  cssValue: string;
+  varName?: string;
+  argNode?: unknown;
+  incremented?: boolean;
+  appendPx?: boolean;
+}
+
 // ── Class-name constants and abbreviation maps ────────────────────────
-
-/** I.e. `:hover` → `_h`, `:focus-visible` → `_fv`. */
-const PSEUDO_SUFFIX: Record<string, string> = {
-  ":hover": "_h",
-  ":focus": "_f",
-  ":focus-visible": "_fv",
-  ":focus-within": "_fw",
-  ":active": "_a",
-  ":disabled": "_d",
-  ":first-of-type": "_fot",
-  ":last-of-type": "_lot",
-};
-
-/** I.e. extends PSEUDO_SUFFIX with `:not` → `_n`, `:has` → `_has` for when() class tokens. */
-const PSEUDO_SELECTOR_SUFFIX: Record<string, string> = {
-  ...PSEUDO_SUFFIX,
-  ":not": "_n",
-  ":is": "_is",
-  ":where": "_where",
-  ":has": "_has",
-};
 
 /** I.e. `"ancestor"` → `"anc"`, `"siblingAfter"` → `"sibA"`. */
 const RELATIONSHIP_SHORT: Record<string, string> = {
@@ -90,9 +84,9 @@ export function markerClassName(markerNode?: { type: string; name?: string }): s
 /** I.e. `when(marker, "ancestor", ":hover")` → `"wh_anc_h_"`, `when(row, …)` → `"wh_anc_h_row_"`. */
 function whenPrefix(whenPseudo: WhenCondition): string {
   const rel = RELATIONSHIP_SHORT[whenPseudo.relationship ?? "ancestor"] ?? "anc";
-  const pseudoTag = pseudoSelectorTag(whenPseudo.pseudo);
+  const pseudoPrefix = pseudoSelectorPrefix(whenPseudo.pseudo);
   const markerPart = whenPseudo.markerNode?.type === "Identifier" ? `${whenPseudo.markerNode.name}_` : "";
-  return `wh_${rel}_${pseudoTag}_${markerPart}`;
+  return `wh_${rel}_${pseudoPrefix}_${markerPart}`;
 }
 
 /**
@@ -125,43 +119,9 @@ function conditionPrefix(
     parts.push("mq_");
   }
   if (pseudoClass) {
-    parts.push(`${pseudoSelectorTag(pseudoClass)}_`);
+    parts.push(`${pseudoSelectorPrefix(pseudoClass)}_`);
   }
   return parts.join("");
-}
-
-// ── Pseudo-selector tokenizers ────────────────────────────────────────
-
-/** I.e. `":hover:not(:disabled)"` → `"h_n_d"` (a safe class-name token). */
-function pseudoSelectorTag(pseudo: string): string {
-  const replaced = pseudo.trim().replace(/::?[a-zA-Z-]+/g, (match) => {
-    return `_${pseudoIdentifierTag(match)}_`;
-  });
-  const cleaned = replaced
-    .replace(/[^a-zA-Z0-9]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-  return cleaned || "pseudo";
-}
-
-/** I.e. `":hover"` → `"h"`, `":focus-visible"` → `"fv"`, `":first-of-type"` → `"fot"`. */
-function pseudoIdentifierTag(pseudo: string): string {
-  const normalized = normalizePseudoIdentifier(pseudo);
-  const known = PSEUDO_SELECTOR_SUFFIX[normalized];
-  if (known) {
-    return known.replace(/^_/, "");
-  }
-  return normalized.replace(/^::?/, "").replace(/-/g, "_");
-}
-
-/** I.e. `":focusVisible"` → `":focus-visible"` (camelCase → kebab-case after the colon prefix). */
-function normalizePseudoIdentifier(pseudo: string): string {
-  const prefixMatch = pseudo.match(/^::?/);
-  const prefix = prefixMatch?.[0] ?? "";
-  const name = pseudo.slice(prefix.length).replace(/[A-Z]/g, (match) => {
-    return `-${match.toLowerCase()}`;
-  });
-  return `${prefix}${name}`;
 }
 
 // ── CSS property / value helpers ──────────────────────────────────────
@@ -262,11 +222,7 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
       return;
     }
     if (seg.incremented) needsMaybeInc = true;
-    if (seg.variableProps) {
-      collectVariableRules(rules, seg, mapping);
-    } else {
-      collectStaticRules(rules, seg, mapping);
-    }
+    collectSegmentRules(rules, seg, mapping);
   }
 
   for (const chain of chains) {
@@ -316,49 +272,20 @@ function baseRuleFields(seg: ResolvedSegment): Pick<AtomicRule, "pseudoClass" | 
   };
 }
 
-/**
- * Collect atomic rules for a static segment (may have multiple CSS properties).
- *
- * I.e. `Css.ba.$` (borderStyle + borderWidth) registers one AtomicRule per longhand property.
- */
-function collectStaticRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  const { prefix, whenSelector } = segmentContext(seg, mapping);
-  const isMultiProp = Object.keys(seg.defs).length > 1;
+/** Collect atomic CSS rules for one resolved style segment. */
+function collectSegmentRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
+  const { whenSelector } = segmentContext(seg, mapping);
 
-  for (const [cssProp, value] of Object.entries(seg.defs)) {
-    const cssValue = String(value);
-    const baseName = computeStaticBaseName(seg, cssProp, cssValue, isMultiProp, mapping);
-    const className = prefix ? `${prefix}${baseName}` : baseName;
-
-    if (!rules.has(className)) {
-      rules.set(className, {
-        className,
-        declarations: [{ cssProperty: camelToKebab(cssProp), cssValue }],
-        ...baseRuleFields(seg),
-        whenSelector,
-      });
-    }
-  }
-}
-
-/**
- * Collect atomic rules for a variable segment.
- *
- * I.e. `Css.mt(x).$` registers a rule with `var(--marginTop)` and an `@property` declaration,
- * plus any extra static defs like `display: -webkit-box` for `lineClamp(n)`.
- */
-function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
-  const { prefix, whenSelector } = segmentContext(seg, mapping);
-
-  for (const prop of seg.variableProps!) {
-    const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
-    const varName = toCssVariableName(className, seg.abbr, prop);
-    const declaration = { cssProperty: camelToKebab(prop), cssValue: `var(${varName})`, cssVarName: varName };
-
-    const existingRule = rules.get(className);
+  for (const entry of styleEntriesForSegment(seg, mapping)) {
+    const declaration = {
+      cssProperty: camelToKebab(entry.cssProp),
+      cssValue: entry.cssValue,
+      ...(entry.varName ? { cssVarName: entry.varName } : {}),
+    };
+    const existingRule = rules.get(entry.className);
     if (!existingRule) {
-      rules.set(className, {
-        className,
+      rules.set(entry.className, {
+        className: entry.className,
         declarations: [declaration],
         ...baseRuleFields(seg),
         whenSelector,
@@ -367,32 +294,96 @@ function collectVariableRules(rules: Map<string, AtomicRule>, seg: ResolvedSegme
     }
 
     if (
-      !existingRule.declarations.some((entry) => {
-        return entry.cssProperty === declaration.cssProperty;
+      !existingRule.declarations.some((existingDeclaration) => {
+        return existingDeclaration.cssProperty === declaration.cssProperty;
       })
     ) {
       existingRule.declarations.push(declaration);
     }
   }
+}
 
-  // I.e. lineClamp(n) also needs `display: -webkit-box` alongside the variable props
-  if (seg.variableExtraDefs) {
-    for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-      const cssValue = String(value);
-      const lookup = getLonghandLookup(mapping);
-      const canonical = lookup.get(`${cssProp}\0${cssValue}`);
-      const extraBase = canonical ?? `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
-      const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
-      if (!rules.has(extraName)) {
-        rules.set(extraName, {
-          className: extraName,
-          declarations: [{ cssProperty: camelToKebab(cssProp), cssValue }],
-          ...baseRuleFields(seg),
-          whenSelector,
-        });
-      }
-    }
+/**
+ * Build normalized class/property entries from a segment for CSS and AST emitters.
+ *
+ * I.e. convert one resolved segment into the shared model both CSS rules and style hashes consume.
+ */
+function styleEntriesForSegment(seg: ResolvedSegment, mapping: TrussMapping): StyleEntry[] {
+  const { prefix } = segmentContext(seg, mapping);
+  const isConditional = prefix !== "";
+
+  if (seg.variableProps) {
+    return variableStyleEntries(seg, mapping, prefix, isConditional);
   }
+
+  return staticStyleEntries(seg, mapping, prefix, isConditional, seg.defs);
+}
+
+/**
+ * Build entries for concrete CSS defs.
+ *
+ * I.e. `Css.ba.$` becomes separate `borderStyle -> bss` and `borderWidth -> bw1` entries.
+ */
+function staticStyleEntries(
+  seg: ResolvedSegment,
+  mapping: TrussMapping,
+  prefix: string,
+  isConditional: boolean,
+  defs: Record<string, unknown>,
+  forceLonghandNames = false,
+): StyleEntry[] {
+  const entries: StyleEntry[] = [];
+  const isMultiProp = forceLonghandNames || Object.keys(defs).length > 1;
+
+  for (const [cssProp, value] of Object.entries(defs)) {
+    const cssValue = String(value);
+    const baseName = computeStaticBaseName(seg, cssProp, cssValue, isMultiProp, mapping);
+    entries.push({
+      cssProp,
+      className: prefix ? `${prefix}${baseName}` : baseName,
+      isVariable: false,
+      isConditional,
+      cssValue,
+    });
+  }
+
+  return entries;
+}
+
+/**
+ * Build entries for runtime variable CSS defs.
+ *
+ * I.e. `Css.mt(x).$` becomes `marginTop -> mt_var` plus `--marginTop` metadata.
+ */
+function variableStyleEntries(
+  seg: ResolvedSegment,
+  mapping: TrussMapping,
+  prefix: string,
+  isConditional: boolean,
+): StyleEntry[] {
+  const entries: StyleEntry[] = [];
+
+  for (const cssProp of seg.variableProps!) {
+    const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
+    const varName = toCssVariableName(className, seg.abbr, cssProp);
+    entries.push({
+      cssProp,
+      className,
+      isVariable: true,
+      isConditional,
+      cssValue: `var(${varName})`,
+      varName,
+      argNode: seg.argNode,
+      incremented: seg.incremented,
+      appendPx: seg.appendPx,
+    });
+  }
+
+  if (seg.variableExtraDefs) {
+    entries.push(...staticStyleEntries(seg, mapping, prefix, isConditional, seg.variableExtraDefs, true));
+  }
+
+  return entries;
 }
 
 // ── CSS text generation ───────────────────────────────────────────────
@@ -551,19 +542,7 @@ export function buildStyleHashProperties(
   maybeIncHelperName?: string | null,
 ): t.ObjectProperty[] {
   // I.e. cssProperty → list of { className, isVariable, isConditional, varName, argNode, ... }
-  const propGroups = new Map<
-    string,
-    Array<{
-      className: string;
-      isVariable: boolean;
-      /** Whether this entry has a condition prefix (pseudo/media/when). */
-      isConditional: boolean;
-      varName?: string;
-      argNode?: unknown;
-      incremented?: boolean;
-      appendPx?: boolean;
-    }>
-  >();
+  const propGroups = new Map<string, StyleEntry[]>();
 
   /**
    * Push an entry, replacing earlier base-level entries when a new base-level entry
@@ -572,7 +551,8 @@ export function buildStyleHashProperties(
    * I.e. `Css.blue.black.$` → the later `black` replaces `blue` for `color`,
    * but `Css.blue.onHover.black.$` accumulates both because `onHover.black` is conditional.
    */
-  function pushEntry(cssProp: string, entry: typeof propGroups extends Map<string, Array<infer E>> ? E : never): void {
+  function pushEntry(entry: StyleEntry): void {
+    const cssProp = entry.cssProp;
     if (!propGroups.has(cssProp)) propGroups.set(cssProp, []);
     const entries = propGroups.get(cssProp)!;
     if (!entry.isConditional) {
@@ -588,45 +568,8 @@ export function buildStyleHashProperties(
   for (const seg of segments) {
     if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.classNameArg || seg.styleArg) continue;
 
-    const { prefix } = segmentContext(seg, mapping);
-    const isConditional = prefix !== "";
-
-    if (seg.variableProps) {
-      for (const prop of seg.variableProps) {
-        const className = prefix ? `${prefix}${seg.abbr}_var` : `${seg.abbr}_var`;
-        const varName = toCssVariableName(className, seg.abbr, prop);
-
-        pushEntry(prop, {
-          className,
-          isVariable: true,
-          isConditional,
-          varName,
-          argNode: seg.argNode,
-          incremented: seg.incremented,
-          appendPx: seg.appendPx,
-        });
-      }
-
-      // I.e. lineClamp(n) also contributes static extra defs like `display: -webkit-box`
-      if (seg.variableExtraDefs) {
-        for (const [cssProp, value] of Object.entries(seg.variableExtraDefs)) {
-          const cssValue = String(value);
-          const lookup = getLonghandLookup(mapping);
-          const canonical = lookup.get(`${cssProp}\0${cssValue}`);
-          const extraBase = canonical ?? `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
-          const extraName = prefix ? `${prefix}${extraBase}` : extraBase;
-          pushEntry(cssProp, { className: extraName, isVariable: false, isConditional });
-        }
-      }
-    } else {
-      const isMultiProp = Object.keys(seg.defs).length > 1;
-
-      for (const [cssProp, val] of Object.entries(seg.defs)) {
-        const baseName = computeStaticBaseName(seg, cssProp, String(val), isMultiProp, mapping);
-        const className = prefix ? `${prefix}${baseName}` : baseName;
-
-        pushEntry(cssProp, { className, isVariable: false, isConditional });
-      }
+    for (const entry of styleEntriesForSegment(seg, mapping)) {
+      pushEntry(entry);
     }
   }
 
