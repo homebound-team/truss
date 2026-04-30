@@ -2355,6 +2355,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
    *
    * `when(":hover")` — same semantics as `onHover`
    * `when(":hover:not(:disabled)")` — hover only while enabled
+   * `when('[data-state="open"]')` — match an element state attribute
    */
   when(selector: string): CssBuilder<T, S>;
   /**
@@ -2371,7 +2372,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   /**
    * Apply different styles for each selector in the object.
    *
-   * `when({ ":hover": Css.blue.$, ":focus": Css.red.$ })`
+   * `when({ ":hover": Css.blue.$, '[data-state="open"]': Css.red.$ })`
    */
   when<W extends Record<string, Properties>>(selectors: W): CssBuilder<T & UnionToIntersection<W[keyof W]>, S>;
   when(
