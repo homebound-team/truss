@@ -1,3 +1,9 @@
+## [2.22.0](https://github.com/homebound-team/truss/compare/v2.21.6...v2.22.0) (2026-04-30)
+
+### Features
+
+* Add Css.when support for data selectors. ([#246](https://github.com/homebound-team/truss/issues/246)) ([8752801](https://github.com/homebound-team/truss/commit/87528019d0558058d12072c96181ce1370dba9ed))
+
 ## [2.21.6](https://github.com/homebound-team/truss/compare/v2.21.5...v2.21.6) (2026-04-24)
 
 ### Bug Fixes
