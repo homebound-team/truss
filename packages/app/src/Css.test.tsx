@@ -601,6 +601,16 @@ describe("Truss CssBuilder", () => {
       expect(el).toHaveStyle({ backgroundColor: "#353535" });
     });
 
+    test("when supports data attribute selectors", () => {
+      const r = render(
+        <div data-state="open" css={Css.when('[data-state="open"]').blue.$}>
+          Open
+        </div>,
+      );
+      const el = r.container.firstChild as HTMLElement;
+      expect(el).toHaveStyle({ color: "#526675" });
+    });
+
     test("onHover on same property emits correct default and hover CSS rules", () => {
       // Css.bgBlue.onHover.bgBlack.$ — both set backgroundColor.
       // The plugin merges them into: backgroundColor: { default: "#526675", ":hover": "#353535" }

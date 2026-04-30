@@ -144,7 +144,7 @@ function applyModifierNodeToConditionContext(
     }
     const resolved = resolveWhenCall(node);
     if (resolved.kind === "selector") {
-      context.pseudoClass = resolved.pseudo;
+      context.pseudoClass = resolved.selector;
     } else {
       context.whenPseudo = resolved;
     }
@@ -192,12 +192,12 @@ function applyModifierNodeToConditionContext(
  * - **`element("::placeholder")`** — Pseudo-element. Sets the pseudo-element
  *   context for subsequent styles.
  *
- * - **`when(":hover")`** — Same-element selector pseudo. Behaves like a custom
- *   pseudo-class context and stacks with media queries.
+ * - **`when(":hover")` / `when('[data-state="open"]')`** — Same-element selector.
+ *   Behaves like a custom selector context and stacks with media queries.
  *
  * - **`when({ ":hover": Css.blue.$ })`** — Object form. Each value is resolved
  *   like an inline `Css.*.$` chain using the selector key as its initial
- *   pseudo-class context, while inheriting the current media/when context.
+ *   selector context, while inheriting the current media/when context.
  *
  * - **`when(marker, "ancestor", ":hover")`** — Relationship selector. Sets the
  *   relationship selector context and stacks with same-element pseudos, pseudo-elements,
@@ -1206,14 +1206,15 @@ const WHEN_RELATIONSHIPS = new Set(["ancestor", "descendant", "anySibling", "sib
 /**
  * Resolve a `when(selector)` or `when(marker, relationship, pseudo)` call.
  *
- * - 1 arg: `when(":hover")` — same-element selector, must be a string literal
+ * - 1 arg: `when(":hover")` / `when('[data-state="open"]')` — same-element selector,
+ *   must be a string literal
  * - 3 args: `when(marker, "ancestor", ":hover")` — marker must be a marker variable or
  *   the shared `marker` token, relationship/pseudo must be string literals
  */
 function resolveWhenCall(
   node: CallChainNode,
 ):
-  | { kind: "selector"; pseudo: string }
+  | { kind: "selector"; selector: string }
   | { kind: "relationship"; pseudo: string; markerNode?: any; relationship: string } {
   if (node.args.length !== 1 && node.args.length !== 3) {
     throw new UnsupportedPatternError(
@@ -1222,11 +1223,11 @@ function resolveWhenCall(
   }
 
   if (node.args.length === 1) {
-    const pseudoArg = node.args[0];
-    if (pseudoArg.type !== "StringLiteral") {
+    const selectorArg = node.args[0];
+    if (selectorArg.type !== "StringLiteral") {
       throw new UnsupportedPatternError(`when() selector must be a string literal`);
     }
-    return { kind: "selector", pseudo: (pseudoArg as any).value };
+    return { kind: "selector", selector: (selectorArg as any).value };
   }
 
   const markerArg = node.args[0];

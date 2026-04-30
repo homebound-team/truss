@@ -2211,6 +2211,22 @@ describe("transform", () => {
     );
   });
 
+  test("Css.when('[data-state=\"open\"]').blue.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.when('[data-state="open"]').blue.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "data_state_open_blue" };
+    `,
+      `
+        .data_state_open_blue[data-state="open"] {
+          color: #526675;
+        }
+      `,
+    );
+  });
+
   test("Css.when(marker, 'ancestor', ':hover').blue.$", () => {
     expectTrussTransform(`
       import { Css, marker } from "./Css";
