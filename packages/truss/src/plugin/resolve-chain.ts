@@ -1446,12 +1446,16 @@ function mediaQueryForBreakpointName(mapping: TrussMapping, bpName: string): str
   return mapping.breakpoints[key] ?? null;
 }
 
-function sanitizeSetVarAbbrPart(cssVarName: string): string {
-  return cssVarName
-    .replace(/^--/, "var_")
+/**
+ * Base class-name fragment for a setVar segment: leading `--` on the custom property becomes `__`,
+ * then the name is sanitized for use in a CSS class (same rules as value sanitization elsewhere).
+ */
+function setVarClassBaseFromCssVarName(cssVarName: string): string {
+  const body = (cssVarName.startsWith("--") ? cssVarName.slice(2) : cssVarName)
     .replace(/[^a-zA-Z0-9]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "");
+  return `__${body}`;
 }
 
 function containerQueryStringFromBounds(name: string | undefined, gt: number | undefined, lt: number | undefined): string {
@@ -1513,6 +1517,24 @@ function resolveSetVarPropertyKey(prop: t.ObjectProperty, mapping: TrussMapping)
   throw new UnsupportedPatternError(`setVar() computed keys must be Tokens.*-style members`);
 }
 
+/**
+ * Expands one `setVar` property value into one or more static "leaves" for emission.
+ *
+ * Input: the AST for a single value — either a string/number literal, or an object
+ * `{ default?, media?, container? }` when the variable is responsive.
+ *
+ * Output: each leaf is a concrete literal plus a condition context (viewport `mediaQuery`,
+ * `@container` string in `mediaQuery`, or base). `resolveSetVarCall` turns each leaf into
+ * a `ResolvedSegment` with `defs: { [cssVarName]: literal }`.
+ *
+ * I.e. `"8px"` → one leaf with the inherited context (often unconditional).
+ *
+ * I.e. `{ default: "blue", media: { sm: "green" } }` → `"blue"` in base context, and `"green"`
+ * with `mediaQuery` set from `mapping.breakpoints` for `ifSm` (same `@media` as `Css.ifSm`).
+ *
+ * I.e. `{ container: [{ gt: 400, value: "10px" }] }` → one leaf with `mediaQuery` like
+ * `@container (min-width: 401px)` (same shape as `ifContainer({ gt: 400 })`).
+ */
 function expandSetVarValueToLeaves(
   valueNode: t.Expression,
   mapping: TrussMapping,
@@ -1704,7 +1726,7 @@ function resolveSetVarCall(
     const cssVarName = resolveSetVarPropertyKey(prop, mapping);
     const leaves = expandSetVarValueToLeaves(prop.value as t.Expression, mapping, baseContext);
     for (const leaf of leaves) {
-      const abbr = `setVar_${sanitizeSetVarAbbrPart(cssVarName)}`;
+      const abbr = setVarClassBaseFromCssVarName(cssVarName);
       segments.push(
         segmentWithConditionContext(
           {

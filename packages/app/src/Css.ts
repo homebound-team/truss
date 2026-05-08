@@ -41,7 +41,11 @@ export type RuntimeStyles = RawCssProperties & { readonly __kind: "runtime" };
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
-export type CssSetVarKeys = `--${string}`;
+export enum Tokens {
+  ThemeAccent = "--theme-accent",
+}
+
+export type CssSetVarKeys = Tokens | `--${string}`;
 
 export type CssSetVarScalar = string | number;
 
