@@ -1,3 +1,9 @@
+## [2.23.0](https://github.com/homebound-team/truss/compare/v2.22.0...v2.23.0) (2026-05-08)
+
+### Features
+
+* Token support ([#249](https://github.com/homebound-team/truss/issues/249)) ([1836f82](https://github.com/homebound-team/truss/commit/1836f8276b2368ef2aee333010b1636caf5cf3e9))
+
 ## [2.22.0](https://github.com/homebound-team/truss/compare/v2.21.6...v2.22.0) (2026-04-30)
 
 ### Features
