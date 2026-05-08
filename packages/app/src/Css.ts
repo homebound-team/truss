@@ -41,6 +41,20 @@ export type RuntimeStyles = RawCssProperties & { readonly __kind: "runtime" };
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
+export enum Tokens {
+  ThemeAccent = "--theme-accent",
+}
+
+export type CssSetVarKeys = Tokens | `--${string}`;
+
+export type CssSetVarScalar = string | number;
+
+export type CssSetVarValue = CssSetVarScalar | {
+  default?: CssSetVarScalar;
+  media?: Partial<Record<Breakpoint, CssSetVarScalar>>;
+  container?: Array<{ name?: string; gt?: number; lt?: number; value: CssSetVarScalar }>;
+};
+
 // Augment React types so all JSX elements accept the `css` prop:
 // - HTMLAttributes/SVGAttributes cover intrinsic elements (div, svg, etc.)
 // - JSX.IntrinsicAttributes covers custom components (Card, Page, etc.)
@@ -2488,6 +2502,12 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   style(inlineStyle: InlineStyle): CssBuilder<T, S> {
     void inlineStyle;
     return this.unsupportedRuntime("style() cannot be used in RuntimeStyle css expressions.");
+  }
+
+  /** Set CSS custom properties via atomic classes (resolved at build time on web). */
+  setVar(_values: Partial<Record<CssSetVarKeys, CssSetVarValue>>): CssBuilder<T, S> {
+    void _values;
+    return this.unsupportedRuntime("setVar() cannot be used in RuntimeStyle css expressions.");
   }
 
   /** Convert a style hash into `{ className, style }` props for manual spreading into non-`css=` contexts. */

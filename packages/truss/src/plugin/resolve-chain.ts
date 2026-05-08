@@ -1,4 +1,5 @@
 import type * as t from "@babel/types";
+import { pascalCase } from "change-case";
 import {
   getLonghandLookup,
   type MarkerSegment,
@@ -632,6 +633,20 @@ export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): Resolved
             context.whenPseudo,
           );
           segments.push(seg);
+          continue;
+        }
+
+        // CSS custom properties as atomic classes, i.e. `Css.setVar({ [Tokens.x]: "1px" }).$`
+        if (abbr === "setVar") {
+          const segs = resolveSetVarCall(
+            node,
+            mapping,
+            context.mediaQuery,
+            context.pseudoClass,
+            context.pseudoElement,
+            context.whenPseudo,
+          );
+          segments.push(...segs);
           continue;
         }
 
@@ -1423,6 +1438,309 @@ function stringLiteralValue(node: t.Expression | t.SpreadElement, errorMessage: 
     return node.quasis[0].value.cooked ?? "";
   }
   throw new UnsupportedPatternError(errorMessage);
+}
+
+function mediaQueryForBreakpointName(mapping: TrussMapping, bpName: string): string | null {
+  if (!mapping.breakpoints) return null;
+  const key = `if${pascalCase(bpName)}`;
+  return mapping.breakpoints[key] ?? null;
+}
+
+/**
+ * Base class-name fragment for a setVar segment: leading `--` on the custom property becomes `__`,
+ * then the name is sanitized for use in a CSS class (same rules as value sanitization elsewhere).
+ */
+function setVarClassBaseFromCssVarName(cssVarName: string): string {
+  const body = (cssVarName.startsWith("--") ? cssVarName.slice(2) : cssVarName)
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  return `__${body}`;
+}
+
+function containerQueryStringFromBounds(name: string | undefined, gt: number | undefined, lt: number | undefined): string {
+  const parts: string[] = [];
+  if (gt !== undefined) {
+    parts.push(`(min-width: ${gt + 1}px)`);
+  }
+  if (lt !== undefined) {
+    parts.push(`(max-width: ${lt}px)`);
+  }
+  const query = parts.join(" and ");
+  const namePrefix = name ? `${name} ` : "";
+  return `@container ${namePrefix}${query}`;
+}
+
+function resolveSetVarPropertyKey(prop: t.ObjectProperty, mapping: TrussMapping): string {
+  const key = prop.key;
+  if (!prop.computed) {
+    if (key.type === "StringLiteral") {
+      if (key.value.startsWith("--")) {
+        return key.value;
+      }
+      throw new UnsupportedPatternError(
+        `setVar() string keys must be CSS variables starting with "--" - got ${JSON.stringify(key.value)}`,
+      );
+    }
+    if (key.type === "Identifier") {
+      throw new UnsupportedPatternError(
+        `setVar() requires computed keys like [Tokens.Name] or string keys "--my-var", not bare property names`,
+      );
+    }
+    throw new UnsupportedPatternError(`setVar() property keys must be string literals or [Tokens.*] members`);
+  }
+
+  if (key.type === "MemberExpression") {
+    const mem = key;
+    const memberName =
+      !mem.computed && mem.property.type === "Identifier"
+        ? mem.property.name
+        : mem.computed && mem.property.type === "StringLiteral"
+          ? mem.property.value
+          : null;
+    if (memberName == null) {
+      throw new UnsupportedPatternError(
+        `setVar() [Tokens.name] keys must use a plain .member or ["string"] member access`,
+      );
+    }
+    const tokenMap = mapping.tokens;
+    if (!tokenMap || !(memberName in tokenMap)) {
+      throw new UnsupportedPatternError(
+        tokenMap
+          ? `Unknown token "${memberName}" - add it to config.tokens or use a "--" string literal key`
+          : `setVar() [Tokens.*] requires config.tokens; use "--" string literal keys only`,
+      );
+    }
+    return tokenMap[memberName];
+  }
+
+  throw new UnsupportedPatternError(`setVar() computed keys must be Tokens.*-style members`);
+}
+
+/**
+ * Expands one `setVar` property value into one or more static "leaves" for emission.
+ *
+ * Input: the AST for a single value — either a string/number literal, or an object
+ * `{ default?, media?, container? }` when the variable is responsive.
+ *
+ * Output: each leaf is a concrete literal plus a condition context (viewport `mediaQuery`,
+ * `@container` string in `mediaQuery`, or base). `resolveSetVarCall` turns each leaf into
+ * a `ResolvedSegment` with `defs: { [cssVarName]: literal }`.
+ *
+ * I.e. `"8px"` → one leaf with the inherited context (often unconditional).
+ *
+ * I.e. `{ default: "blue", media: { sm: "green" } }` → `"blue"` in base context, and `"green"`
+ * with `mediaQuery` set from `mapping.breakpoints` for `ifSm` (same `@media` as `Css.ifSm`).
+ *
+ * I.e. `{ container: [{ gt: 400, value: "10px" }] }` → one leaf with `mediaQuery` like
+ * `@container (min-width: 401px)` (same shape as `ifContainer({ gt: 400 })`).
+ */
+function expandSetVarValueToLeaves(
+  valueNode: t.Expression,
+  mapping: TrussMapping,
+  baseCtx: ResolvedConditionContext,
+): Array<{ literal: string; ctx: ResolvedConditionContext }> {
+  const unwrapped = unwrapExpression(valueNode);
+  const scalar = tryEvaluateAddLiteral(unwrapped);
+  if (scalar !== null) {
+    return [{ literal: scalar, ctx: cloneConditionContext(baseCtx) }];
+  }
+
+  if (unwrapped.type !== "ObjectExpression") {
+    throw new UnsupportedPatternError(
+      `setVar() values must be string/number literals or a { default?, media?, container? } object`,
+    );
+  }
+
+  let defaultLit: string | undefined;
+  let mediaObj: t.ObjectExpression | undefined;
+  let containerArr: t.ArrayExpression | undefined;
+
+  for (const prop of unwrapped.properties) {
+    if (prop.type === "SpreadElement") {
+      throw new UnsupportedPatternError(`setVar() responsive object does not support spread properties`);
+    }
+    if (prop.type !== "ObjectProperty" || prop.computed) {
+      throw new UnsupportedPatternError(`setVar() responsive object only supports plain data properties`);
+    }
+    const name = objectPropertyName(prop.key);
+    if (!name) {
+      throw new UnsupportedPatternError(`setVar() responsive object: invalid property key`);
+    }
+    if (name === "default") {
+      const v = tryEvaluateAddLiteral(unwrapExpression(prop.value as t.Expression));
+      if (v === null) {
+        throw new UnsupportedPatternError(`setVar().default must be a string or number literal`);
+      }
+      defaultLit = v;
+      continue;
+    }
+    if (name === "media") {
+      if (prop.value.type !== "ObjectExpression") {
+        throw new UnsupportedPatternError(`setVar().media must be an object literal`);
+      }
+      mediaObj = prop.value;
+      continue;
+    }
+    if (name === "container") {
+      if (prop.value.type !== "ArrayExpression") {
+        throw new UnsupportedPatternError(`setVar().container must be an array literal`);
+      }
+      containerArr = prop.value;
+      continue;
+    }
+    throw new UnsupportedPatternError(`setVar() responsive object does not support property "${name}"`);
+  }
+
+  const leaves: Array<{ literal: string; ctx: ResolvedConditionContext }> = [];
+
+  if (defaultLit !== undefined) {
+    leaves.push({ literal: defaultLit, ctx: cloneConditionContext(baseCtx) });
+  }
+
+  if (mediaObj) {
+    for (const mprop of mediaObj.properties) {
+      if (mprop.type === "SpreadElement") {
+        throw new UnsupportedPatternError(`setVar().media does not support spread properties`);
+      }
+      if (mprop.type !== "ObjectProperty" || mprop.computed) {
+        throw new UnsupportedPatternError(`setVar().media only supports plain identifier or string keys`);
+      }
+      const bpName = objectPropertyName(mprop.key);
+      if (!bpName) {
+        throw new UnsupportedPatternError(`setVar().media: invalid breakpoint key`);
+      }
+      const mq = mediaQueryForBreakpointName(mapping, bpName);
+      if (!mq) {
+        throw new UnsupportedPatternError(
+          `Unknown breakpoint "${bpName}" in setVar().media - use a Breakpoint name from truss-config`,
+        );
+      }
+      const v = tryEvaluateAddLiteral(unwrapExpression(mprop.value as t.Expression));
+      if (v === null) {
+        throw new UnsupportedPatternError(`setVar().media[${bpName}] must be a string or number literal`);
+      }
+      const ctx = cloneConditionContext(baseCtx);
+      ctx.mediaQuery = mq;
+      leaves.push({ literal: v, ctx });
+    }
+  }
+
+  if (containerArr) {
+    for (const elt of containerArr.elements) {
+      if (elt === null) {
+        continue;
+      }
+      if (elt.type !== "ObjectExpression") {
+        throw new UnsupportedPatternError(`setVar().container entries must be object literals`);
+      }
+      let rowValue: string | undefined;
+      let cname: string | undefined;
+      let lt: number | undefined;
+      let gt: number | undefined;
+      for (const rprop of elt.properties) {
+        if (rprop.type === "SpreadElement") {
+          throw new UnsupportedPatternError(`setVar().container row does not support spread`);
+        }
+        if (rprop.type !== "ObjectProperty" || rprop.computed) {
+          throw new UnsupportedPatternError(`setVar().container row: use plain properties only`);
+        }
+        const rk = objectPropertyName(rprop.key);
+        if (!rk) {
+          continue;
+        }
+        const rv = rprop.value as t.Expression;
+        if (rk === "value") {
+          const lit = tryEvaluateAddLiteral(unwrapExpression(rv));
+          if (lit === null) {
+            throw new UnsupportedPatternError(`setVar().container row "value" must be a string or number literal`);
+          }
+          rowValue = lit;
+        } else if (rk === "name") {
+          cname = stringLiteralValue(rv, `setVar().container name must be a string literal`);
+        } else if (rk === "lt") {
+          lt = numericLiteralValue(rv, `setVar().container lt must be a numeric literal`);
+        } else if (rk === "gt") {
+          gt = numericLiteralValue(rv, `setVar().container gt must be a numeric literal`);
+        } else {
+          throw new UnsupportedPatternError(`setVar().container row does not support property "${rk}"`);
+        }
+      }
+      if (rowValue === undefined) {
+        throw new UnsupportedPatternError(`setVar().container row requires a "value" property`);
+      }
+      if (lt === undefined && gt === undefined) {
+        throw new UnsupportedPatternError(`setVar().container row requires at least one of gt or lt`);
+      }
+      const containerMq = containerQueryStringFromBounds(cname, gt, lt);
+      const ctx = cloneConditionContext(baseCtx);
+      ctx.mediaQuery = containerMq;
+      leaves.push({ literal: rowValue, ctx });
+    }
+  }
+
+  if (leaves.length === 0) {
+    throw new UnsupportedPatternError(
+      `setVar() responsive object must include at least one of default, media entries, or container entries`,
+    );
+  }
+
+  return leaves;
+}
+
+function resolveSetVarCall(
+  node: CallChainNode,
+  mapping: TrussMapping,
+  mediaQuery: string | null,
+  pseudoClass: string | null,
+  pseudoElement: string | null,
+  whenPseudo: WhenCondition | null,
+): ResolvedSegment[] {
+  if (node.args.length !== 1) {
+    throw new UnsupportedPatternError(`setVar() requires exactly 1 argument (an object literal)`);
+  }
+  const arg = node.args[0];
+  if (arg.type === "SpreadElement") {
+    throw new UnsupportedPatternError(`setVar() does not support spread arguments`);
+  }
+  if (arg.type !== "ObjectExpression") {
+    throw new UnsupportedPatternError(`setVar() requires an object literal argument`);
+  }
+
+  const baseContext: ResolvedConditionContext = {
+    mediaQuery,
+    pseudoClass,
+    pseudoElement,
+    whenPseudo,
+  };
+
+  const segments: ResolvedSegment[] = [];
+
+  for (const prop of arg.properties) {
+    if (prop.type === "SpreadElement") {
+      throw new UnsupportedPatternError(`setVar() does not support spread properties`);
+    }
+    if (prop.type !== "ObjectProperty") {
+      throw new UnsupportedPatternError(`setVar() only supports object properties`);
+    }
+    const cssVarName = resolveSetVarPropertyKey(prop, mapping);
+    const leaves = expandSetVarValueToLeaves(prop.value as t.Expression, mapping, baseContext);
+    for (const leaf of leaves) {
+      const abbr = setVarClassBaseFromCssVarName(cssVarName);
+      segments.push(
+        segmentWithConditionContext(
+          {
+            abbr,
+            defs: { [cssVarName]: leaf.literal },
+            argResolved: leaf.literal,
+          },
+          leaf.ctx,
+        ),
+      );
+    }
+  }
+
+  return segments;
 }
 
 // ── Chain node types (parsed from AST) ────────────────────────────────

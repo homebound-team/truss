@@ -17,6 +17,30 @@ export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Padding: ["padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
 };
 
+/** Emitted in generated Css.ts before CssBuilder so `setVar` types are in scope. */
+function emitTokensEnumAndSetVarTypes(tokens: Config["tokens"] | undefined): string {
+  const entries =
+    tokens && typeof tokens === "object"
+      ? Object.entries(tokens).filter(([, v]) => typeof v === "string")
+      : [];
+  const hasTokens = entries.length > 0;
+  const enumBlock = hasTokens
+    ? `export enum Tokens {\n${entries.map(([name, value]) => `  ${name} = ${JSON.stringify(value)},`).join("\n")}\n}\n\n`
+    : "";
+  const keysType = hasTokens
+    ? `export type CssSetVarKeys = Tokens | \`--\${string}\`;\n\n`
+    : `export type CssSetVarKeys = \`--\${string}\`;\n\n`;
+  const scalar = `export type CssSetVarScalar = string | number;\n\n`;
+  const valueType = `export type CssSetVarValue =
+  | CssSetVarScalar
+  | {
+      default?: CssSetVarScalar;
+      media?: Partial<Record<Breakpoint, CssSetVarScalar>>;
+      container?: Array<{ name?: string; gt?: number; lt?: number; value: CssSetVarScalar }>;
+    };\n\n`;
+  return enumBlock + keysType + scalar + valueType;
+}
+
 export async function generate(config: Config): Promise<void> {
   const { outputPath } = config;
   const target: string = config.target ?? "web";
@@ -41,7 +65,7 @@ export async function generate(config: Config): Promise<void> {
 }
 
 function generateReactNativeBuilder(config: Config): Code {
-  const { fonts, increment, extras, typeAliases, breakpoints = {}, palette } = config;
+  const { fonts, increment, extras, typeAliases, breakpoints = {}, palette, tokens } = config;
   const sections = generateSections(config);
 
   const lines = Object.entries(sections)
@@ -112,6 +136,8 @@ export type ${def("Properties")} = ${CssProperties}<string | 0, string>;
 export type ${def("InlineStyle")} = Record<string, string | number | undefined>;
 
 ${typographyType}
+
+${emitTokensEnumAndSetVarTypes(tokens)}
 
 type Opts<T> = {
   rules: T,
@@ -244,6 +270,12 @@ class CssBuilder<T extends Properties> {
     return this;
   }
 
+  /** Set CSS custom properties (web build-time only; not supported on react-native). */
+  setVar(_values: Partial<Record<CssSetVarKeys, CssSetVarValue>>): CssBuilder<T> {
+    void _values;
+    throw new Error("Css.setVar() is only supported when Truss target is \\\"web\\\" (build-time atomic CSS).");
+  }
+
   /** Tagged template literal for raw CSS in .css.ts files; passes through the string as-is. */
   raw(strings: TemplateStringsArray, ...values: unknown[]): string {
     return String.raw(strings, ...values);
@@ -351,7 +383,7 @@ function collectWebGenerationData(config: Config): {
  * which reads the companion `Css.json` to understand what each abbreviation produces.
  */
 function generateWebCssBuilder(config: Config, sections: Record<string, UtilityMethod[]>): Code {
-  const { fonts, increment, extras, typeAliases, palette, breakpoints = {} } = config;
+  const { fonts, increment, extras, typeAliases, palette, breakpoints = {}, tokens } = config;
 
   const lines = Object.entries(sections)
     .map(([name, value]) => [`// ${name}`, ...value, ""])
@@ -433,6 +465,8 @@ export type ${def("BuildtimeStyles")} = RawCssProperties & { readonly __kind: "b
 export type ${def("RuntimeStyles")} = RawCssProperties & { readonly __kind: "runtime" };
 
 ${typographyType}
+
+${emitTokensEnumAndSetVarTypes(tokens)}
 
 // Augment React types so all JSX elements accept the \`css\` prop:
 // - HTMLAttributes/SVGAttributes cover intrinsic elements (div, svg, etc.)
@@ -605,6 +639,12 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
     return this.unsupportedRuntime("style() cannot be used in RuntimeStyle css expressions.");
   }
 
+  /** Set CSS custom properties via atomic classes (resolved at build time on web). */
+  setVar(_values: Partial<Record<CssSetVarKeys, CssSetVarValue>>): CssBuilder<T, S> {
+    void _values;
+    return this.unsupportedRuntime("setVar() cannot be used in RuntimeStyle css expressions.");
+  }
+
   /** Convert a style hash into \`{ className, style }\` props for manual spreading into non-\`css=\` contexts. */
   props(styles: Properties): Record<string, unknown> {
     return trussProps(styles as any);
@@ -704,6 +744,7 @@ export interface TrussMapping {
   increment: number;
   breakpoints?: Record<string, string>;
   typography?: string[];
+  tokens?: Record<string, string>;
   abbreviations: Record<string, TrussMappingEntry>;
 }
 
@@ -767,10 +808,13 @@ function generateTrussMapping(config: Config, entries: WebEntry[]): TrussMapping
     breakpointEntries[`if${pascalCase(name)}`] = mediaQuery;
   }
 
+  const tokenEntries = config.tokens && Object.keys(config.tokens).length > 0 ? config.tokens : undefined;
+
   return {
     increment: config.increment,
     ...(Object.keys(breakpointEntries).length > 0 ? { breakpoints: breakpointEntries } : {}),
     ...(Object.keys(config.fonts).length > 0 ? { typography: Object.keys(config.fonts) } : {}),
+    ...(tokenEntries ? { tokens: tokenEntries as Record<string, string> } : {}),
     abbreviations,
   };
 }
@@ -785,6 +829,9 @@ function condensedJson(mapping: TrussMapping): string {
   }
   if (mapping.typography && mapping.typography.length > 0) {
     lines.push(`  "typography": ${JSON.stringify(mapping.typography)},`);
+  }
+  if (mapping.tokens && Object.keys(mapping.tokens).length > 0) {
+    lines.push(`  "tokens": ${JSON.stringify(mapping.tokens)},`);
   }
   lines.push(`  "abbreviations": {`);
   const entries = Object.entries(mapping.abbreviations);

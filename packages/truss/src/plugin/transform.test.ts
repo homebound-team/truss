@@ -3553,6 +3553,94 @@ test("css prop with spread object is rewritten even without Css chain usage", ()
   );
 });
 
+test("setVar: ad hoc --keys emit atomic classes", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const el = <div css={Css.setVar({ "--local-sidebar": "280px" }).$} />;
+    `).toHaveTrussOutput(
+    `
+      const el = <div className="__local_sidebar_280px" />;
+    `,
+    `
+      .__local_sidebar_280px {
+        --local-sidebar: 280px;
+      }
+    `,
+  );
+});
+
+test("setVar: config.tokens keys via [Tokens.X]", () => {
+  expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const el = <div css={Css.setVar({ [Tokens.ThemeAccent]: "rgba(0,0,0,1)" }).$} />;
+    `).toHaveTrussOutput(
+    `
+      import { Tokens } from "./Css";
+      const el = <div className="__theme_accent_rgba_0_0_0_1" />;
+    `,
+    `
+      .__theme_accent_rgba_0_0_0_1 {
+        --theme-accent: rgba(0,0,0,1);
+      }
+    `,
+  );
+});
+
+test("setVar: responsive media emits breakpoint-wrapped rules", () => {
+  expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const el = <div css={Css.setVar({ [Tokens.ThemeAccent]: { default: "blue", media: { sm: "green" } } }).$} />;
+    `).toHaveTrussOutput(
+    `
+      import { Tokens } from "./Css";
+      const el = <div className="__theme_accent_blue sm___theme_accent_green" />;
+    `,
+    `
+      .__theme_accent_blue {
+        --theme-accent: blue;
+      }
+      @media screen and (max-width: 599px) {
+        .sm___theme_accent_green.sm___theme_accent_green {
+          --theme-accent: green;
+        }
+      }
+    `,
+  );
+});
+
+test("setVar: responsive container rows emit @container rules", () => {
+  expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const el = <div css={Css.setVar({ [Tokens.ThemeAccent]: { container: [{ gt: 400, value: "10px" }] } }).$} />;
+    `).toHaveTrussOutput(
+    `
+      import { Tokens } from "./Css";
+      const el = <div className="mq___theme_accent_10px" />;
+    `,
+    `
+      @container (min-width: 401px) {
+        .mq___theme_accent_10px.mq___theme_accent_10px {
+          --theme-accent: 10px;
+        }
+      }
+    `,
+  );
+});
+
+test("setVar: unknown token member errors and skips defs", () => {
+  expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const el = <div css={Css.setVar({ [Tokens.Missing]: "1" }).$} />;
+    `).toHaveTrussOutput(
+    `
+      import { Tokens } from "./Css";
+      console.error("[truss] Unsupported pattern: Unknown token \\"Missing\\" - add it to config.tokens or use a \\"--\\" string literal key (test.tsx:2)");
+      const el = <div className="" />;
+    `,
+    ``,
+  );
+});
+
 /** Expect helper around transform code and css outputs. */
 function expectTrussTransform(code: string, options?: { debug?: boolean }) {
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);
