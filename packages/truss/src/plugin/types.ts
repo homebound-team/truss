@@ -3,6 +3,8 @@ export interface TrussMapping {
   increment: number;
   breakpoints?: Record<string, string>;
   typography?: string[];
+  /** Token member name → CSS variable (from `config.tokens`), for `setVar` key resolution. */
+  tokens?: Record<string, string>;
   abbreviations: Record<string, TrussMappingEntry>;
 }
 

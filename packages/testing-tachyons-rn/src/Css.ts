@@ -15,6 +15,16 @@ export type InlineStyle = Record<string, string | number | undefined>;
 
 export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
+export type CssSetVarKeys = `--${string}`;
+
+export type CssSetVarScalar = string | number;
+
+export type CssSetVarValue = CssSetVarScalar | {
+  default?: CssSetVarScalar;
+  media?: Partial<Record<Breakpoint, CssSetVarScalar>>;
+  container?: Array<{ name?: string; gt?: number; lt?: number; value: CssSetVarScalar }>;
+};
+
 type Opts<T> = { rules: T; enabled: boolean; selector: string | undefined; elseApplied: boolean };
 
 function invertMediaQuery(query: string): string {
@@ -646,6 +656,12 @@ class CssBuilder<T extends Properties> {
   style(inlineStyle: InlineStyle): CssBuilder<T> {
     void inlineStyle;
     return this;
+  }
+
+  /** Set CSS custom properties (web build-time only; not supported on react-native). */
+  setVar(_values: Partial<Record<CssSetVarKeys, CssSetVarValue>>): CssBuilder<T> {
+    void _values;
+    throw new Error('Css.setVar() is only supported when Truss target is "web" (build-time atomic CSS).');
   }
 
   /** Tagged template literal for raw CSS in .css.ts files; passes through the string as-is. */

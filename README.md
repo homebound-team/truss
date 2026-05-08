@@ -107,6 +107,8 @@ And a static, build-time generated CSS file:
   - Color palette, fonts, increments, and breakpoint 🎨s
   - [See example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below
 
+- Optional **design tokens** (`config.tokens`) and **`Css.setVar`** for scoped CSS variables on **web** (build-time atomic classes). React Native does not support `setVar`. See [Design tokens and Css.setVar](#design-tokens-and-csssetvar).
+
 - Escape hatch to arbitrary/runtime selectors
   - `useRuntimeStyle({ body: RuntimeCss.blue.$ })`
   - Only applied when the component is mounted
@@ -830,7 +832,13 @@ const fonts = {
 
 const breakpoints = { sm: 0, md: 600, lg: 960 };
 
-// ...rest of the config file...
+/** Optional: names → CSS custom properties. Codegen emits a `Tokens` enum in Css.ts. */
+const tokens = {
+  ThemePrimary: "--theme-primary",
+  LayoutSidebarWidth: "--layout-sidebar-width",
+};
+
+// ...rest of the config file (pass `tokens` into defineConfig)...
 ```
 
 Projects should heavily customize these settings to match their project-specific design system, then run `npm run truss` to get an updated `Css.ts`, i.e. after adding `Green: "green"` as a color in `palette`, the `Css.ts` file will automatically have utility methods added like:
@@ -840,6 +848,23 @@ Projects should heavily customize these settings to match their project-specific
   get bgGreen() { return this.add("backgroundColor", "green"); }
   get bGreen() { return this.add("borderColor", "green"); }
 
+```
+
+#### Design tokens and Css.setVar
+
+You can declare a **`tokens`** map in `truss-config` / `defineConfig`: each key is a PascalCase name, each value is a CSS variable string (`"--my-token"`). Codegen adds **`export enum Tokens { … }`** (same idea as `Palette`) plus types used by **`Css.setVar`**. Use those names in `palette`, `fonts`, or sections with normal `var(…)` values—for example `Primary: "var(--theme-primary, #2563eb)"` once `--theme-primary` matches a `tokens` entry.
+
+**`Css.setVar({ … })`** (web target only) applies custom properties via **atomic classes** the Vite plugin emits—not `Css.style()` / inline styles—so rules can sit under the same `@media` / `@container` machinery as the rest of Truss. Keys are either **`[Tokens.SomeName]`** or ad-hoc **`"--local-var"`** string keys. Values must be **compile-time literals** (or an object with optional **`default`**, **`media`** keyed by your generated **`Breakpoint`** names, and **`container`** rows with the same **`gt` / `lt` / `name`** shape as **`ifContainer`**). You can omit **`default`** if you only need conditional branches, as long as at least one branch is present.
+
+React Native: **`setVar`** is not supported (no web atomic pipeline).
+
+```tsx
+<div
+  css={Css.setVar({
+    [Tokens.ThemePrimary]: "#2563eb",
+    "--one-off": "12px",
+  }).df.$}
+/>
 ```
 
 ### Per-Project Utility Methods

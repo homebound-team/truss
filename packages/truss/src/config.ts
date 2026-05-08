@@ -9,6 +9,12 @@ import { Code } from "ts-poet";
 export type FontConfig = Record<string, string | Properties>;
 
 /**
+ * Maps a design token name (enum member / key) to a CSS custom property name.
+ * Values must be valid custom property identifiers (`--…`).
+ */
+export type TokenRegistry = Record<string, `--${string}`>;
+
+/**
  * Provides users with an easy way to configure the major/most-often configurable
  * aspect of a design system, i.e. the palette, fonts, and increments.
  *
@@ -53,6 +59,12 @@ export interface Config {
 
   /** Breakpoints, i.e. `{ sm: 0, md: 500 }`. */
   breakpoints?: Record<string, number>;
+
+  /**
+   * Optional design tokens: emitted as `Tokens` enum in generated `Css.ts` and available to
+   * `Css.setVar({ [Tokens.X]: … })` at build time (web target).
+   */
+  tokens?: TokenRegistry;
 
   /**
    * Which default methods to include.
