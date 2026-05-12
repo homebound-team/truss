@@ -12,6 +12,7 @@ import {
 import { extractChain } from "./ast-utils";
 import { invertMediaQuery } from "../media-query";
 import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
+import { trussWebIncrementCssValue } from "../spacing-css-var";
 
 /**
  * Optional hook for resolving identifier references like `const same = Css.blue.$`
@@ -877,7 +878,7 @@ function resolveVariableCall(
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
   }
-  const literalValue = tryEvaluateLiteral(node.args[0], entry.incremented, mapping.increment);
+  const literalValue = tryEvaluateLiteral(node.args[0], entry.incremented);
   return buildParameterizedSegment({
     abbr,
     props: entry.props,
@@ -1297,16 +1298,12 @@ function isLegacyDefaultMarkerExpression(node: t.Expression | t.SpreadElement): 
 
 /**
  * Try to evaluate a literal AST node to a string value.
- * For incremented entries, also evaluates `maybeInc(literal)`.
+ * For incremented entries, also evaluates `maybeInc(literal)` (web: calc on `--t-spacing`).
  */
-function tryEvaluateLiteral(
-  node: t.Expression | t.SpreadElement,
-  incremented: boolean,
-  increment: number,
-): string | null {
+function tryEvaluateLiteral(node: t.Expression | t.SpreadElement, incremented: boolean): string | null {
   if (node.type === "NumericLiteral") {
     if (incremented) {
-      return `${node.value * increment}px`;
+      return trussWebIncrementCssValue(node.value);
     }
     return String(node.value);
   }
@@ -1316,7 +1313,7 @@ function tryEvaluateLiteral(
   if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
     const val = -node.argument.value;
     if (incremented) {
-      return `${val * increment}px`;
+      return trussWebIncrementCssValue(val);
     }
     return String(val);
   }

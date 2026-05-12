@@ -69,7 +69,7 @@ describe("transformCssTs", () => {
     expect(n(css)).toBe(
       n(`
         .foo {
-          margin-top: 16px;
+          margin-top: calc(var(--t-spacing) * 2);
         }
       `),
     );
@@ -513,7 +513,9 @@ describe("trussPlugin .css.ts integration", () => {
     // The CSS should be available via the dev virtual endpoint instead
     const css = getVirtualCss(plugin);
     expect(css).toBe(
-      ["/* @truss arbitrary:start */", ".foo {", "  display: flex;", "}", "/* @truss arbitrary:end */"].join("\n"),
+      [":root { --t-spacing: 8px; }", "/* @truss arbitrary:start */", ".foo {", "  display: flex;", "}", "/* @truss arbitrary:end */"].join(
+        "\n",
+      ),
     );
   });
 

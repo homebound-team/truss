@@ -35,13 +35,14 @@ void runtimeInBuildtimeProp;
  *
  * Variable/parameterized styles (e.g. `Css.mt(n).$` with a variable) use CSS
  * variables: the class sets `margin-top: var(--marginTop)` and the inline style
- * sets `--marginTop: 16px`. jsdom cannot resolve `var()` references, so truly
+ * sets `--marginTop` via `maybeInc` (e.g. `calc(var(--t-spacing) * 2)`). jsdom cannot resolve `var()` references, so truly
  * variable values must be tested by checking the CSS variable on the element's
  * inline style.
  *
  * Note: When the argument to a variable method is a literal (e.g. `Css.mt(2).$`),
  * Truss evaluates it at compile time and produces a static class — no CSS
- * variable is used. Use `toHaveStyle` for these cases.
+ * variable is used. `toHaveStyle` compares against resolved values; jsdom may
+ * report `calc(var(--t-spacing) * k)` for increment-based lengths.
  */
 
 describe("Truss CssBuilder", () => {
@@ -121,19 +122,19 @@ describe("Truss CssBuilder", () => {
     test("Css.mt0 applies margin-top: 0", () => {
       const r = render(<div css={Css.mt0.$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ marginTop: "0" });
+      expect(el).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 0)" });
     });
 
-    test("Css.mt1 applies margin-top: 8px", () => {
+    test("Css.mt1 applies margin-top from spacing scale", () => {
       const r = render(<div css={Css.mt1.$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ marginTop: "8px" });
+      expect(el).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 1)" });
     });
 
-    test("Css.mt2 applies margin-top: 16px", () => {
+    test("Css.mt2 applies margin-top from spacing scale", () => {
       const r = render(<div css={Css.mt2.$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ marginTop: "16px" });
+      expect(el).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 2)" });
     });
 
     test("Css.p1 applies padding (expanded to longhands)", () => {
@@ -141,10 +142,10 @@ describe("Truss CssBuilder", () => {
       const el = r.container.firstChild as HTMLElement;
       // StyleX expands padding shorthand into individual sides
       expect(el).toHaveStyle({
-        paddingTop: "8px",
-        paddingRight: "8px",
-        paddingBottom: "8px",
-        paddingLeft: "8px",
+        paddingTop: "calc(var(--t-spacing) * 1)",
+        paddingRight: "calc(var(--t-spacing) * 1)",
+        paddingBottom: "calc(var(--t-spacing) * 1)",
+        paddingLeft: "calc(var(--t-spacing) * 1)",
       });
     });
 
@@ -154,10 +155,10 @@ describe("Truss CssBuilder", () => {
       expect(el).toHaveStyle({ marginTop: "auto" });
     });
 
-    test("Css.gap1 applies gap: 8px", () => {
+    test("Css.gap1 applies gap from spacing scale", () => {
       const r = render(<div css={Css.gap1.$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ gap: "8px" });
+      expect(el).toHaveStyle({ gap: "calc(var(--t-spacing) * 1)" });
     });
   });
 
@@ -166,10 +167,10 @@ describe("Truss CssBuilder", () => {
     // static class — so we test with toHaveStyle. When we pass a variable,
     // Truss uses CSS variables, so we test via inline style.
 
-    test("Css.mt(2) applies margin-top: 16px (literal → static)", () => {
+    test("Css.mt(2) applies margin-top (literal → static)", () => {
       const r = render(<div css={Css.mt(2).$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ marginTop: "16px" });
+      expect(el).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 2)" });
     });
 
     test('Css.mt("10px") applies margin-top: 10px (literal → static)', () => {
@@ -190,10 +191,10 @@ describe("Truss CssBuilder", () => {
       expect(hasCssDeclaration(el, "border-color", { hover: false })).toBe(true);
     });
 
-    test("Css.w(3) applies width: 24px (literal → static)", () => {
+    test("Css.w(3) applies width (literal → static)", () => {
       const r = render(<div css={Css.w(3).$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ width: "24px" });
+      expect(el).toHaveStyle({ width: "calc(var(--t-spacing) * 3)" });
     });
 
     test("Css.wPx(100) applies width: 100px (literal → static)", () => {
@@ -206,7 +207,7 @@ describe("Truss CssBuilder", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(el.style.getPropertyValue("--marginTop")).toBe("16px");
+      expect(el.style.getPropertyValue("--marginTop")).toBe("calc(var(--t-spacing) * 2)");
     });
 
     test("Css.sqPx(n) with variable exposes width/height and CSS vars in computed style", () => {
@@ -238,11 +239,11 @@ describe("Truss CssBuilder", () => {
       expect(el).toHaveStyle({
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
-        paddingTop: "16px",
-        paddingRight: "16px",
-        paddingBottom: "16px",
-        paddingLeft: "16px",
+        gap: "calc(var(--t-spacing) * 1)",
+        paddingTop: "calc(var(--t-spacing) * 2)",
+        paddingRight: "calc(var(--t-spacing) * 2)",
+        paddingBottom: "calc(var(--t-spacing) * 2)",
+        paddingLeft: "calc(var(--t-spacing) * 2)",
       });
     });
 
@@ -252,7 +253,7 @@ describe("Truss CssBuilder", () => {
       expect(el).toHaveStyle({
         display: "flex",
         color: "#353535",
-        marginTop: "16px",
+        marginTop: "calc(var(--t-spacing) * 2)",
       });
     });
 
@@ -263,7 +264,7 @@ describe("Truss CssBuilder", () => {
         borderStyle: "solid",
         borderWidth: "1px",
         borderColor: "#353535",
-        paddingTop: "8px",
+        paddingTop: "calc(var(--t-spacing) * 1)",
       });
       expect(hasCssDeclaration(el, "border-radius", { hover: false, value: "0.25rem" })).toBe(true);
     });
@@ -310,7 +311,7 @@ describe("Truss CssBuilder", () => {
       const r = render(<div css={Css.if(true).mt(2).$} />);
       const el = r.container.firstChild as HTMLElement;
       // Literal argument → static class
-      expect(el).toHaveStyle({ marginTop: "16px" });
+      expect(el).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 2)" });
     });
 
     test("conditional false skips variable style", () => {
@@ -371,7 +372,7 @@ describe("Truss CssBuilder", () => {
         display: "flex",
         alignItems: "center",
         color: "#353535",
-        paddingTop: "8px",
+        paddingTop: "calc(var(--t-spacing) * 1)",
       });
     });
 
@@ -392,7 +393,7 @@ describe("Truss CssBuilder", () => {
       expect(el).toHaveStyle({
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: "calc(var(--t-spacing) * 1)",
         flexDirection: "column",
         color: "#353535",
       });
@@ -460,7 +461,7 @@ describe("Truss CssBuilder", () => {
       const n = 2;
       const r = render(<div css={Css.mt(n).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
-      expect(div.style.getPropertyValue("--marginTop")).toBe("16px");
+      expect(div.style.getPropertyValue("--marginTop")).toBe("calc(var(--t-spacing) * 2)");
     });
 
     test("css prop merges custom inline styles from Css.style", () => {
@@ -472,7 +473,7 @@ describe("Truss CssBuilder", () => {
       const r = render(<div css={Css.blue.mt(n).style(iconVars).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
       expect(div).toHaveStyle({ color: "#526675" });
-      expect(div.style.getPropertyValue("--marginTop")).toBe("16px");
+      expect(div.style.getPropertyValue("--marginTop")).toBe("calc(var(--t-spacing) * 2)");
       expect(div.style.getPropertyValue("--icon-primary")).toBe("#526675");
       expect(div.style.getPropertyValue("--icon-secondary")).toBe("#fcfcfa");
     });
@@ -481,7 +482,7 @@ describe("Truss CssBuilder", () => {
       const r = render(<div css={Css.mt(2).$}>Test</div>);
       const div = r.container.firstChild as HTMLElement;
       // Literal arg is inlined at build time → static class
-      expect(div).toHaveStyle({ marginTop: "16px" });
+      expect(div).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 2)" });
     });
 
     test("css prop merges with existing inline style", () => {
@@ -508,8 +509,10 @@ describe("Truss CssBuilder", () => {
       const style = document.querySelector("style[data-truss-runtime-style]") as HTMLStyleElement;
 
       expect(style).not.toBeNull();
-      expect(style.textContent).toBe(`.hook-target {\n  margin-top: 16px;\n  color: #353535;\n}`);
-      expect(el).toHaveStyle({ marginTop: "16px", color: "#353535" });
+      expect(style.textContent).toBe(
+        ".hook-target {\n  margin-top: calc(var(--t-spacing) * 2);\n  color: #353535;\n}",
+      );
+      expect(el).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 2)", color: "#353535" });
     });
 
     test("removes the injected style tag on unmount", () => {
@@ -572,7 +575,7 @@ describe("Truss CssBuilder", () => {
       expect(el).toHaveStyle({
         display: "flex",
         alignItems: "center",
-        marginTop: "8px",
+        marginTop: "calc(var(--t-spacing) * 1)",
       });
     });
   });

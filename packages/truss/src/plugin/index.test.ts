@@ -107,7 +107,7 @@ describe("trussPlugin", () => {
       n(`
         import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-        __injectTrussCSS("/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }");
+        __injectTrussCSS(":root { --t-spacing: 8px; }\\n/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }");
       `),
     );
   });
@@ -148,7 +148,7 @@ describe("trussPlugin", () => {
       n(`
         import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-        __injectTrussCSS("/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }\\n/* @truss p:3000 c:df */\\n.df { display: flex; }");
+        __injectTrussCSS(":root { --t-spacing: 8px; }\\n/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }\\n/* @truss p:3000 c:df */\\n.df { display: flex; }");
       `),
     );
   });
@@ -280,6 +280,7 @@ describe("trussPlugin", () => {
     const css = getVirtualCss(plugin);
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:black */",
         ".black { color: #353535; }",
         "/* @truss p:3000 c:df */",
@@ -328,6 +329,7 @@ describe("trussPlugin", () => {
     // sorted by priority then alphabetically by class name
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:black */",
         ".black { color: #353535; }",
         "/* @truss p:3000 c:blue */",
@@ -394,6 +396,7 @@ describe("trussPlugin", () => {
     const css = getVirtualCss(plugin);
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:blue */",
         ".blue { color: #526675; }",
         "/* @truss arbitrary:start */",
@@ -463,6 +466,7 @@ describe("trussPlugin", () => {
     const css = getVirtualCss(plugin);
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:blue */",
         ".blue { color: #526675; }",
         "/* @truss arbitrary:start */",
@@ -515,6 +519,7 @@ describe("trussPlugin", () => {
     // Rules sorted by priority, mt_var deduplicated, @property deduplicated
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:blue */",
         ".blue { color: #526675; }",
         "/* @truss p:4000.5 c:mt_var */",
