@@ -2,6 +2,7 @@ export * from "src/config";
 export { defaultSections } from "src/sections/tachyons";
 export { generate } from "src/generate";
 export type { IncConfig, WebEntry } from "src/methods";
+export { SPACING_CUSTOM_PROPERTY, incrementCssValue, rootSpacingPreludeCss, tryParseIncrementCalcMultiplier } from "src/spacing-css-var";
 export {
   newAliasesMethods,
   newMethod,

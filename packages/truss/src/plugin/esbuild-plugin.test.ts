@@ -92,6 +92,7 @@ describe("trussEsbuildPlugin", () => {
     const css = readFileSync(join(outDir, "truss.css"), "utf8");
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:df */",
         ".df { display: flex; }",
         "/* @truss arbitrary:start */",
@@ -123,6 +124,7 @@ describe("trussEsbuildPlugin", () => {
     const css = readFileSync(join(outDir, "truss.css"), "utf8");
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss arbitrary:start */",
         "body {",
         "  margin: 0;",
@@ -160,6 +162,7 @@ describe("trussEsbuildPlugin", () => {
     const css = readFileSync(cssPath, "utf8");
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:black */",
         ".black { color: #353535; }",
         "/* @truss p:3000 c:df */",
@@ -233,6 +236,7 @@ describe("trussEsbuildPlugin", () => {
     // df deduplicated, both rules present once each
     expect(css).toBe(
       [
+        ":root { --t-spacing: 8px; }",
         "/* @truss p:3000 c:black */",
         ".black { color: #353535; }",
         "/* @truss p:3000 c:df */",

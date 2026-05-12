@@ -238,37 +238,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
 
   // coordinates
-  /** Sets `top: "0px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 0)"`. */
   get top0() {
-    return this.add("top", "0px");
+    return this.add("top", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `top: "6px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 1)"`. */
   get top1() {
-    return this.add("top", "6px");
+    return this.add("top", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `top: "12px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 2)"`. */
   get top2() {
-    return this.add("top", "12px");
+    return this.add("top", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `top: "18px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 3)"`. */
   get top3() {
-    return this.add("top", "18px");
+    return this.add("top", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `top: "24px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 4)"`. */
   get top4() {
-    return this.add("top", "24px");
+    return this.add("top", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `top: "30px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 5)"`. */
   get top5() {
-    return this.add("top", "30px");
+    return this.add("top", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `top: "36px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 6)"`. */
   get top6() {
-    return this.add("top", "36px");
+    return this.add("top", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `top: "42px"`. */
+  /** Sets `top: "calc(var(--t-spacing) * 7)"`. */
   get top7() {
-    return this.add("top", "42px");
+    return this.add("top", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `top: "v"`. */
   top(v: number | string) {
@@ -278,37 +278,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   topPx(px: number) {
     return this.add("top", `${px}px`);
   }
-  /** Sets `right: "0px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 0)"`. */
   get right0() {
-    return this.add("right", "0px");
+    return this.add("right", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `right: "6px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 1)"`. */
   get right1() {
-    return this.add("right", "6px");
+    return this.add("right", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `right: "12px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 2)"`. */
   get right2() {
-    return this.add("right", "12px");
+    return this.add("right", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `right: "18px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 3)"`. */
   get right3() {
-    return this.add("right", "18px");
+    return this.add("right", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `right: "24px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 4)"`. */
   get right4() {
-    return this.add("right", "24px");
+    return this.add("right", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `right: "30px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 5)"`. */
   get right5() {
-    return this.add("right", "30px");
+    return this.add("right", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `right: "36px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 6)"`. */
   get right6() {
-    return this.add("right", "36px");
+    return this.add("right", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `right: "42px"`. */
+  /** Sets `right: "calc(var(--t-spacing) * 7)"`. */
   get right7() {
-    return this.add("right", "42px");
+    return this.add("right", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `right: "v"`. */
   right(v: number | string) {
@@ -318,37 +318,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   rightPx(px: number) {
     return this.add("right", `${px}px`);
   }
-  /** Sets `bottom: "0px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 0)"`. */
   get bottom0() {
-    return this.add("bottom", "0px");
+    return this.add("bottom", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `bottom: "6px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 1)"`. */
   get bottom1() {
-    return this.add("bottom", "6px");
+    return this.add("bottom", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `bottom: "12px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 2)"`. */
   get bottom2() {
-    return this.add("bottom", "12px");
+    return this.add("bottom", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `bottom: "18px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 3)"`. */
   get bottom3() {
-    return this.add("bottom", "18px");
+    return this.add("bottom", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `bottom: "24px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 4)"`. */
   get bottom4() {
-    return this.add("bottom", "24px");
+    return this.add("bottom", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `bottom: "30px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 5)"`. */
   get bottom5() {
-    return this.add("bottom", "30px");
+    return this.add("bottom", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `bottom: "36px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 6)"`. */
   get bottom6() {
-    return this.add("bottom", "36px");
+    return this.add("bottom", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `bottom: "42px"`. */
+  /** Sets `bottom: "calc(var(--t-spacing) * 7)"`. */
   get bottom7() {
-    return this.add("bottom", "42px");
+    return this.add("bottom", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `bottom: "v"`. */
   bottom(v: number | string) {
@@ -358,37 +358,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   bottomPx(px: number) {
     return this.add("bottom", `${px}px`);
   }
-  /** Sets `left: "0px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 0)"`. */
   get left0() {
-    return this.add("left", "0px");
+    return this.add("left", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `left: "6px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 1)"`. */
   get left1() {
-    return this.add("left", "6px");
+    return this.add("left", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `left: "12px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 2)"`. */
   get left2() {
-    return this.add("left", "12px");
+    return this.add("left", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `left: "18px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 3)"`. */
   get left3() {
-    return this.add("left", "18px");
+    return this.add("left", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `left: "24px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 4)"`. */
   get left4() {
-    return this.add("left", "24px");
+    return this.add("left", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `left: "30px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 5)"`. */
   get left5() {
-    return this.add("left", "30px");
+    return this.add("left", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `left: "36px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 6)"`. */
   get left6() {
-    return this.add("left", "36px");
+    return this.add("left", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `left: "42px"`. */
+  /** Sets `left: "calc(var(--t-spacing) * 7)"`. */
   get left7() {
-    return this.add("left", "42px");
+    return this.add("left", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `left: "v"`. */
   left(v: number | string) {
@@ -934,37 +934,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   gac(value: Properties["gridAutoColumns"]) {
     return this.add("gridAutoColumns", value);
   }
-  /** Sets `gap: "0px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 0)"`. */
   get gap0() {
-    return this.add("gap", "0px");
+    return this.add("gap", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `gap: "6px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 1)"`. */
   get gap1() {
-    return this.add("gap", "6px");
+    return this.add("gap", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `gap: "12px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 2)"`. */
   get gap2() {
-    return this.add("gap", "12px");
+    return this.add("gap", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `gap: "18px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 3)"`. */
   get gap3() {
-    return this.add("gap", "18px");
+    return this.add("gap", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `gap: "24px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 4)"`. */
   get gap4() {
-    return this.add("gap", "24px");
+    return this.add("gap", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `gap: "30px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 5)"`. */
   get gap5() {
-    return this.add("gap", "30px");
+    return this.add("gap", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `gap: "36px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 6)"`. */
   get gap6() {
-    return this.add("gap", "36px");
+    return this.add("gap", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `gap: "42px"`. */
+  /** Sets `gap: "calc(var(--t-spacing) * 7)"`. */
   get gap7() {
-    return this.add("gap", "42px");
+    return this.add("gap", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `gap: "v"`. */
   gap(v: number | string) {
@@ -974,37 +974,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   gapPx(px: number) {
     return this.add("gap", `${px}px`);
   }
-  /** Sets `rowGap: "0px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 0)"`. */
   get rg0() {
-    return this.add("rowGap", "0px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `rowGap: "6px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 1)"`. */
   get rg1() {
-    return this.add("rowGap", "6px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `rowGap: "12px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 2)"`. */
   get rg2() {
-    return this.add("rowGap", "12px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `rowGap: "18px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 3)"`. */
   get rg3() {
-    return this.add("rowGap", "18px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `rowGap: "24px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 4)"`. */
   get rg4() {
-    return this.add("rowGap", "24px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `rowGap: "30px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 5)"`. */
   get rg5() {
-    return this.add("rowGap", "30px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `rowGap: "36px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 6)"`. */
   get rg6() {
-    return this.add("rowGap", "36px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `rowGap: "42px"`. */
+  /** Sets `rowGap: "calc(var(--t-spacing) * 7)"`. */
   get rg7() {
-    return this.add("rowGap", "42px");
+    return this.add("rowGap", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `rowGap: "v"`. */
   rg(v: number | string) {
@@ -1014,37 +1014,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   rgPx(px: number) {
     return this.add("rowGap", `${px}px`);
   }
-  /** Sets `columnGap: "0px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 0)"`. */
   get cg0() {
-    return this.add("columnGap", "0px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `columnGap: "6px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 1)"`. */
   get cg1() {
-    return this.add("columnGap", "6px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `columnGap: "12px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 2)"`. */
   get cg2() {
-    return this.add("columnGap", "12px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `columnGap: "18px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 3)"`. */
   get cg3() {
-    return this.add("columnGap", "18px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `columnGap: "24px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 4)"`. */
   get cg4() {
-    return this.add("columnGap", "24px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `columnGap: "30px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 5)"`. */
   get cg5() {
-    return this.add("columnGap", "30px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `columnGap: "36px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 6)"`. */
   get cg6() {
-    return this.add("columnGap", "36px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `columnGap: "42px"`. */
+  /** Sets `columnGap: "calc(var(--t-spacing) * 7)"`. */
   get cg7() {
-    return this.add("columnGap", "42px");
+    return this.add("columnGap", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `columnGap: "v"`. */
   cg(v: number | string) {
@@ -1056,37 +1056,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
 
   // height
-  /** Sets `height: "0px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 0)"`. */
   get h0() {
-    return this.add("height", "0px");
+    return this.add("height", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `height: "6px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 1)"`. */
   get h1() {
-    return this.add("height", "6px");
+    return this.add("height", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `height: "12px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 2)"`. */
   get h2() {
-    return this.add("height", "12px");
+    return this.add("height", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `height: "18px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 3)"`. */
   get h3() {
-    return this.add("height", "18px");
+    return this.add("height", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `height: "24px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 4)"`. */
   get h4() {
-    return this.add("height", "24px");
+    return this.add("height", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `height: "30px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 5)"`. */
   get h5() {
-    return this.add("height", "30px");
+    return this.add("height", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `height: "36px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 6)"`. */
   get h6() {
-    return this.add("height", "36px");
+    return this.add("height", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `height: "42px"`. */
+  /** Sets `height: "calc(var(--t-spacing) * 7)"`. */
   get h7() {
-    return this.add("height", "42px");
+    return this.add("height", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `height: "auto"`. */
   get ha() {
@@ -1521,37 +1521,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
 
   // spacing
-  /** Sets `marginTop: "0px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 0)"`. */
   get mt0() {
-    return this.add("marginTop", "0px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `marginTop: "6px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 1)"`. */
   get mt1() {
-    return this.add("marginTop", "6px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `marginTop: "12px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 2)"`. */
   get mt2() {
-    return this.add("marginTop", "12px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `marginTop: "18px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 3)"`. */
   get mt3() {
-    return this.add("marginTop", "18px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `marginTop: "24px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 4)"`. */
   get mt4() {
-    return this.add("marginTop", "24px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `marginTop: "30px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 5)"`. */
   get mt5() {
-    return this.add("marginTop", "30px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `marginTop: "36px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 6)"`. */
   get mt6() {
-    return this.add("marginTop", "36px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `marginTop: "42px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 7)"`. */
   get mt7() {
-    return this.add("marginTop", "42px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `marginTop: "auto"`. */
   get mta() {
@@ -1565,37 +1565,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   mtPx(px: number) {
     return this.add("marginTop", `${px}px`);
   }
-  /** Sets `marginRight: "0px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 0)"`. */
   get mr0() {
-    return this.add("marginRight", "0px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `marginRight: "6px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 1)"`. */
   get mr1() {
-    return this.add("marginRight", "6px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `marginRight: "12px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 2)"`. */
   get mr2() {
-    return this.add("marginRight", "12px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `marginRight: "18px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 3)"`. */
   get mr3() {
-    return this.add("marginRight", "18px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `marginRight: "24px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 4)"`. */
   get mr4() {
-    return this.add("marginRight", "24px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `marginRight: "30px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 5)"`. */
   get mr5() {
-    return this.add("marginRight", "30px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `marginRight: "36px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 6)"`. */
   get mr6() {
-    return this.add("marginRight", "36px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `marginRight: "42px"`. */
+  /** Sets `marginRight: "calc(var(--t-spacing) * 7)"`. */
   get mr7() {
-    return this.add("marginRight", "42px");
+    return this.add("marginRight", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `marginRight: "auto"`. */
   get mra() {
@@ -1609,37 +1609,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   mrPx(px: number) {
     return this.add("marginRight", `${px}px`);
   }
-  /** Sets `marginBottom: "0px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 0)"`. */
   get mb0() {
-    return this.add("marginBottom", "0px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `marginBottom: "6px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 1)"`. */
   get mb1() {
-    return this.add("marginBottom", "6px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `marginBottom: "12px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 2)"`. */
   get mb2() {
-    return this.add("marginBottom", "12px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `marginBottom: "18px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 3)"`. */
   get mb3() {
-    return this.add("marginBottom", "18px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `marginBottom: "24px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 4)"`. */
   get mb4() {
-    return this.add("marginBottom", "24px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `marginBottom: "30px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 5)"`. */
   get mb5() {
-    return this.add("marginBottom", "30px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `marginBottom: "36px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 6)"`. */
   get mb6() {
-    return this.add("marginBottom", "36px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `marginBottom: "42px"`. */
+  /** Sets `marginBottom: "calc(var(--t-spacing) * 7)"`. */
   get mb7() {
-    return this.add("marginBottom", "42px");
+    return this.add("marginBottom", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `marginBottom: "auto"`. */
   get mba() {
@@ -1653,37 +1653,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   mbPx(px: number) {
     return this.add("marginBottom", `${px}px`);
   }
-  /** Sets `marginLeft: "0px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 0)"`. */
   get ml0() {
-    return this.add("marginLeft", "0px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `marginLeft: "6px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 1)"`. */
   get ml1() {
-    return this.add("marginLeft", "6px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `marginLeft: "12px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 2)"`. */
   get ml2() {
-    return this.add("marginLeft", "12px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `marginLeft: "18px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 3)"`. */
   get ml3() {
-    return this.add("marginLeft", "18px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `marginLeft: "24px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 4)"`. */
   get ml4() {
-    return this.add("marginLeft", "24px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `marginLeft: "30px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 5)"`. */
   get ml5() {
-    return this.add("marginLeft", "30px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `marginLeft: "36px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 6)"`. */
   get ml6() {
-    return this.add("marginLeft", "36px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `marginLeft: "42px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 7)"`. */
   get ml7() {
-    return this.add("marginLeft", "42px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `marginLeft: "auto"`. */
   get mla() {
@@ -1697,37 +1697,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   mlPx(px: number) {
     return this.add("marginLeft", `${px}px`);
   }
-  /** Sets `marginLeft: "0px"; marginRight: "0px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 0)"; marginRight: "calc(var(--t-spacing) * 0)"`. */
   get mx0() {
-    return this.add("marginLeft", "0px").add("marginRight", "0px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 0)").add("marginRight", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `marginLeft: "6px"; marginRight: "6px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 1)"; marginRight: "calc(var(--t-spacing) * 1)"`. */
   get mx1() {
-    return this.add("marginLeft", "6px").add("marginRight", "6px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 1)").add("marginRight", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `marginLeft: "12px"; marginRight: "12px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 2)"; marginRight: "calc(var(--t-spacing) * 2)"`. */
   get mx2() {
-    return this.add("marginLeft", "12px").add("marginRight", "12px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 2)").add("marginRight", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `marginLeft: "18px"; marginRight: "18px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 3)"; marginRight: "calc(var(--t-spacing) * 3)"`. */
   get mx3() {
-    return this.add("marginLeft", "18px").add("marginRight", "18px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 3)").add("marginRight", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `marginLeft: "24px"; marginRight: "24px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 4)"; marginRight: "calc(var(--t-spacing) * 4)"`. */
   get mx4() {
-    return this.add("marginLeft", "24px").add("marginRight", "24px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 4)").add("marginRight", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `marginLeft: "30px"; marginRight: "30px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 5)"; marginRight: "calc(var(--t-spacing) * 5)"`. */
   get mx5() {
-    return this.add("marginLeft", "30px").add("marginRight", "30px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 5)").add("marginRight", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `marginLeft: "36px"; marginRight: "36px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 6)"; marginRight: "calc(var(--t-spacing) * 6)"`. */
   get mx6() {
-    return this.add("marginLeft", "36px").add("marginRight", "36px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 6)").add("marginRight", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `marginLeft: "42px"; marginRight: "42px"`. */
+  /** Sets `marginLeft: "calc(var(--t-spacing) * 7)"; marginRight: "calc(var(--t-spacing) * 7)"`. */
   get mx7() {
-    return this.add("marginLeft", "42px").add("marginRight", "42px");
+    return this.add("marginLeft", "calc(var(--t-spacing) * 7)").add("marginRight", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `marginLeft: "auto"; marginRight: "auto"`. */
   get mxa() {
@@ -1741,37 +1741,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   mxPx(px: number) {
     return this.add("marginLeft", `${px}px`).add("marginRight", `${px}px`);
   }
-  /** Sets `marginTop: "0px"; marginBottom: "0px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 0)"; marginBottom: "calc(var(--t-spacing) * 0)"`. */
   get my0() {
-    return this.add("marginTop", "0px").add("marginBottom", "0px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 0)").add("marginBottom", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `marginTop: "6px"; marginBottom: "6px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 1)"; marginBottom: "calc(var(--t-spacing) * 1)"`. */
   get my1() {
-    return this.add("marginTop", "6px").add("marginBottom", "6px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 1)").add("marginBottom", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `marginTop: "12px"; marginBottom: "12px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 2)"; marginBottom: "calc(var(--t-spacing) * 2)"`. */
   get my2() {
-    return this.add("marginTop", "12px").add("marginBottom", "12px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 2)").add("marginBottom", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `marginTop: "18px"; marginBottom: "18px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 3)"; marginBottom: "calc(var(--t-spacing) * 3)"`. */
   get my3() {
-    return this.add("marginTop", "18px").add("marginBottom", "18px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 3)").add("marginBottom", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `marginTop: "24px"; marginBottom: "24px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 4)"; marginBottom: "calc(var(--t-spacing) * 4)"`. */
   get my4() {
-    return this.add("marginTop", "24px").add("marginBottom", "24px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 4)").add("marginBottom", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `marginTop: "30px"; marginBottom: "30px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 5)"; marginBottom: "calc(var(--t-spacing) * 5)"`. */
   get my5() {
-    return this.add("marginTop", "30px").add("marginBottom", "30px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 5)").add("marginBottom", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `marginTop: "36px"; marginBottom: "36px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 6)"; marginBottom: "calc(var(--t-spacing) * 6)"`. */
   get my6() {
-    return this.add("marginTop", "36px").add("marginBottom", "36px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 6)").add("marginBottom", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `marginTop: "42px"; marginBottom: "42px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 7)"; marginBottom: "calc(var(--t-spacing) * 7)"`. */
   get my7() {
-    return this.add("marginTop", "42px").add("marginBottom", "42px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 7)").add("marginBottom", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `marginTop: "auto"; marginBottom: "auto"`. */
   get mya() {
@@ -1785,55 +1785,61 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   myPx(px: number) {
     return this.add("marginTop", `${px}px`).add("marginBottom", `${px}px`);
   }
-  /** Sets `marginTop: "0px"; marginBottom: "0px"; marginRight: "0px"; marginLeft: "0px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 0)"; marginBottom: "calc(var(--t-spacing) * 0)"; marginRight: "calc(var(--t-spacing) * 0)"; marginLeft: "calc(var(--t-spacing) * 0)"`. */
   get m0() {
-    return this.add("marginTop", "0px").add("marginBottom", "0px").add("marginRight", "0px").add("marginLeft", "0px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 0)").add("marginBottom", "calc(var(--t-spacing) * 0)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 0)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `marginTop: "6px"; marginBottom: "6px"; marginRight: "6px"; marginLeft: "6px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 1)"; marginBottom: "calc(var(--t-spacing) * 1)"; marginRight: "calc(var(--t-spacing) * 1)"; marginLeft: "calc(var(--t-spacing) * 1)"`. */
   get m1() {
-    return this.add("marginTop", "6px").add("marginBottom", "6px").add("marginRight", "6px").add("marginLeft", "6px");
+    return this.add("marginTop", "calc(var(--t-spacing) * 1)").add("marginBottom", "calc(var(--t-spacing) * 1)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 1)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `marginTop: "12px"; marginBottom: "12px"; marginRight: "12px"; marginLeft: "12px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 2)"; marginBottom: "calc(var(--t-spacing) * 2)"; marginRight: "calc(var(--t-spacing) * 2)"; marginLeft: "calc(var(--t-spacing) * 2)"`. */
   get m2() {
-    return this.add("marginTop", "12px").add("marginBottom", "12px").add("marginRight", "12px").add(
-      "marginLeft",
-      "12px",
-    );
+    return this.add("marginTop", "calc(var(--t-spacing) * 2)").add("marginBottom", "calc(var(--t-spacing) * 2)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 2)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `marginTop: "18px"; marginBottom: "18px"; marginRight: "18px"; marginLeft: "18px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 3)"; marginBottom: "calc(var(--t-spacing) * 3)"; marginRight: "calc(var(--t-spacing) * 3)"; marginLeft: "calc(var(--t-spacing) * 3)"`. */
   get m3() {
-    return this.add("marginTop", "18px").add("marginBottom", "18px").add("marginRight", "18px").add(
-      "marginLeft",
-      "18px",
-    );
+    return this.add("marginTop", "calc(var(--t-spacing) * 3)").add("marginBottom", "calc(var(--t-spacing) * 3)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 3)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `marginTop: "24px"; marginBottom: "24px"; marginRight: "24px"; marginLeft: "24px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 4)"; marginBottom: "calc(var(--t-spacing) * 4)"; marginRight: "calc(var(--t-spacing) * 4)"; marginLeft: "calc(var(--t-spacing) * 4)"`. */
   get m4() {
-    return this.add("marginTop", "24px").add("marginBottom", "24px").add("marginRight", "24px").add(
-      "marginLeft",
-      "24px",
-    );
+    return this.add("marginTop", "calc(var(--t-spacing) * 4)").add("marginBottom", "calc(var(--t-spacing) * 4)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 4)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `marginTop: "30px"; marginBottom: "30px"; marginRight: "30px"; marginLeft: "30px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 5)"; marginBottom: "calc(var(--t-spacing) * 5)"; marginRight: "calc(var(--t-spacing) * 5)"; marginLeft: "calc(var(--t-spacing) * 5)"`. */
   get m5() {
-    return this.add("marginTop", "30px").add("marginBottom", "30px").add("marginRight", "30px").add(
-      "marginLeft",
-      "30px",
-    );
+    return this.add("marginTop", "calc(var(--t-spacing) * 5)").add("marginBottom", "calc(var(--t-spacing) * 5)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 5)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `marginTop: "36px"; marginBottom: "36px"; marginRight: "36px"; marginLeft: "36px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 6)"; marginBottom: "calc(var(--t-spacing) * 6)"; marginRight: "calc(var(--t-spacing) * 6)"; marginLeft: "calc(var(--t-spacing) * 6)"`. */
   get m6() {
-    return this.add("marginTop", "36px").add("marginBottom", "36px").add("marginRight", "36px").add(
-      "marginLeft",
-      "36px",
-    );
+    return this.add("marginTop", "calc(var(--t-spacing) * 6)").add("marginBottom", "calc(var(--t-spacing) * 6)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 6)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `marginTop: "42px"; marginBottom: "42px"; marginRight: "42px"; marginLeft: "42px"`. */
+  /** Sets `marginTop: "calc(var(--t-spacing) * 7)"; marginBottom: "calc(var(--t-spacing) * 7)"; marginRight: "calc(var(--t-spacing) * 7)"; marginLeft: "calc(var(--t-spacing) * 7)"`. */
   get m7() {
-    return this.add("marginTop", "42px").add("marginBottom", "42px").add("marginRight", "42px").add(
-      "marginLeft",
-      "42px",
-    );
+    return this.add("marginTop", "calc(var(--t-spacing) * 7)").add("marginBottom", "calc(var(--t-spacing) * 7)").add(
+      "marginRight",
+      "calc(var(--t-spacing) * 7)",
+    ).add("marginLeft", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `marginTop: "auto"; marginBottom: "auto"; marginRight: "auto"; marginLeft: "auto"`. */
   get ma() {
@@ -1856,37 +1862,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
       `${px}px`,
     );
   }
-  /** Sets `paddingTop: "0px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 0)"`. */
   get pt0() {
-    return this.add("paddingTop", "0px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `paddingTop: "6px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 1)"`. */
   get pt1() {
-    return this.add("paddingTop", "6px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `paddingTop: "12px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 2)"`. */
   get pt2() {
-    return this.add("paddingTop", "12px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `paddingTop: "18px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 3)"`. */
   get pt3() {
-    return this.add("paddingTop", "18px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `paddingTop: "24px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 4)"`. */
   get pt4() {
-    return this.add("paddingTop", "24px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `paddingTop: "30px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 5)"`. */
   get pt5() {
-    return this.add("paddingTop", "30px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `paddingTop: "36px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 6)"`. */
   get pt6() {
-    return this.add("paddingTop", "36px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `paddingTop: "42px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 7)"`. */
   get pt7() {
-    return this.add("paddingTop", "42px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `paddingTop: "v"`. */
   pt(v: number | string) {
@@ -1896,37 +1902,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   ptPx(px: number) {
     return this.add("paddingTop", `${px}px`);
   }
-  /** Sets `paddingRight: "0px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 0)"`. */
   get pr0() {
-    return this.add("paddingRight", "0px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `paddingRight: "6px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 1)"`. */
   get pr1() {
-    return this.add("paddingRight", "6px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `paddingRight: "12px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 2)"`. */
   get pr2() {
-    return this.add("paddingRight", "12px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `paddingRight: "18px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 3)"`. */
   get pr3() {
-    return this.add("paddingRight", "18px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `paddingRight: "24px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 4)"`. */
   get pr4() {
-    return this.add("paddingRight", "24px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `paddingRight: "30px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 5)"`. */
   get pr5() {
-    return this.add("paddingRight", "30px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `paddingRight: "36px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 6)"`. */
   get pr6() {
-    return this.add("paddingRight", "36px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `paddingRight: "42px"`. */
+  /** Sets `paddingRight: "calc(var(--t-spacing) * 7)"`. */
   get pr7() {
-    return this.add("paddingRight", "42px");
+    return this.add("paddingRight", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `paddingRight: "v"`. */
   pr(v: number | string) {
@@ -1936,37 +1942,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   prPx(px: number) {
     return this.add("paddingRight", `${px}px`);
   }
-  /** Sets `paddingBottom: "0px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 0)"`. */
   get pb0() {
-    return this.add("paddingBottom", "0px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `paddingBottom: "6px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 1)"`. */
   get pb1() {
-    return this.add("paddingBottom", "6px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `paddingBottom: "12px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 2)"`. */
   get pb2() {
-    return this.add("paddingBottom", "12px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `paddingBottom: "18px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 3)"`. */
   get pb3() {
-    return this.add("paddingBottom", "18px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `paddingBottom: "24px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 4)"`. */
   get pb4() {
-    return this.add("paddingBottom", "24px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `paddingBottom: "30px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 5)"`. */
   get pb5() {
-    return this.add("paddingBottom", "30px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `paddingBottom: "36px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 6)"`. */
   get pb6() {
-    return this.add("paddingBottom", "36px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `paddingBottom: "42px"`. */
+  /** Sets `paddingBottom: "calc(var(--t-spacing) * 7)"`. */
   get pb7() {
-    return this.add("paddingBottom", "42px");
+    return this.add("paddingBottom", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `paddingBottom: "v"`. */
   pb(v: number | string) {
@@ -1976,37 +1982,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   pbPx(px: number) {
     return this.add("paddingBottom", `${px}px`);
   }
-  /** Sets `paddingLeft: "0px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 0)"`. */
   get pl0() {
-    return this.add("paddingLeft", "0px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `paddingLeft: "6px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 1)"`. */
   get pl1() {
-    return this.add("paddingLeft", "6px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `paddingLeft: "12px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 2)"`. */
   get pl2() {
-    return this.add("paddingLeft", "12px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `paddingLeft: "18px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 3)"`. */
   get pl3() {
-    return this.add("paddingLeft", "18px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `paddingLeft: "24px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 4)"`. */
   get pl4() {
-    return this.add("paddingLeft", "24px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `paddingLeft: "30px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 5)"`. */
   get pl5() {
-    return this.add("paddingLeft", "30px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `paddingLeft: "36px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 6)"`. */
   get pl6() {
-    return this.add("paddingLeft", "36px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `paddingLeft: "42px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 7)"`. */
   get pl7() {
-    return this.add("paddingLeft", "42px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `paddingLeft: "v"`. */
   pl(v: number | string) {
@@ -2016,37 +2022,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   plPx(px: number) {
     return this.add("paddingLeft", `${px}px`);
   }
-  /** Sets `paddingLeft: "0px"; paddingRight: "0px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 0)"; paddingRight: "calc(var(--t-spacing) * 0)"`. */
   get px0() {
-    return this.add("paddingLeft", "0px").add("paddingRight", "0px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 0)").add("paddingRight", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `paddingLeft: "6px"; paddingRight: "6px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 1)"; paddingRight: "calc(var(--t-spacing) * 1)"`. */
   get px1() {
-    return this.add("paddingLeft", "6px").add("paddingRight", "6px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 1)").add("paddingRight", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `paddingLeft: "12px"; paddingRight: "12px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 2)"; paddingRight: "calc(var(--t-spacing) * 2)"`. */
   get px2() {
-    return this.add("paddingLeft", "12px").add("paddingRight", "12px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 2)").add("paddingRight", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `paddingLeft: "18px"; paddingRight: "18px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 3)"; paddingRight: "calc(var(--t-spacing) * 3)"`. */
   get px3() {
-    return this.add("paddingLeft", "18px").add("paddingRight", "18px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 3)").add("paddingRight", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `paddingLeft: "24px"; paddingRight: "24px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 4)"; paddingRight: "calc(var(--t-spacing) * 4)"`. */
   get px4() {
-    return this.add("paddingLeft", "24px").add("paddingRight", "24px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 4)").add("paddingRight", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `paddingLeft: "30px"; paddingRight: "30px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 5)"; paddingRight: "calc(var(--t-spacing) * 5)"`. */
   get px5() {
-    return this.add("paddingLeft", "30px").add("paddingRight", "30px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 5)").add("paddingRight", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `paddingLeft: "36px"; paddingRight: "36px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 6)"; paddingRight: "calc(var(--t-spacing) * 6)"`. */
   get px6() {
-    return this.add("paddingLeft", "36px").add("paddingRight", "36px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 6)").add("paddingRight", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `paddingLeft: "42px"; paddingRight: "42px"`. */
+  /** Sets `paddingLeft: "calc(var(--t-spacing) * 7)"; paddingRight: "calc(var(--t-spacing) * 7)"`. */
   get px7() {
-    return this.add("paddingLeft", "42px").add("paddingRight", "42px");
+    return this.add("paddingLeft", "calc(var(--t-spacing) * 7)").add("paddingRight", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `paddingLeft: "v"; paddingRight: "v"`. */
   px(v: number | string) {
@@ -2056,37 +2062,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   pxPx(px: number) {
     return this.add("paddingLeft", `${px}px`).add("paddingRight", `${px}px`);
   }
-  /** Sets `paddingTop: "0px"; paddingBottom: "0px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 0)"; paddingBottom: "calc(var(--t-spacing) * 0)"`. */
   get py0() {
-    return this.add("paddingTop", "0px").add("paddingBottom", "0px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 0)").add("paddingBottom", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `paddingTop: "6px"; paddingBottom: "6px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 1)"; paddingBottom: "calc(var(--t-spacing) * 1)"`. */
   get py1() {
-    return this.add("paddingTop", "6px").add("paddingBottom", "6px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 1)").add("paddingBottom", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `paddingTop: "12px"; paddingBottom: "12px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 2)"; paddingBottom: "calc(var(--t-spacing) * 2)"`. */
   get py2() {
-    return this.add("paddingTop", "12px").add("paddingBottom", "12px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 2)").add("paddingBottom", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `paddingTop: "18px"; paddingBottom: "18px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 3)"; paddingBottom: "calc(var(--t-spacing) * 3)"`. */
   get py3() {
-    return this.add("paddingTop", "18px").add("paddingBottom", "18px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 3)").add("paddingBottom", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `paddingTop: "24px"; paddingBottom: "24px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 4)"; paddingBottom: "calc(var(--t-spacing) * 4)"`. */
   get py4() {
-    return this.add("paddingTop", "24px").add("paddingBottom", "24px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 4)").add("paddingBottom", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `paddingTop: "30px"; paddingBottom: "30px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 5)"; paddingBottom: "calc(var(--t-spacing) * 5)"`. */
   get py5() {
-    return this.add("paddingTop", "30px").add("paddingBottom", "30px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 5)").add("paddingBottom", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `paddingTop: "36px"; paddingBottom: "36px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 6)"; paddingBottom: "calc(var(--t-spacing) * 6)"`. */
   get py6() {
-    return this.add("paddingTop", "36px").add("paddingBottom", "36px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 6)").add("paddingBottom", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `paddingTop: "42px"; paddingBottom: "42px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 7)"; paddingBottom: "calc(var(--t-spacing) * 7)"`. */
   get py7() {
-    return this.add("paddingTop", "42px").add("paddingBottom", "42px");
+    return this.add("paddingTop", "calc(var(--t-spacing) * 7)").add("paddingBottom", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `paddingTop: "v"; paddingBottom: "v"`. */
   py(v: number | string) {
@@ -2096,61 +2102,61 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   pyPx(px: number) {
     return this.add("paddingTop", `${px}px`).add("paddingBottom", `${px}px`);
   }
-  /** Sets `paddingTop: "0px"; paddingBottom: "0px"; paddingRight: "0px"; paddingLeft: "0px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 0)"; paddingBottom: "calc(var(--t-spacing) * 0)"; paddingRight: "calc(var(--t-spacing) * 0)"; paddingLeft: "calc(var(--t-spacing) * 0)"`. */
   get p0() {
-    return this.add("paddingTop", "0px").add("paddingBottom", "0px").add("paddingRight", "0px").add(
-      "paddingLeft",
-      "0px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 0)").add("paddingBottom", "calc(var(--t-spacing) * 0)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 0)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `paddingTop: "6px"; paddingBottom: "6px"; paddingRight: "6px"; paddingLeft: "6px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 1)"; paddingBottom: "calc(var(--t-spacing) * 1)"; paddingRight: "calc(var(--t-spacing) * 1)"; paddingLeft: "calc(var(--t-spacing) * 1)"`. */
   get p1() {
-    return this.add("paddingTop", "6px").add("paddingBottom", "6px").add("paddingRight", "6px").add(
-      "paddingLeft",
-      "6px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 1)").add("paddingBottom", "calc(var(--t-spacing) * 1)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 1)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `paddingTop: "12px"; paddingBottom: "12px"; paddingRight: "12px"; paddingLeft: "12px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 2)"; paddingBottom: "calc(var(--t-spacing) * 2)"; paddingRight: "calc(var(--t-spacing) * 2)"; paddingLeft: "calc(var(--t-spacing) * 2)"`. */
   get p2() {
-    return this.add("paddingTop", "12px").add("paddingBottom", "12px").add("paddingRight", "12px").add(
-      "paddingLeft",
-      "12px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 2)").add("paddingBottom", "calc(var(--t-spacing) * 2)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 2)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `paddingTop: "18px"; paddingBottom: "18px"; paddingRight: "18px"; paddingLeft: "18px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 3)"; paddingBottom: "calc(var(--t-spacing) * 3)"; paddingRight: "calc(var(--t-spacing) * 3)"; paddingLeft: "calc(var(--t-spacing) * 3)"`. */
   get p3() {
-    return this.add("paddingTop", "18px").add("paddingBottom", "18px").add("paddingRight", "18px").add(
-      "paddingLeft",
-      "18px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 3)").add("paddingBottom", "calc(var(--t-spacing) * 3)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 3)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `paddingTop: "24px"; paddingBottom: "24px"; paddingRight: "24px"; paddingLeft: "24px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 4)"; paddingBottom: "calc(var(--t-spacing) * 4)"; paddingRight: "calc(var(--t-spacing) * 4)"; paddingLeft: "calc(var(--t-spacing) * 4)"`. */
   get p4() {
-    return this.add("paddingTop", "24px").add("paddingBottom", "24px").add("paddingRight", "24px").add(
-      "paddingLeft",
-      "24px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 4)").add("paddingBottom", "calc(var(--t-spacing) * 4)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 4)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `paddingTop: "30px"; paddingBottom: "30px"; paddingRight: "30px"; paddingLeft: "30px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 5)"; paddingBottom: "calc(var(--t-spacing) * 5)"; paddingRight: "calc(var(--t-spacing) * 5)"; paddingLeft: "calc(var(--t-spacing) * 5)"`. */
   get p5() {
-    return this.add("paddingTop", "30px").add("paddingBottom", "30px").add("paddingRight", "30px").add(
-      "paddingLeft",
-      "30px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 5)").add("paddingBottom", "calc(var(--t-spacing) * 5)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 5)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `paddingTop: "36px"; paddingBottom: "36px"; paddingRight: "36px"; paddingLeft: "36px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 6)"; paddingBottom: "calc(var(--t-spacing) * 6)"; paddingRight: "calc(var(--t-spacing) * 6)"; paddingLeft: "calc(var(--t-spacing) * 6)"`. */
   get p6() {
-    return this.add("paddingTop", "36px").add("paddingBottom", "36px").add("paddingRight", "36px").add(
-      "paddingLeft",
-      "36px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 6)").add("paddingBottom", "calc(var(--t-spacing) * 6)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 6)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `paddingTop: "42px"; paddingBottom: "42px"; paddingRight: "42px"; paddingLeft: "42px"`. */
+  /** Sets `paddingTop: "calc(var(--t-spacing) * 7)"; paddingBottom: "calc(var(--t-spacing) * 7)"; paddingRight: "calc(var(--t-spacing) * 7)"; paddingLeft: "calc(var(--t-spacing) * 7)"`. */
   get p7() {
-    return this.add("paddingTop", "42px").add("paddingBottom", "42px").add("paddingRight", "42px").add(
-      "paddingLeft",
-      "42px",
-    );
+    return this.add("paddingTop", "calc(var(--t-spacing) * 7)").add("paddingBottom", "calc(var(--t-spacing) * 7)").add(
+      "paddingRight",
+      "calc(var(--t-spacing) * 7)",
+    ).add("paddingLeft", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `paddingTop: "v"; paddingBottom: "v"; paddingRight: "v"; paddingLeft: "v"`. */
   p(v: number | string) {
@@ -2490,37 +2496,37 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   maxwPx(px: number) {
     return this.maxw(`${px}px`);
   }
-  /** Sets `width: "0px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 0)"`. */
   get w0() {
-    return this.add("width", "0px");
+    return this.add("width", "calc(var(--t-spacing) * 0)");
   }
-  /** Sets `width: "6px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 1)"`. */
   get w1() {
-    return this.add("width", "6px");
+    return this.add("width", "calc(var(--t-spacing) * 1)");
   }
-  /** Sets `width: "12px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 2)"`. */
   get w2() {
-    return this.add("width", "12px");
+    return this.add("width", "calc(var(--t-spacing) * 2)");
   }
-  /** Sets `width: "18px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 3)"`. */
   get w3() {
-    return this.add("width", "18px");
+    return this.add("width", "calc(var(--t-spacing) * 3)");
   }
-  /** Sets `width: "24px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 4)"`. */
   get w4() {
-    return this.add("width", "24px");
+    return this.add("width", "calc(var(--t-spacing) * 4)");
   }
-  /** Sets `width: "30px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 5)"`. */
   get w5() {
-    return this.add("width", "30px");
+    return this.add("width", "calc(var(--t-spacing) * 5)");
   }
-  /** Sets `width: "36px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 6)"`. */
   get w6() {
-    return this.add("width", "36px");
+    return this.add("width", "calc(var(--t-spacing) * 6)");
   }
-  /** Sets `width: "42px"`. */
+  /** Sets `width: "calc(var(--t-spacing) * 7)"`. */
   get w7() {
-    return this.add("width", "42px");
+    return this.add("width", "calc(var(--t-spacing) * 7)");
   }
   /** Sets `width: "auto"`. */
   get wa() {
@@ -2845,9 +2851,9 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
 }
 
-/** Converts `inc` into pixels value with a `px` suffix. */
+/** Converts `inc` into a spacing length using `--t-spacing` (build-time atomic CSS). */
 export function maybeInc(inc: number | string): string {
-  return typeof inc === "string" ? inc : `${inc * 6}px`;
+  return typeof inc === "string" ? inc : `calc(var(--t-spacing) * ${inc})`;
 }
 
 /** Converts `inc` into pixels. */

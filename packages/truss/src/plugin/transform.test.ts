@@ -298,11 +298,11 @@ describe("transform", () => {
       const s = Css.mt(2).$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "mt_16px" };
+      const s = { marginTop: "mt_2" };
     `,
       `
-      .mt_16px {
-        margin-top: 16px;
+      .mt_2 {
+        margin-top: calc(var(--t-spacing) * 2);
       }
     `,
     );
@@ -331,7 +331,7 @@ describe("transform", () => {
       const s = Css.mt(x).$;
     `).toHaveTrussOutput(
       `
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
             const x = getSomeValue();
             const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] };
     `,
@@ -808,7 +808,7 @@ describe("transform", () => {
       const s = Css.df.mt(2).black.$;
     `).toHaveTrussOutput(
       `
-      const s = { display: "df", marginTop: "mt_16px", color: "black" };
+      const s = { display: "df", marginTop: "mt_2", color: "black" };
     `,
       `
       .black {
@@ -817,8 +817,8 @@ describe("transform", () => {
       .df {
         display: flex;
       }
-      .mt_16px {
-        margin-top: 16px;
+      .mt_2 {
+        margin-top: calc(var(--t-spacing) * 2);
       }
     `,
     );
@@ -1413,7 +1413,7 @@ describe("transform", () => {
     `,
       `
       .pb2 {
-        padding-bottom: 16px;
+        padding-bottom: calc(var(--t-spacing) * 2);
       }
     `,
     );
@@ -1547,10 +1547,10 @@ describe("transform", () => {
         height: 32px;
       }
       .pl1 {
-        padding-left: 8px;
+        padding-left: calc(var(--t-spacing) * 1);
       }
       .pr1 {
-        padding-right: 8px;
+        padding-right: calc(var(--t-spacing) * 1);
       }
     `,
     );
@@ -1597,16 +1597,16 @@ describe("transform", () => {
         display: flex;
       }
       .pb1 {
-        padding-bottom: 8px;
+        padding-bottom: calc(var(--t-spacing) * 1);
       }
       .pl1 {
-        padding-left: 8px;
+        padding-left: calc(var(--t-spacing) * 1);
       }
       .pr1 {
-        padding-right: 8px;
+        padding-right: calc(var(--t-spacing) * 1);
       }
       .pt1 {
-        padding-top: 8px;
+        padding-top: calc(var(--t-spacing) * 1);
       }
     `,
     );
@@ -1628,7 +1628,7 @@ describe("transform", () => {
         display: flex;
       }
       .mt1 {
-        margin-top: 8px;
+        margin-top: calc(var(--t-spacing) * 1);
       }
     `,
     );
@@ -1793,7 +1793,7 @@ describe("transform", () => {
       const s = Css.w100.if(isActive).w(getWidth()).$;
     `).toHaveTrussOutput(
       `
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
       const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": __maybeInc(getWidth()) }] } : {}) };
     `,
       `
@@ -1840,11 +1840,11 @@ describe("transform", () => {
       const s = Css.mt(-1).$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "mt_neg8px" };
+      const s = { marginTop: "mt_neg1" };
     `,
       `
-      .mt_neg8px {
-        margin-top: -8px;
+      .mt_neg1 {
+        margin-top: calc(var(--t-spacing) * -1);
       }
     `,
     );
@@ -1856,11 +1856,11 @@ describe("transform", () => {
       const s = Css.mt(0).$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "mt_0px" };
+      const s = { marginTop: "mt_0" };
     `,
       `
-      .mt_0px {
-        margin-top: 0px;
+      .mt_0 {
+        margin-top: calc(var(--t-spacing) * 0);
       }
     `,
     );
@@ -1882,22 +1882,22 @@ describe("transform", () => {
     `,
       `
       .mt0 {
-        margin-top: 0px;
+        margin-top: calc(var(--t-spacing) * 0);
       }
       .mt1 {
-        margin-top: 8px;
+        margin-top: calc(var(--t-spacing) * 1);
       }
       .pb1 {
-        padding-bottom: 8px;
+        padding-bottom: calc(var(--t-spacing) * 1);
       }
       .pl1 {
-        padding-left: 8px;
+        padding-left: calc(var(--t-spacing) * 1);
       }
       .pr1 {
-        padding-right: 8px;
+        padding-right: calc(var(--t-spacing) * 1);
       }
       .pt1 {
-        padding-top: 8px;
+        padding-top: calc(var(--t-spacing) * 1);
       }
     `,
     );
@@ -1964,7 +1964,7 @@ describe("transform", () => {
     ).toHaveTrussOutput(
       `
       import { trussProps } from "@homebound/truss/runtime";
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
       const x = getMargin();
       const iconVars = { "--icon-primary": color, "--icon-secondary": secondaryColor };
       const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }], style_iconVars: iconVars })} />;
@@ -2060,7 +2060,7 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`\${inc * 8}px\`; };
+      const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
             const __maybeInc = keepMe();
             const x = getSomeValue();
             const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc_1(x) }] };
@@ -2953,12 +2953,12 @@ describe("transform", () => {
       const s = Css.ifSm.mt(2).$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "sm_mt_16px" };
+      const s = { marginTop: "sm_mt_2" };
     `,
       `
       @media screen and (max-width: 599px) {
-        .sm_mt_16px.sm_mt_16px {
-          margin-top: 16px;
+        .sm_mt_2.sm_mt_2 {
+          margin-top: calc(var(--t-spacing) * 2);
         }
       }
     `,
@@ -3202,7 +3202,7 @@ describe("transform", () => {
         transition: all 240ms;
       }
       .mt2 {
-        margin-top: 16px;
+        margin-top: calc(var(--t-spacing) * 2);
       }
     `,
     );
@@ -3293,7 +3293,7 @@ describe("transform", () => {
       import { trussProps } from "@homebound/truss/runtime";
       function Panel(props) {
         const { height } = props.xss;
-        return <div {...trussProps({ height: "h_8px", display: "df", backgroundColor: "bgBlue", ...(height === undefined ? {} : { height: height }), color: "black" })} />;
+        return <div {...trussProps({ height: "h_1", display: "df", backgroundColor: "bgBlue", ...(height === undefined ? {} : { height: height }), color: "black" })} />;
       }
     `,
       `
@@ -3306,8 +3306,8 @@ describe("transform", () => {
       .df {
         display: flex;
       }
-      .h_8px {
-        height: 8px;
+      .h_1 {
+        height: calc(var(--t-spacing) * 1);
       }
     `,
     );
@@ -3319,11 +3319,11 @@ describe("transform", () => {
        const s = Css.h(1).with({ height }).$;
     `).toHaveTrussOutput(
       `
-      const s = { height: "h_8px", ...(height === undefined ? {} : { height: height }) };
+      const s = { height: "h_1", ...(height === undefined ? {} : { height: height }) };
     `,
       `
-      .h_8px {
-        height: 8px;
+      .h_1 {
+        height: calc(var(--t-spacing) * 1);
       }
     `,
     );
@@ -3519,7 +3519,7 @@ test("ternary mixing {} and style object normalizes {} to {}", () => {
     `,
     `
       .pt3 {
-        padding-top: 24px;
+        padding-top: calc(var(--t-spacing) * 3);
       }
     `,
   );

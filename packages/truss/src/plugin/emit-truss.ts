@@ -4,6 +4,7 @@ import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCo
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 import { pseudoSelectorPrefix } from "../pseudo-selectors";
+import { SPACING_CUSTOM_PROPERTY, tryParseIncrementCalcMultiplier } from "../spacing-css-var";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 
@@ -143,6 +144,12 @@ function cleanValueForClassName(value: string): string {
     .replace(/^_|_$/g, "");
 }
 
+/** Class-name fragment for a resolved CSS value (short path for truss increment calcs). */
+function classNameFragmentForResolvedValue(value: string): string {
+  const inc = tryParseIncrementCalcMultiplier(value);
+  return inc !== null ? cleanValueForClassName(inc) : cleanValueForClassName(value);
+}
+
 /** I.e. `"backgroundColor"` → `"bg"` (from the abbreviation table), or the raw name as fallback. */
 function getPropertyAbbreviation(cssProp: string): string {
   return cssPropertyAbbreviations[cssProp] ?? cssProp;
@@ -161,7 +168,7 @@ function getPropertyAbbreviation(cssProp: string): string {
  * I.e. `ba` → `bss`, `bw1` (not `ba_borderStyle`, etc.)
  *
  * For literal-folded variables (argResolved set), includes the value:
- * I.e. `mt(2)` → `mt_16px`, `bc("red")` → `bc_red`.
+ * I.e. `mt(2)` → `mt_2` (web increment calc), `mt(-1)` → `mt_neg1`, `bc("red")` → `bc_red`.
  */
 function computeStaticBaseName(
   seg: ResolvedSegment,
@@ -173,13 +180,13 @@ function computeStaticBaseName(
   const abbr = seg.abbr;
 
   if (seg.argResolved !== undefined) {
-    const valuePart = cleanValueForClassName(seg.argResolved);
+    const valuePart = classNameFragmentForResolvedValue(seg.argResolved);
     if (isMultiProp) {
       const lookup = getLonghandLookup(mapping);
       const canonical = lookup.get(`${cssProp}\0${cssValue}`);
       if (canonical) return canonical;
       // I.e. lineClamp("3") display:-webkit-box → `d_negwebkit_box`, not `d_3`
-      return `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
+      return `${getPropertyAbbreviation(cssProp)}_${classNameFragmentForResolvedValue(cssValue)}`;
     }
     return `${abbr}_${valuePart}`;
   }
@@ -188,7 +195,7 @@ function computeStaticBaseName(
     const lookup = getLonghandLookup(mapping);
     const canonical = lookup.get(`${cssProp}\0${cssValue}`);
     if (canonical) return canonical;
-    return `${getPropertyAbbreviation(cssProp)}_${cleanValueForClassName(cssValue)}`;
+    return `${getPropertyAbbreviation(cssProp)}_${classNameFragmentForResolvedValue(cssValue)}`;
   }
 
   return abbr;
@@ -623,18 +630,19 @@ function toCssVariableName(className: string, baseKey: string, cssProp: string):
 /**
  * Build the per-file increment helper declaration.
  *
- * I.e. `const __maybeInc = (inc) => { return typeof inc === "string" ? inc : \`${inc * 8}px\`; };`
+ * I.e. `const __maybeInc = (inc) => typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`;`
  */
-export function buildMaybeIncDeclaration(helperName: string, increment: number): t.VariableDeclaration {
+export function buildMaybeIncDeclaration(helperName: string): t.VariableDeclaration {
   const incParam = t.identifier("inc");
+  const calcPrefix = `calc(var(${SPACING_CUSTOM_PROPERTY}) * `;
   const body = t.blockStatement([
     t.returnStatement(
       t.conditionalExpression(
         t.binaryExpression("===", t.unaryExpression("typeof", incParam), t.stringLiteral("string")),
         incParam,
         t.templateLiteral(
-          [t.templateElement({ raw: "", cooked: "" }, false), t.templateElement({ raw: "px", cooked: "px" }, true)],
-          [t.binaryExpression("*", incParam, t.numericLiteral(increment))],
+          [t.templateElement({ raw: calcPrefix, cooked: calcPrefix }, false), t.templateElement({ raw: ")", cooked: ")" }, true)],
+          [incParam],
         ),
       ),
     ),

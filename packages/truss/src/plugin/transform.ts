@@ -197,7 +197,7 @@ export function transformTruss(
   // Step 8: Insert helper declarations after imports
   const declarationsToInsert: t.Statement[] = [];
   if (maybeIncHelperName) {
-    declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName, mapping.increment));
+    declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName));
   }
 
   // Insert runtime lookup tables for typography

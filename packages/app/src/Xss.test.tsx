@@ -28,20 +28,20 @@ describe("Xss", () => {
       backgroundColor: "#526675",
       color: "#353535",
       height: "24px",
-      marginRight: "8px",
+      marginRight: "calc(var(--t-spacing) * 1)",
     });
   });
 
   test("unset xss height can fall back to a default while preserving other caller props", () => {
     const r = render(<Panel xss={Css.black.mr1.$} />);
     const el = r.container.firstChild as HTMLElement;
-    expect(getComputedStyle(el).height).toBe("8px");
+    expect(getComputedStyle(el).height).toBe("calc(var(--t-spacing) * 1)");
     expect(el).toHaveStyle({
       display: "flex",
       backgroundColor: "#526675",
       color: "#353535",
-      height: "8px",
-      marginRight: "8px",
+      height: "calc(var(--t-spacing) * 1)",
+      marginRight: "calc(var(--t-spacing) * 1)",
     });
   });
 
@@ -49,7 +49,7 @@ describe("Xss", () => {
     const height: Xss<"height">["height"] | undefined = undefined;
     const r = render(<div css={Css.h(1).with({ height }).$} />);
     const el = r.container.firstChild as HTMLElement;
-    expect(getComputedStyle(el).height).toBe("8px");
-    expect(el).toHaveStyle({ height: "8px" });
+    expect(getComputedStyle(el).height).toBe("calc(var(--t-spacing) * 1)");
+    expect(el).toHaveStyle({ height: "calc(var(--t-spacing) * 1)" });
   });
 });

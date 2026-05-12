@@ -5,6 +5,7 @@ import { transformTruss, type TransformResult, type TransformTrussOptions } from
 import { annotateArbitraryCssBlock, mergeTrussCss, parseTrussCss, readTrussCss, type ParsedTrussCss } from "./merge-css";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
+import { rootSpacingPreludeCss } from "../spacing-css-var";
 
 export interface TrussTransformSessionOptions {
   mappingPath: () => string;
@@ -77,13 +78,15 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   }
 
   function collectCss(): string {
+    const mapping = ensureMapping();
     const appCssParts = [generateCssText(cssRegistry)];
     const allArbitrary = Array.from(arbitraryCssRegistry.values()).join("\n\n");
     appCssParts.push(annotateArbitraryCssBlock(allArbitrary));
     const appCss = appCssParts.filter((part) => part.length > 0).join("\n");
     const libs = loadLibraries();
-    if (libs.length === 0) return appCss;
-    return mergeTrussCss([...libs, parseTrussCss(appCss)]);
+    const body = libs.length === 0 ? appCss : mergeTrussCss([...libs, parseTrussCss(appCss)]);
+    if (body.length === 0) return "";
+    return `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
   }
 
   function hasCss(): boolean {
