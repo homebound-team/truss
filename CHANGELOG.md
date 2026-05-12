@@ -1,3 +1,9 @@
+## [2.24.0](https://github.com/homebound-team/truss/compare/v2.23.0...v2.24.0) (2026-05-12)
+
+### Features
+
+* Support spacing increments as variables ([#250](https://github.com/homebound-team/truss/issues/250)) ([eea4e50](https://github.com/homebound-team/truss/commit/eea4e500b2ad845955c60a52ff703216fd580277))
+
 ## [2.23.0](https://github.com/homebound-team/truss/compare/v2.22.0...v2.23.0) (2026-05-08)
 
 ### Features
