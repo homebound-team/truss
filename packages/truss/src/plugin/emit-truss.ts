@@ -4,7 +4,7 @@ import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCo
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 import { pseudoSelectorPrefix } from "../pseudo-selectors";
-import { TRUSS_SPACING_CUSTOM_PROPERTY, trussWebTryParseIncrementCalcMultiplier } from "../spacing-css-var";
+import { SPACING_CUSTOM_PROPERTY, tryParseIncrementCalcMultiplier } from "../spacing-css-var";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 
@@ -146,7 +146,7 @@ function cleanValueForClassName(value: string): string {
 
 /** Class-name fragment for a resolved CSS value (short path for truss increment calcs). */
 function classNameFragmentForResolvedValue(value: string): string {
-  const inc = trussWebTryParseIncrementCalcMultiplier(value);
+  const inc = tryParseIncrementCalcMultiplier(value);
   return inc !== null ? cleanValueForClassName(inc) : cleanValueForClassName(value);
 }
 
@@ -634,7 +634,7 @@ function toCssVariableName(className: string, baseKey: string, cssProp: string):
  */
 export function buildMaybeIncDeclaration(helperName: string): t.VariableDeclaration {
   const incParam = t.identifier("inc");
-  const calcPrefix = `calc(var(${TRUSS_SPACING_CUSTOM_PROPERTY}) * `;
+  const calcPrefix = `calc(var(${SPACING_CUSTOM_PROPERTY}) * `;
   const body = t.blockStatement([
     t.returnStatement(
       t.conditionalExpression(

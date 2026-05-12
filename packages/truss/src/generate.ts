@@ -9,7 +9,7 @@ import { quote } from "src/utils";
 import { pascalCase } from "change-case";
 import { reactNativeSections } from "src/sections/tachyons-rn";
 import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
-import { TRUSS_SPACING_CUSTOM_PROPERTY } from "src/spacing-css-var";
+import { SPACING_CUSTOM_PROPERTY } from "src/spacing-css-var";
 
 const CssProperties = imp("Properties@csstype");
 
@@ -675,7 +675,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
 
 /** Converts \`inc\` into a spacing length using \`--t-spacing\` (build-time atomic CSS). */
 export function maybeInc(inc: number | string): string {
-  return typeof inc === "string" ? inc : \`calc(var(${TRUSS_SPACING_CUSTOM_PROPERTY}) * \${inc})\`;
+  return typeof inc === "string" ? inc : \`calc(var(${SPACING_CUSTOM_PROPERTY}) * \${inc})\`;
 }
 
 /** Converts \`inc\` into pixels. */

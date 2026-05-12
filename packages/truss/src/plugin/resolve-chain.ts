@@ -12,7 +12,7 @@ import {
 import { extractChain } from "./ast-utils";
 import { invertMediaQuery } from "../media-query";
 import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
-import { trussWebIncrementCssValue } from "../spacing-css-var";
+import { incrementCssValue } from "../spacing-css-var";
 
 /**
  * Optional hook for resolving identifier references like `const same = Css.blue.$`
@@ -1303,7 +1303,7 @@ function isLegacyDefaultMarkerExpression(node: t.Expression | t.SpreadElement): 
 function tryEvaluateLiteral(node: t.Expression | t.SpreadElement, incremented: boolean): string | null {
   if (node.type === "NumericLiteral") {
     if (incremented) {
-      return trussWebIncrementCssValue(node.value);
+      return incrementCssValue(node.value);
     }
     return String(node.value);
   }
@@ -1313,7 +1313,7 @@ function tryEvaluateLiteral(node: t.Expression | t.SpreadElement, incremented: b
   if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
     const val = -node.argument.value;
     if (incremented) {
-      return trussWebIncrementCssValue(val);
+      return incrementCssValue(val);
     }
     return String(val);
   }

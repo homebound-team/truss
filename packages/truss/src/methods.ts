@@ -1,6 +1,6 @@
 import { Aliases, Config, UtilityMethod, UtilityName } from "src/config";
 import { Properties } from "csstype";
-import { trussWebIncrementCssValue } from "src/spacing-css-var";
+import { incrementCssValue } from "src/spacing-css-var";
 
 export type Prop = keyof Properties;
 
@@ -212,7 +212,7 @@ function isWebIncrementTarget(config: Config): boolean {
 
 export function newCoreIncrementMethods(config: Config, abbr: UtilityName, props: Prop[]): UtilityMethod[] {
   return zeroTo(config.numberOfIncrements).map((i) => {
-    const value = isWebIncrementTarget(config) ? trussWebIncrementCssValue(i) : `${i * config.increment}px`;
+    const value = isWebIncrementTarget(config) ? incrementCssValue(i) : `${i * config.increment}px`;
     const defs = Object.fromEntries(props.map((p) => [p, value]));
     collect({ kind: "static", abbr: `${abbr}${i}`, defs });
     const sets = props.map((p) => `add("${p}", "${value}")`).join(".");

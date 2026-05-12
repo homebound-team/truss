@@ -5,7 +5,7 @@ import { transformTruss, type TransformResult, type TransformTrussOptions } from
 import { annotateArbitraryCssBlock, mergeTrussCss, parseTrussCss, readTrussCss, type ParsedTrussCss } from "./merge-css";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
-import { trussWebRootSpacingPreludeCss } from "../spacing-css-var";
+import { rootSpacingPreludeCss } from "../spacing-css-var";
 
 export interface TrussTransformSessionOptions {
   mappingPath: () => string;
@@ -86,7 +86,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     const libs = loadLibraries();
     const body = libs.length === 0 ? appCss : mergeTrussCss([...libs, parseTrussCss(appCss)]);
     if (body.length === 0) return "";
-    return `${trussWebRootSpacingPreludeCss(mapping.increment)}\n${body}`;
+    return `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
   }
 
   function hasCss(): boolean {
