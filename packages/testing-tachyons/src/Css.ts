@@ -27,6 +27,21 @@ export type CssSetVarValue = CssSetVarScalar | {
 
 type Opts<T> = { rules: T; enabled: boolean; selector: string | undefined; elseApplied: boolean };
 
+/** Wraps `--token` custom property names as `var(--token)` for CSS property values. */
+function maybeCssVar<T>(value: T): T {
+  if (typeof value !== "string") {
+    return value;
+  }
+  if (value.startsWith("--")) {
+    return `var(${value})` as T;
+  }
+  return value;
+}
+
+function maybeCssVarValues<O extends Record<string, unknown>>(obj: O): O {
+  return Object.fromEntries(Object.entries(obj).map(([key, val]) => [key, maybeCssVar(val)])) as O;
+}
+
 function invertMediaQuery(query: string): string {
   const screenPrefix = "@media screen and ";
   if (query.startsWith(screenPrefix)) {
@@ -2392,7 +2407,9 @@ class CssBuilder<T extends Properties> {
     if (!this.enabled) {
       return this;
     }
-    const newRules = typeof propOrProperties === "string" ? { [propOrProperties]: value } : propOrProperties;
+    const newRules = typeof propOrProperties === "string"
+      ? { [propOrProperties]: maybeCssVar(value) }
+      : maybeCssVarValues(propOrProperties as Record<string, unknown>);
     if (typeof propOrProperties !== "string" && (newRules as any).$css) {
       throw new Error("add() received a Css expression — use with() to compose Css expressions");
     }
@@ -2409,7 +2426,7 @@ class CssBuilder<T extends Properties> {
       return this;
     }
     const { $css, ...rest } = cssProp as any;
-    const filtered = omitUndefinedValues(rest);
+    const filtered = maybeCssVarValues(omitUndefinedValues(rest));
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...filtered } }
       : { ...this.rules, ...filtered };
