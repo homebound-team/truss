@@ -19,6 +19,7 @@ import {
 import {
   collectAtomicRules,
   generateCssText,
+  buildMaybeCssVarDeclaration,
   buildMaybeIncDeclaration,
   buildRuntimeLookupDeclaration,
 } from "./emit-truss";
@@ -120,12 +121,13 @@ export function transformTruss(
 
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
-  const { rules, needsMaybeInc } = collectAtomicRules(chains, mapping);
+  const { rules, needsMaybeInc, needsMaybeCssVar } = collectAtomicRules(chains, mapping);
   const cssText = generateCssText(rules);
 
   // Step 4: Reserve local names for injected helpers
   const usedTopLevelNames = collectTopLevelBindings(ast);
   const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
+  const maybeCssVarHelperName = needsMaybeCssVar ? reservePreferredName(usedTopLevelNames, "__maybeCssVar") : null;
   const existingMergePropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "mergeProps");
   const mergePropsHelperName = existingMergePropsHelperName ?? reservePreferredName(usedTopLevelNames, "mergeProps");
   const needsMergePropsHelper = { current: false };
@@ -152,6 +154,7 @@ export function transformTruss(
     debug: options.debug ?? false,
     mapping,
     maybeIncHelperName,
+    maybeCssVarHelperName,
     mergePropsHelperName,
     needsMergePropsHelper,
     trussPropsHelperName,
@@ -198,6 +201,9 @@ export function transformTruss(
   const declarationsToInsert: t.Statement[] = [];
   if (maybeIncHelperName) {
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName));
+  }
+  if (maybeCssVarHelperName) {
+    declarationsToInsert.push(buildMaybeCssVarDeclaration(maybeCssVarHelperName));
   }
 
   // Insert runtime lookup tables for typography

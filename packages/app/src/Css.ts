@@ -136,7 +136,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `borderColor: value`. */
   bc(value: Properties["borderColor"]) {
-    return this.add("borderColor", value);
+    return this.add("borderColor", maybeCssVar(value));
   }
 
   // borderRadius
@@ -170,7 +170,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `borderRadius: value`. */
   borderRadius(value: Properties["borderRadius"]) {
-    return this.add("borderRadius", value);
+    return this.add("borderRadius", maybeCssVar(value));
   }
 
   // borderStyle
@@ -192,7 +192,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `borderStyle: value`. */
   bs(value: Properties["borderStyle"]) {
-    return this.add("borderStyle", value);
+    return this.add("borderStyle", maybeCssVar(value));
   }
 
   // borderWidth
@@ -206,7 +206,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `borderWidth: value`. */
   bw(value: Properties["borderWidth"]) {
-    return this.add("borderWidth", value);
+    return this.add("borderWidth", maybeCssVar(value));
   }
 
   // boxShadow
@@ -230,11 +230,11 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `containerType: value`. */
   ct(value: Properties["containerType"]) {
-    return this.add("containerType", value);
+    return this.add("containerType", maybeCssVar(value));
   }
   /** Sets `containerName: value`. */
   cn(value: Properties["containerName"]) {
-    return this.add("containerName", value);
+    return this.add("containerName", maybeCssVar(value));
   }
 
   // coordinates
@@ -260,7 +260,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `top: "v"`. */
   top(v: number | string) {
-    return this.add("top", maybeInc(v));
+    return this.add("top", maybeCssVar(maybeInc(v)));
   }
   /** Sets `top: px`. */
   topPx(px: number) {
@@ -288,7 +288,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `right: "v"`. */
   right(v: number | string) {
-    return this.add("right", maybeInc(v));
+    return this.add("right", maybeCssVar(maybeInc(v)));
   }
   /** Sets `right: px`. */
   rightPx(px: number) {
@@ -316,7 +316,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `bottom: "v"`. */
   bottom(v: number | string) {
-    return this.add("bottom", maybeInc(v));
+    return this.add("bottom", maybeCssVar(maybeInc(v)));
   }
   /** Sets `bottom: px`. */
   bottomPx(px: number) {
@@ -344,7 +344,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `left: "v"`. */
   left(v: number | string) {
-    return this.add("left", maybeInc(v));
+    return this.add("left", maybeCssVar(maybeInc(v)));
   }
   /** Sets `left: px`. */
   leftPx(px: number) {
@@ -362,7 +362,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `cursor: value`. */
   cursor(value: Properties["cursor"]) {
-    return this.add("cursor", value);
+    return this.add("cursor", maybeCssVar(value));
   }
 
   // display
@@ -420,7 +420,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `display: value`. */
   display(value: Properties["display"]) {
-    return this.add("display", value);
+    return this.add("display", maybeCssVar(value));
   }
 
   // flexbox
@@ -458,7 +458,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `flex: value`. */
   f(value: Properties["flex"]) {
-    return this.add("flex", value);
+    return this.add("flex", maybeCssVar(value));
   }
   /** Sets `justifyContent: "flex-start"`. */
   get jcfs() {
@@ -486,7 +486,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `justifyContent: value`. */
   jc(value: Properties["justifyContent"]) {
-    return this.add("justifyContent", value);
+    return this.add("justifyContent", maybeCssVar(value));
   }
   /** Sets `justifySelf: "auto"`. */
   get jsa() {
@@ -506,7 +506,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `justifySelf: value`. */
   js(value: Properties["justifySelf"]) {
-    return this.add("justifySelf", value);
+    return this.add("justifySelf", maybeCssVar(value));
   }
   /** Sets `justifyItems: "flex-start"`. */
   get jifs() {
@@ -534,7 +534,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `justifyItems: value`. */
   ji(value: Properties["justifyItems"]) {
-    return this.add("justifyItems", value);
+    return this.add("justifyItems", maybeCssVar(value));
   }
   /** Sets `alignSelf: "flex-start"`. */
   get asfs() {
@@ -558,7 +558,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `alignSelf: value`. */
   as(value: Properties["alignSelf"]) {
-    return this.add("alignSelf", value);
+    return this.add("alignSelf", maybeCssVar(value));
   }
   /** Sets `alignItems: "flex-start"`. */
   get aifs() {
@@ -590,7 +590,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `alignItems: value`. */
   ai(value: Properties["alignItems"]) {
-    return this.add("alignItems", value);
+    return this.add("alignItems", maybeCssVar(value));
   }
   /** Sets `placeSelf: "auto"`. */
   get psa() {
@@ -622,7 +622,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `placeSelf: value`. */
   ps(value: Properties["placeSelf"]) {
-    return this.add("placeSelf", value);
+    return this.add("placeSelf", maybeCssVar(value));
   }
   /** Sets `placeContent: "center"`. */
   get pcc() {
@@ -658,7 +658,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `placeContent: value`. */
   pc(value: Properties["placeContent"]) {
-    return this.add("placeContent", value);
+    return this.add("placeContent", maybeCssVar(value));
   }
   /** Sets `placeItems: "center"`. */
   get pic() {
@@ -694,7 +694,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `placeItems: value`. */
   pi(value: Properties["placeItems"]) {
-    return this.add("placeItems", value);
+    return this.add("placeItems", maybeCssVar(value));
   }
   /** Sets `flexBasis: "100%"`. */
   get fb1() {
@@ -730,7 +730,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `flexBasis: value`. */
   fb(value: Properties["flexBasis"]) {
-    return this.add("flexBasis", value);
+    return this.add("flexBasis", maybeCssVar(value));
   }
   /** Sets `flexGrow: 0`. */
   get fg0() {
@@ -742,7 +742,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `flexGrow: value`. */
   flexGrow(value: Properties["flexGrow"]) {
-    return this.add("flexGrow", value);
+    return this.add("flexGrow", maybeCssVar(value));
   }
   /** Sets `flexShrink: 0`. */
   get fs0() {
@@ -754,7 +754,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `flexShrink: value`. */
   flexShrink(value: Properties["flexShrink"]) {
-    return this.add("flexShrink", value);
+    return this.add("flexShrink", maybeCssVar(value));
   }
   /** Sets `flexDirection: "row"`. */
   get fdr() {
@@ -774,7 +774,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `flexDirection: value`. */
   fd(value: Properties["flexDirection"]) {
-    return this.add("flexDirection", value);
+    return this.add("flexDirection", maybeCssVar(value));
   }
   /** Sets `flexWrap: "wrap"`. */
   get fww() {
@@ -790,11 +790,11 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `flexWrap: value`. */
   flexWrap(value: Properties["flexWrap"]) {
-    return this.add("flexWrap", value);
+    return this.add("flexWrap", maybeCssVar(value));
   }
   /** Sets `order: value`. */
   order(value: Properties["order"]) {
-    return this.add("order", value);
+    return this.add("order", maybeCssVar(value));
   }
 
   // float
@@ -808,7 +808,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `float: value`. */
   float(value: Properties["float"]) {
-    return this.add("float", value);
+    return this.add("float", maybeCssVar(value));
   }
 
   // fontWeight
@@ -858,33 +858,33 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `fontWeight: value`. */
   fw(value: Properties["fontWeight"]) {
-    return this.add("fontWeight", value);
+    return this.add("fontWeight", maybeCssVar(value));
   }
 
   // grid
   /** Sets `gridTemplateColumns: value`. */
   gtc(value: Properties["gridTemplateColumns"]) {
-    return this.add("gridTemplateColumns", value);
+    return this.add("gridTemplateColumns", maybeCssVar(value));
   }
   /** Sets `gridTemplateRows: value`. */
   gtr(value: Properties["gridTemplateRows"]) {
-    return this.add("gridTemplateRows", value);
+    return this.add("gridTemplateRows", maybeCssVar(value));
   }
   /** Sets `gridRow: value`. */
   gr(value: Properties["gridRow"]) {
-    return this.add("gridRow", value);
+    return this.add("gridRow", maybeCssVar(value));
   }
   /** Sets `gridColumn: value`. */
   gc(value: Properties["gridColumn"]) {
-    return this.add("gridColumn", value);
+    return this.add("gridColumn", maybeCssVar(value));
   }
   /** Sets `gridAutoRows: value`. */
   gar(value: Properties["gridAutoRows"]) {
-    return this.add("gridAutoRows", value);
+    return this.add("gridAutoRows", maybeCssVar(value));
   }
   /** Sets `gridAutoColumns: value`. */
   gac(value: Properties["gridAutoColumns"]) {
-    return this.add("gridAutoColumns", value);
+    return this.add("gridAutoColumns", maybeCssVar(value));
   }
   /** Sets `gap: "calc(var(--t-spacing) * 0)"`. */
   get gap0() {
@@ -908,7 +908,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `gap: "v"`. */
   gap(v: number | string) {
-    return this.add("gap", maybeInc(v));
+    return this.add("gap", maybeCssVar(maybeInc(v)));
   }
   /** Sets `gap: px`. */
   gapPx(px: number) {
@@ -936,7 +936,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `rowGap: "v"`. */
   rg(v: number | string) {
-    return this.add("rowGap", maybeInc(v));
+    return this.add("rowGap", maybeCssVar(maybeInc(v)));
   }
   /** Sets `rowGap: px`. */
   rgPx(px: number) {
@@ -964,7 +964,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `columnGap: "v"`. */
   cg(v: number | string) {
-    return this.add("columnGap", maybeInc(v));
+    return this.add("columnGap", maybeCssVar(maybeInc(v)));
   }
   /** Sets `columnGap: px`. */
   cgPx(px: number) {
@@ -998,7 +998,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `height: "v"`. */
   h(v: number | string) {
-    return this.add("height", maybeInc(v));
+    return this.add("height", maybeCssVar(maybeInc(v)));
   }
   /** Sets `height: px`. */
   hPx(px: number) {
@@ -1074,7 +1074,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `minHeight: value`. */
   mh(value: Properties["minHeight"]) {
-    return this.add("minHeight", value);
+    return this.add("minHeight", maybeCssVar(value));
   }
   /** Sets `minHeight: px`. */
   mhPx(px: number) {
@@ -1102,7 +1102,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `maxHeight: value`. */
   maxh(value: Properties["maxHeight"]) {
-    return this.add("maxHeight", value);
+    return this.add("maxHeight", maybeCssVar(value));
   }
   /** Sets `maxHeight: px`. */
   maxhPx(px: number) {
@@ -1162,7 +1162,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `WebkitLineClamp: value`. */
   lineClamp(value: Properties["WebkitLineClamp"]) {
-    return this.add("WebkitLineClamp", value).add("overflow", "hidden").add("display", "-webkit-box").add(
+    return this.add("WebkitLineClamp", maybeCssVar(value)).add("overflow", "hidden").add("display", "-webkit-box").add(
       "WebkitBoxOrient",
       "vertical",
     ).add("textOverflow", "ellipsis");
@@ -1191,7 +1191,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `objectFit: value`. */
   objectFit(value: Properties["objectFit"]) {
-    return this.add("objectFit", value);
+    return this.add("objectFit", maybeCssVar(value));
   }
 
   // opacity
@@ -1217,7 +1217,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `opacity: value`. */
   o(value: Properties["opacity"]) {
-    return this.add("opacity", value);
+    return this.add("opacity", maybeCssVar(value));
   }
 
   // outline
@@ -1235,7 +1235,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `outline: value`. */
   outline(value: Properties["outline"]) {
-    return this.add("outline", value);
+    return this.add("outline", maybeCssVar(value));
   }
 
   // overflow
@@ -1257,7 +1257,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `overflow: value`. */
   overflow(value: Properties["overflow"]) {
-    return this.add("overflow", value);
+    return this.add("overflow", maybeCssVar(value));
   }
   /** Sets `overflowY: "visible"`. */
   get oyv() {
@@ -1277,7 +1277,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `overflowY: value`. */
   overflowY(value: Properties["overflowY"]) {
-    return this.add("overflowY", value);
+    return this.add("overflowY", maybeCssVar(value));
   }
   /** Sets `overflowX: "visible"`. */
   get oxv() {
@@ -1297,7 +1297,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `overflowX: value`. */
   overflowX(value: Properties["overflowX"]) {
-    return this.add("overflowX", value);
+    return this.add("overflowX", maybeCssVar(value));
   }
 
   // position
@@ -1323,7 +1323,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `position: value`. */
   position(value: Properties["position"]) {
-    return this.add("position", value);
+    return this.add("position", maybeCssVar(value));
   }
 
   // skins
@@ -1353,7 +1353,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `color: value`. */
   color(value: Properties["color"]) {
-    return this.add("color", value);
+    return this.add("color", maybeCssVar(value));
   }
   /** Sets `backgroundColor: "#353535"`. */
   get bgBlack() {
@@ -1381,7 +1381,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `backgroundColor: value`. */
   bgColor(value: Properties["backgroundColor"]) {
-    return this.add("backgroundColor", value);
+    return this.add("backgroundColor", maybeCssVar(value));
   }
   /** Sets `fill: "#353535"`. */
   get fBlack() {
@@ -1409,7 +1409,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `fill: value`. */
   fill(value: Properties["fill"]) {
-    return this.add("fill", value);
+    return this.add("fill", maybeCssVar(value));
   }
 
   // spacing
@@ -1439,7 +1439,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `marginTop: "v"`. */
   mt(v: number | string) {
-    return this.add("marginTop", maybeInc(v));
+    return this.add("marginTop", maybeCssVar(maybeInc(v)));
   }
   /** Sets `marginTop: px`. */
   mtPx(px: number) {
@@ -1471,7 +1471,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `marginRight: "v"`. */
   mr(v: number | string) {
-    return this.add("marginRight", maybeInc(v));
+    return this.add("marginRight", maybeCssVar(maybeInc(v)));
   }
   /** Sets `marginRight: px`. */
   mrPx(px: number) {
@@ -1503,7 +1503,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `marginBottom: "v"`. */
   mb(v: number | string) {
-    return this.add("marginBottom", maybeInc(v));
+    return this.add("marginBottom", maybeCssVar(maybeInc(v)));
   }
   /** Sets `marginBottom: px`. */
   mbPx(px: number) {
@@ -1535,7 +1535,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `marginLeft: "v"`. */
   ml(v: number | string) {
-    return this.add("marginLeft", maybeInc(v));
+    return this.add("marginLeft", maybeCssVar(maybeInc(v)));
   }
   /** Sets `marginLeft: px`. */
   mlPx(px: number) {
@@ -1567,7 +1567,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `marginLeft: "v"; marginRight: "v"`. */
   mx(v: number | string) {
-    return this.add("marginLeft", maybeInc(v)).add("marginRight", maybeInc(v));
+    return this.add("marginLeft", maybeCssVar(maybeInc(v))).add("marginRight", maybeCssVar(maybeInc(v)));
   }
   /** Sets `marginLeft: px; marginRight: px`. */
   mxPx(px: number) {
@@ -1599,7 +1599,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `marginTop: "v"; marginBottom: "v"`. */
   my(v: number | string) {
-    return this.add("marginTop", maybeInc(v)).add("marginBottom", maybeInc(v));
+    return this.add("marginTop", maybeCssVar(maybeInc(v))).add("marginBottom", maybeCssVar(maybeInc(v)));
   }
   /** Sets `marginTop: px; marginBottom: px`. */
   myPx(px: number) {
@@ -1649,10 +1649,10 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `marginTop: "v"; marginBottom: "v"; marginRight: "v"; marginLeft: "v"`. */
   m(v: number | string) {
-    return this.add("marginTop", maybeInc(v)).add("marginBottom", maybeInc(v)).add("marginRight", maybeInc(v)).add(
-      "marginLeft",
-      maybeInc(v),
-    );
+    return this.add("marginTop", maybeCssVar(maybeInc(v))).add("marginBottom", maybeCssVar(maybeInc(v))).add(
+      "marginRight",
+      maybeCssVar(maybeInc(v)),
+    ).add("marginLeft", maybeCssVar(maybeInc(v)));
   }
   /** Sets `marginTop: px; marginBottom: px; marginRight: px; marginLeft: px`. */
   mPx(px: number) {
@@ -1683,7 +1683,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `paddingTop: "v"`. */
   pt(v: number | string) {
-    return this.add("paddingTop", maybeInc(v));
+    return this.add("paddingTop", maybeCssVar(maybeInc(v)));
   }
   /** Sets `paddingTop: px`. */
   ptPx(px: number) {
@@ -1711,7 +1711,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `paddingRight: "v"`. */
   pr(v: number | string) {
-    return this.add("paddingRight", maybeInc(v));
+    return this.add("paddingRight", maybeCssVar(maybeInc(v)));
   }
   /** Sets `paddingRight: px`. */
   prPx(px: number) {
@@ -1739,7 +1739,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `paddingBottom: "v"`. */
   pb(v: number | string) {
-    return this.add("paddingBottom", maybeInc(v));
+    return this.add("paddingBottom", maybeCssVar(maybeInc(v)));
   }
   /** Sets `paddingBottom: px`. */
   pbPx(px: number) {
@@ -1767,7 +1767,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `paddingLeft: "v"`. */
   pl(v: number | string) {
-    return this.add("paddingLeft", maybeInc(v));
+    return this.add("paddingLeft", maybeCssVar(maybeInc(v)));
   }
   /** Sets `paddingLeft: px`. */
   plPx(px: number) {
@@ -1795,7 +1795,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `paddingLeft: "v"; paddingRight: "v"`. */
   px(v: number | string) {
-    return this.add("paddingLeft", maybeInc(v)).add("paddingRight", maybeInc(v));
+    return this.add("paddingLeft", maybeCssVar(maybeInc(v))).add("paddingRight", maybeCssVar(maybeInc(v)));
   }
   /** Sets `paddingLeft: px; paddingRight: px`. */
   pxPx(px: number) {
@@ -1823,7 +1823,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `paddingTop: "v"; paddingBottom: "v"`. */
   py(v: number | string) {
-    return this.add("paddingTop", maybeInc(v)).add("paddingBottom", maybeInc(v));
+    return this.add("paddingTop", maybeCssVar(maybeInc(v))).add("paddingBottom", maybeCssVar(maybeInc(v)));
   }
   /** Sets `paddingTop: px; paddingBottom: px`. */
   pyPx(px: number) {
@@ -1866,10 +1866,10 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `paddingTop: "v"; paddingBottom: "v"; paddingRight: "v"; paddingLeft: "v"`. */
   p(v: number | string) {
-    return this.add("paddingTop", maybeInc(v)).add("paddingBottom", maybeInc(v)).add("paddingRight", maybeInc(v)).add(
-      "paddingLeft",
-      maybeInc(v),
-    );
+    return this.add("paddingTop", maybeCssVar(maybeInc(v))).add("paddingBottom", maybeCssVar(maybeInc(v))).add(
+      "paddingRight",
+      maybeCssVar(maybeInc(v)),
+    ).add("paddingLeft", maybeCssVar(maybeInc(v)));
   }
   /** Sets `paddingTop: px; paddingBottom: px; paddingRight: px; paddingLeft: px`. */
   pPx(px: number) {
@@ -1898,7 +1898,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `textAlign: value`. */
   ta(value: Properties["textAlign"]) {
-    return this.add("textAlign", value);
+    return this.add("textAlign", maybeCssVar(value));
   }
 
   // textDecoration
@@ -1916,7 +1916,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `textDecoration: value`. */
   textDecoration(value: Properties["textDecoration"]) {
-    return this.add("textDecoration", value);
+    return this.add("textDecoration", maybeCssVar(value));
   }
 
   // textTransform
@@ -1938,7 +1938,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `textTransform: value`. */
   tt(value: Properties["textTransform"]) {
-    return this.add("textTransform", value);
+    return this.add("textTransform", maybeCssVar(value));
   }
 
   // typeScale
@@ -1994,7 +1994,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `fontSize: value`. */
   fs(value: Properties["fontSize"]) {
-    return this.add("fontSize", value);
+    return this.add("fontSize", maybeCssVar(value));
   }
   /** Sets `fontSize: px`. */
   fsPx(px: number) {
@@ -2002,7 +2002,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `lineHeight: value`. */
   lh(value: Properties["lineHeight"]) {
-    return this.add("lineHeight", value);
+    return this.add("lineHeight", maybeCssVar(value));
   }
   /** Sets `lineHeight: px`. */
   lhPx(px: number) {
@@ -2028,7 +2028,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `userSelect: value`. */
   select(value: Properties["userSelect"]) {
-    return this.add("userSelect", value);
+    return this.add("userSelect", maybeCssVar(value));
   }
 
   // verticalAlign
@@ -2050,7 +2050,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `verticalAlign: value`. */
   va(value: Properties["verticalAlign"]) {
-    return this.add("verticalAlign", value);
+    return this.add("verticalAlign", maybeCssVar(value));
   }
 
   // visibility
@@ -2064,7 +2064,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `visibility: value`. */
   visibility(value: Properties["visibility"]) {
-    return this.add("visibility", value);
+    return this.add("visibility", maybeCssVar(value));
   }
 
   // whitespace
@@ -2094,7 +2094,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `whiteSpace: value`. */
   whiteSpace(value: Properties["whiteSpace"]) {
-    return this.add("whiteSpace", value);
+    return this.add("whiteSpace", maybeCssVar(value));
   }
 
   // width
@@ -2160,7 +2160,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `minWidth: value`. */
   mw(value: Properties["minWidth"]) {
-    return this.add("minWidth", value);
+    return this.add("minWidth", maybeCssVar(value));
   }
   /** Sets `minWidth: px`. */
   mwPx(px: number) {
@@ -2200,7 +2200,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `maxWidth: value`. */
   maxw(value: Properties["maxWidth"]) {
-    return this.add("maxWidth", value);
+    return this.add("maxWidth", maybeCssVar(value));
   }
   /** Sets `maxWidth: px`. */
   maxwPx(px: number) {
@@ -2232,7 +2232,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `width: "v"`. */
   w(v: number | string) {
-    return this.add("width", maybeInc(v));
+    return this.add("width", maybeCssVar(maybeInc(v)));
   }
   /** Sets `width: px`. */
   wPx(px: number) {
@@ -2258,7 +2258,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `wordBreak: value`. */
   wordBreak(value: Properties["wordBreak"]) {
-    return this.add("wordBreak", value);
+    return this.add("wordBreak", maybeCssVar(value));
   }
 
   // zIndex
@@ -2308,7 +2308,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `zIndex: value`. */
   z(value: Properties["zIndex"]) {
-    return this.add("zIndex", value);
+    return this.add("zIndex", maybeCssVar(value));
   }
 
   // aliases
@@ -2546,6 +2546,17 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
 /** Converts `inc` into a spacing length using `--t-spacing` (build-time atomic CSS). */
 export function maybeInc(inc: number | string): string {
   return typeof inc === "string" ? inc : `calc(var(--t-spacing) * ${inc})`;
+}
+
+/** Wraps `--token` custom property names as `var(--token)` for CSS property values. */
+export function maybeCssVar<T>(value: T): T {
+  if (typeof value !== "string") {
+    return value;
+  }
+  if (value.startsWith("--")) {
+    return `var(${value})` as T;
+  }
+  return value;
 }
 
 /** Converts `inc` into pixels. */

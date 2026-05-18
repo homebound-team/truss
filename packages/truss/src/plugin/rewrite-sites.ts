@@ -20,6 +20,7 @@ export interface RewriteSitesOptions {
   debug: boolean;
   mapping: TrussMapping;
   maybeIncHelperName: string | null;
+  maybeCssVarHelperName: string | null;
   mergePropsHelperName: string;
   needsMergePropsHelper: { current: boolean };
   trussPropsHelperName: string;
@@ -163,7 +164,14 @@ function buildStyleHashMembers(
 
   function flushNormal(): void {
     if (normalSegs.length > 0) {
-      members.push(...buildStyleHashProperties(normalSegs, options.mapping, options.maybeIncHelperName));
+      members.push(
+        ...buildStyleHashProperties(
+          normalSegs,
+          options.mapping,
+          options.maybeIncHelperName,
+          options.maybeCssVarHelperName,
+        ),
+      );
       normalSegs.length = 0;
     }
   }

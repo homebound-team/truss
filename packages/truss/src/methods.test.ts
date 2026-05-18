@@ -1,6 +1,14 @@
 import { Properties } from "csstype";
 import { Config } from "src/config";
-import { newIncrementMethods, newMethod, newMethodsForProp, newParamMethod, newPxMethods } from "src/methods";
+import {
+  newIncrementMethods,
+  newMethod,
+  newMethodsForProp,
+  newParamMethod,
+  newPxMethods,
+  startWebCollection,
+  stopWebCollection,
+} from "src/methods";
 import { describe, expect, it } from "vitest";
 
 describe("methods", () => {
@@ -77,6 +85,16 @@ describe("methods", () => {
   });
 
   describe("newParamMethod", () => {
+    it("wraps custom property names during web collection", () => {
+      startWebCollection();
+      try {
+        const result = newParamMethod("bc", "borderColor");
+        expect(result).toContain('maybeCssVar(value)');
+      } finally {
+        stopWebCollection();
+      }
+    });
+
     it("creates a new method with a parameter", () => {
       // Given a new method with a parameter
       const result = newParamMethod("bgColor", "backgroundColor");

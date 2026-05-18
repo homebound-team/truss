@@ -206,6 +206,7 @@ function computeStaticBaseName(
 export interface CollectedRules {
   rules: Map<string, AtomicRule>;
   needsMaybeInc: boolean;
+  needsMaybeCssVar: boolean;
 }
 
 /**
@@ -217,6 +218,7 @@ export interface CollectedRules {
 export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMapping): CollectedRules {
   const rules = new Map<string, AtomicRule>();
   let needsMaybeInc = false;
+  let needsMaybeCssVar = false;
 
   function collectSegment(seg: ResolvedSegment): void {
     if (seg.error || seg.styleArrayArg || seg.classNameArg || seg.styleArg) return;
@@ -229,6 +231,7 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
       return;
     }
     if (seg.incremented) needsMaybeInc = true;
+    if (seg.variableProps && seg.argResolved === undefined) needsMaybeCssVar = true;
     collectSegmentRules(rules, seg, mapping);
   }
 
@@ -241,7 +244,7 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
     }
   }
 
-  return { rules, needsMaybeInc };
+  return { rules, needsMaybeInc, needsMaybeCssVar };
 }
 
 /**
@@ -547,6 +550,7 @@ export function buildStyleHashProperties(
   segments: ResolvedSegment[],
   mapping: TrussMapping,
   maybeIncHelperName?: string | null,
+  maybeCssVarHelperName?: string | null,
 ): t.ObjectProperty[] {
   // I.e. cssProperty → list of { className, isVariable, isConditional, varName, argNode, ... }
   const propGroups = new Map<string, StyleEntry[]>();
@@ -602,6 +606,9 @@ export function buildStyleHashProperties(
             [valueExpr],
           );
         }
+        if (maybeCssVarHelperName) {
+          valueExpr = t.callExpression(t.identifier(maybeCssVarHelperName), [valueExpr]);
+        }
         varsProps.push(t.objectProperty(t.stringLiteral(dyn.varName!), valueExpr));
       }
 
@@ -650,6 +657,35 @@ export function buildMaybeIncDeclaration(helperName: string): t.VariableDeclarat
 
   return t.variableDeclaration("const", [
     t.variableDeclarator(t.identifier(helperName), t.arrowFunctionExpression([incParam], body)),
+  ]);
+}
+
+/**
+ * Build the per-file custom-property reference helper.
+ *
+ * I.e. `const __maybeCssVar = (value) => value.startsWith("--") ? \`var(\${value})\` : value;`
+ */
+export function buildMaybeCssVarDeclaration(helperName: string): t.VariableDeclaration {
+  const valueParam = t.identifier("value");
+  const body = t.blockStatement([
+    t.ifStatement(
+      t.binaryExpression("!==", t.unaryExpression("typeof", valueParam), t.stringLiteral("string")),
+      t.returnStatement(valueParam),
+    ),
+    t.ifStatement(
+      t.callExpression(t.memberExpression(valueParam, t.identifier("startsWith")), [t.stringLiteral("--")]),
+      t.returnStatement(
+        t.templateLiteral(
+          [t.templateElement({ raw: "var(", cooked: "var(" }, false), t.templateElement({ raw: ")", cooked: ")" }, true)],
+          [valueParam],
+        ),
+      ),
+    ),
+    t.returnStatement(valueParam),
+  ]);
+
+  return t.variableDeclaration("const", [
+    t.variableDeclarator(t.identifier(helperName), t.arrowFunctionExpression([valueParam], body)),
   ]);
 }
 

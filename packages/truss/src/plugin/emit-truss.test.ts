@@ -111,6 +111,7 @@ describe("collectAtomicRules", () => {
     };
     const result = collectAtomicRules([chain([seg])], testMapping);
     expect(result.needsMaybeInc).toBe(true);
+    expect(result.needsMaybeCssVar).toBe(true);
     expect(result.rules.get("mt_var")).toMatchObject({
       className: "mt_var",
       declarations: [{ cssProperty: "margin-top", cssValue: "var(--marginTop)", cssVarName: "--marginTop" }],

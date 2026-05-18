@@ -678,6 +678,13 @@ export function maybeInc(inc: number | string): string {
   return typeof inc === "string" ? inc : \`calc(var(${SPACING_CUSTOM_PROPERTY}) * \${inc})\`;
 }
 
+/** Wraps \`--token\` custom property names as \`var(--token)\` for CSS property values. */
+export function maybeCssVar<T>(value: T): T {
+  if (typeof value !== "string") return value;
+  if (value.startsWith("--")) return \`var(\${value})\` as T;
+  return value;
+}
+
 /** Converts \`inc\` into pixels. */
 export function increment(inc: number): number {
   return inc * ${increment};

@@ -42,6 +42,20 @@ function collect(entry: WebEntry): void {
   if (_webCollector) _webCollector.push(entry);
 }
 
+function isWebCodegen(): boolean {
+  return _webCollector !== null;
+}
+
+/** Web param values: wrap `--token` names as `var(--token)` for CSS property values. */
+function paramValueExpr(valueName: string): string {
+  return isWebCodegen() ? `maybeCssVar(${valueName})` : valueName;
+}
+
+/** Web increment param values: spacing calc then optional custom-property wrap. */
+function incrementParamValueExpr(valueName: string): string {
+  return isWebCodegen() ? `maybeCssVar(maybeInc(${valueName}))` : `maybeInc(${valueName})`;
+}
+
 /**
  * Given a single abbreviation (i.e. `mt0`) and multiple `{ prop: value }` CSS values, returns
  * the TypeScript code for a `mt0` utility method that sets those values.
@@ -76,7 +90,7 @@ export function newParamMethod(
     .join("");
   return `${comment({
     [prop]: "value",
-  })} ${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value)${additionalDefs}; }`;
+  })} ${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", ${paramValueExpr("value")})${additionalDefs}; }`;
 }
 
 /**
@@ -195,7 +209,7 @@ export function newIncrementMethods(
       ? [`${autoComment} get ${abbr}a() { return this.${props.map((p) => `add("${p}", "auto")`).join(".")}; }`]
       : []),
     `${valueComment} ${abbr}(v: number | string) { return this.${props
-      .map((p) => `add("${p}", maybeInc(v))`)
+      .map((p) => `add("${p}", ${incrementParamValueExpr("v")})`)
       .join(".")}; }`,
     `${pxComment} ${abbr}Px(px: number) { return this.${props.map((p) => `add("${p}", \`\${px}px\`)`).join(".")}; }`,
   ];
