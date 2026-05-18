@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { maybeCssVar } from "./css-custom-property";
+import { maybeCssVar, variableValueNeedsMaybeCssVar } from "./css-custom-property";
 
 describe("maybeCssVar", () => {
   test("wraps custom property names", () => {
@@ -17,5 +17,16 @@ describe("maybeCssVar", () => {
 
   test("passes through non-strings", () => {
     expect(maybeCssVar(42)).toBe(42);
+  });
+});
+
+describe("variableValueNeedsMaybeCssVar", () => {
+  test("returns false for Px delegates", () => {
+    expect(variableValueNeedsMaybeCssVar({ appendPx: true })).toBe(false);
+  });
+
+  test("returns true for increment and open param segments", () => {
+    expect(variableValueNeedsMaybeCssVar({})).toBe(true);
+    expect(variableValueNeedsMaybeCssVar({ appendPx: false })).toBe(true);
   });
 });

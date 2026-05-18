@@ -348,6 +348,61 @@ describe("transform", () => {
     );
   });
 
+  test("Px-only file does not import maybeCssVar", () => {
+    const result = transformTruss(
+      `
+      import { Css } from "./Css";
+      const x = getSomeValue();
+      const s = Css.mtPx(x).$;
+    `,
+      "test.tsx",
+      mapping,
+    )?.code;
+
+    expect(result).not.toContain("maybeCssVar");
+    expect(result).not.toContain('@homebound/truss/runtime');
+  });
+
+  test("increment with custom property literal: Css.mt('--some-variable').$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.mt("--some-variable").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { marginTop: "mt_var_some_variable" };
+    `,
+      `
+      .mt_var_some_variable {
+        margin-top: var(--some-variable);
+      }
+    `,
+    );
+  });
+
+  test("increment with custom property variable: Css.mt(token).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const token = "--some-variable";
+      const s = Css.mt(token).$;
+    `).toHaveTrussOutput(
+      `
+      import { maybeCssVar } from "@homebound/truss/runtime";
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
+      const token = "--some-variable";
+      const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(token)) }] };
+    `,
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
   test("delegate with literal: Css.mtPx(12).$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
@@ -371,9 +426,8 @@ describe("transform", () => {
       const s = Css.mtPx(x).$;
     `).toHaveTrussOutput(
       `
-      import { maybeCssVar } from "@homebound/truss/runtime";
       const x = getSomeValue();
-      const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(\`\${x}px\`) }] };
+      const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
     `,
       `
       .mt_var {
@@ -394,9 +448,8 @@ describe("transform", () => {
       const s = Css.pxPx(x).$;
     `).toHaveTrussOutput(
       `
-      import { maybeCssVar } from "@homebound/truss/runtime";
       const x = getSomeValue();
-      const s = { paddingLeft: ["px_var", { "--paddingLeft": maybeCssVar(\`\${x}px\`) }], paddingRight: ["px_var", { "--paddingRight": maybeCssVar(\`\${x}px\`) }] };
+      const s = { paddingLeft: ["px_var", { "--paddingLeft": \`\${x}px\` }], paddingRight: ["px_var", { "--paddingRight": \`\${x}px\` }] };
     `,
       `
       .px_var {
@@ -422,9 +475,8 @@ describe("transform", () => {
       const s = Css.sqPx(x).$;
     `).toHaveTrussOutput(
       `
-      import { maybeCssVar } from "@homebound/truss/runtime";
       const x = getSomeValue();
-      const s = { height: ["sq_var", { "--height": maybeCssVar(\`\${x}px\`) }], width: ["sq_var", { "--width": maybeCssVar(\`\${x}px\`) }] };
+      const s = { height: ["sq_var", { "--height": \`\${x}px\` }], width: ["sq_var", { "--width": \`\${x}px\` }] };
     `,
       `
       .sq_var {

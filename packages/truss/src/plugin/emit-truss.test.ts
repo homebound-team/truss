@@ -127,6 +127,7 @@ describe("collectAtomicRules", () => {
       argNode: { type: "Identifier", name: "x" },
     };
     const result = collectAtomicRules([chain([seg])], testMapping);
+    expect(result.needsMaybeCssVar).toBe(false);
     expect(result.rules.get("sq_var")).toMatchObject({
       className: "sq_var",
       declarations: [
@@ -144,8 +145,9 @@ describe("collectAtomicRules", () => {
       pseudoClass: ":hover",
       argNode: { type: "Identifier", name: "y" },
     };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
-    expect(rules.get("h_bc_var")).toMatchObject({
+    const result = collectAtomicRules([chain([seg])], testMapping);
+    expect(result.needsMaybeCssVar).toBe(true);
+    expect(result.rules.get("h_bc_var")).toMatchObject({
       className: "h_bc_var",
       declarations: [{ cssProperty: "border-color", cssValue: "var(--h_borderColor)", cssVarName: "--h_borderColor" }],
       pseudoClass: ":hover",

@@ -4,6 +4,7 @@ import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCo
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 import { pseudoSelectorPrefix } from "../pseudo-selectors";
+import { variableValueNeedsMaybeCssVar } from "../css-custom-property";
 import { SPACING_CUSTOM_PROPERTY, tryParseIncrementCalcMultiplier } from "../spacing-css-var";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
@@ -231,7 +232,9 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
       return;
     }
     if (seg.incremented) needsMaybeInc = true;
-    if (seg.variableProps && seg.argResolved === undefined) needsMaybeCssVar = true;
+    if (seg.variableProps && seg.argResolved === undefined && variableValueNeedsMaybeCssVar(seg)) {
+      needsMaybeCssVar = true;
+    }
     collectSegmentRules(rules, seg, mapping);
   }
 
@@ -606,7 +609,7 @@ export function buildStyleHashProperties(
             [valueExpr],
           );
         }
-        if (maybeCssVarHelperName) {
+        if (maybeCssVarHelperName && variableValueNeedsMaybeCssVar(dyn)) {
           valueExpr = t.callExpression(t.identifier(maybeCssVarHelperName), [valueExpr]);
         }
         varsProps.push(t.objectProperty(t.stringLiteral(dyn.varName!), valueExpr));

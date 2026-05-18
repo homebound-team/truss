@@ -11,3 +11,8 @@ export function maybeCssVar<T>(value: T): T {
   if (value.startsWith("--")) return `var(${value})` as T;
   return value;
 }
+
+/** True when a runtime variable tuple value may be a `--token` name (not a Px `` `${n}px` `` path). */
+export function variableValueNeedsMaybeCssVar(opts: { appendPx?: boolean }): boolean {
+  return !opts.appendPx;
+}
