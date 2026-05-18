@@ -660,35 +660,6 @@ export function buildMaybeIncDeclaration(helperName: string): t.VariableDeclarat
   ]);
 }
 
-/**
- * Build the per-file custom-property reference helper.
- *
- * I.e. `const __maybeCssVar = (value) => value.startsWith("--") ? \`var(\${value})\` : value;`
- */
-export function buildMaybeCssVarDeclaration(helperName: string): t.VariableDeclaration {
-  const valueParam = t.identifier("value");
-  const body = t.blockStatement([
-    t.ifStatement(
-      t.binaryExpression("!==", t.unaryExpression("typeof", valueParam), t.stringLiteral("string")),
-      t.returnStatement(valueParam),
-    ),
-    t.ifStatement(
-      t.callExpression(t.memberExpression(valueParam, t.identifier("startsWith")), [t.stringLiteral("--")]),
-      t.returnStatement(
-        t.templateLiteral(
-          [t.templateElement({ raw: "var(", cooked: "var(" }, false), t.templateElement({ raw: ")", cooked: ")" }, true)],
-          [valueParam],
-        ),
-      ),
-    ),
-    t.returnStatement(valueParam),
-  ]);
-
-  return t.variableDeclaration("const", [
-    t.variableDeclarator(t.identifier(helperName), t.arrowFunctionExpression([valueParam], body)),
-  ]);
-}
-
 /** I.e. `"color"` → `t.identifier("color")`, `"box-shadow"` → `t.stringLiteral("box-shadow")`. */
 function toPropertyKey(key: string): t.Identifier | t.StringLiteral {
   return isValidIdentifier(key) ? t.identifier(key) : t.stringLiteral(key);

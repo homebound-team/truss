@@ -27,13 +27,3 @@ export function tryParseIncrementCalcMultiplier(cssValue: string): string | null
 export function rootSpacingPreludeCss(incrementPx: number): string {
   return `:root { ${SPACING_CUSTOM_PROPERTY}: ${incrementPx}px; }`;
 }
-
-/**
- * If `value` is a CSS custom property name (`--token`), wrap as `var(--token)` for use as a property value.
- * Passes through values that are not custom-property names (including existing `var(...)`).
- */
-export function maybeCssVar<T>(value: T): T {
-  if (typeof value !== "string") return value;
-  if (value.startsWith("--")) return `var(${value})` as T;
-  return value;
-}

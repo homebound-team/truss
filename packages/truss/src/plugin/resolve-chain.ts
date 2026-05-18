@@ -12,7 +12,8 @@ import {
 import { extractChain } from "./ast-utils";
 import { invertMediaQuery } from "../media-query";
 import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
-import { incrementCssValue, maybeCssVar } from "../spacing-css-var";
+import { maybeCssVar } from "../css-custom-property";
+import { incrementCssValue } from "../spacing-css-var";
 
 /**
  * Optional hook for resolving identifier references like `const same = Css.blue.$`

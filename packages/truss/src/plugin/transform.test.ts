@@ -6,12 +6,6 @@ import { normalize } from "../testUtils";
 
 const mapping = loadMapping(resolve(__dirname, "../../../app/src/Css.json"));
 
-const MAYBE_CSS_VAR_HELPER = `const __maybeCssVar = value => {
-  if (typeof value !== "string") return value;
-  if (value.startsWith("--")) return \`var(\${value})\`;
-  return value;
-};`;
-
 describe("transform", () => {
   test("returns null for files without Css import", () => {
     expectTrussTransform(`
@@ -263,12 +257,11 @@ describe("transform", () => {
       { debug: true },
     ).toHaveTrussOutput(
       `
-      import { TrussDebugInfo } from "@homebound/truss/runtime";
-      ${MAYBE_CSS_VAR_HELPER}
+      import { TrussDebugInfo, maybeCssVar } from "@homebound/truss/runtime";
       const lines = getLineCount();
       const s = {
         className_lineClamp: "lineClamp",
-        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": __maybeCssVar(lines) }, new TrussDebugInfo("test.tsx:3")],
+        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": maybeCssVar(lines) }, new TrussDebugInfo("test.tsx:3")],
         overflow: "oh",
         display: "d_negwebkit_box",
         WebkitBoxOrient: "wbo_vertical",
@@ -338,10 +331,10 @@ describe("transform", () => {
       const s = Css.mt(x).$;
     `).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
-      ${MAYBE_CSS_VAR_HELPER}
             const x = getSomeValue();
-            const s = { marginTop: ["mt_var", { "--marginTop": __maybeCssVar(__maybeInc(x)) }] };
+            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }] };
     `,
       `
       .mt_var {
@@ -378,9 +371,9 @@ describe("transform", () => {
       const s = Css.mtPx(x).$;
     `).toHaveTrussOutput(
       `
-      ${MAYBE_CSS_VAR_HELPER}
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const x = getSomeValue();
-      const s = { marginTop: ["mt_var", { "--marginTop": __maybeCssVar(\`\${x}px\`) }] };
+      const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(\`\${x}px\`) }] };
     `,
       `
       .mt_var {
@@ -401,9 +394,9 @@ describe("transform", () => {
       const s = Css.pxPx(x).$;
     `).toHaveTrussOutput(
       `
-      ${MAYBE_CSS_VAR_HELPER}
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const x = getSomeValue();
-      const s = { paddingLeft: ["px_var", { "--paddingLeft": __maybeCssVar(\`\${x}px\`) }], paddingRight: ["px_var", { "--paddingRight": __maybeCssVar(\`\${x}px\`) }] };
+      const s = { paddingLeft: ["px_var", { "--paddingLeft": maybeCssVar(\`\${x}px\`) }], paddingRight: ["px_var", { "--paddingRight": maybeCssVar(\`\${x}px\`) }] };
     `,
       `
       .px_var {
@@ -429,9 +422,9 @@ describe("transform", () => {
       const s = Css.sqPx(x).$;
     `).toHaveTrussOutput(
       `
-      ${MAYBE_CSS_VAR_HELPER}
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const x = getSomeValue();
-      const s = { height: ["sq_var", { "--height": __maybeCssVar(\`\${x}px\`) }], width: ["sq_var", { "--width": __maybeCssVar(\`\${x}px\`) }] };
+      const s = { height: ["sq_var", { "--height": maybeCssVar(\`\${x}px\`) }], width: ["sq_var", { "--width": maybeCssVar(\`\${x}px\`) }] };
     `,
       `
       .sq_var {
@@ -523,9 +516,9 @@ describe("transform", () => {
       const s = Css.bc(color).$;
     `).toHaveTrussOutput(
       `
-      ${MAYBE_CSS_VAR_HELPER}
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const color = getColor();
-      const s = { borderColor: ["bc_var", { "--borderColor": __maybeCssVar(color) }] };
+      const s = { borderColor: ["bc_var", { "--borderColor": maybeCssVar(color) }] };
     `,
       `
       .bc_var {
@@ -546,10 +539,10 @@ describe("transform", () => {
       const s = Css.lineClamp(lines).$;
     `).toHaveTrussOutput(
       `
-      ${MAYBE_CSS_VAR_HELPER}
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const lines = getLineCount();
       const s = {
-        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": __maybeCssVar(lines) }],
+        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": maybeCssVar(lines) }],
         overflow: "oh",
         display: "d_negwebkit_box",
         WebkitBoxOrient: "wbo_vertical",
@@ -1012,9 +1005,9 @@ describe("transform", () => {
       const s = Css.onHover.bc(color).$;
     `).toHaveTrussOutput(
       `
-      ${MAYBE_CSS_VAR_HELPER}
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const color = getColor();
-      const s = { borderColor: ["h_bc_var", { "--h_borderColor": __maybeCssVar(color) }] };
+      const s = { borderColor: ["h_bc_var", { "--h_borderColor": maybeCssVar(color) }] };
     `,
       `
       .h_bc_var:hover {
@@ -1857,9 +1850,9 @@ describe("transform", () => {
       const s = Css.w100.if(isActive).w(getWidth()).$;
     `).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
-      ${MAYBE_CSS_VAR_HELPER}
-      const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": __maybeCssVar(__maybeInc(getWidth())) }] } : {}) };
+      const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": maybeCssVar(__maybeInc(getWidth())) }] } : {}) };
     `,
       `
         .w100 {
@@ -2028,12 +2021,11 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
+      import { trussProps, maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
-      ${MAYBE_CSS_VAR_HELPER}
       const x = getMargin();
       const iconVars = { "--icon-primary": color, "--icon-secondary": secondaryColor };
-      const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": __maybeCssVar(__maybeInc(x)) }], style_iconVars: iconVars })} />;
+      const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }], style_iconVars: iconVars })} />;
     `,
       `
       .blue {
@@ -2126,11 +2118,11 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
-      ${MAYBE_CSS_VAR_HELPER}
             const __maybeInc = keepMe();
             const x = getSomeValue();
-            const s = { marginTop: ["mt_var", { "--marginTop": __maybeCssVar(__maybeInc_1(x)) }] };
+            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc_1(x)) }] };
     `,
       `
       .mt_var {
@@ -3217,9 +3209,9 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      ${MAYBE_CSS_VAR_HELPER}
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const shadow = getShadow();
-      const s = { boxShadow: ["boxShadow_var", { "--boxShadow": __maybeCssVar(shadow) }] };
+      const s = { boxShadow: ["boxShadow_var", { "--boxShadow": maybeCssVar(shadow) }] };
     `,
       `
       .boxShadow_var {
@@ -3290,9 +3282,8 @@ describe("transform", () => {
     expectTrussTransform(code).toHaveTrussOutput(
       `
       import { Palette } from "./Css";
-      import { trussProps } from "@homebound/truss/runtime";
-      ${MAYBE_CSS_VAR_HELPER}
-      const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["color_var", { "--color": __maybeCssVar(Palette.Blue) }] }, ...{ color: ["color_var", { "--color": __maybeCssVar(Palette.Black) }] } })} />;
+      import { trussProps, maybeCssVar } from "@homebound/truss/runtime";
+      const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["color_var", { "--color": maybeCssVar(Palette.Blue) }] }, ...{ color: ["color_var", { "--color": maybeCssVar(Palette.Black) }] } })} />;
     `,
       `
       .white {
