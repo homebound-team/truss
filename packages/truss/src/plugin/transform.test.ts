@@ -257,11 +257,11 @@ describe("transform", () => {
       { debug: true },
     ).toHaveTrussOutput(
       `
-      import { TrussDebugInfo } from "@homebound/truss/runtime";
+      import { TrussDebugInfo, maybeCssVar } from "@homebound/truss/runtime";
       const lines = getLineCount();
       const s = {
         className_lineClamp: "lineClamp",
-        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": lines }, new TrussDebugInfo("test.tsx:3")],
+        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": maybeCssVar(lines) }, new TrussDebugInfo("test.tsx:3")],
         overflow: "oh",
         display: "d_negwebkit_box",
         WebkitBoxOrient: "wbo_vertical",
@@ -331,9 +331,77 @@ describe("transform", () => {
       const s = Css.mt(x).$;
     `).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
             const x = getSomeValue();
-            const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] };
+            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }] };
+    `,
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
+  test("Px-only file does not import maybeCssVar", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const x = getSomeValue();
+      const s = Css.mtPx(x).$;
+    `).toHaveTrussOutput(
+      `
+      const x = getSomeValue();
+      const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
+    `,
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
+  test("increment with custom property literal: Css.mt('--some-variable').$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.mt("--some-variable").$;
+    `).toHaveTrussOutput(
+      `
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
+      const s = { marginTop: ["mt_var", { "--marginTop": "var(--some-variable)" }] };
+    `,
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
+  test("increment with custom property variable: Css.mt(token).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const token = "--some-variable";
+      const s = Css.mt(token).$;
+    `).toHaveTrussOutput(
+      `
+      import { maybeCssVar } from "@homebound/truss/runtime";
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
+      const token = "--some-variable";
+      const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(token)) }] };
     `,
       `
       .mt_var {
@@ -358,28 +426,6 @@ describe("transform", () => {
       `
       .mt_12px {
         margin-top: 12px;
-      }
-    `,
-    );
-  });
-
-  test("delegate with variable arg appends px: Css.mtPx(x).$", () => {
-    expectTrussTransform(`
-      import { Css } from "./Css";
-      const x = getSomeValue();
-      const s = Css.mtPx(x).$;
-    `).toHaveTrussOutput(
-      `
-      const x = getSomeValue();
-      const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
-    `,
-      `
-      .mt_var {
-        margin-top: var(--marginTop);
-      }
-      @property --marginTop {
-        syntax: "*";
-        inherits: false;
       }
     `,
     );
@@ -455,6 +501,68 @@ describe("transform", () => {
     );
   });
 
+  test("token literal: Css.bc(Tokens.ThemeAccent).$", () => {
+    expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const s = Css.bc(Tokens.ThemeAccent).$;
+    `).toHaveTrussOutput(
+      `
+      import { Tokens } from "./Css";
+      const s = { borderColor: ["bc_var", { "--borderColor": "var(--theme-accent)" }] };
+    `,
+      `
+      .bc_var {
+        border-color: var(--borderColor);
+      }
+      @property --borderColor {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
+  test("custom property string literal: Css.bc('--theme-accent').$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.bc("--theme-accent").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { borderColor: ["bc_var", { "--borderColor": "var(--theme-accent)" }] };
+    `,
+      `
+      .bc_var {
+        border-color: var(--borderColor);
+      }
+      @property --borderColor {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
+  test("add() with token literal: Css.add('borderColor', Tokens.ThemeAccent).$", () => {
+    expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const s = Css.add("borderColor", Tokens.ThemeAccent).$;
+    `).toHaveTrussOutput(
+      `
+      import { Tokens } from "./Css";
+      const s = { borderColor: ["borderColor_var", { "--borderColor": "var(--theme-accent)" }] };
+    `,
+      `
+      .borderColor_var {
+        border-color: var(--borderColor);
+      }
+      @property --borderColor {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
   test("non-incremented variable with variable: Css.bc(color).$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
@@ -462,8 +570,9 @@ describe("transform", () => {
       const s = Css.bc(color).$;
     `).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const color = getColor();
-      const s = { borderColor: ["bc_var", { "--borderColor": color }] };
+      const s = { borderColor: ["bc_var", { "--borderColor": maybeCssVar(color) }] };
     `,
       `
       .bc_var {
@@ -484,9 +593,10 @@ describe("transform", () => {
       const s = Css.lineClamp(lines).$;
     `).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const lines = getLineCount();
       const s = {
-        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": lines }],
+        WebkitLineClamp: ["lineClamp_var", { "--WebkitLineClamp": maybeCssVar(lines) }],
         overflow: "oh",
         display: "d_negwebkit_box",
         WebkitBoxOrient: "wbo_vertical",
@@ -949,8 +1059,9 @@ describe("transform", () => {
       const s = Css.onHover.bc(color).$;
     `).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const color = getColor();
-      const s = { borderColor: ["h_bc_var", { "--h_borderColor": color }] };
+      const s = { borderColor: ["h_bc_var", { "--h_borderColor": maybeCssVar(color) }] };
     `,
       `
       .h_bc_var:hover {
@@ -1793,8 +1904,9 @@ describe("transform", () => {
       const s = Css.w100.if(isActive).w(getWidth()).$;
     `).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
-      const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": __maybeInc(getWidth()) }] } : {}) };
+      const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": maybeCssVar(__maybeInc(getWidth())) }] } : {}) };
     `,
       `
         .w100 {
@@ -1963,11 +2075,11 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      import { trussProps } from "@homebound/truss/runtime";
+      import { trussProps, maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
       const x = getMargin();
       const iconVars = { "--icon-primary": color, "--icon-secondary": secondaryColor };
-      const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }], style_iconVars: iconVars })} />;
+      const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }], style_iconVars: iconVars })} />;
     `,
       `
       .blue {
@@ -2060,10 +2172,11 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
             const __maybeInc = keepMe();
             const x = getSomeValue();
-            const s = { marginTop: ["mt_var", { "--marginTop": __maybeInc_1(x) }] };
+            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc_1(x)) }] };
     `,
       `
       .mt_var {
@@ -3150,8 +3263,9 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
+      import { maybeCssVar } from "@homebound/truss/runtime";
       const shadow = getShadow();
-      const s = { boxShadow: ["boxShadow_var", { "--boxShadow": shadow }] };
+      const s = { boxShadow: ["boxShadow_var", { "--boxShadow": maybeCssVar(shadow) }] };
     `,
       `
       .boxShadow_var {
@@ -3222,8 +3336,8 @@ describe("transform", () => {
     expectTrussTransform(code).toHaveTrussOutput(
       `
       import { Palette } from "./Css";
-      import { trussProps } from "@homebound/truss/runtime";
-      const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["color_var", { "--color": Palette.Blue }] }, ...{ color: ["color_var", { "--color": Palette.Black }] } })} />;
+      import { trussProps, maybeCssVar } from "@homebound/truss/runtime";
+      const el = <div {...trussProps({ ...{ color: "white" }, ...{ color: ["color_var", { "--color": maybeCssVar(Palette.Blue) }] }, ...{ color: ["color_var", { "--color": maybeCssVar(Palette.Black) }] } })} />;
     `,
       `
       .white {

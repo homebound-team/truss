@@ -7,6 +7,7 @@ import {
 } from "./style-metadata";
 
 export { invertMediaQuery as __invertTrussMediaQuery } from "./media-query";
+export { maybeCssVar } from "./css-custom-property";
 
 /** A compact source label for a Truss CSS expression, used in debug mode. */
 export class TrussDebugInfo {

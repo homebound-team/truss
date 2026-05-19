@@ -240,6 +240,13 @@ function resolveCssExpression(
         return { error: `when() modifiers are not supported in .css.ts files` };
       }
 
+      if (seg.variableProps && seg.argResolved) {
+        for (const prop of seg.variableProps) {
+          declarations.push({ property: camelToKebab(prop), value: seg.argResolved });
+        }
+        continue;
+      }
+
       // Extract CSS property/value pairs from defs
       for (const [prop, value] of Object.entries(seg.defs)) {
         if (typeof value === "string" || typeof value === "number") {

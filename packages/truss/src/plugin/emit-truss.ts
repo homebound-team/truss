@@ -4,6 +4,7 @@ import { getLonghandLookup, type ResolvedSegment, type TrussMapping, type WhenCo
 import { computeRulePriority, sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 import { pseudoSelectorPrefix } from "../pseudo-selectors";
+import { variableValueNeedsMaybeCssVar } from "../css-custom-property";
 import { SPACING_CUSTOM_PROPERTY, tryParseIncrementCalcMultiplier } from "../spacing-css-var";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
@@ -51,6 +52,8 @@ interface StyleEntry {
   cssValue: string;
   varName?: string;
   argNode?: unknown;
+  /** Compile-time resolved tuple value for `_var` segments (e.g. `"var(--theme-accent)"`). */
+  argResolved?: string;
   incremented?: boolean;
   appendPx?: boolean;
 }
@@ -206,6 +209,7 @@ function computeStaticBaseName(
 export interface CollectedRules {
   rules: Map<string, AtomicRule>;
   needsMaybeInc: boolean;
+  needsMaybeCssVar: boolean;
 }
 
 /**
@@ -217,6 +221,7 @@ export interface CollectedRules {
 export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMapping): CollectedRules {
   const rules = new Map<string, AtomicRule>();
   let needsMaybeInc = false;
+  let needsMaybeCssVar = false;
 
   function collectSegment(seg: ResolvedSegment): void {
     if (seg.error || seg.styleArrayArg || seg.classNameArg || seg.styleArg) return;
@@ -229,6 +234,9 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
       return;
     }
     if (seg.incremented) needsMaybeInc = true;
+    if (seg.variableProps && seg.argResolved === undefined && variableValueNeedsMaybeCssVar(seg)) {
+      needsMaybeCssVar = true;
+    }
     collectSegmentRules(rules, seg, mapping);
   }
 
@@ -241,7 +249,7 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
     }
   }
 
-  return { rules, needsMaybeInc };
+  return { rules, needsMaybeInc, needsMaybeCssVar };
 }
 
 /**
@@ -381,6 +389,7 @@ function variableStyleEntries(
       cssValue: `var(${varName})`,
       varName,
       argNode: seg.argNode,
+      argResolved: seg.argResolved,
       incremented: seg.incremented,
       appendPx: seg.appendPx,
     });
@@ -547,6 +556,7 @@ export function buildStyleHashProperties(
   segments: ResolvedSegment[],
   mapping: TrussMapping,
   maybeIncHelperName?: string | null,
+  maybeCssVarHelperName?: string | null,
 ): t.ObjectProperty[] {
   // I.e. cssProperty → list of { className, isVariable, isConditional, varName, argNode, ... }
   const propGroups = new Map<string, StyleEntry[]>();
@@ -591,16 +601,24 @@ export function buildStyleHashProperties(
       // I.e. `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`
       const varsProps: t.ObjectProperty[] = [];
       for (const dyn of variableEntries) {
-        let valueExpr: t.Expression = dyn.argNode as t.Expression;
-        if (dyn.incremented) {
-          // I.e. wrap with `__maybeInc(x)` for increment-based values
-          valueExpr = t.callExpression(t.identifier(maybeIncHelperName ?? "__maybeInc"), [valueExpr]);
-        } else if (dyn.appendPx) {
-          // I.e. wrap with `` `${v}px` `` for Px delegate values
-          valueExpr = t.templateLiteral(
-            [t.templateElement({ raw: "", cooked: "" }, false), t.templateElement({ raw: "px", cooked: "px" }, true)],
-            [valueExpr],
-          );
+        let valueExpr: t.Expression;
+        if (dyn.argResolved !== undefined) {
+          valueExpr = t.stringLiteral(dyn.argResolved);
+        } else {
+          valueExpr = dyn.argNode as t.Expression;
+          if (dyn.incremented) {
+            // I.e. wrap with `__maybeInc(x)` for increment-based values
+            valueExpr = t.callExpression(t.identifier(maybeIncHelperName ?? "__maybeInc"), [valueExpr]);
+          } else if (dyn.appendPx) {
+            // I.e. wrap with `` `${v}px` `` for Px delegate values
+            valueExpr = t.templateLiteral(
+              [t.templateElement({ raw: "", cooked: "" }, false), t.templateElement({ raw: "px", cooked: "px" }, true)],
+              [valueExpr],
+            );
+          }
+          if (maybeCssVarHelperName && variableValueNeedsMaybeCssVar(dyn)) {
+            valueExpr = t.callExpression(t.identifier(maybeCssVarHelperName), [valueExpr]);
+          }
         }
         varsProps.push(t.objectProperty(t.stringLiteral(dyn.varName!), valueExpr));
       }

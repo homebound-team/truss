@@ -12,6 +12,7 @@ import {
 import { extractChain } from "./ast-utils";
 import { invertMediaQuery } from "../media-query";
 import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
+import { isCustomPropertyName, maybeCssVar } from "../css-custom-property";
 import { incrementCssValue } from "../spacing-css-var";
 
 /**
@@ -878,7 +879,7 @@ function resolveVariableCall(
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
   }
-  const literalValue = tryEvaluateLiteral(node.args[0], entry.incremented);
+  const literalValue = tryEvaluatePropertyLiteral(node.args[0], mapping, entry.incremented);
   return buildParameterizedSegment({
     abbr,
     props: entry.props,
@@ -886,6 +887,7 @@ function resolveVariableCall(
     extraDefs: entry.extraDefs,
     argAst: node.args[0],
     literalValue,
+    mapping,
     mediaQuery,
     pseudoClass,
     pseudoElement,
@@ -921,6 +923,7 @@ function resolveDelegateCall(
     extraDefs: targetEntry.extraDefs,
     argAst: node.args[0],
     literalValue,
+    mapping,
     mediaQuery,
     pseudoClass,
     pseudoElement,
@@ -937,12 +940,13 @@ function buildParameterizedSegment(params: {
   extraDefs?: Record<string, unknown>;
   argAst: t.Expression | t.SpreadElement;
   literalValue: string | null;
+  mapping: TrussMapping;
   mediaQuery: string | null;
   pseudoClass: string | null;
   pseudoElement: string | null;
   whenPseudo: WhenCondition | null;
 }): ResolvedSegment {
-  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, whenPseudo } = params;
+  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, mapping, whenPseudo } = params;
   const context: ResolvedConditionContext = {
     mediaQuery: params.mediaQuery,
     pseudoClass: params.pseudoClass,
@@ -950,7 +954,54 @@ function buildParameterizedSegment(params: {
     whenPseudo,
   };
 
+  return resolveLiteralOrVariableSegment({
+    abbr,
+    props,
+    incremented,
+    appendPx,
+    extraDefs,
+    argAst,
+    literalValue,
+    mapping,
+    context,
+  });
+}
+
+/**
+ * Resolve a parameterized call argument to either a static fold, a compile-time `_var` tuple,
+ * or a runtime `_var` tuple.
+ */
+function resolveLiteralOrVariableSegment(params: {
+  abbr: string;
+  props: string[];
+  incremented: boolean;
+  appendPx?: boolean;
+  extraDefs?: Record<string, unknown>;
+  argAst: t.Expression | t.SpreadElement;
+  literalValue: string | null;
+  mapping: TrussMapping;
+  context: ResolvedConditionContext;
+}): ResolvedSegment {
+  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, mapping, context } = params;
+
   if (literalValue !== null) {
+    const raw = tryResolveValueLiteral(argAst, mapping);
+    if (raw !== null && isCustomPropertyName(raw)) {
+      const base = segmentWithConditionContext(
+        {
+          abbr,
+          defs: {},
+          variableProps: props,
+          incremented,
+          variableExtraDefs: extraDefs,
+          argResolved: literalValue,
+        },
+        context,
+      );
+      if (appendPx) base.appendPx = true;
+      return base;
+    }
+
     const defs: Record<string, unknown> = {};
     for (const prop of props) {
       defs[prop] = literalValue;
@@ -1122,25 +1173,19 @@ function resolveAddCall(
   const propName: string = (propArg as any).value;
 
   const valueArg = node.args[1];
-  const literalValue = tryEvaluateAddLiteral(valueArg);
+  const literalValue = tryEvaluatePropertyLiteral(valueArg, mapping, false);
 
-  if (literalValue !== null) {
-    return [segmentWithConditionContext(
-      { abbr: propName, defs: { [propName]: literalValue }, argResolved: literalValue },
-      context,
-    )];
-  }
-
-  return [segmentWithConditionContext(
-    {
+  return [
+    resolveLiteralOrVariableSegment({
       abbr: propName,
-      defs: {},
-      variableProps: [propName],
+      props: [propName],
       incremented: false,
-      argNode: valueArg,
-    },
-    context,
-  )];
+      argAst: valueArg,
+      literalValue,
+      mapping,
+      context,
+    }),
+  ];
 }
 
 /**
@@ -1172,22 +1217,32 @@ function resolveAddObjectLiteral(
       throw new UnsupportedPatternError(`add({...}) property keys must be identifiers or string literals`);
     }
     const valueNode = property.value;
-    const literalValue = tryEvaluateAddLiteral(valueNode as any);
+    const literalValue = tryEvaluatePropertyLiteral(valueNode as any, mapping, false);
     if (literalValue !== null) {
-      // Check if this prop/value matches an existing abbreviation in the mapping
-      const canonicalAbbr = findCanonicalAbbreviation(mapping, propName, literalValue);
-      if (canonicalAbbr) {
-        const entry = mapping.abbreviations[canonicalAbbr];
-        segments.push(segmentWithConditionContext(
-          { abbr: canonicalAbbr, defs: (entry as any).defs },
-          context,
-        ));
-      } else {
-        segments.push(segmentWithConditionContext(
-          { abbr: propName, defs: { [propName]: literalValue }, argResolved: literalValue },
-          context,
-        ));
+      const raw = tryResolveValueLiteral(valueNode as any, mapping);
+      if (raw === null || !isCustomPropertyName(raw)) {
+        // Check if this prop/value matches an existing abbreviation in the mapping
+        const canonicalAbbr = findCanonicalAbbreviation(mapping, propName, literalValue);
+        if (canonicalAbbr) {
+          const entry = mapping.abbreviations[canonicalAbbr];
+          segments.push(segmentWithConditionContext(
+            { abbr: canonicalAbbr, defs: (entry as any).defs },
+            context,
+          ));
+          continue;
+        }
       }
+      segments.push(
+        resolveLiteralOrVariableSegment({
+          abbr: propName,
+          props: [propName],
+          incremented: false,
+          argAst: valueNode as any,
+          literalValue,
+          mapping,
+          context,
+        }),
+      );
     } else {
       segments.push(segmentWithConditionContext(
         { abbr: propName, defs: {}, variableProps: [propName], incremented: false, argNode: valueNode },
@@ -1203,18 +1258,45 @@ function findCanonicalAbbreviation(mapping: TrussMapping, prop: string, value: s
   return getLonghandLookup(mapping).get(`${prop}\0${value}`) ?? null;
 }
 
-/** Try to evaluate a literal for add() — strings, numbers, and template literals with no expressions. */
-function tryEvaluateAddLiteral(node: t.Expression | t.SpreadElement): string | null {
+/** Resolve a literal value without wrapping (for setVar values, etc.). */
+function tryResolveValueLiteral(node: t.Expression | t.SpreadElement, mapping?: TrussMapping): string | null {
+  if (mapping) {
+    const token = tryResolveTokensMember(node as t.Expression, mapping);
+    if (token !== null) return token;
+  }
   if (node.type === "StringLiteral") {
-    return (node as any).value;
+    return node.value;
   }
   if (node.type === "NumericLiteral") {
-    return String((node as any).value);
+    return String(node.value);
   }
   if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
-    return String(-(node.argument as any).value);
+    return String(-node.argument.value);
   }
   return null;
+}
+
+/** Resolve `Tokens.Member` / `Tokens["Member"]` to a `--` custom property name. */
+function tryResolveTokensMember(node: t.Expression, mapping: TrussMapping): string | null {
+  if (node.type !== "MemberExpression") return null;
+  if (node.object.type !== "Identifier" || node.object.name !== "Tokens") return null;
+
+  const memberName =
+    !node.computed && node.property.type === "Identifier"
+      ? node.property.name
+      : node.computed && node.property.type === "StringLiteral"
+        ? node.property.value
+        : null;
+  if (memberName == null) return null;
+
+  const tokenMap = mapping.tokens;
+  if (!tokenMap) {
+    throw new UnsupportedPatternError(`Tokens.* requires config.tokens`);
+  }
+  if (!(memberName in tokenMap)) {
+    throw new UnsupportedPatternError(`Unknown token "${memberName}" - add it to config.tokens`);
+  }
+  return tokenMap[memberName];
 }
 
 const WHEN_RELATIONSHIPS = new Set(["ancestor", "descendant", "anySibling", "siblingBefore", "siblingAfter"]);
@@ -1297,18 +1379,20 @@ function isLegacyDefaultMarkerExpression(node: t.Expression | t.SpreadElement): 
 // ── Helpers ───────────────────────────────────────────────────────────
 
 /**
- * Try to evaluate a literal AST node to a string value.
+ * Try to evaluate a literal AST node to a CSS property value.
  * For incremented entries, also evaluates `maybeInc(literal)` (web: calc on `--t-spacing`).
+ * Custom property names (`--token` / `Tokens.X`) are wrapped as `var(--token)`.
  */
-function tryEvaluateLiteral(node: t.Expression | t.SpreadElement, incremented: boolean): string | null {
+function tryEvaluatePropertyLiteral(
+  node: t.Expression | t.SpreadElement,
+  mapping: TrussMapping,
+  incremented: boolean,
+): string | null {
   if (node.type === "NumericLiteral") {
     if (incremented) {
       return incrementCssValue(node.value);
     }
     return String(node.value);
-  }
-  if (node.type === "StringLiteral") {
-    return node.value;
   }
   if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
     const val = -node.argument.value;
@@ -1316,6 +1400,10 @@ function tryEvaluateLiteral(node: t.Expression | t.SpreadElement, incremented: b
       return incrementCssValue(val);
     }
     return String(val);
+  }
+  const raw = tryResolveValueLiteral(node, mapping);
+  if (raw !== null) {
+    return maybeCssVar(raw);
   }
   return null;
 }
@@ -1538,7 +1626,7 @@ function expandSetVarValueToLeaves(
   baseCtx: ResolvedConditionContext,
 ): Array<{ literal: string; ctx: ResolvedConditionContext }> {
   const unwrapped = unwrapExpression(valueNode);
-  const scalar = tryEvaluateAddLiteral(unwrapped);
+  const scalar = tryResolveValueLiteral(unwrapped);
   if (scalar !== null) {
     return [{ literal: scalar, ctx: cloneConditionContext(baseCtx) }];
   }
@@ -1565,7 +1653,7 @@ function expandSetVarValueToLeaves(
       throw new UnsupportedPatternError(`setVar() responsive object: invalid property key`);
     }
     if (name === "default") {
-      const v = tryEvaluateAddLiteral(unwrapExpression(prop.value as t.Expression));
+      const v = tryResolveValueLiteral(unwrapExpression(prop.value as t.Expression));
       if (v === null) {
         throw new UnsupportedPatternError(`setVar().default must be a string or number literal`);
       }
@@ -1613,7 +1701,7 @@ function expandSetVarValueToLeaves(
           `Unknown breakpoint "${bpName}" in setVar().media - use a Breakpoint name from truss-config`,
         );
       }
-      const v = tryEvaluateAddLiteral(unwrapExpression(mprop.value as t.Expression));
+      const v = tryResolveValueLiteral(unwrapExpression(mprop.value as t.Expression));
       if (v === null) {
         throw new UnsupportedPatternError(`setVar().media[${bpName}] must be a string or number literal`);
       }
@@ -1648,7 +1736,7 @@ function expandSetVarValueToLeaves(
         }
         const rv = rprop.value as t.Expression;
         if (rk === "value") {
-          const lit = tryEvaluateAddLiteral(unwrapExpression(rv));
+          const lit = tryResolveValueLiteral(unwrapExpression(rv));
           if (lit === null) {
             throw new UnsupportedPatternError(`setVar().container row "value" must be a string or number literal`);
           }

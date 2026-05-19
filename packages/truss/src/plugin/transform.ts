@@ -120,12 +120,16 @@ export function transformTruss(
 
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
-  const { rules, needsMaybeInc } = collectAtomicRules(chains, mapping);
+  const { rules, needsMaybeInc, needsMaybeCssVar } = collectAtomicRules(chains, mapping);
   const cssText = generateCssText(rules);
 
   // Step 4: Reserve local names for injected helpers
   const usedTopLevelNames = collectTopLevelBindings(ast);
   const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
+  const existingMaybeCssVarHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "maybeCssVar");
+  const maybeCssVarHelperName = needsMaybeCssVar
+    ? (existingMaybeCssVarHelperName ?? reservePreferredName(usedTopLevelNames, "maybeCssVar"))
+    : null;
   const existingMergePropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "mergeProps");
   const mergePropsHelperName = existingMergePropsHelperName ?? reservePreferredName(usedTopLevelNames, "mergeProps");
   const needsMergePropsHelper = { current: false };
@@ -152,6 +156,7 @@ export function transformTruss(
     debug: options.debug ?? false,
     mapping,
     maybeIncHelperName,
+    maybeCssVarHelperName,
     mergePropsHelperName,
     needsMergePropsHelper,
     trussPropsHelperName,
@@ -171,6 +176,9 @@ export function transformTruss(
   }
   if (needsTrussDebugInfo.current && !existingTrussDebugInfoName) {
     runtimeImports.push({ importedName: "TrussDebugInfo", localName: trussDebugInfoName });
+  }
+  if (needsMaybeCssVar && !existingMaybeCssVarHelperName && maybeCssVarHelperName) {
+    runtimeImports.push({ importedName: "maybeCssVar", localName: maybeCssVarHelperName });
   }
   if (options.injectCss) {
     runtimeImports.push({ importedName: "__injectTrussCSS", localName: "__injectTrussCSS" });
@@ -199,7 +207,6 @@ export function transformTruss(
   if (maybeIncHelperName) {
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName));
   }
-
   // Insert runtime lookup tables for typography
   for (const [lookupKey, lookup] of runtimeLookups) {
     const lookupName = runtimeLookupNames.get(lookupKey);

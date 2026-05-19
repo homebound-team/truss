@@ -2474,7 +2474,9 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
       return this;
     }
 
-    const newRules = typeof propOrStyles === "string" ? { [propOrStyles]: value } : propOrStyles;
+    const newRules = typeof propOrStyles === "string"
+      ? { [propOrStyles]: maybeCssVar(value) }
+      : maybeCssVarValues(propOrStyles as Record<string, unknown>);
     if (typeof propOrStyles !== "string" && (newRules as any).$css) {
       throw new Error("add() received a Css expression — use with() to compose Css expressions");
     }
@@ -2491,7 +2493,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
       return this;
     }
     const { $css, ...rest } = cssProp as any;
-    const filtered = omitUndefinedValues(rest);
+    const filtered = maybeCssVarValues(omitUndefinedValues(rest));
     const rules = this.selector
       ? { ...this.rules, [this.selector]: { ...(this.rules as any)[this.selector], ...filtered } }
       : { ...this.rules, ...filtered };
@@ -2546,6 +2548,21 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
 /** Converts `inc` into a spacing length using `--t-spacing` (build-time atomic CSS). */
 export function maybeInc(inc: number | string): string {
   return typeof inc === "string" ? inc : `calc(var(--t-spacing) * ${inc})`;
+}
+
+/** Wraps `--token` custom property names as `var(--token)` for CSS property values. */
+export function maybeCssVar<T>(value: T): T {
+  if (typeof value !== "string") {
+    return value;
+  }
+  if (value.startsWith("--")) {
+    return `var(${value})` as T;
+  }
+  return value;
+}
+
+function maybeCssVarValues<O extends Record<string, unknown>>(obj: O): O {
+  return Object.fromEntries(Object.entries(obj).map(([key, val]) => [key, maybeCssVar(val)])) as O;
 }
 
 /** Converts `inc` into pixels. */

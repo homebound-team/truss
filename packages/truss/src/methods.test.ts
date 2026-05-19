@@ -1,6 +1,14 @@
 import { Properties } from "csstype";
 import { Config } from "src/config";
-import { newIncrementMethods, newMethod, newMethodsForProp, newParamMethod, newPxMethods } from "src/methods";
+import {
+  newIncrementMethods,
+  newMethod,
+  newMethodsForProp,
+  newParamMethod,
+  newPxMethods,
+  startWebCollection,
+  stopWebCollection,
+} from "src/methods";
 import { describe, expect, it } from "vitest";
 
 describe("methods", () => {
