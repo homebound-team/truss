@@ -1,3 +1,9 @@
+## [2.25.0](https://github.com/homebound-team/truss/compare/v2.24.0...v2.25.0) (2026-05-19)
+
+### Features
+
+* Add dev ergonomics for supporting CSS variables ([#252](https://github.com/homebound-team/truss/issues/252)) ([e16358d](https://github.com/homebound-team/truss/commit/e16358d4be292052689c56020764914b8b1bd9cb))
+
 ## [2.24.0](https://github.com/homebound-team/truss/compare/v2.23.0...v2.24.0) (2026-05-12)
 
 ### Features
