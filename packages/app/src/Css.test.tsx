@@ -163,9 +163,9 @@ describe("Truss CssBuilder", () => {
   });
 
   describe("parameterized methods (variable styles via CSS variables)", () => {
-    // When the argument is a literal, Truss inlines it at build time as a
-    // static class — so we test with toHaveStyle. When we pass a variable,
-    // Truss uses CSS variables, so we test via inline style.
+    // Ordinary literals (numbers, "red", "10px") fold to static classes.
+    // Custom-property args (Tokens.*, "--token") use the shared _var class
+    // plus inline --propName values; runtime variables use maybeCssVar on the arg.
 
     test("Css.mt(2) applies margin-top (literal → static)", () => {
       const r = render(<div css={Css.mt(2).$} />);
@@ -191,23 +191,26 @@ describe("Truss CssBuilder", () => {
       expect(hasCssDeclaration(el, "border-color", { hover: false })).toBe(true);
     });
 
-    test("Css.bc(Tokens.ThemeAccent) emits border-color: var(--theme-accent) (literal token → static)", () => {
+    test("Css.bc(Tokens.ThemeAccent) uses bc_var and wires --borderColor to the token", () => {
       const r = render(<div css={Css.bc(Tokens.ThemeAccent).$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(hasCssDeclaration(el, "border-color", { hover: false, value: "var(--theme-accent)" })).toBe(true);
+      expect(el.style.getPropertyValue("--borderColor")).toBe("var(--theme-accent)");
+      expect(hasCssDeclaration(el, "border-color", { hover: false, value: "var(--borderColor)" })).toBe(true);
     });
 
-    test('Css.bc("--theme-accent") emits border-color: var(--theme-accent) (string literal → static)', () => {
+    test('Css.bc("--theme-accent") uses bc_var and wires --borderColor to the token', () => {
       const r = render(<div css={Css.bc("--theme-accent").$} />);
       const el = r.container.firstChild as HTMLElement;
-      expect(hasCssDeclaration(el, "border-color", { hover: false, value: "var(--theme-accent)" })).toBe(true);
+      expect(el.style.getPropertyValue("--borderColor")).toBe("var(--theme-accent)");
+      expect(hasCssDeclaration(el, "border-color", { hover: false, value: "var(--borderColor)" })).toBe(true);
     });
 
     test("Css.setVar + Css.bc(Tokens.ThemeAccent) sets token and references it for border-color", () => {
       const r = render(<div css={Css.setVar({ [Tokens.ThemeAccent]: "coral" }).bc(Tokens.ThemeAccent).$} />);
       const el = r.container.firstChild as HTMLElement;
       expect(getComputedStyle(el).getPropertyValue("--theme-accent").trim()).toBe("coral");
-      expect(hasCssDeclaration(el, "border-color", { hover: false, value: "var(--theme-accent)" })).toBe(true);
+      expect(el.style.getPropertyValue("--borderColor")).toBe("var(--theme-accent)");
+      expect(hasCssDeclaration(el, "border-color", { hover: false, value: "var(--borderColor)" })).toBe(true);
     });
 
     test("Css.setVar + Css.bc(token) with runtime token variable wraps token for border-color var", () => {

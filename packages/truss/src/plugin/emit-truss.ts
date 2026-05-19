@@ -52,6 +52,8 @@ interface StyleEntry {
   cssValue: string;
   varName?: string;
   argNode?: unknown;
+  /** Compile-time resolved tuple value for `_var` segments (e.g. `"var(--theme-accent)"`). */
+  argResolved?: string;
   incremented?: boolean;
   appendPx?: boolean;
 }
@@ -387,6 +389,7 @@ function variableStyleEntries(
       cssValue: `var(${varName})`,
       varName,
       argNode: seg.argNode,
+      argResolved: seg.argResolved,
       incremented: seg.incremented,
       appendPx: seg.appendPx,
     });
@@ -598,19 +601,24 @@ export function buildStyleHashProperties(
       // I.e. `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`
       const varsProps: t.ObjectProperty[] = [];
       for (const dyn of variableEntries) {
-        let valueExpr: t.Expression = dyn.argNode as t.Expression;
-        if (dyn.incremented) {
-          // I.e. wrap with `__maybeInc(x)` for increment-based values
-          valueExpr = t.callExpression(t.identifier(maybeIncHelperName ?? "__maybeInc"), [valueExpr]);
-        } else if (dyn.appendPx) {
-          // I.e. wrap with `` `${v}px` `` for Px delegate values
-          valueExpr = t.templateLiteral(
-            [t.templateElement({ raw: "", cooked: "" }, false), t.templateElement({ raw: "px", cooked: "px" }, true)],
-            [valueExpr],
-          );
-        }
-        if (maybeCssVarHelperName && variableValueNeedsMaybeCssVar(dyn)) {
-          valueExpr = t.callExpression(t.identifier(maybeCssVarHelperName), [valueExpr]);
+        let valueExpr: t.Expression;
+        if (dyn.argResolved !== undefined) {
+          valueExpr = t.stringLiteral(dyn.argResolved);
+        } else {
+          valueExpr = dyn.argNode as t.Expression;
+          if (dyn.incremented) {
+            // I.e. wrap with `__maybeInc(x)` for increment-based values
+            valueExpr = t.callExpression(t.identifier(maybeIncHelperName ?? "__maybeInc"), [valueExpr]);
+          } else if (dyn.appendPx) {
+            // I.e. wrap with `` `${v}px` `` for Px delegate values
+            valueExpr = t.templateLiteral(
+              [t.templateElement({ raw: "", cooked: "" }, false), t.templateElement({ raw: "px", cooked: "px" }, true)],
+              [valueExpr],
+            );
+          }
+          if (maybeCssVarHelperName && variableValueNeedsMaybeCssVar(dyn)) {
+            valueExpr = t.callExpression(t.identifier(maybeCssVarHelperName), [valueExpr]);
+          }
         }
         varsProps.push(t.objectProperty(t.stringLiteral(dyn.varName!), valueExpr));
       }

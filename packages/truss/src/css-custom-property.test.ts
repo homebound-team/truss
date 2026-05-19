@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { maybeCssVar, variableValueNeedsMaybeCssVar } from "./css-custom-property";
+import { isCustomPropertyName, maybeCssVar, variableValueNeedsMaybeCssVar } from "./css-custom-property";
 
 describe("maybeCssVar", () => {
   test("wraps custom property names", () => {
@@ -17,6 +17,17 @@ describe("maybeCssVar", () => {
 
   test("passes through non-strings", () => {
     expect(maybeCssVar(42)).toBe(42);
+  });
+});
+
+describe("isCustomPropertyName", () => {
+  test("returns true for custom property names", () => {
+    expect(isCustomPropertyName("--theme-accent")).toBe(true);
+  });
+
+  test("returns false for ordinary values", () => {
+    expect(isCustomPropertyName("red")).toBe(false);
+    expect(isCustomPropertyName("var(--theme-accent)")).toBe(false);
   });
 });
 

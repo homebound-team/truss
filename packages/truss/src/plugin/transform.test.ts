@@ -349,18 +349,25 @@ describe("transform", () => {
   });
 
   test("Px-only file does not import maybeCssVar", () => {
-    const result = transformTruss(
-      `
+    expectTrussTransform(`
       import { Css } from "./Css";
       const x = getSomeValue();
       const s = Css.mtPx(x).$;
+    `).toHaveTrussOutput(
+      `
+      const x = getSomeValue();
+      const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
     `,
-      "test.tsx",
-      mapping,
-    )?.code;
-
-    expect(result).not.toContain("maybeCssVar");
-    expect(result).not.toContain('@homebound/truss/runtime');
+      `
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
   });
 
   test("increment with custom property literal: Css.mt('--some-variable').$", () => {
@@ -369,11 +376,16 @@ describe("transform", () => {
       const s = Css.mt("--some-variable").$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "mt_var_some_variable" };
+      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
+      const s = { marginTop: ["mt_var", { "--marginTop": "var(--some-variable)" }] };
     `,
       `
-      .mt_var_some_variable {
-        margin-top: var(--some-variable);
+      .mt_var {
+        margin-top: var(--marginTop);
+      }
+      @property --marginTop {
+        syntax: "*";
+        inherits: false;
       }
     `,
     );
@@ -414,28 +426,6 @@ describe("transform", () => {
       `
       .mt_12px {
         margin-top: 12px;
-      }
-    `,
-    );
-  });
-
-  test("delegate with variable arg appends px: Css.mtPx(x).$", () => {
-    expectTrussTransform(`
-      import { Css } from "./Css";
-      const x = getSomeValue();
-      const s = Css.mtPx(x).$;
-    `).toHaveTrussOutput(
-      `
-      const x = getSomeValue();
-      const s = { marginTop: ["mt_var", { "--marginTop": \`\${x}px\` }] };
-    `,
-      `
-      .mt_var {
-        margin-top: var(--marginTop);
-      }
-      @property --marginTop {
-        syntax: "*";
-        inherits: false;
       }
     `,
     );
@@ -518,11 +508,15 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       import { Tokens } from "./Css";
-      const s = { borderColor: "bc_var_theme_accent" };
+      const s = { borderColor: ["bc_var", { "--borderColor": "var(--theme-accent)" }] };
     `,
       `
-      .bc_var_theme_accent {
-        border-color: var(--theme-accent);
+      .bc_var {
+        border-color: var(--borderColor);
+      }
+      @property --borderColor {
+        syntax: "*";
+        inherits: false;
       }
     `,
     );
@@ -534,11 +528,15 @@ describe("transform", () => {
       const s = Css.bc("--theme-accent").$;
     `).toHaveTrussOutput(
       `
-      const s = { borderColor: "bc_var_theme_accent" };
+      const s = { borderColor: ["bc_var", { "--borderColor": "var(--theme-accent)" }] };
     `,
       `
-      .bc_var_theme_accent {
-        border-color: var(--theme-accent);
+      .bc_var {
+        border-color: var(--borderColor);
+      }
+      @property --borderColor {
+        syntax: "*";
+        inherits: false;
       }
     `,
     );
@@ -551,11 +549,15 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       import { Tokens } from "./Css";
-      const s = { borderColor: "borderColor_var_theme_accent" };
+      const s = { borderColor: ["borderColor_var", { "--borderColor": "var(--theme-accent)" }] };
     `,
       `
-      .borderColor_var_theme_accent {
-        border-color: var(--theme-accent);
+      .borderColor_var {
+        border-color: var(--borderColor);
+      }
+      @property --borderColor {
+        syntax: "*";
+        inherits: false;
       }
     `,
     );

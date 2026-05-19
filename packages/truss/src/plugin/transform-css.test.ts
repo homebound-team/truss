@@ -120,6 +120,21 @@ describe("transformCssTs", () => {
     );
   });
 
+  test("token literal: Css.bc(Tokens.ThemeAccent).$", () => {
+    const css = transformCssTs(
+      `import { Css, Tokens } from "./Css"; export const css = { ".foo": Css.bc(Tokens.ThemeAccent).$ };`,
+      "test.css.ts",
+      mapping,
+    );
+    expect(n(css)).toBe(
+      n(`
+        .foo {
+          border-color: var(--theme-accent);
+        }
+      `),
+    );
+  });
+
   test("complex selector strings", () => {
     const css = transformCssTs(
       `import { Css } from "./Css"; export const css = { ".foo > .bar:nth-child(2)": Css.df.$, ".a ~ .b::before": Css.black.$ };`,

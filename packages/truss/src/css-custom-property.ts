@@ -16,3 +16,8 @@ export function maybeCssVar<T>(value: T): T {
 export function variableValueNeedsMaybeCssVar(opts: { appendPx?: boolean }): boolean {
   return !opts.appendPx;
 }
+
+/** True when a resolved argument value is a CSS custom property name (`--token`). */
+export function isCustomPropertyName(value: string): boolean {
+  return value.startsWith("--");
+}

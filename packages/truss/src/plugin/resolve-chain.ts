@@ -12,7 +12,7 @@ import {
 import { extractChain } from "./ast-utils";
 import { invertMediaQuery } from "../media-query";
 import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
-import { maybeCssVar } from "../css-custom-property";
+import { isCustomPropertyName, maybeCssVar } from "../css-custom-property";
 import { incrementCssValue } from "../spacing-css-var";
 
 /**
@@ -887,6 +887,7 @@ function resolveVariableCall(
     extraDefs: entry.extraDefs,
     argAst: node.args[0],
     literalValue,
+    mapping,
     mediaQuery,
     pseudoClass,
     pseudoElement,
@@ -922,6 +923,7 @@ function resolveDelegateCall(
     extraDefs: targetEntry.extraDefs,
     argAst: node.args[0],
     literalValue,
+    mapping,
     mediaQuery,
     pseudoClass,
     pseudoElement,
@@ -938,12 +940,13 @@ function buildParameterizedSegment(params: {
   extraDefs?: Record<string, unknown>;
   argAst: t.Expression | t.SpreadElement;
   literalValue: string | null;
+  mapping: TrussMapping;
   mediaQuery: string | null;
   pseudoClass: string | null;
   pseudoElement: string | null;
   whenPseudo: WhenCondition | null;
 }): ResolvedSegment {
-  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, whenPseudo } = params;
+  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, mapping, whenPseudo } = params;
   const context: ResolvedConditionContext = {
     mediaQuery: params.mediaQuery,
     pseudoClass: params.pseudoClass,
@@ -951,7 +954,54 @@ function buildParameterizedSegment(params: {
     whenPseudo,
   };
 
+  return resolveLiteralOrVariableSegment({
+    abbr,
+    props,
+    incremented,
+    appendPx,
+    extraDefs,
+    argAst,
+    literalValue,
+    mapping,
+    context,
+  });
+}
+
+/**
+ * Resolve a parameterized call argument to either a static fold, a compile-time `_var` tuple,
+ * or a runtime `_var` tuple.
+ */
+function resolveLiteralOrVariableSegment(params: {
+  abbr: string;
+  props: string[];
+  incremented: boolean;
+  appendPx?: boolean;
+  extraDefs?: Record<string, unknown>;
+  argAst: t.Expression | t.SpreadElement;
+  literalValue: string | null;
+  mapping: TrussMapping;
+  context: ResolvedConditionContext;
+}): ResolvedSegment {
+  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, mapping, context } = params;
+
   if (literalValue !== null) {
+    const raw = tryResolveValueLiteral(argAst, mapping);
+    if (raw !== null && isCustomPropertyName(raw)) {
+      const base = segmentWithConditionContext(
+        {
+          abbr,
+          defs: {},
+          variableProps: props,
+          incremented,
+          variableExtraDefs: extraDefs,
+          argResolved: literalValue,
+        },
+        context,
+      );
+      if (appendPx) base.appendPx = true;
+      return base;
+    }
+
     const defs: Record<string, unknown> = {};
     for (const prop of props) {
       defs[prop] = literalValue;
@@ -1125,23 +1175,17 @@ function resolveAddCall(
   const valueArg = node.args[1];
   const literalValue = tryEvaluatePropertyLiteral(valueArg, mapping, false);
 
-  if (literalValue !== null) {
-    return [segmentWithConditionContext(
-      { abbr: propName, defs: { [propName]: literalValue }, argResolved: literalValue },
-      context,
-    )];
-  }
-
-  return [segmentWithConditionContext(
-    {
+  return [
+    resolveLiteralOrVariableSegment({
       abbr: propName,
-      defs: {},
-      variableProps: [propName],
+      props: [propName],
       incremented: false,
-      argNode: valueArg,
-    },
-    context,
-  )];
+      argAst: valueArg,
+      literalValue,
+      mapping,
+      context,
+    }),
+  ];
 }
 
 /**
@@ -1175,20 +1219,30 @@ function resolveAddObjectLiteral(
     const valueNode = property.value;
     const literalValue = tryEvaluatePropertyLiteral(valueNode as any, mapping, false);
     if (literalValue !== null) {
-      // Check if this prop/value matches an existing abbreviation in the mapping
-      const canonicalAbbr = findCanonicalAbbreviation(mapping, propName, literalValue);
-      if (canonicalAbbr) {
-        const entry = mapping.abbreviations[canonicalAbbr];
-        segments.push(segmentWithConditionContext(
-          { abbr: canonicalAbbr, defs: (entry as any).defs },
-          context,
-        ));
-      } else {
-        segments.push(segmentWithConditionContext(
-          { abbr: propName, defs: { [propName]: literalValue }, argResolved: literalValue },
-          context,
-        ));
+      const raw = tryResolveValueLiteral(valueNode as any, mapping);
+      if (raw === null || !isCustomPropertyName(raw)) {
+        // Check if this prop/value matches an existing abbreviation in the mapping
+        const canonicalAbbr = findCanonicalAbbreviation(mapping, propName, literalValue);
+        if (canonicalAbbr) {
+          const entry = mapping.abbreviations[canonicalAbbr];
+          segments.push(segmentWithConditionContext(
+            { abbr: canonicalAbbr, defs: (entry as any).defs },
+            context,
+          ));
+          continue;
+        }
       }
+      segments.push(
+        resolveLiteralOrVariableSegment({
+          abbr: propName,
+          props: [propName],
+          incremented: false,
+          argAst: valueNode as any,
+          literalValue,
+          mapping,
+          context,
+        }),
+      );
     } else {
       segments.push(segmentWithConditionContext(
         { abbr: propName, defs: {}, variableProps: [propName], incremented: false, argNode: valueNode },
