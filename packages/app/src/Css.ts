@@ -811,6 +811,20 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
     return this.add("float", value);
   }
 
+  // fontStyle
+  /** Sets `fontStyle: "italic"`. */
+  get fsyi() {
+    return this.add("fontStyle", "italic");
+  }
+  /** Sets `fontStyle: "normal"`. */
+  get fsynm() {
+    return this.add("fontStyle", "normal");
+  }
+  /** Sets `fontStyle: value`. */
+  fsy(value: Properties["fontStyle"]) {
+    return this.add("fontStyle", value);
+  }
+
   // fontWeight
   /** Sets `fontWeight: "normal"`. */
   get fwn() {

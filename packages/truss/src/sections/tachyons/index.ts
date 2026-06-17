@@ -9,6 +9,7 @@ import { cursor } from "src/sections/tachyons/cursor";
 import { display } from "src/sections/tachyons/display";
 import { flexbox } from "src/sections/tachyons/flexbox";
 import { float } from "src/sections/tachyons/floats";
+import { fontStyle } from "src/sections/tachyons/fontStyle";
 import { fontWeight } from "src/sections/tachyons/fontWeight";
 import { grid } from "src/sections/tachyons/grid";
 import { height } from "src/sections/tachyons/heights";
@@ -47,6 +48,7 @@ export const defaultSections = {
   display,
   flexbox,
   float,
+  fontStyle,
   fontWeight,
   grid,
   height,
