@@ -1,3 +1,9 @@
+## [2.26.0](https://github.com/homebound-team/truss/compare/v2.25.0...v2.26.0) (2026-06-17)
+
+### Features
+
+* added font style ([#255](https://github.com/homebound-team/truss/issues/255)) ([d9edcd5](https://github.com/homebound-team/truss/commit/d9edcd5ccdfbe42dc473b6bb9a219ebd8ad38fba))
+
 ## [2.25.0](https://github.com/homebound-team/truss/compare/v2.24.0...v2.25.0) (2026-05-19)
 
 ### Features
