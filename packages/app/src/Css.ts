@@ -1341,73 +1341,31 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
 
   // scrollSnap
-  /** Sets `scrollSnapAlign: "none"`. */
-  get ssan() {
-    return this.add("scrollSnapAlign", "none");
-  }
-  /** Sets `scrollSnapAlign: "start"`. */
-  get ssas() {
-    return this.add("scrollSnapAlign", "start");
-  }
-  /** Sets `scrollSnapAlign: "end"`. */
-  get ssae() {
-    return this.add("scrollSnapAlign", "end");
-  }
-  /** Sets `scrollSnapAlign: "center"`. */
-  get ssac() {
-    return this.add("scrollSnapAlign", "center");
-  }
   /** Sets `scrollSnapAlign: value`. */
   ssa(value: Properties["scrollSnapAlign"]) {
     return this.add("scrollSnapAlign", value);
   }
-  /** Sets `scrollSnapType: "none"`. */
-  get sstn() {
-    return this.add("scrollSnapType", "none");
-  }
-  /** Sets `scrollSnapType: "x mandatory"`. */
-  get sstxm() {
-    return this.add("scrollSnapType", "x mandatory");
-  }
-  /** Sets `scrollSnapType: "x proximity"`. */
-  get sstxp() {
-    return this.add("scrollSnapType", "x proximity");
-  }
-  /** Sets `scrollSnapType: "y mandatory"`. */
-  get sstym() {
-    return this.add("scrollSnapType", "y mandatory");
-  }
-  /** Sets `scrollSnapType: "y proximity"`. */
-  get sstyp() {
-    return this.add("scrollSnapType", "y proximity");
-  }
-  /** Sets `scrollSnapType: "both mandatory"`. */
-  get sstbm() {
-    return this.add("scrollSnapType", "both mandatory");
-  }
-  /** Sets `scrollSnapType: "both proximity"`. */
-  get sstbp() {
-    return this.add("scrollSnapType", "both proximity");
-  }
-  /** Sets `scrollSnapType: "block mandatory"`. */
-  get sstkm() {
-    return this.add("scrollSnapType", "block mandatory");
-  }
-  /** Sets `scrollSnapType: "block proximity"`. */
-  get sstkp() {
-    return this.add("scrollSnapType", "block proximity");
-  }
-  /** Sets `scrollSnapType: "inline mandatory"`. */
-  get sstim() {
-    return this.add("scrollSnapType", "inline mandatory");
-  }
-  /** Sets `scrollSnapType: "inline proximity"`. */
-  get sstip() {
-    return this.add("scrollSnapType", "inline proximity");
-  }
   /** Sets `scrollSnapType: value`. */
   sst(value: Properties["scrollSnapType"]) {
     return this.add("scrollSnapType", value);
+  }
+
+  // scrollbarWidth
+  /** Sets `scrollbarWidth: "auto"`. */
+  get sbwa() {
+    return this.add("scrollbarWidth", "auto");
+  }
+  /** Sets `scrollbarWidth: "thin"`. */
+  get sbwt() {
+    return this.add("scrollbarWidth", "thin");
+  }
+  /** Sets `scrollbarWidth: "none"`. */
+  get sbwn() {
+    return this.add("scrollbarWidth", "none");
+  }
+  /** Sets `scrollbarWidth: value`. */
+  sbw(value: Properties["scrollbarWidth"]) {
+    return this.add("scrollbarWidth", value);
   }
 
   // skins

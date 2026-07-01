@@ -36,6 +36,38 @@ describe("transform", () => {
     );
   });
 
+  test("static chain: Css.sbwn.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.sbwn.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollbarWidth: "sbwn" };
+    `,
+      `
+      .sbwn {
+        scrollbar-width: none;
+      }
+    `,
+    );
+  });
+
+  test('param chain: Css.sbw("thin").$', () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.sbw("thin").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollbarWidth: "sbw_thin" };
+    `,
+      `
+      .sbw_thin {
+        scrollbar-width: thin;
+      }
+    `,
+    );
+  });
+
   test("keeps runtime import rewrites on the former Css import line", () => {
     const output = transformTruss(
       `
@@ -84,35 +116,35 @@ describe("transform", () => {
     );
   });
 
-  test("static chain: Css.sstxm.ssas.$", () => {
+  test('param chain: Css.sst("x mandatory").ssa("start").$', () => {
     expectTrussTransform(`
       import { Css } from "./Css";
-      const s = Css.sstxm.ssas.$;
+      const s = Css.sst("x mandatory").ssa("start").$;
     `).toHaveTrussOutput(
       `
-      const s = { scrollSnapType: "sstxm", scrollSnapAlign: "ssas" };
+      const s = { scrollSnapType: "sst_x_mandatory", scrollSnapAlign: "ssa_start" };
     `,
       `
-      .sstxm {
+      .sst_x_mandatory {
         scroll-snap-type: x mandatory;
       }
-      .ssas {
+      .ssa_start {
         scroll-snap-align: start;
       }
     `,
     );
   });
 
-  test("static chain: Css.ssac.$", () => {
+  test('param chain: Css.ssa("center").$', () => {
     expectTrussTransform(`
       import { Css } from "./Css";
-      const s = Css.ssac.$;
+      const s = Css.ssa("center").$;
     `).toHaveTrussOutput(
       `
-      const s = { scrollSnapAlign: "ssac" };
+      const s = { scrollSnapAlign: "ssa_center" };
     `,
       `
-      .ssac {
+      .ssa_center {
         scroll-snap-align: center;
       }
     `,
