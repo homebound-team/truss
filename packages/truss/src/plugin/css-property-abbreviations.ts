@@ -367,6 +367,7 @@ export const cssPropertyAbbreviations: Record<string, string> = {
   scrollSnapAlign: "ssa",
   scrollSnapStop: "sss",
   scrollSnapType: "sst",
+  scrollbarWidth: "sbw",
 
   // Shape
   shapeImageThreshold: "sit",

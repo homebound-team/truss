@@ -36,6 +36,38 @@ describe("transform", () => {
     );
   });
 
+  test("static chain: Css.sbwn.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.sbwn.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollbarWidth: "sbwn" };
+    `,
+      `
+      .sbwn {
+        scrollbar-width: none;
+      }
+    `,
+    );
+  });
+
+  test("param chain: Css.sbw(\"thin\").$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.sbw("thin").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollbarWidth: "sbw_thin" };
+    `,
+      `
+      .sbw_thin {
+        scrollbar-width: thin;
+      }
+    `,
+    );
+  });
+
   test("keeps runtime import rewrites on the former Css import line", () => {
     const output = transformTruss(
       `
