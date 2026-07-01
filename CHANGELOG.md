@@ -1,3 +1,9 @@
+## [2.28.0](https://github.com/homebound-team/truss/compare/v2.27.0...v2.28.0) (2026-07-01)
+
+### Features
+
+* Support scroll-snap definitions ([#260](https://github.com/homebound-team/truss/issues/260)) ([54733b1](https://github.com/homebound-team/truss/commit/54733b1a28f7b436bc705503b9d027643ff367fb))
+
 ## [2.27.0](https://github.com/homebound-team/truss/compare/v2.26.0...v2.27.0) (2026-07-01)
 
 ### Features
