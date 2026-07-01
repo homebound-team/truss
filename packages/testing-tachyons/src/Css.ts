@@ -1337,6 +1337,16 @@ class CssBuilder<T extends Properties> {
     return this.add("position", value);
   }
 
+  // scrollSnap
+  /** Sets `scrollSnapAlign: value`. */
+  ssa(value: Properties["scrollSnapAlign"]) {
+    return this.add("scrollSnapAlign", value);
+  }
+  /** Sets `scrollSnapType: value`. */
+  sst(value: Properties["scrollSnapType"]) {
+    return this.add("scrollSnapType", value);
+  }
+
   // scrollbarWidth
   /** Sets `scrollbarWidth: "auto"`. */
   get sbwa() {

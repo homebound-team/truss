@@ -303,6 +303,8 @@
     "relative": {"kind":"static","defs":{"position":"relative"}},
     "sticky": {"kind":"static","defs":{"position":"sticky"}},
     "position": {"kind":"variable","props":["position"],"incremented":false},
+    "ssa": {"kind":"variable","props":["scrollSnapAlign"],"incremented":false},
+    "sst": {"kind":"variable","props":["scrollSnapType"],"incremented":false},
     "sbwa": {"kind":"static","defs":{"scrollbarWidth":"auto"}},
     "sbwt": {"kind":"static","defs":{"scrollbarWidth":"thin"}},
     "sbwn": {"kind":"static","defs":{"scrollbarWidth":"none"}},

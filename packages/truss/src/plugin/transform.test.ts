@@ -52,7 +52,7 @@ describe("transform", () => {
     );
   });
 
-  test("param chain: Css.sbw(\"thin\").$", () => {
+  test('param chain: Css.sbw("thin").$', () => {
     expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.sbw("thin").$;
@@ -111,6 +111,41 @@ describe("transform", () => {
       }
       .df {
         display: flex;
+      }
+    `,
+    );
+  });
+
+  test('param chain: Css.sst("x mandatory").ssa("start").$', () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.sst("x mandatory").ssa("start").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollSnapType: "sst_x_mandatory", scrollSnapAlign: "ssa_start" };
+    `,
+      `
+      .sst_x_mandatory {
+        scroll-snap-type: x mandatory;
+      }
+      .ssa_start {
+        scroll-snap-align: start;
+      }
+    `,
+    );
+  });
+
+  test('param chain: Css.ssa("center").$', () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ssa("center").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollSnapAlign: "ssa_center" };
+    `,
+      `
+      .ssa_center {
+        scroll-snap-align: center;
       }
     `,
     );
