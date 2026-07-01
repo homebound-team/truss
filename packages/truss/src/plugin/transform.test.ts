@@ -84,6 +84,41 @@ describe("transform", () => {
     );
   });
 
+  test("static chain: Css.sstxm.ssas.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.sstxm.ssas.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollSnapType: "sstxm", scrollSnapAlign: "ssas" };
+    `,
+      `
+      .sstxm {
+        scroll-snap-type: x mandatory;
+      }
+      .ssas {
+        scroll-snap-align: start;
+      }
+    `,
+    );
+  });
+
+  test("static chain: Css.ssac.$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ssac.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollSnapAlign: "ssac" };
+    `,
+      `
+      .ssac {
+        scroll-snap-align: center;
+      }
+    `,
+    );
+  });
+
   test("css prop on JSX: css={Css.df.$}", () => {
     expectTrussTransform(`
       import { Css } from "./Css";

@@ -18,6 +18,7 @@ import { objectFit } from "src/sections/tachyons/objectFit";
 import { outline } from "src/sections/tachyons/outlines";
 import { overflow } from "src/sections/tachyons/overflow";
 import { position } from "src/sections/tachyons/position";
+import { scrollSnap } from "src/sections/tachyons/scrollSnap";
 import { skins } from "src/sections/tachyons/skins";
 import { spacing } from "src/sections/tachyons/spacing";
 import { textAlign } from "src/sections/tachyons/textAlign";
@@ -58,6 +59,7 @@ export const defaultSections = {
   outline,
   overflow,
   position,
+  scrollSnap,
   skins,
   spacing,
   textAlign,
