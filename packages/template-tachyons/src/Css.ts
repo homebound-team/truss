@@ -1436,6 +1436,24 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
     return this.add("position", value);
   }
 
+  // scrollbarWidth
+  /** Sets `scrollbarWidth: "auto"`. */
+  get sbwa() {
+    return this.add("scrollbarWidth", "auto");
+  }
+  /** Sets `scrollbarWidth: "thin"`. */
+  get sbwt() {
+    return this.add("scrollbarWidth", "thin");
+  }
+  /** Sets `scrollbarWidth: "none"`. */
+  get sbwn() {
+    return this.add("scrollbarWidth", "none");
+  }
+  /** Sets `scrollbarWidth: value`. */
+  sbw(value: Properties["scrollbarWidth"]) {
+    return this.add("scrollbarWidth", value);
+  }
+
   // skins
   /** Sets `color: "#353535"`. */
   get black() {
