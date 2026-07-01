@@ -1,3 +1,9 @@
+## [2.27.0](https://github.com/homebound-team/truss/compare/v2.26.0...v2.27.0) (2026-07-01)
+
+### Features
+
+* Support scrollbar-width ([#259](https://github.com/homebound-team/truss/issues/259)) ([e26303d](https://github.com/homebound-team/truss/commit/e26303dab06ecbf82c7d21a7b148735010c7599e))
+
 ## [2.26.0](https://github.com/homebound-team/truss/compare/v2.25.0...v2.26.0) (2026-06-17)
 
 ### Features
