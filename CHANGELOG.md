@@ -1,3 +1,9 @@
+## [2.28.1](https://github.com/homebound-team/truss/compare/v2.28.0...v2.28.1) (2026-07-26)
+
+### Bug Fixes
+
+* Fix end dropping trailing styles. ([#265](https://github.com/homebound-team/truss/issues/265)) ([1d38ae8](https://github.com/homebound-team/truss/commit/1d38ae81c2312444b3fda14fecca0397c3544134))
+
 ## [2.28.0](https://github.com/homebound-team/truss/compare/v2.27.0...v2.28.0) (2026-07-01)
 
 ### Features
