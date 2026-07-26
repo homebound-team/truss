@@ -1812,6 +1812,40 @@ describe("transform", () => {
     );
   });
 
+  test("end closes an if/else before trailing styles", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.f10.bgWhite.if(isActive).bgBlue.else.bgBlack.end.bgWhite.$;
+    `).toHaveTrussOutput(
+      `
+      const s = {
+        fontSize: "fz_10px",
+        fontWeight: "fw5",
+        backgroundColor: "bgWhite",
+        ...(isActive ? { backgroundColor: "bgBlue" } : { backgroundColor: "bgBlack" }),
+        backgroundColor: "bgWhite"
+      };
+    `,
+      `
+      .bgBlack {
+        background-color: #353535;
+      }
+      .bgBlue {
+        background-color: #526675;
+      }
+      .bgWhite {
+        background-color: #fcfcfa;
+      }
+      .fw5 {
+        font-weight: 500;
+      }
+      .fz_10px {
+        font-size: 10px;
+      }
+    `,
+    );
+  });
+
   test("conditional pseudo branch keeps earlier base class on the same property", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
@@ -3010,6 +3044,32 @@ describe("transform", () => {
       const s = { color: "sm_black mdandup_white" };
     `,
       `
+      @media screen and (min-width: 600px) {
+        .mdandup_white.mdandup_white {
+          color: #fcfcfa;
+        }
+      }
+      @media screen and (max-width: 599px) {
+        .sm_black.sm_black {
+          color: #353535;
+        }
+      }
+    `,
+    );
+  });
+
+  test("end closes a breakpoint else before trailing styles", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifSm.black.else.white.end.df.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "sm_black mdandup_white", display: "df" };
+    `,
+      `
+      .df {
+        display: flex;
+      }
       @media screen and (min-width: 600px) {
         .mdandup_white.mdandup_white {
           color: #fcfcfa;
