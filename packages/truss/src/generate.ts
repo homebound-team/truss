@@ -246,7 +246,7 @@ class CssBuilder<T extends Properties> {
 
   /** Reset active conditional modifiers for subsequent styles. */
   get end() {
-    return this.newCss({ selector: undefined, elseApplied: false });
+    return this.newCss({ enabled: true, selector: undefined, elseApplied: false });
   }
 
   /** Add real CSS property/value pairs, either as add("prop", value) or add({ prop: value, ... }). */
@@ -610,7 +610,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
 
   /** Reset active conditional modifiers for subsequent styles. */
   get end(): CssBuilder<T, S> {
-    return this.newCss({ selector: undefined, elseApplied: false });
+    return this.newCss({ enabled: true, selector: undefined, elseApplied: false });
   }
 
   /** Add real CSS property/value pairs, either as add("prop", value) or add({ prop: value, ... }). */

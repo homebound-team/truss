@@ -209,9 +209,9 @@ function applyModifierNodeToConditionContext(
  * - **`ifContainer({ gt, lt })`** — Container query. Sets the media query
  *   context to an `@container` query string.
  *
- * - **`end`** — Resets the active media query, pseudo-class, pseudo-element,
- *   and `when(...)` relationship-selector context so subsequent styles start
- *   from the base condition state again.
+ * - **`end`** — Closes the active boolean or media `if`/`else` group and resets
+ *   the media query, pseudo-class, pseudo-element, and `when(...)`
+ *   relationship-selector context so subsequent styles are unconditional.
  *
  * Contexts accumulate left-to-right until explicitly replaced within the same
  * axis or cleared with `end`. A media query set by `ifSm` persists through
@@ -268,16 +268,33 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
       if (elseIndex !== -1) {
         flushCurrentNodes();
         const branchContext = cloneConditionContext(currentContext);
+        let branchEnd = filteredChain.length;
+        // Find an explicit `.end` that closes the media else branch.
+        for (let branchIndex = elseIndex + 1; branchIndex < filteredChain.length; branchIndex++) {
+          const branchNode = filteredChain[branchIndex];
+          if (branchNode.type === "getter" && branchNode.name === "end") {
+            branchEnd = branchIndex;
+            break;
+          }
+        }
 
         const thenNodes = mediaStart.thenNodes
           ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
           : filteredChain.slice(i, elseIndex);
-        const elseNodes = [makeMediaQueryNode(mediaStart.inverseMediaQuery), ...filteredChain.slice(elseIndex + 1)];
+        const elseNodes = [
+          makeMediaQueryNode(mediaStart.inverseMediaQuery),
+          ...filteredChain.slice(elseIndex + 1, branchEnd),
+        ];
         const thenSegs = resolveChain({ ...ctx, initialContext: branchContext }, thenNodes);
         const elseSegs = resolveChain({ ...ctx, initialContext: branchContext }, elseNodes);
         parts.push({ type: "unconditional", segments: [...thenSegs, ...elseSegs] });
-        i = filteredChain.length;
-        break;
+        if (branchEnd === filteredChain.length) {
+          i = filteredChain.length;
+          break;
+        }
+        resetConditionContext(currentContext);
+        i = branchEnd + 1;
+        continue;
       }
     }
 
@@ -310,19 +327,25 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
       i++;
       let inElse = false;
       while (i < filteredChain.length) {
-        if (filteredChain[i].type === "else") {
+        const branchNode = filteredChain[i];
+        if (branchNode.type === "getter" && branchNode.name === "end") {
+          resetConditionContext(currentContext);
+          i++;
+          break;
+        }
+        if (branchNode.type === "else") {
           inElse = true;
           i++;
           continue;
         }
-        if (filteredChain[i].type === "if") {
+        if (branchNode.type === "if") {
           // Nested if — break out and let the outer loop handle it
           break;
         }
         if (inElse) {
-          elseNodes.push(filteredChain[i]);
+          elseNodes.push(branchNode);
         } else {
-          thenNodes.push(filteredChain[i]);
+          thenNodes.push(branchNode);
         }
         i++;
       }
@@ -525,10 +548,14 @@ function getMediaConditionalStartNode(
 
 function findElseIndex(chain: ChainNode[], start: number): number {
   for (let i = start; i < chain.length; i++) {
-    if (chain[i].type === "if") {
+    const node = chain[i];
+    if (node.type === "if") {
       return -1;
     }
-    if (chain[i].type === "else") {
+    if (node.type === "getter" && node.name === "end") {
+      return -1;
+    }
+    if (node.type === "else") {
       return i;
     }
   }

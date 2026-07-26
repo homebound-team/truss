@@ -169,6 +169,10 @@ describe("Css", () => {
     expect(Css.if(false).ifMdAndUp.black.$).toMatchInlineSnapshot(`{}`);
   });
 
+  it("applies styles after a boolean conditional ends", () => {
+    expect(Css.if(true).mt1.else.mt2.end.mt3.$).toEqual({ marginTop: "24px" });
+  });
+
   it("can render with px conversion", () => {
     expect(Css.mb(px(8)).$).toMatchInlineSnapshot(`
       {
