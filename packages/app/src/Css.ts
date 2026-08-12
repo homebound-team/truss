@@ -83,6 +83,44 @@ type Opts<T> = {
 class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   constructor(private opts: Opts<T>) {}
 
+  // animation
+  /** Sets `animation: value`. */
+  animation(value: Properties["animation"]) {
+    return this.add("animation", value);
+  }
+  /** Sets `animationDelay: value`. */
+  animationDelay(value: Properties["animationDelay"]) {
+    return this.add("animationDelay", value);
+  }
+  /** Sets `animationDirection: value`. */
+  animationDirection(value: Properties["animationDirection"]) {
+    return this.add("animationDirection", value);
+  }
+  /** Sets `animationDuration: value`. */
+  animationDuration(value: Properties["animationDuration"]) {
+    return this.add("animationDuration", value);
+  }
+  /** Sets `animationFillMode: value`. */
+  animationFillMode(value: Properties["animationFillMode"]) {
+    return this.add("animationFillMode", value);
+  }
+  /** Sets `animationIterationCount: value`. */
+  animationIterationCount(value: Properties["animationIterationCount"]) {
+    return this.add("animationIterationCount", value);
+  }
+  /** Sets `animationName: value`. */
+  animationName(value: Properties["animationName"]) {
+    return this.add("animationName", value);
+  }
+  /** Sets `animationPlayState: value`. */
+  animationPlayState(value: Properties["animationPlayState"]) {
+    return this.add("animationPlayState", value);
+  }
+  /** Sets `animationTimingFunction: value`. */
+  animationTimingFunction(value: Properties["animationTimingFunction"]) {
+    return this.add("animationTimingFunction", value);
+  }
+
   // border
   /** Sets `borderStyle: "solid"; borderWidth: "1px"`. */
   get ba() {
@@ -1981,6 +2019,74 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   /** Sets `textTransform: value`. */
   tt(value: Properties["textTransform"]) {
     return this.add("textTransform", value);
+  }
+
+  // transform
+  /** Sets `backfaceVisibility: value`. */
+  backfaceVisibility(value: Properties["backfaceVisibility"]) {
+    return this.add("backfaceVisibility", value);
+  }
+  /** Sets `perspective: value`. */
+  perspective(value: Properties["perspective"]) {
+    return this.add("perspective", value);
+  }
+  /** Sets `perspectiveOrigin: value`. */
+  perspectiveOrigin(value: Properties["perspectiveOrigin"]) {
+    return this.add("perspectiveOrigin", value);
+  }
+  /** Sets `rotate: value`. */
+  rotate(value: Properties["rotate"]) {
+    return this.add("rotate", value);
+  }
+  /** Sets `scale: value`. */
+  scale(value: Properties["scale"]) {
+    return this.add("scale", value);
+  }
+  /** Sets `transform: value`. */
+  transform(value: Properties["transform"]) {
+    return this.add("transform", value);
+  }
+  /** Sets `transformBox: value`. */
+  transformBox(value: Properties["transformBox"]) {
+    return this.add("transformBox", value);
+  }
+  /** Sets `transformOrigin: value`. */
+  transformOrigin(value: Properties["transformOrigin"]) {
+    return this.add("transformOrigin", value);
+  }
+  /** Sets `transformStyle: value`. */
+  transformStyle(value: Properties["transformStyle"]) {
+    return this.add("transformStyle", value);
+  }
+  /** Sets `translate: value`. */
+  translate(value: Properties["translate"]) {
+    return this.add("translate", value);
+  }
+
+  // transition
+  /** Sets `transition: value`. */
+  transition(value: Properties["transition"]) {
+    return this.add("transition", value);
+  }
+  /** Sets `transitionBehavior: value`. */
+  transitionBehavior(value: Properties["transitionBehavior"]) {
+    return this.add("transitionBehavior", value);
+  }
+  /** Sets `transitionDelay: value`. */
+  transitionDelay(value: Properties["transitionDelay"]) {
+    return this.add("transitionDelay", value);
+  }
+  /** Sets `transitionDuration: value`. */
+  transitionDuration(value: Properties["transitionDuration"]) {
+    return this.add("transitionDuration", value);
+  }
+  /** Sets `transitionProperty: value`. */
+  transitionProperty(value: Properties["transitionProperty"]) {
+    return this.add("transitionProperty", value);
+  }
+  /** Sets `transitionTimingFunction: value`. */
+  transitionTimingFunction(value: Properties["transitionTimingFunction"]) {
+    return this.add("transitionTimingFunction", value);
   }
 
   // typeScale

@@ -1,3 +1,4 @@
+import { animation } from "src/sections/tachyons/animation";
 import { border } from "src/sections/tachyons/border";
 import { borderColor } from "src/sections/tachyons/borderColors";
 import { borderRadius } from "src/sections/tachyons/borderRadius";
@@ -25,6 +26,8 @@ import { spacing } from "src/sections/tachyons/spacing";
 import { textAlign } from "src/sections/tachyons/textAlign";
 import { textDecoration } from "src/sections/tachyons/textDecoration";
 import { textTransform } from "src/sections/tachyons/textTransform";
+import { transform } from "src/sections/tachyons/transform";
+import { transition } from "src/sections/tachyons/transition";
 import { typeScale } from "src/sections/tachyons/typeScale";
 import { typography } from "src/sections/tachyons/typography";
 import { userSelect } from "src/sections/tachyons/userSelect";
@@ -38,6 +41,7 @@ import { container } from "src/sections/tachyons/container";
 import { opacity } from "src/sections/tachyons/opacity";
 
 export const defaultSections = {
+  animation,
   border,
   borderColor,
   borderRadius,
@@ -67,6 +71,8 @@ export const defaultSections = {
   textAlign,
   textDecoration,
   textTransform,
+  transform,
+  transition,
   typeScale,
   typography,
   userSelect,
