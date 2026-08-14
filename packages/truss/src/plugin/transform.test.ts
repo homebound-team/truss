@@ -151,6 +151,160 @@ describe("transform", () => {
     );
   });
 
+  test("param chain: transform + animation properties", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.transformBox("fill-box").transformOrigin("center").transform("scale(0.5)")
+        .animationName("aiStarLoader").animationDuration("1500ms").animationIterationCount("infinite")
+        .animationTimingFunction("ease-in-out").animationDelay("500ms").$;
+    `).toHaveTrussOutput(
+      `
+      const s = {
+        transformBox: "transformBox_fill_box",
+        transformOrigin: "transformOrigin_center",
+        transform: "transform_scale_0_5",
+        animationName: "animationName_aiStarLoader",
+        animationDuration: "animationDuration_1500ms",
+        animationIterationCount: "animationIterationCount_infinite",
+        animationTimingFunction: "animationTimingFunction_ease_in_out",
+        animationDelay: "animationDelay_500ms"
+      };
+    `,
+      `
+      .animationDelay_500ms {
+        animation-delay: 500ms;
+      }
+      .animationDuration_1500ms {
+        animation-duration: 1500ms;
+      }
+      .animationIterationCount_infinite {
+        animation-iteration-count: infinite;
+      }
+      .animationName_aiStarLoader {
+        animation-name: aiStarLoader;
+      }
+      .animationTimingFunction_ease_in_out {
+        animation-timing-function: ease-in-out;
+      }
+      .transformBox_fill_box {
+        transform-box: fill-box;
+      }
+      .transformOrigin_center {
+        transform-origin: center;
+      }
+      .transform_scale_0_5 {
+        transform: scale(0.5);
+      }
+    `,
+    );
+  });
+
+  test('param chain: Css.animation("pulse 2s ease-in-out infinite").$', () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.animation("pulse 2s ease-in-out infinite").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { animation: "animation_pulse_2s_ease_in_out_infinite" };
+    `,
+      `
+      .animation_pulse_2s_ease_in_out_infinite {
+        animation: pulse 2s ease-in-out infinite;
+      }
+    `,
+    );
+  });
+
+  test("param chain: individual transform properties", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.rotate("45deg").scale("1.5").translate("10px 20px").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { rotate: "rotate_45deg", scale: "scale_1_5", translate: "translate_10px_20px" };
+    `,
+      `
+      .rotate_45deg {
+        rotate: 45deg;
+      }
+      .scale_1_5 {
+        scale: 1.5;
+      }
+      .translate_10px_20px {
+        translate: 10px 20px;
+      }
+    `,
+    );
+  });
+
+  test("param chain: transition properties with a pseudo selector", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.transitionProperty("transform").transitionDuration("200ms").onHover.transform("scale(1.1)").$;
+    `).toHaveTrussOutput(
+      `
+      const s = {
+        transitionProperty: "transitionProperty_transform",
+        transitionDuration: "transitionDuration_200ms",
+        transform: "h_transform_scale_1_1"
+      };
+    `,
+      `
+      .transitionDuration_200ms {
+        transition-duration: 200ms;
+      }
+      .transitionProperty_transform {
+        transition-property: transform;
+      }
+      .h_transform_scale_1_1:hover {
+        transform: scale(1.1);
+      }
+    `,
+    );
+  });
+
+  // The param method's abbreviation is the property name, so it emits the same class as the
+  // `add("transition", ...)` escape hatch above -- migrating off `add()` doesn't churn the CSS.
+  test("param chain: Css.transition() matches the add() class name", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const el = <div css={Css.mt2.transition("all 240ms").$} />;
+    `).toHaveTrussOutput(
+      `
+      const el = <div className="mt2 transition_all_240ms" />;
+    `,
+      `
+      .transition_all_240ms {
+        transition: all 240ms;
+      }
+      .mt2 {
+        margin-top: calc(var(--t-spacing) * 2);
+      }
+    `,
+    );
+  });
+
+  test("param chain: Css.animationDuration(variable).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.animationDuration(ms).$;
+    `).toHaveTrussOutput(
+      `
+      import { maybeCssVar } from "@homebound/truss/runtime";
+      const s = { animationDuration: ["animationDuration_var", { "--animationDuration": maybeCssVar(ms) }] };
+    `,
+      `
+      .animationDuration_var {
+        animation-duration: var(--animationDuration);
+      }
+      @property --animationDuration {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
   test("css prop on JSX: css={Css.df.$}", () => {
     expectTrussTransform(`
       import { Css } from "./Css";

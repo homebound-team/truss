@@ -694,6 +694,32 @@ export function DataGrid() {
 
 This keeps the base element styling in Truss, i.e. `Css.w100`, while using the `.css.ts` class as the anchor for arbitrary selectors. At build time, Truss merges both into the final `className` prop.
 
+### `@keyframes` and the animation methods
+
+`Css.animationName(...)` (and the `animation` shorthand) reference a keyframes name that you define elsewhere — either in a plain `.css` file you already import, or in a `.css.ts` file using the at-rule as the key:
+
+```ts
+// Spinner.css.ts
+import { Css } from "./Css";
+
+export const css = {
+  "@keyframes spin": Css.raw`
+    from { rotate: 0deg; }
+    to { rotate: 360deg; }
+  `,
+};
+```
+
+```tsx
+// Spinner.tsx
+const spinner = Css.animationName("spin")
+  .animationDuration("1s")
+  .animationIterationCount("infinite")
+  .animationTimingFunction("linear").$;
+```
+
+Keyframe names are global, so namespace them if collisions are a risk.
+
 ## XStyles / Xss Extension Contracts
 
 Truss liberally borrows the idea of type-checked "extension" CSS from the currently-unreleased Facebook XStyles library (at least in theory; I've only seen one or two slides for this feature of XStyles, but I'm pretty sure Truss is faithful re-implementation of it).
