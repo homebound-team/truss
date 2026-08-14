@@ -1,3 +1,9 @@
+## [2.29.0](https://github.com/homebound-team/truss/compare/v2.28.1...v2.29.0) (2026-08-14)
+
+### Features
+
+* Support animation, transform, and transition properties ([#268](https://github.com/homebound-team/truss/issues/268)) ([5d80b3f](https://github.com/homebound-team/truss/commit/5d80b3fbbd9471cdc2338ad861b75f9dfcbdae1d))
+
 ## [2.28.1](https://github.com/homebound-team/truss/compare/v2.28.0...v2.28.1) (2026-07-26)
 
 ### Bug Fixes
