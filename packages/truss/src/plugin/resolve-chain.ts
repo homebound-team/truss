@@ -1,7 +1,7 @@
-import type * as t from "@babel/types";
+import * as t from "@babel/types";
 import { pascalCase } from "change-case";
 import {
-  getLonghandLookup,
+  hasCondition,
   type MarkerSegment,
   type ResolvedConditionContext,
   type ResolvedSegment,
@@ -9,7 +9,16 @@ import {
   type TrussMappingEntry,
   type WhenCondition,
 } from "./types";
-import { extractChain } from "./ast-utils";
+import { breakpointMediaQuery, breakpointNameForMediaQuery, findCanonicalAbbreviation } from "./mapping-utils";
+import {
+  extractChain,
+  extractDollarChain,
+  memberPropertyName,
+  staticPropertyName,
+  unwrapExpression,
+} from "./ast-utils";
+import { sanitizeClassNameToken } from "./emit-truss";
+import { isWhenRelationship, WHEN_RELATIONSHIPS } from "./when-relationships";
 import { invertMediaQuery } from "../media-query";
 import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
 import { isCustomPropertyName, maybeCssVar } from "../css-custom-property";
@@ -52,119 +61,21 @@ export interface ResolvedChain {
 
 export type ResolvedChainPart =
   | { type: "unconditional"; segments: ResolvedSegment[] }
-  | { type: "conditional"; conditionNode: any; thenSegments: ResolvedSegment[]; elseSegments: ResolvedSegment[] };
+  | {
+      type: "conditional";
+      conditionNode: t.Expression;
+      thenSegments: ResolvedSegment[];
+      elseSegments: ResolvedSegment[];
+    };
 
-function emptyConditionContext(): ResolvedConditionContext {
-  return {
-    mediaQuery: null,
-    pseudoClass: null,
-    pseudoElement: null,
-    whenPseudo: null,
-  };
+/** Every segment in a chain part, i.e. both branches of a conditional part. */
+export function partSegments(part: ResolvedChainPart): ResolvedSegment[] {
+  return part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
 }
 
-function cloneConditionContext(context: ResolvedConditionContext): ResolvedConditionContext {
-  return {
-    mediaQuery: context.mediaQuery,
-    pseudoClass: context.pseudoClass,
-    pseudoElement: context.pseudoElement,
-    whenPseudo: context.whenPseudo ? { ...context.whenPseudo } : null,
-  };
-}
-
-function resetConditionContext(context: ResolvedConditionContext): void {
-  context.mediaQuery = null;
-  context.pseudoClass = null;
-  context.pseudoElement = null;
-  context.whenPseudo = null;
-}
-
-function segmentWithConditionContext(
-  segment: Omit<ResolvedSegment, "mediaQuery" | "pseudoClass" | "pseudoElement" | "whenPseudo">,
-  context: ResolvedConditionContext,
-): ResolvedSegment {
-  return {
-    ...segment,
-    mediaQuery: context.mediaQuery,
-    pseudoClass: context.pseudoClass,
-    pseudoElement: context.pseudoElement,
-    whenPseudo: context.whenPseudo,
-  };
-}
-
-/**
- * Apply context-only chain nodes like breakpoints/pseudos/end.
- *
- * `resolveFullChain` catches errors at speculative context-tracking call sites;
- * `resolveChain` lets them surface so unsupported patterns are reported.
- */
-function applyModifierNodeToConditionContext(
-  context: ResolvedConditionContext,
-  node: ChainNode,
-  mapping: TrussMapping,
-): boolean {
-  if ((node as any).type === "__mediaQuery") {
-    context.mediaQuery = (node as any).mediaQuery;
-    return true;
-  }
-
-  if (node.type === "getter") {
-    if (node.name === "end") {
-      resetConditionContext(context);
-      return true;
-    }
-    if (isTrussPseudoMethod(node.name)) {
-      context.pseudoClass = trussPseudoSelector(node.name);
-      return true;
-    }
-    if (mapping.breakpoints && node.name in mapping.breakpoints) {
-      context.mediaQuery = mapping.breakpoints[node.name];
-      return true;
-    }
-    return false;
-  }
-
-  if (node.type !== "call") {
-    return false;
-  }
-
-  if (node.name === "ifContainer") {
-    context.mediaQuery = containerSelectorFromCall(node);
-    return true;
-  }
-
-  if (node.name === "element") {
-    if (node.args.length !== 1 || node.args[0].type !== "StringLiteral") {
-      throw new UnsupportedPatternError(`element() requires exactly one string literal argument (e.g. "::placeholder")`);
-    }
-    context.pseudoElement = node.args[0].value;
-    return true;
-  }
-
-  if (node.name === "when") {
-    if (isWhenObjectCall(node)) {
-      return false;
-    }
-    const resolved = resolveWhenCall(node);
-    if (resolved.kind === "selector") {
-      context.pseudoClass = resolved.selector;
-    } else {
-      context.whenPseudo = resolved;
-    }
-    return true;
-  }
-
-  if (isTrussPseudoMethod(node.name)) {
-    context.pseudoClass = trussPseudoSelector(node.name);
-    if (node.args.length > 0) {
-      throw new UnsupportedPatternError(
-        `${node.name}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
-      );
-    }
-    return true;
-  }
-
-  return false;
+/** Every segment in a resolved chain, across all parts and branches. */
+export function chainSegments(chain: ResolvedChain): ResolvedSegment[] {
+  return chain.parts.flatMap((part) => partSegments(part));
 }
 
 /**
@@ -225,13 +136,13 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
   const parts: ResolvedChainPart[] = [];
   const nestedErrors: string[] = [];
   const markerScan = scanMarkerNodes(chain);
-  const filteredChain = markerScan.chain;
+  const nodes = markerScan.chain;
   const markers = [...markerScan.markers];
 
   // Split chain at if/else boundaries
   let i = 0;
   let currentNodes: ChainNode[] = [];
-  let currentContext = cloneConditionContext(initialContext);
+  const currentContext = cloneConditionContext(initialContext);
   let currentNodesStartContext = cloneConditionContext(initialContext);
 
   function flushCurrentNodes(): void {
@@ -241,7 +152,7 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
 
     parts.push({
       type: "unconditional",
-      segments: resolveChain({ ...ctx, initialContext: currentNodesStartContext }, currentNodes),
+      segments: resolveSegments({ ...ctx, initialContext: currentNodesStartContext }, currentNodes),
     });
     currentNodes = [];
     currentNodesStartContext = cloneConditionContext(currentContext);
@@ -256,46 +167,42 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
     try {
       applyModifierNodeToConditionContext(currentContext, nodeToPush, mapping);
     } catch {
-      // resolveChain() reports the real unsupported-pattern error later.
+      // resolveSegments() reports the real unsupported-pattern error later.
     }
   }
 
-  while (i < filteredChain.length) {
-    const node = filteredChain[i];
-    const mediaStart = getMediaConditionalStartNode(node, mapping);
-    if (mediaStart) {
-      const elseIndex = findElseIndex(filteredChain, i + 1);
-      if (elseIndex !== -1) {
-        flushCurrentNodes();
-        const branchContext = cloneConditionContext(currentContext);
-        let branchEnd = filteredChain.length;
-        // Find an explicit `.end` that closes the media else branch.
-        for (let branchIndex = elseIndex + 1; branchIndex < filteredChain.length; branchIndex++) {
-          const branchNode = filteredChain[branchIndex];
-          if (branchNode.type === "getter" && branchNode.name === "end") {
-            branchEnd = branchIndex;
-            break;
-          }
-        }
+  while (i < nodes.length) {
+    const node = nodes[i];
 
-        const thenNodes = mediaStart.thenNodes
-          ? [...mediaStart.thenNodes, ...filteredChain.slice(i + 1, elseIndex)]
-          : filteredChain.slice(i, elseIndex);
-        const elseNodes = [
-          makeMediaQueryNode(mediaStart.inverseMediaQuery),
-          ...filteredChain.slice(elseIndex + 1, branchEnd),
-        ];
-        const thenSegs = resolveChain({ ...ctx, initialContext: branchContext }, thenNodes);
-        const elseSegs = resolveChain({ ...ctx, initialContext: branchContext }, elseNodes);
-        parts.push({ type: "unconditional", segments: [...thenSegs, ...elseSegs] });
-        if (branchEnd === filteredChain.length) {
-          i = filteredChain.length;
-          break;
-        }
-        resetConditionContext(currentContext);
-        i = branchEnd + 1;
+    const mediaQuery = mediaQueryOfNode(node, mapping);
+    if (mediaQuery !== null) {
+      const elseIndex = findElseIndex(nodes, i + 1);
+      if (elseIndex === -1) {
+        // I.e. `ifSm.black` or `if("@media ...").black`: a media context for the nodes that follow.
+        pushCurrentNode(makeMediaQueryNode(mediaQuery));
+        i++;
         continue;
       }
+
+      // I.e. `ifSm.black.else.white[.end]`: the else branch gets the inverted media query.
+      flushCurrentNodes();
+      const branchContext = cloneConditionContext(currentContext);
+      const branchEnd = findEndIndex(nodes, elseIndex + 1);
+      const thenNodes = [makeMediaQueryNode(mediaQuery), ...nodes.slice(i + 1, elseIndex)];
+      const elseNodes = [makeMediaQueryNode(invertMediaQuery(mediaQuery)), ...nodes.slice(elseIndex + 1, branchEnd)];
+      parts.push({
+        type: "unconditional",
+        segments: [
+          ...resolveSegments({ ...ctx, initialContext: branchContext }, thenNodes),
+          ...resolveSegments({ ...ctx, initialContext: branchContext }, elseNodes),
+        ],
+      });
+      if (branchEnd === nodes.length) {
+        break;
+      }
+      resetConditionContext(currentContext);
+      i = branchEnd + 1;
+      continue;
     }
 
     if (isWhenObjectCall(node)) {
@@ -309,15 +216,7 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
     }
 
     if (node.type === "if") {
-      // if(stringLiteral) → media query pseudo, not a boolean conditional
-      if (node.conditionNode.type === "StringLiteral") {
-        const mediaQuery: string = (node.conditionNode as any).value;
-        pushCurrentNode({ type: "__mediaQuery" as any, mediaQuery } as any);
-        i++;
-        continue;
-      }
-
-      // Flush any accumulated unconditional nodes
+      // Boolean conditional; the string-literal `if(mediaQuery)` overload was handled above.
       flushCurrentNodes();
       const branchContext = cloneConditionContext(currentContext);
 
@@ -326,8 +225,8 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
       const elseNodes: ChainNode[] = [];
       i++;
       let inElse = false;
-      while (i < filteredChain.length) {
-        const branchNode = filteredChain[i];
+      while (i < nodes.length) {
+        const branchNode = nodes[i];
         if (branchNode.type === "getter" && branchNode.name === "end") {
           resetConditionContext(currentContext);
           i++;
@@ -349,25 +248,178 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
         }
         i++;
       }
-      const thenSegs = resolveChain({ ...ctx, initialContext: branchContext }, thenNodes);
-      const elseSegs = resolveChain({ ...ctx, initialContext: branchContext }, elseNodes);
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
-        thenSegments: thenSegs,
-        elseSegments: elseSegs,
+        thenSegments: resolveSegments({ ...ctx, initialContext: branchContext }, thenNodes),
+        elseSegments: resolveSegments({ ...ctx, initialContext: branchContext }, elseNodes),
       });
-    } else {
-      pushCurrentNode(node);
-      i++;
+      continue;
     }
+
+    pushCurrentNode(node);
+    i++;
   }
 
   // Flush remaining unconditional nodes
   flushCurrentNodes();
 
-  return { parts, markers, errors: [...new Set([...markerScan.errors, ...nestedErrors, ...segmentErrors(parts)])] };
+  const segmentErrors = parts.flatMap((part) => partSegments(part)).flatMap((seg) => (seg.error ? [seg.error] : []));
+  return { parts, markers, errors: [...new Set([...markerScan.errors, ...nestedErrors, ...segmentErrors])] };
 }
+
+/**
+ * Walks a Css member-expression chain (the AST between `Css` and `.$`) and
+ * resolves each segment into CSS property definitions using the truss mapping.
+ *
+ * Returns an array of ResolvedSegment with flat defs (no condition nesting).
+ * Does NOT handle if/else — use resolveFullChain for that.
+ */
+function resolveSegments(ctx: ResolveChainCtx, chain: ChainNode[]): ResolvedSegment[] {
+  const { mapping } = ctx;
+  const segments: ResolvedSegment[] = [];
+  const context = cloneConditionContext(ctx.initialContext ?? emptyConditionContext());
+
+  for (const node of chain) {
+    try {
+      if (isWhenObjectCall(node)) {
+        segments.push(...flattenWhenObjectParts(resolveWhenObjectSelectors(ctx, node, context)));
+        continue;
+      }
+
+      if (applyModifierNodeToConditionContext(context, node, mapping)) {
+        continue;
+      }
+
+      if (node.type === "getter") {
+        segments.push(...resolveEntry(node.name, requireEntry(mapping, node.name), mapping, context));
+      } else if (node.type === "call") {
+        segments.push(...resolveCallNode(node, mapping, context));
+      }
+    } catch (err) {
+      if (!(err instanceof UnsupportedPatternError)) throw err;
+      segments.push(errorSegment(err.message));
+    }
+  }
+
+  return segments;
+}
+
+// ── Condition context ─────────────────────────────────────────────────
+
+function emptyConditionContext(): ResolvedConditionContext {
+  return {
+    mediaQuery: null,
+    pseudoClass: null,
+    pseudoElement: null,
+    whenPseudo: null,
+  };
+}
+
+/** `WhenCondition` objects are never mutated after creation, so a shallow copy is a full snapshot. */
+function cloneConditionContext(context: ResolvedConditionContext): ResolvedConditionContext {
+  return { ...context };
+}
+
+function resetConditionContext(context: ResolvedConditionContext): void {
+  Object.assign(context, emptyConditionContext());
+}
+
+/** Snapshot the active condition axes onto a segment. */
+function segmentWithConditionContext(
+  segment: Omit<ResolvedSegment, "mediaQuery" | "pseudoClass" | "pseudoElement" | "whenPseudo">,
+  context: ResolvedConditionContext,
+): ResolvedSegment {
+  return {
+    ...segment,
+    mediaQuery: context.mediaQuery,
+    pseudoClass: context.pseudoClass,
+    pseudoElement: context.pseudoElement,
+    whenPseudo: context.whenPseudo,
+  };
+}
+
+/**
+ * Apply context-only chain nodes like breakpoints/pseudos/end.
+ *
+ * Returns false for nodes that produce styles instead. `resolveFullChain` catches errors at
+ * speculative context-tracking call sites; `resolveSegments` lets them surface so unsupported
+ * patterns are reported.
+ */
+function applyModifierNodeToConditionContext(
+  context: ResolvedConditionContext,
+  node: ChainNode,
+  mapping: TrussMapping,
+): boolean {
+  if (node.type === "mediaQuery") {
+    context.mediaQuery = node.mediaQuery;
+    return true;
+  }
+
+  if (node.type === "getter") {
+    if (node.name === "end") {
+      resetConditionContext(context);
+      return true;
+    }
+    if (isTrussPseudoMethod(node.name)) {
+      context.pseudoClass = trussPseudoSelector(node.name);
+      return true;
+    }
+    const mediaQuery = breakpointMediaQuery(mapping, node.name);
+    if (mediaQuery !== null) {
+      context.mediaQuery = mediaQuery;
+      return true;
+    }
+    return false;
+  }
+
+  if (node.type !== "call") {
+    return false;
+  }
+
+  if (node.name === "ifContainer") {
+    context.mediaQuery = containerQueryFromCall(node);
+    return true;
+  }
+
+  if (node.name === "element") {
+    const arg = node.args.length === 1 ? node.args[0] : null;
+    if (!t.isStringLiteral(arg)) {
+      throw new UnsupportedPatternError(
+        `element() requires exactly one string literal argument (e.g. "::placeholder")`,
+      );
+    }
+    context.pseudoElement = arg.value;
+    return true;
+  }
+
+  if (node.name === "when") {
+    if (isWhenObjectCall(node)) {
+      return false;
+    }
+    const resolved = resolveWhenCall(node);
+    if (resolved.kind === "selector") {
+      context.pseudoClass = resolved.selector;
+    } else {
+      context.whenPseudo = resolved.condition;
+    }
+    return true;
+  }
+
+  if (isTrussPseudoMethod(node.name)) {
+    context.pseudoClass = trussPseudoSelector(node.name);
+    if (node.args.length > 0) {
+      throw new UnsupportedPatternError(
+        `${node.name}() does not take arguments -- use when(marker, "ancestor", ":hover") for relationship selectors`,
+      );
+    }
+    return true;
+  }
+
+  return false;
+}
+
+// ── Chain scanning helpers for resolveFullChain ───────────────────────
 
 /** Pull marker nodes out of a chain before style resolution. */
 function scanMarkerNodes(chain: ChainNode[]): { chain: ChainNode[]; markers: MarkerSegment[]; errors: string[] } {
@@ -382,10 +434,11 @@ function scanMarkerNodes(chain: ChainNode[]): { chain: ChainNode[]; markers: Mar
     }
 
     if (node.type === "call" && node.name === "markerOf") {
-      if (node.args.length !== 1) {
+      const arg = node.args.length === 1 ? node.args[0] : null;
+      if (!arg || t.isSpreadElement(arg)) {
         errors.push("[truss] Unsupported pattern: markerOf() requires exactly one argument (a marker variable)");
       } else {
-        markers.push({ type: "marker", markerNode: node.args[0] });
+        markers.push({ type: "marker", markerNode: arg });
       }
       continue;
     }
@@ -396,156 +449,18 @@ function scanMarkerNodes(chain: ChainNode[]): { chain: ChainNode[]; markers: Mar
   return { chain: filteredChain, markers, errors };
 }
 
-/** Collect unsupported-pattern errors from all resolved chain parts. */
-function segmentErrors(parts: ResolvedChainPart[]): string[] {
-  const errors: string[] = [];
-
-  for (const part of parts) {
-    const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
-    for (const seg of segs) {
-      if (seg.error) {
-        errors.push(seg.error);
-      }
-    }
+/** The media query a node switches into, i.e. `ifSm` or `if("@media ...")`; null for every other node. */
+function mediaQueryOfNode(node: ChainNode, mapping: TrussMapping): string | null {
+  if (node.type === "if" && t.isStringLiteral(node.conditionNode)) {
+    return node.conditionNode.value;
   }
-
-  return errors;
-}
-
-/** Detect `when({ ... })` so object-form selector groups can be resolved specially. */
-type WhenObjectCallChainNode = CallChainNode & { name: "when"; args: [t.ObjectExpression] };
-
-function isWhenObjectCall(node: ChainNode): node is WhenObjectCallChainNode {
-  return (
-    node.type === "call" && node.name === "when" && node.args.length === 1 && node.args[0].type === "ObjectExpression"
-  );
-}
-
-/**
- * Resolve `when({ ":hover": Css.blue.$, ... })` by recursively resolving each
- * nested `Css.*.$` value with the selector key as its initial pseudo-class.
- */
-function resolveWhenObjectSelectors(
-  ctx: ResolveChainCtx,
-  node: CallChainNode,
-  initialContext: ResolvedConditionContext,
-): ResolvedChain {
-  const { cssBindingName } = ctx;
-  if (!cssBindingName) {
-    return {
-      parts: [],
-      markers: [],
-      errors: [new UnsupportedPatternError(`when({ ... }) requires a resolvable Css binding`).message],
-    };
+  if (node.type === "getter") {
+    return breakpointMediaQuery(mapping, node.name);
   }
-
-  const objectArg = node.args[0];
-  if (objectArg.type !== "ObjectExpression") {
-    throw new UnsupportedPatternError(`when({ ... }) requires an object literal argument`);
-  }
-
-  const parts: ResolvedChainPart[] = [];
-  const markers: MarkerSegment[] = [];
-  const errors: string[] = [];
-
-  for (const property of objectArg.properties) {
-    try {
-      if (property.type === "SpreadElement") {
-        throw new UnsupportedPatternError(`when({ ... }) does not support spread properties`);
-      }
-      if (property.type !== "ObjectProperty") {
-        throw new UnsupportedPatternError(`when({ ... }) only supports plain object properties`);
-      }
-      if (property.computed || property.key.type !== "StringLiteral") {
-        throw new UnsupportedPatternError(`when({ ... }) selector keys must be string literals`);
-      }
-
-      const value = unwrapExpression(property.value as t.Expression);
-      const innerChain = resolveWhenObjectValueChain(ctx, value);
-      if (!innerChain) {
-        throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
-      }
-
-      const selectorContext = cloneConditionContext(initialContext);
-      selectorContext.pseudoClass = property.key.value;
-      const resolved = resolveFullChain({ ...ctx, initialContext: selectorContext }, innerChain);
-      parts.push(...resolved.parts);
-      markers.push(...resolved.markers);
-      errors.push(...resolved.errors);
-    } catch (err) {
-      if (err instanceof UnsupportedPatternError) {
-        errors.push(err.message);
-      } else {
-        throw err;
-      }
-    }
-  }
-
-  return { parts, markers, errors: [...new Set(errors)] };
-}
-
-/**
- * Resolve a `when({ ... })` value into an inner `ChainNode[]`.
- *
- * I.e. this accepts either a direct `Css.blue.$` member expression or a
- * transform-provided reference resolver for identifiers like `const same = Css.blue.$`.
- * The reference lookup itself stays outside this file because it depends on
- * Babel scope/NodePath traversal state, while `resolve-chain.ts` is kept focused
- * on chain semantics rather than lexical binding analysis.
- */
-function resolveWhenObjectValueChain(ctx: ResolveChainCtx, value: t.Expression): ChainNode[] | null {
-  const { cssBindingName, resolveCssChainReference } = ctx;
-  if (
-    cssBindingName &&
-    value.type === "MemberExpression" &&
-    !value.computed &&
-    value.property.type === "Identifier" &&
-    value.property.name === "$"
-  ) {
-    return extractChain(value.object as t.Expression, cssBindingName);
-  }
-
-  return resolveCssChainReference?.(value) ?? null;
-}
-
-/** Flatten nested `when({ ... })` parts back into plain segments for `resolveChain()`. */
-function flattenWhenObjectParts(resolved: ResolvedChain): ResolvedSegment[] {
-  const segments: ResolvedSegment[] = [];
-
-  // I.e. `resolveChain()` needs a flat segment list, even though `when({ ... })` is resolved via `resolveFullChain()`.
-  for (const part of resolved.parts) {
-    if (part.type !== "unconditional") {
-      throw new UnsupportedPatternError(`when({ ... }) values cannot use if()/else in this context`);
-    }
-
-    segments.push(...part.segments);
-  }
-
-  for (const err of resolved.errors) {
-    segments.push({ abbr: "__error", defs: {}, error: err });
-  }
-
-  return segments;
-}
-
-function getMediaConditionalStartNode(
-  node: ChainNode,
-  mapping: TrussMapping,
-): { inverseMediaQuery: string; thenNodes?: ChainNode[] } | null {
-  if (node.type === "if" && node.conditionNode.type === "StringLiteral") {
-    return {
-      inverseMediaQuery: invertMediaQuery(node.conditionNode.value),
-      thenNodes: [makeMediaQueryNode(node.conditionNode.value)],
-    };
-  }
-
-  if (node.type === "getter" && mapping.breakpoints && node.name in mapping.breakpoints) {
-    return { inverseMediaQuery: invertMediaQuery(mapping.breakpoints[node.name]) };
-  }
-
   return null;
 }
 
+/** Index of the `else` that closes the branch starting at `start`, or -1 when an `if`/`end` comes first. */
 function findElseIndex(chain: ChainNode[], start: number): number {
   for (let i = start; i < chain.length; i++) {
     const node = chain[i];
@@ -562,294 +477,131 @@ function findElseIndex(chain: ChainNode[], start: number): number {
   return -1;
 }
 
-function makeMediaQueryNode(mediaQuery: string): ChainNode {
-  return { type: "__mediaQuery" as any, mediaQuery } as any;
+/** Index of the first `end` at or after `start`, or `chain.length` when the chain has none. */
+function findEndIndex(chain: ChainNode[], start: number): number {
+  for (let i = start; i < chain.length; i++) {
+    const node = chain[i];
+    if (node.type === "getter" && node.name === "end") {
+      return i;
+    }
+  }
+  return chain.length;
+}
+
+function makeMediaQueryNode(mediaQuery: string): MediaQueryChainNode {
+  return { type: "mediaQuery", mediaQuery };
+}
+
+// ── when({ ... }) object form ─────────────────────────────────────────
+
+/** Detect `when({ ... })` so object-form selector groups can be resolved specially. */
+type WhenObjectCallChainNode = CallChainNode & { name: "when"; args: [t.ObjectExpression] };
+
+function isWhenObjectCall(node: ChainNode): node is WhenObjectCallChainNode {
+  return node.type === "call" && node.name === "when" && node.args.length === 1 && t.isObjectExpression(node.args[0]);
 }
 
 /**
- * Walks a Css member-expression chain (the AST between `Css` and `.$`) and
- * resolves each segment into CSS property definitions using the truss mapping.
- *
- * Returns an array of ResolvedSegment with flat defs (no condition nesting).
- * Does NOT handle if/else — use resolveFullChain for that.
+ * Resolve `when({ ":hover": Css.blue.$, ... })` by recursively resolving each
+ * nested `Css.*.$` value with the selector key as its initial pseudo-class.
  */
-export function resolveChain(ctx: ResolveChainCtx, chain: ChainNode[]): ResolvedSegment[] {
-  const { mapping, cssBindingName } = ctx;
-  const initialContext = ctx.initialContext ?? emptyConditionContext();
-  const segments: ResolvedSegment[] = [];
-  const context = cloneConditionContext(initialContext);
+function resolveWhenObjectSelectors(
+  ctx: ResolveChainCtx,
+  node: WhenObjectCallChainNode,
+  initialContext: ResolvedConditionContext,
+): ResolvedChain {
+  if (!ctx.cssBindingName) {
+    return {
+      parts: [],
+      markers: [],
+      errors: [new UnsupportedPatternError(`when({ ... }) requires a resolvable Css binding`).message],
+    };
+  }
 
-  for (const node of chain) {
+  const parts: ResolvedChainPart[] = [];
+  const markers: MarkerSegment[] = [];
+  const errors: string[] = [];
+
+  for (const property of node.args[0].properties) {
     try {
-      if (isWhenObjectCall(node)) {
-        const resolved = resolveWhenObjectSelectors(ctx, node, context);
-        segments.push(...flattenWhenObjectParts(resolved));
-        continue;
+      if (t.isSpreadElement(property)) {
+        throw new UnsupportedPatternError(`when({ ... }) does not support spread properties`);
+      }
+      if (!t.isObjectProperty(property)) {
+        throw new UnsupportedPatternError(`when({ ... }) only supports plain object properties`);
+      }
+      if (property.computed || !t.isStringLiteral(property.key)) {
+        throw new UnsupportedPatternError(`when({ ... }) selector keys must be string literals`);
       }
 
-      if (applyModifierNodeToConditionContext(context, node, mapping)) {
-        continue;
+      const value = unwrapExpression(property.value as t.Expression);
+      const innerChain = resolveWhenObjectValueChain(ctx, value);
+      if (!innerChain) {
+        throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
       }
 
-      if (node.type === "getter") {
-        const abbr = node.name;
-
-        const entry = mapping.abbreviations[abbr];
-        if (!entry) {
-          throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
-        }
-
-        const resolved = resolveEntry(
-          abbr,
-          entry,
-          mapping,
-          context.mediaQuery,
-          context.pseudoClass,
-          context.pseudoElement,
-          context.whenPseudo,
-        );
-        segments.push(...resolved);
-      } else if (node.type === "call") {
-        const abbr = node.name;
-
-        // with(cssProp) — compose an existing Css expression
-        if (abbr === "with") {
-          const seg = resolveWithCall(
-            node,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(seg);
-          continue;
-        }
-
-        // add(prop, value) / add({...})
-        if (abbr === "add") {
-          const segs = resolveAddCall(
-            node,
-            mapping,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(...segs);
-          continue;
-        }
-
-        // Raw class passthrough, i.e. `Css.className(buttonClass).df.$`
-        if (abbr === "className") {
-          const seg = resolveClassNameCall(
-            node,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(seg);
-          continue;
-        }
-
-        // Raw inline style passthrough, i.e. `Css.mt(x).style(vars).$`
-        if (abbr === "style") {
-          const seg = resolveStyleCall(
-            node,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(seg);
-          continue;
-        }
-
-        // CSS custom properties as atomic classes, i.e. `Css.setVar({ [Tokens.x]: "1px" }).$`
-        if (abbr === "setVar") {
-          const segs = resolveSetVarCall(
-            node,
-            mapping,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(...segs);
-          continue;
-        }
-
-        if (abbr === "typography") {
-          const resolved = resolveTypographyCall(
-            node,
-            mapping,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(...resolved);
-          continue;
-        }
-
-        const entry = mapping.abbreviations[abbr];
-        if (!entry) {
-          throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
-        }
-
-        if (entry.kind === "variable") {
-          const seg = resolveVariableCall(
-            abbr,
-            entry,
-            node,
-            mapping,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(seg);
-        } else if (entry.kind === "delegate") {
-          const seg = resolveDelegateCall(
-            abbr,
-            entry,
-            node,
-            mapping,
-            context.mediaQuery,
-            context.pseudoClass,
-            context.pseudoElement,
-            context.whenPseudo,
-          );
-          segments.push(seg);
-        } else {
-          throw new UnsupportedPatternError(`Abbreviation "${abbr}" is ${entry.kind}, cannot be called as a function`);
-        }
-      }
+      const selectorContext = cloneConditionContext(initialContext);
+      selectorContext.pseudoClass = property.key.value;
+      const resolved = resolveFullChain({ ...ctx, initialContext: selectorContext }, innerChain);
+      parts.push(...resolved.parts);
+      markers.push(...resolved.markers);
+      errors.push(...resolved.errors);
     } catch (err) {
-      if (err instanceof UnsupportedPatternError) {
-        segments.push({ abbr: "__error", defs: {}, error: err.message });
-      } else {
-        throw err;
-      }
+      if (!(err instanceof UnsupportedPatternError)) throw err;
+      errors.push(err.message);
     }
+  }
+
+  return { parts, markers, errors: [...new Set(errors)] };
+}
+
+/**
+ * Resolve a `when({ ... })` value into an inner `ChainNode[]`.
+ *
+ * I.e. this accepts either a direct `Css.blue.$` member expression or a
+ * transform-provided reference resolver for identifiers like `const same = Css.blue.$`.
+ * The reference lookup itself stays outside this file because it depends on
+ * Babel scope/NodePath traversal state, while `resolve-chain.ts` is kept focused
+ * on chain semantics rather than lexical binding analysis.
+ */
+function resolveWhenObjectValueChain(ctx: ResolveChainCtx, value: t.Expression): ChainNode[] | null {
+  const direct = ctx.cssBindingName ? extractDollarChain(value, ctx.cssBindingName) : null;
+  return direct ?? ctx.resolveCssChainReference?.(value) ?? null;
+}
+
+/** Flatten nested `when({ ... })` parts back into plain segments for `resolveSegments()`. */
+function flattenWhenObjectParts(resolved: ResolvedChain): ResolvedSegment[] {
+  const segments: ResolvedSegment[] = [];
+
+  // I.e. `resolveSegments()` needs a flat segment list, even though `when({ ... })` is resolved via `resolveFullChain()`.
+  for (const part of resolved.parts) {
+    if (part.type !== "unconditional") {
+      throw new UnsupportedPatternError(`when({ ... }) values cannot use if()/else in this context`);
+    }
+
+    segments.push(...part.segments);
+  }
+
+  for (const err of resolved.errors) {
+    segments.push(errorSegment(err));
   }
 
   return segments;
 }
 
-/**
- * Build a typography lookup key suffix from condition context.
- *
- * I.e. `typography(key)` → `"typography"`, `ifSm.typography(key)` → `"typography__sm"`.
- */
-function typographyLookupKeySuffix(
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
-  breakpoints?: Record<string, string>,
-): string {
-  const parts: string[] = [];
-  if (pseudoElement) parts.push(pseudoElement.replace(/^::/, ""));
-  if (mediaQuery && breakpoints) {
-    const bp = Object.entries(breakpoints).find(([, v]) => v === mediaQuery)?.[0];
-    parts.push(bp ? bp.replace(/^if/, "").replace(/^./, (c) => c.toLowerCase()) : "mq");
-  } else if (mediaQuery) {
-    parts.push("mq");
-  }
-  if (pseudoClass) parts.push(pseudoClass.replace(/^:+/, "").replace(/-/g, "_"));
-  if (whenPseudo) parts.push(whenLookupKeyPart(whenPseudo));
-  return parts.join("_");
-}
+// ── Getter and call resolution ────────────────────────────────────────
 
-function whenLookupKeyPart(whenPseudo: WhenCondition): string {
-  const parts = ["when", whenPseudo.relationship ?? "ancestor", sanitizeLookupToken(whenPseudo.pseudo)];
-
-  if (whenPseudo.markerNode?.type === "Identifier" && whenPseudo.markerNode.name) {
-    parts.push(whenPseudo.markerNode.name);
-  }
-
-  return parts.join("_");
-}
-
-function sanitizeLookupToken(value: string): string {
-  return (
-    value
-      .replace(/[^a-zA-Z0-9]+/g, "_")
-      .replace(/_+/g, "_")
-      .replace(/^_|_$/g, "") || "value"
-  );
-}
-
-/** Resolve `typography(key)` into either direct segments or a runtime lookup-backed segment. */
-function resolveTypographyCall(
-  node: CallChainNode,
-  mapping: TrussMapping,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
-): ResolvedSegment[] {
-  if (node.args.length !== 1) {
-    throw new UnsupportedPatternError(`typography() expects exactly 1 argument, got ${node.args.length}`);
-  }
-
-  const argAst = node.args[0];
-  if (argAst.type === "StringLiteral") {
-    return resolveTypographyEntry(argAst.value, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo);
-  }
-
-  const typography = mapping.typography ?? [];
-  if (typography.length === 0) {
-    throw new UnsupportedPatternError(`typography() is unavailable because no typography abbreviations were generated`);
-  }
-
-  const suffix = typographyLookupKeySuffix(mediaQuery, pseudoClass, pseudoElement, whenPseudo, mapping.breakpoints);
-  const lookupKey = suffix ? `typography__${suffix}` : "typography";
-  const segmentsByName: Record<string, ResolvedSegment[]> = {};
-
-  for (const name of typography) {
-    segmentsByName[name] = resolveTypographyEntry(name, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo);
-  }
-
-  return [
-    {
-      abbr: lookupKey,
-      defs: {},
-      typographyLookup: {
-        lookupKey,
-        argNode: argAst,
-        segmentsByName,
-      },
-    },
-  ];
-}
-
-/** Resolve a single typography abbreviation name within the current condition context. */
-function resolveTypographyEntry(
-  name: string,
-  mapping: TrussMapping,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
-): ResolvedSegment[] {
-  if (!(mapping.typography ?? []).includes(name)) {
-    throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
-  }
-
-  const entry = mapping.abbreviations[name];
+function requireEntry(mapping: TrussMapping, abbr: string): TrussMappingEntry {
+  const entry = mapping.abbreviations[abbr];
   if (!entry) {
-    throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
+    throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
   }
+  return entry;
+}
 
-  const resolved = resolveEntry(name, entry, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo);
-  for (const segment of resolved) {
-    if (segment.variableProps) {
-      throw new UnsupportedPatternError(`Typography abbreviation "${name}" cannot require runtime arguments`);
-    }
-  }
-  return resolved;
+/** Placeholder segment that carries an unsupported-pattern message through to the emitter. */
+function errorSegment(message: string): ResolvedSegment {
+  return { abbr: "__error", defs: {}, error: message };
 }
 
 /** Resolve a static or alias entry (from a getter access). Defs are always flat. */
@@ -857,18 +609,8 @@ function resolveEntry(
   abbr: string,
   entry: TrussMappingEntry,
   mapping: TrussMapping,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
+  context: ResolvedConditionContext,
 ): ResolvedSegment[] {
-  const context: ResolvedConditionContext = {
-    mediaQuery,
-    pseudoClass,
-    pseudoElement,
-    whenPseudo,
-  };
-
   switch (entry.kind) {
     case "static": {
       return [segmentWithConditionContext({ abbr, defs: entry.defs }, context)];
@@ -880,7 +622,7 @@ function resolveEntry(
         if (!subEntry) {
           throw new UnsupportedPatternError(`Alias "${abbr}" references unknown abbreviation "${chainAbbr}"`);
         }
-        result.push(...resolveEntry(chainAbbr, subEntry, mapping, mediaQuery, pseudoClass, pseudoElement, whenPseudo));
+        result.push(...resolveEntry(chainAbbr, subEntry, mapping, context));
       }
       return result;
     }
@@ -892,103 +634,80 @@ function resolveEntry(
   }
 }
 
+/** Resolve a call node: a built-in like `add(...)`/`setVar(...)`, or a variable/delegate abbreviation like `mt(2)`. */
+function resolveCallNode(
+  node: CallChainNode,
+  mapping: TrussMapping,
+  context: ResolvedConditionContext,
+): ResolvedSegment[] {
+  switch (node.name) {
+    case "with":
+      return [resolveWithCall(node)];
+    case "add":
+      return resolveAddCall(node, mapping, context);
+    case "className":
+      return [resolveClassNameCall(node, context)];
+    case "style":
+      return [resolveStyleCall(node, context)];
+    case "setVar":
+      return resolveSetVarCall(node, mapping, context);
+    case "typography":
+      return resolveTypographyCall(node, mapping, context);
+  }
+
+  const entry = requireEntry(mapping, node.name);
+  if (entry.kind === "variable") {
+    return [resolveVariableCall(node.name, entry, node, mapping, context)];
+  }
+  if (entry.kind === "delegate") {
+    return [resolveDelegateCall(node.name, entry, node, mapping, context)];
+  }
+  throw new UnsupportedPatternError(`Abbreviation "${node.name}" is ${entry.kind}, cannot be called as a function`);
+}
+
 /** Resolve a variable (parameterized) call like mt(2) or mt(x). */
 function resolveVariableCall(
   abbr: string,
-  entry: { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> },
+  entry: Extract<TrussMappingEntry, { kind: "variable" }>,
   node: CallChainNode,
   mapping: TrussMapping,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
+  context: ResolvedConditionContext,
 ): ResolvedSegment {
-  if (node.args.length !== 1) {
-    throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
-  }
-  const literalValue = tryEvaluatePropertyLiteral(node.args[0], mapping, entry.incremented);
-  return buildParameterizedSegment({
+  const arg = singleArg(node, abbr);
+  return resolveLiteralOrVariableSegment({
     abbr,
     props: entry.props,
     incremented: entry.incremented,
     extraDefs: entry.extraDefs,
-    argAst: node.args[0],
-    literalValue,
+    argAst: arg,
+    literalValue: tryEvaluatePropertyLiteral(arg, mapping, entry.incremented),
     mapping,
-    mediaQuery,
-    pseudoClass,
-    pseudoElement,
-    whenPseudo,
+    context,
   });
 }
 
 /** Resolve a delegate call like mtPx(12). */
 function resolveDelegateCall(
   abbr: string,
-  entry: { kind: "delegate"; target: string },
+  entry: Extract<TrussMappingEntry, { kind: "delegate" }>,
   node: CallChainNode,
   mapping: TrussMapping,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
+  context: ResolvedConditionContext,
 ): ResolvedSegment {
   const targetEntry = mapping.abbreviations[entry.target];
   if (!targetEntry || targetEntry.kind !== "variable") {
     throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a variable entry`);
   }
-  if (node.args.length !== 1) {
-    throw new UnsupportedPatternError(`${abbr}() expects exactly 1 argument, got ${node.args.length}`);
-  }
-  const literalValue = tryEvaluatePxLiteral(node.args[0]);
+  const arg = singleArg(node, abbr);
   // Use the target abbreviation name for delegate segments (i.e. mtPx → mt)
-  return buildParameterizedSegment({
+  return resolveLiteralOrVariableSegment({
     abbr: entry.target,
     props: targetEntry.props,
     incremented: false,
     appendPx: true,
     extraDefs: targetEntry.extraDefs,
-    argAst: node.args[0],
-    literalValue,
-    mapping,
-    mediaQuery,
-    pseudoClass,
-    pseudoElement,
-    whenPseudo,
-  });
-}
-
-/** Shared builder for variable and delegate call segments. */
-function buildParameterizedSegment(params: {
-  abbr: string;
-  props: string[];
-  incremented: boolean;
-  appendPx?: boolean;
-  extraDefs?: Record<string, unknown>;
-  argAst: t.Expression | t.SpreadElement;
-  literalValue: string | null;
-  mapping: TrussMapping;
-  mediaQuery: string | null;
-  pseudoClass: string | null;
-  pseudoElement: string | null;
-  whenPseudo: WhenCondition | null;
-}): ResolvedSegment {
-  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, mapping, whenPseudo } = params;
-  const context: ResolvedConditionContext = {
-    mediaQuery: params.mediaQuery,
-    pseudoClass: params.pseudoClass,
-    pseudoElement: params.pseudoElement,
-    whenPseudo,
-  };
-
-  return resolveLiteralOrVariableSegment({
-    abbr,
-    props,
-    incremented,
-    appendPx,
-    extraDefs,
-    argAst,
-    literalValue,
+    argAst: arg,
+    literalValue: t.isNumericLiteral(arg) ? `${arg.value}px` : null,
     mapping,
     context,
   });
@@ -997,6 +716,10 @@ function buildParameterizedSegment(params: {
 /**
  * Resolve a parameterized call argument to either a static fold, a compile-time `_var` tuple,
  * or a runtime `_var` tuple.
+ *
+ * I.e. `mt(2)` folds to `defs: { marginTop: "calc(var(--t-spacing) * 2)" }`; `mt(Tokens.gap)` stays a
+ * `_var` segment with `argResolved: "var(--gap)"` so every token shares one `mt_var` class; and `mt(x)`
+ * is a `_var` segment whose value is only known at runtime.
  */
 function resolveLiteralOrVariableSegment(params: {
   abbr: string;
@@ -1004,112 +727,55 @@ function resolveLiteralOrVariableSegment(params: {
   incremented: boolean;
   appendPx?: boolean;
   extraDefs?: Record<string, unknown>;
-  argAst: t.Expression | t.SpreadElement;
+  argAst: t.Expression;
   literalValue: string | null;
   mapping: TrussMapping;
   context: ResolvedConditionContext;
 }): ResolvedSegment {
   const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, mapping, context } = params;
 
-  if (literalValue !== null) {
-    const raw = tryResolveValueLiteral(argAst, mapping);
-    if (raw !== null && isCustomPropertyName(raw)) {
-      const base = segmentWithConditionContext(
-        {
-          abbr,
-          defs: {},
-          variableProps: props,
-          incremented,
-          variableExtraDefs: extraDefs,
-          argResolved: literalValue,
-        },
-        context,
-      );
-      if (appendPx) base.appendPx = true;
-      return base;
-    }
-
-    const defs: Record<string, unknown> = {};
-    for (const prop of props) {
-      defs[prop] = literalValue;
-    }
-    if (extraDefs) Object.assign(defs, extraDefs);
-    return segmentWithConditionContext({ abbr, defs, argResolved: literalValue }, context);
+  if (literalValue !== null && !isCustomPropertyLiteral(argAst, mapping)) {
+    const defs: Record<string, unknown> = Object.fromEntries(props.map((prop) => [prop, literalValue]));
+    return segmentWithConditionContext({ abbr, defs: { ...defs, ...extraDefs }, argResolved: literalValue }, context);
   }
 
-  const base = segmentWithConditionContext(
+  return segmentWithConditionContext(
     {
       abbr,
       defs: {},
       variableProps: props,
       incremented,
+      appendPx,
       variableExtraDefs: extraDefs,
-      argNode: argAst,
+      argNode: literalValue === null ? argAst : undefined,
+      argResolved: literalValue ?? undefined,
     },
     context,
   );
-  if (appendPx) base.appendPx = true;
-  return base;
 }
 
-function resolveClassNameCall(
-  node: CallChainNode,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
-): ResolvedSegment {
-  if (node.args.length !== 1) {
-    throw new UnsupportedPatternError(`className() expects exactly 1 argument, got ${node.args.length}`);
-  }
-
-  const arg = node.args[0];
-  if (arg.type === "SpreadElement") {
-    throw new UnsupportedPatternError(`className() does not support spread arguments`);
-  }
-
-  if (mediaQuery || pseudoClass || pseudoElement || whenPseudo) {
+/** Raw class passthrough, i.e. `Css.className(buttonClass).df.$`. */
+function resolveClassNameCall(node: CallChainNode, context: ResolvedConditionContext): ResolvedSegment {
+  const arg = singleArg(node, "className");
+  if (hasCondition(context)) {
     // I.e. `ifSm.className("x")` cannot be represented as a runtime-only class append.
     throw new UnsupportedPatternError(
       `className() cannot be used inside media query, pseudo-class, pseudo-element, or when() contexts`,
     );
   }
-
-  return {
-    // I.e. this is metadata for the rewriter/runtime, not an atomic CSS rule.
-    abbr: "className",
-    defs: {},
-    classNameArg: arg,
-  };
+  // I.e. this is metadata for the rewriter/runtime, not an atomic CSS rule.
+  return { abbr: "className", defs: {}, classNameArg: arg };
 }
 
-function resolveStyleCall(
-  node: CallChainNode,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
-): ResolvedSegment {
-  if (node.args.length !== 1) {
-    throw new UnsupportedPatternError(`style() expects exactly 1 argument, got ${node.args.length}`);
-  }
-
-  const arg = node.args[0];
-  if (arg.type === "SpreadElement") {
-    throw new UnsupportedPatternError(`style() does not support spread arguments`);
-  }
-
-  if (mediaQuery || pseudoClass || pseudoElement || whenPseudo) {
+/** Raw inline style passthrough, i.e. `Css.mt(x).style(vars).$`. */
+function resolveStyleCall(node: CallChainNode, context: ResolvedConditionContext): ResolvedSegment {
+  const arg = singleArg(node, "style");
+  if (hasCondition(context)) {
     throw new UnsupportedPatternError(
       `style() cannot be used inside media query, pseudo-class, pseudo-element, or when() contexts`,
     );
   }
-
-  return {
-    abbr: "style",
-    defs: {},
-    styleArg: arg,
-  };
+  return { abbr: "style", defs: {}, styleArg: arg };
 }
 
 /**
@@ -1119,34 +785,17 @@ function resolveStyleCall(
  * - `with(expr)` — spread an existing Css expression into the chain output
  * - `with({ height })` — inline a partial style hash, skipping undefined values
  */
-function resolveWithCall(
-  node: CallChainNode,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
-): ResolvedSegment {
+function resolveWithCall(node: CallChainNode): ResolvedSegment {
   if (node.args.length !== 1) {
     throw new UnsupportedPatternError(`with() requires exactly 1 argument`);
   }
   const styleArg = node.args[0];
-  if (styleArg.type === "SpreadElement") {
+  if (t.isSpreadElement(styleArg)) {
     throw new UnsupportedPatternError(`with() does not support spread arguments`);
   }
   // Object literal: skip undefined values (the old addCss({ height }) pattern)
-  if (styleArg.type === "ObjectExpression") {
-    return {
-      abbr: "__composed_css_prop",
-      defs: {},
-      styleArrayArg: styleArg,
-      isAddCss: true,
-    };
-  }
-  return {
-    abbr: "__composed_css_prop",
-    defs: {},
-    styleArrayArg: styleArg,
-  };
+  const isAddCss = t.isObjectExpression(styleArg) ? { isAddCss: true } : {};
+  return { abbr: "__composed_css_prop", defs: {}, styleArrayArg: styleArg, ...isAddCss };
 }
 
 /**
@@ -1159,56 +808,42 @@ function resolveWithCall(
 function resolveAddCall(
   node: CallChainNode,
   mapping: TrussMapping,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
+  context: ResolvedConditionContext,
 ): ResolvedSegment[] {
-  const context: ResolvedConditionContext = {
-    mediaQuery,
-    pseudoClass,
-    pseudoElement,
-    whenPseudo,
-  };
+  const usage =
+    `add() requires 1 or 2 arguments (property name and value, or an object literal), got ${node.args.length}. ` +
+    `Supported overloads are add({ prop: value }), add("propName", value), and with(cssProp)`;
 
   if (node.args.length === 1) {
     const styleArg = node.args[0];
-    if (styleArg.type === "SpreadElement") {
+    if (t.isSpreadElement(styleArg)) {
       throw new UnsupportedPatternError(`add() does not support spread arguments`);
     }
-    if (styleArg.type === "ObjectExpression") {
-      // New behavior: expand object literal into individual property/value segments
-      return resolveAddObjectLiteral(styleArg as any, mapping, context);
+    if (t.isObjectExpression(styleArg)) {
+      return resolveAddObjectLiteral(styleArg, mapping, context);
     }
-    throw new UnsupportedPatternError(
-      `add() requires 1 or 2 arguments (property name and value, or an object literal), got ${node.args.length}. ` +
-        `Supported overloads are add({ prop: value }), add("propName", value), and with(cssProp)`,
-    );
+    throw new UnsupportedPatternError(usage);
   }
 
   if (node.args.length !== 2) {
-    throw new UnsupportedPatternError(
-      `add() requires 1 or 2 arguments (property name and value, or an object literal), got ${node.args.length}. ` +
-        `Supported overloads are add({ prop: value }), add("propName", value), and with(cssProp)`,
-    );
+    throw new UnsupportedPatternError(usage);
   }
 
-  const propArg = node.args[0];
-  if (propArg.type !== "StringLiteral") {
+  const [propArg, valueArg] = node.args;
+  if (!t.isStringLiteral(propArg)) {
     throw new UnsupportedPatternError(`add() first argument must be a string literal property name`);
   }
-  const propName: string = (propArg as any).value;
-
-  const valueArg = node.args[1];
-  const literalValue = tryEvaluatePropertyLiteral(valueArg, mapping, false);
+  if (t.isSpreadElement(valueArg)) {
+    throw new UnsupportedPatternError(`add() does not support spread arguments`);
+  }
 
   return [
     resolveLiteralOrVariableSegment({
-      abbr: propName,
-      props: [propName],
+      abbr: propArg.value,
+      props: [propArg.value],
       incremented: false,
       argAst: valueArg,
-      literalValue,
+      literalValue: tryEvaluatePropertyLiteral(valueArg, mapping, false),
       mapping,
       context,
     }),
@@ -1223,110 +858,129 @@ function resolveAddCall(
  * `{ display: "grid" }` → `dg`), the canonical abbreviation is reused.
  */
 function resolveAddObjectLiteral(
-  obj: import("@babel/types").ObjectExpression,
+  obj: t.ObjectExpression,
   mapping: TrussMapping,
   context: ResolvedConditionContext,
 ): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
   for (const property of obj.properties) {
-    if (property.type === "SpreadElement") {
+    if (t.isSpreadElement(property)) {
       throw new UnsupportedPatternError(`add({...}) does not support spread properties -- use with() instead`);
     }
-    if (property.type !== "ObjectProperty" || property.computed) {
+    if (!t.isObjectProperty(property) || property.computed) {
       throw new UnsupportedPatternError(`add({...}) only supports simple property keys`);
     }
-    let propName: string;
-    if (property.key.type === "Identifier") {
-      propName = property.key.name;
-    } else if (property.key.type === "StringLiteral") {
-      propName = (property.key as any).value;
-    } else {
+    const propName = staticPropertyName(property.key);
+    if (propName === null) {
       throw new UnsupportedPatternError(`add({...}) property keys must be identifiers or string literals`);
     }
-    const valueNode = property.value;
-    const literalValue = tryEvaluatePropertyLiteral(valueNode as any, mapping, false);
-    if (literalValue !== null) {
-      const raw = tryResolveValueLiteral(valueNode as any, mapping);
-      if (raw === null || !isCustomPropertyName(raw)) {
-        // Check if this prop/value matches an existing abbreviation in the mapping
-        const canonicalAbbr = findCanonicalAbbreviation(mapping, propName, literalValue);
-        if (canonicalAbbr) {
-          const entry = mapping.abbreviations[canonicalAbbr];
-          segments.push(segmentWithConditionContext(
-            { abbr: canonicalAbbr, defs: (entry as any).defs },
-            context,
-          ));
-          continue;
-        }
-      }
-      segments.push(
-        resolveLiteralOrVariableSegment({
-          abbr: propName,
-          props: [propName],
-          incremented: false,
-          argAst: valueNode as any,
-          literalValue,
-          mapping,
-          context,
-        }),
-      );
-    } else {
-      segments.push(segmentWithConditionContext(
-        { abbr: propName, defs: {}, variableProps: [propName], incremented: false, argNode: valueNode },
-        context,
-      ));
+    const valueNode = property.value as t.Expression;
+    const literalValue = tryEvaluatePropertyLiteral(valueNode, mapping, false);
+
+    const canonicalAbbr =
+      literalValue !== null && !isCustomPropertyLiteral(valueNode, mapping)
+        ? findCanonicalAbbreviation(mapping, propName, literalValue)
+        : undefined;
+    if (canonicalAbbr) {
+      const entry = mapping.abbreviations[canonicalAbbr] as Extract<TrussMappingEntry, { kind: "static" }>;
+      segments.push(segmentWithConditionContext({ abbr: canonicalAbbr, defs: entry.defs }, context));
+      continue;
     }
+
+    segments.push(
+      resolveLiteralOrVariableSegment({
+        abbr: propName,
+        props: [propName],
+        incremented: false,
+        argAst: valueNode,
+        literalValue,
+        mapping,
+        context,
+      }),
+    );
   }
   return segments;
 }
 
-/** Find a canonical abbreviation whose static defs exactly match `{ prop: value }`. */
-function findCanonicalAbbreviation(mapping: TrussMapping, prop: string, value: string): string | null {
-  return getLonghandLookup(mapping).get(`${prop}\0${value}`) ?? null;
+// ── typography(...) ───────────────────────────────────────────────────
+
+/** Resolve `typography(key)` into either direct segments or a runtime lookup-backed segment. */
+function resolveTypographyCall(
+  node: CallChainNode,
+  mapping: TrussMapping,
+  context: ResolvedConditionContext,
+): ResolvedSegment[] {
+  const arg = singleArg(node, "typography");
+  if (t.isStringLiteral(arg)) {
+    return resolveTypographyEntry(arg.value, mapping, context);
+  }
+
+  const typography = mapping.typography ?? [];
+  if (typography.length === 0) {
+    throw new UnsupportedPatternError(`typography() is unavailable because no typography abbreviations were generated`);
+  }
+
+  const suffix = typographyLookupKeySuffix(context, mapping);
+  const lookupKey = suffix ? `typography__${suffix}` : "typography";
+  const segmentsByName: Record<string, ResolvedSegment[]> = {};
+  for (const name of typography) {
+    segmentsByName[name] = resolveTypographyEntry(name, mapping, context);
+  }
+
+  return [{ abbr: lookupKey, defs: {}, typographyLookup: { lookupKey, argNode: arg, segmentsByName } }];
 }
 
-/** Resolve a literal value without wrapping (for setVar values, etc.). */
-function tryResolveValueLiteral(node: t.Expression | t.SpreadElement, mapping?: TrussMapping): string | null {
-  if (mapping) {
-    const token = tryResolveTokensMember(node as t.Expression, mapping);
-    if (token !== null) return token;
+/** Resolve a single typography abbreviation name within the current condition context. */
+function resolveTypographyEntry(
+  name: string,
+  mapping: TrussMapping,
+  context: ResolvedConditionContext,
+): ResolvedSegment[] {
+  if (!(mapping.typography ?? []).includes(name)) {
+    throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
   }
-  if (node.type === "StringLiteral") {
-    return node.value;
+
+  const entry = mapping.abbreviations[name];
+  if (!entry) {
+    throw new UnsupportedPatternError(`Unknown typography abbreviation "${name}"`);
   }
-  if (node.type === "NumericLiteral") {
-    return String(node.value);
+
+  const resolved = resolveEntry(name, entry, mapping, context);
+  for (const segment of resolved) {
+    if (segment.variableProps) {
+      throw new UnsupportedPatternError(`Typography abbreviation "${name}" cannot require runtime arguments`);
+    }
   }
-  if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
-    return String(-node.argument.value);
-  }
-  return null;
+  return resolved;
 }
 
-/** Resolve `Tokens.Member` / `Tokens["Member"]` to a `--` custom property name. */
-function tryResolveTokensMember(node: t.Expression, mapping: TrussMapping): string | null {
-  if (node.type !== "MemberExpression") return null;
-  if (node.object.type !== "Identifier" || node.object.name !== "Tokens") return null;
-
-  const memberName =
-    !node.computed && node.property.type === "Identifier"
-      ? node.property.name
-      : node.computed && node.property.type === "StringLiteral"
-        ? node.property.value
-        : null;
-  if (memberName == null) return null;
-
-  const tokenMap = mapping.tokens;
-  if (!tokenMap) {
-    throw new UnsupportedPatternError(`Tokens.* requires config.tokens`);
+/**
+ * Build a typography lookup key suffix from condition context.
+ *
+ * I.e. `typography(key)` → `""`, `ifSm.typography(key)` → `"sm"`, `onHover.typography(key)` → `"hover"`.
+ */
+function typographyLookupKeySuffix(context: ResolvedConditionContext, mapping: TrussMapping): string {
+  const parts: string[] = [];
+  if (context.pseudoElement) parts.push(context.pseudoElement.replace(/^::/, ""));
+  if (context.mediaQuery) {
+    const breakpoint = breakpointNameForMediaQuery(mapping, context.mediaQuery);
+    parts.push(breakpoint ? breakpoint.replace(/^./, (c) => c.toLowerCase()) : "mq");
   }
-  if (!(memberName in tokenMap)) {
-    throw new UnsupportedPatternError(`Unknown token "${memberName}" - add it to config.tokens`);
-  }
-  return tokenMap[memberName];
+  if (context.pseudoClass) parts.push(context.pseudoClass.replace(/^:+/, "").replace(/-/g, "_"));
+  if (context.whenPseudo) parts.push(whenLookupKeyPart(context.whenPseudo));
+  return parts.join("_");
 }
 
-const WHEN_RELATIONSHIPS = new Set(["ancestor", "descendant", "anySibling", "siblingBefore", "siblingAfter"]);
+/** I.e. `when(row, "ancestor", ":hover")` → `"when_ancestor_hover_row"`. */
+function whenLookupKeyPart(whenPseudo: WhenCondition): string {
+  const parts = ["when", whenPseudo.relationship, sanitizeClassNameToken(whenPseudo.pseudo) || "value"];
+  if (whenPseudo.markerNode) {
+    parts.push(whenPseudo.markerNode.name);
+  }
+  return parts.join("_");
+}
+
+// ── when(...) selector form ───────────────────────────────────────────
 
 /**
  * Resolve a `when(selector)` or `when(marker, relationship, pseudo)` call.
@@ -1338,9 +992,7 @@ const WHEN_RELATIONSHIPS = new Set(["ancestor", "descendant", "anySibling", "sib
  */
 function resolveWhenCall(
   node: CallChainNode,
-):
-  | { kind: "selector"; selector: string }
-  | { kind: "relationship"; pseudo: string; markerNode?: any; relationship: string } {
+): { kind: "selector"; selector: string } | { kind: "relationship"; condition: WhenCondition } {
   if (node.args.length !== 1 && node.args.length !== 3) {
     throw new UnsupportedPatternError(
       `when() expects 1 or 3 arguments (selector) or (marker, relationship, pseudo), got ${node.args.length}`,
@@ -1349,244 +1001,275 @@ function resolveWhenCall(
 
   if (node.args.length === 1) {
     const selectorArg = node.args[0];
-    if (selectorArg.type !== "StringLiteral") {
+    if (!t.isStringLiteral(selectorArg)) {
       throw new UnsupportedPatternError(`when() selector must be a string literal`);
     }
-    return { kind: "selector", selector: (selectorArg as any).value };
+    return { kind: "selector", selector: selectorArg.value };
   }
 
-  const markerArg = node.args[0];
+  const [markerArg, relationshipArg, pseudoArg] = node.args;
   const markerNode = resolveWhenMarker(markerArg);
-  const relationshipArg = node.args[1];
-  if (relationshipArg.type !== "StringLiteral") {
+  if (!t.isStringLiteral(relationshipArg)) {
     throw new UnsupportedPatternError(`when() relationship argument must be a string literal`);
   }
-  const relationship: string = (relationshipArg as any).value;
-  if (!WHEN_RELATIONSHIPS.has(relationship)) {
+  const relationship = relationshipArg.value;
+  if (!isWhenRelationship(relationship)) {
     throw new UnsupportedPatternError(
-      `when() relationship must be one of: ${[...WHEN_RELATIONSHIPS].join(", ")} -- got "${relationship}"`,
+      `when() relationship must be one of: ${Object.keys(WHEN_RELATIONSHIPS).join(", ")} -- got "${relationship}"`,
     );
   }
-
-  const pseudoArg = node.args[2];
-  if (pseudoArg.type !== "StringLiteral") {
+  if (!t.isStringLiteral(pseudoArg)) {
     throw new UnsupportedPatternError(`when() pseudo selector (3rd argument) must be a string literal`);
   }
-  return { kind: "relationship", pseudo: (pseudoArg as any).value, markerNode, relationship };
+  return { kind: "relationship", condition: { pseudo: pseudoArg.value, markerNode, relationship } };
 }
 
-function resolveWhenMarker(node: t.Expression | t.SpreadElement): any | undefined {
+/** The user's marker variable, or undefined for the shared default marker. */
+function resolveWhenMarker(node: t.Expression | t.SpreadElement): t.Identifier | undefined {
   if (isDefaultMarkerNode(node)) {
     return undefined;
   }
-  if (node.type === "Identifier") {
+  if (t.isIdentifier(node)) {
     return node;
   }
   throw new UnsupportedPatternError(`when() marker must be a marker variable or marker`);
 }
 
+/** I.e. `marker`, `defaultMarker`, or the legacy `Css.defaultMarker()` call. */
 function isDefaultMarkerNode(node: t.Expression | t.SpreadElement): boolean {
-  if (node.type === "Identifier" && (node.name === "marker" || node.name === "defaultMarker")) {
+  if (t.isIdentifier(node) && (node.name === "marker" || node.name === "defaultMarker")) {
     return true;
   }
-  return isLegacyDefaultMarkerExpression(node);
-}
-
-function isLegacyDefaultMarkerExpression(node: t.Expression | t.SpreadElement): boolean {
   return (
-    node.type === "CallExpression" &&
+    t.isCallExpression(node) &&
     node.arguments.length === 0 &&
-    node.callee.type === "MemberExpression" &&
+    t.isMemberExpression(node.callee) &&
     !node.callee.computed &&
-    node.callee.property.type === "Identifier" &&
-    node.callee.property.name === "defaultMarker"
+    t.isIdentifier(node.callee.property, { name: "defaultMarker" })
   );
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
+// ── Literal evaluation ────────────────────────────────────────────────
 
 /**
  * Try to evaluate a literal AST node to a CSS property value.
  * For incremented entries, also evaluates `maybeInc(literal)` (web: calc on `--t-spacing`).
  * Custom property names (`--token` / `Tokens.X`) are wrapped as `var(--token)`.
  */
-function tryEvaluatePropertyLiteral(
-  node: t.Expression | t.SpreadElement,
-  mapping: TrussMapping,
-  incremented: boolean,
-): string | null {
-  if (node.type === "NumericLiteral") {
-    if (incremented) {
-      return incrementCssValue(node.value);
-    }
-    return String(node.value);
-  }
-  if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
-    const val = -node.argument.value;
-    if (incremented) {
-      return incrementCssValue(val);
-    }
-    return String(val);
+function tryEvaluatePropertyLiteral(node: t.Expression, mapping: TrussMapping, incremented: boolean): string | null {
+  const numeric = tryNumericLiteral(node);
+  if (numeric !== null) {
+    return incremented ? incrementCssValue(numeric) : String(numeric);
   }
   const raw = tryResolveValueLiteral(node, mapping);
-  if (raw !== null) {
-    return maybeCssVar(raw);
-  }
-  return null;
+  return raw === null ? null : maybeCssVar(raw);
 }
 
-/** Try to evaluate a Px delegate argument (always a number → `${n}px`). */
-function tryEvaluatePxLiteral(node: t.Expression | t.SpreadElement): string | null {
-  if (node.type === "NumericLiteral") {
-    return `${node.value}px`;
-  }
-  return null;
+/** True when the argument names a CSS custom property, i.e. `"--token"` or `Tokens.x`. */
+function isCustomPropertyLiteral(node: t.Expression, mapping: TrussMapping): boolean {
+  const raw = tryResolveValueLiteral(node, mapping);
+  return raw !== null && isCustomPropertyName(raw);
 }
 
-/** Resolve ifContainer({ gt, lt, name? }) to a container query pseudo key. */
-function containerSelectorFromCall(node: CallChainNode): string {
-  if (node.args.length !== 1) {
-    throw new UnsupportedPatternError(`ifContainer() expects exactly 1 argument, got ${node.args.length}`);
+/** Resolve a literal value without wrapping (for setVar values, etc.). */
+function tryResolveValueLiteral(node: t.Expression, mapping?: TrussMapping): string | null {
+  if (mapping) {
+    const token = tryResolveTokensMember(node, mapping);
+    if (token !== null) return token;
   }
-
-  const arg = node.args[0];
-  if (!arg || arg.type !== "ObjectExpression") {
-    throw new UnsupportedPatternError("ifContainer() expects an object literal argument");
-  }
-
-  let lt: number | undefined;
-  let gt: number | undefined;
-  let name: string | undefined;
-
-  for (const prop of arg.properties) {
-    if (prop.type === "SpreadElement") {
-      throw new UnsupportedPatternError("ifContainer() does not support spread properties");
-    }
-    if (prop.type !== "ObjectProperty" || prop.computed) {
-      throw new UnsupportedPatternError("ifContainer() expects plain object properties");
-    }
-
-    const key = objectPropertyName(prop.key);
-    if (!key) {
-      throw new UnsupportedPatternError("ifContainer() only supports identifier/string keys");
-    }
-
-    const valueNode = prop.value as t.Expression | t.SpreadElement;
-
-    if (key === "lt") {
-      lt = numericLiteralValue(valueNode, "ifContainer().lt must be a numeric literal");
-      continue;
-    }
-    if (key === "gt") {
-      gt = numericLiteralValue(valueNode, "ifContainer().gt must be a numeric literal");
-      continue;
-    }
-    if (key === "name") {
-      name = stringLiteralValue(valueNode, "ifContainer().name must be a string literal");
-      continue;
-    }
-
-    throw new UnsupportedPatternError(`ifContainer() does not support property "${key}"`);
-  }
-
-  if (lt === undefined && gt === undefined) {
-    throw new UnsupportedPatternError('ifContainer() requires at least one of "lt" or "gt"');
-  }
-
-  const parts: string[] = [];
-  if (gt !== undefined) {
-    parts.push(`(min-width: ${gt + 1}px)`);
-  }
-  if (lt !== undefined) {
-    parts.push(`(max-width: ${lt}px)`);
-  }
-
-  const query = parts.join(" and ");
-  const namePrefix = name ? `${name} ` : "";
-  return `@container ${namePrefix}${query}`;
-}
-
-function objectPropertyName(node: t.Expression | t.Identifier | t.PrivateName): string | null {
-  if (node.type === "Identifier") return node.name;
-  if (node.type === "StringLiteral") return node.value;
-  return null;
-}
-
-/** Unwrap TS/paren wrappers so nested `when({ ... })` values can be validated uniformly. */
-function unwrapExpression(node: t.Expression): t.Expression {
-  let current = node;
-
-  while (true) {
-    if (
-      current.type === "ParenthesizedExpression" ||
-      current.type === "TSAsExpression" ||
-      current.type === "TSTypeAssertion" ||
-      current.type === "TSNonNullExpression" ||
-      current.type === "TSSatisfiesExpression"
-    ) {
-      current = current.expression;
-      continue;
-    }
-
-    return current;
-  }
-}
-
-function numericLiteralValue(node: t.Expression | t.SpreadElement, errorMessage: string): number {
-  if (node.type === "NumericLiteral") {
+  if (t.isStringLiteral(node)) {
     return node.value;
   }
-  if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "NumericLiteral") {
+  const numeric = tryNumericLiteral(node);
+  return numeric === null ? null : String(numeric);
+}
+
+/** I.e. `12` → 12 and `-12` → -12; null for anything but a (negated) numeric literal. */
+function tryNumericLiteral(node: t.Expression): number | null {
+  if (t.isNumericLiteral(node)) {
+    return node.value;
+  }
+  if (t.isUnaryExpression(node, { operator: "-" }) && t.isNumericLiteral(node.argument)) {
     return -node.argument.value;
   }
-  throw new UnsupportedPatternError(errorMessage);
+  return null;
 }
 
-function stringLiteralValue(node: t.Expression | t.SpreadElement, errorMessage: string): string {
-  if (node.type === "StringLiteral") {
+/** Resolve `Tokens.Member` / `Tokens["Member"]` to a `--` custom property name. */
+function tryResolveTokensMember(node: t.Expression, mapping: TrussMapping): string | null {
+  if (!t.isMemberExpression(node) || !t.isIdentifier(node.object, { name: "Tokens" })) return null;
+  const memberName = memberPropertyName(node);
+  if (memberName === null) return null;
+
+  const tokenMap = mapping.tokens;
+  if (!tokenMap) {
+    throw new UnsupportedPatternError(`Tokens.* requires config.tokens`);
+  }
+  if (!(memberName in tokenMap)) {
+    throw new UnsupportedPatternError(`Unknown token "${memberName}" - add it to config.tokens`);
+  }
+  return tokenMap[memberName];
+}
+
+// ── Argument and object-literal validation ────────────────────────────
+
+/** The single argument of `label()`, rejecting missing, extra, and spread arguments. */
+function singleArg(node: CallChainNode, label: string): t.Expression {
+  if (node.args.length !== 1) {
+    throw new UnsupportedPatternError(`${label}() expects exactly 1 argument, got ${node.args.length}`);
+  }
+  const arg = node.args[0];
+  if (t.isSpreadElement(arg)) {
+    throw new UnsupportedPatternError(`${label}() does not support spread arguments`);
+  }
+  return arg;
+}
+
+/** The `key: value` pairs of an object literal, rejecting spreads, methods, computed keys, and non-static keys. */
+function plainObjectEntries(obj: t.ObjectExpression, label: string): Array<{ key: string; value: t.Expression }> {
+  return obj.properties.map((prop) => {
+    if (t.isSpreadElement(prop)) {
+      throw new UnsupportedPatternError(`${label} does not support spread properties`);
+    }
+    if (!t.isObjectProperty(prop) || prop.computed) {
+      throw new UnsupportedPatternError(`${label} only supports plain object properties`);
+    }
+    const key = staticPropertyName(prop.key);
+    if (key === null) {
+      throw new UnsupportedPatternError(`${label} only supports identifier/string keys`);
+    }
+    return { key, value: prop.value as t.Expression };
+  });
+}
+
+function numericLiteralValue(node: t.Expression, errorMessage: string): number {
+  const numeric = tryNumericLiteral(node);
+  if (numeric === null) {
+    throw new UnsupportedPatternError(errorMessage);
+  }
+  return numeric;
+}
+
+function stringLiteralValue(node: t.Expression, errorMessage: string): string {
+  if (t.isStringLiteral(node)) {
     return node.value;
   }
-  if (node.type === "TemplateLiteral" && node.expressions.length === 0 && node.quasis.length === 1) {
+  if (t.isTemplateLiteral(node) && node.expressions.length === 0 && node.quasis.length === 1) {
     return node.quasis[0].value.cooked ?? "";
   }
   throw new UnsupportedPatternError(errorMessage);
 }
 
-function mediaQueryForBreakpointName(mapping: TrussMapping, bpName: string): string | null {
-  if (!mapping.breakpoints) return null;
-  const key = `if${pascalCase(bpName)}`;
-  return mapping.breakpoints[key] ?? null;
+/** A string/number literal value, unwrapping TS/paren wrappers first. */
+function requireValueLiteral(node: t.Expression, errorMessage: string): string {
+  const value = tryResolveValueLiteral(unwrapExpression(node));
+  if (value === null) {
+    throw new UnsupportedPatternError(errorMessage);
+  }
+  return value;
 }
 
-/**
- * Base class-name fragment for a setVar segment: leading `--` on the custom property becomes `__`,
- * then the name is sanitized for use in a CSS class (same rules as value sanitization elsewhere).
- */
-function setVarClassBaseFromCssVarName(cssVarName: string): string {
-  const body = (cssVarName.startsWith("--") ? cssVarName.slice(2) : cssVarName)
-    .replace(/[^a-zA-Z0-9]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-  return `__${body}`;
+// ── Container queries ─────────────────────────────────────────────────
+
+interface ContainerBounds {
+  lt?: number;
+  gt?: number;
+  name?: string;
 }
 
-function containerQueryStringFromBounds(name: string | undefined, gt: number | undefined, lt: number | undefined): string {
+/** Resolve ifContainer({ gt, lt, name? }) to an `@container` query string. */
+function containerQueryFromCall(node: CallChainNode): string {
+  const arg = singleArg(node, "ifContainer");
+  if (!t.isObjectExpression(arg)) {
+    throw new UnsupportedPatternError("ifContainer() expects an object literal argument");
+  }
+
+  const bounds: ContainerBounds = {};
+  for (const { key, value } of plainObjectEntries(arg, "ifContainer()")) {
+    if (!readContainerBound(bounds, key, value, "ifContainer().")) {
+      throw new UnsupportedPatternError(`ifContainer() does not support property "${key}"`);
+    }
+  }
+
+  if (bounds.lt === undefined && bounds.gt === undefined) {
+    throw new UnsupportedPatternError('ifContainer() requires at least one of "lt" or "gt"');
+  }
+
+  return containerQueryString(bounds);
+}
+
+/** Read one `lt`/`gt`/`name` bound into `bounds`; false when `key` is not a bound. */
+function readContainerBound(bounds: ContainerBounds, key: string, value: t.Expression, label: string): boolean {
+  if (key === "lt") {
+    bounds.lt = numericLiteralValue(value, `${label}lt must be a numeric literal`);
+    return true;
+  }
+  if (key === "gt") {
+    bounds.gt = numericLiteralValue(value, `${label}gt must be a numeric literal`);
+    return true;
+  }
+  if (key === "name") {
+    bounds.name = stringLiteralValue(value, `${label}name must be a string literal`);
+    return true;
+  }
+  return false;
+}
+
+/** I.e. `{ gt: 400, lt: 800, name: "card" }` → `@container card (min-width: 401px) and (max-width: 800px)`. */
+function containerQueryString(bounds: ContainerBounds): string {
   const parts: string[] = [];
-  if (gt !== undefined) {
-    parts.push(`(min-width: ${gt + 1}px)`);
+  if (bounds.gt !== undefined) {
+    parts.push(`(min-width: ${bounds.gt + 1}px)`);
   }
-  if (lt !== undefined) {
-    parts.push(`(max-width: ${lt}px)`);
+  if (bounds.lt !== undefined) {
+    parts.push(`(max-width: ${bounds.lt}px)`);
   }
-  const query = parts.join(" and ");
-  const namePrefix = name ? `${name} ` : "";
-  return `@container ${namePrefix}${query}`;
+  const namePrefix = bounds.name ? `${bounds.name} ` : "";
+  return `@container ${namePrefix}${parts.join(" and ")}`;
 }
 
+// ── setVar(...) ───────────────────────────────────────────────────────
+
+/** CSS custom properties as atomic classes, i.e. `Css.setVar({ [Tokens.x]: "1px" }).$`. */
+function resolveSetVarCall(
+  node: CallChainNode,
+  mapping: TrussMapping,
+  context: ResolvedConditionContext,
+): ResolvedSegment[] {
+  const arg = singleArg(node, "setVar");
+  if (!t.isObjectExpression(arg)) {
+    throw new UnsupportedPatternError(`setVar() requires an object literal argument`);
+  }
+
+  const segments: ResolvedSegment[] = [];
+  for (const prop of arg.properties) {
+    if (t.isSpreadElement(prop)) {
+      throw new UnsupportedPatternError(`setVar() does not support spread properties`);
+    }
+    if (!t.isObjectProperty(prop)) {
+      throw new UnsupportedPatternError(`setVar() only supports object properties`);
+    }
+    const cssVarName = resolveSetVarPropertyKey(prop, mapping);
+    // I.e. `--theme-accent` → `__theme_accent`, which emit-truss extends with the value, i.e. `__theme_accent_blue`.
+    const abbr = `__${sanitizeClassNameToken(cssVarName.replace(/^--/, ""))}`;
+    for (const leaf of expandSetVarValueToLeaves(prop.value as t.Expression, mapping, context)) {
+      segments.push(
+        segmentWithConditionContext(
+          { abbr, defs: { [cssVarName]: leaf.literal }, argResolved: leaf.literal },
+          leaf.context,
+        ),
+      );
+    }
+  }
+
+  return segments;
+}
+
+/** The `--var-name` a setVar key refers to: a `"--literal"` string key or a `[Tokens.Name]` member. */
 function resolveSetVarPropertyKey(prop: t.ObjectProperty, mapping: TrussMapping): string {
   const key = prop.key;
   if (!prop.computed) {
-    if (key.type === "StringLiteral") {
+    if (t.isStringLiteral(key)) {
       if (key.value.startsWith("--")) {
         return key.value;
       }
@@ -1594,7 +1277,7 @@ function resolveSetVarPropertyKey(prop: t.ObjectProperty, mapping: TrussMapping)
         `setVar() string keys must be CSS variables starting with "--" - got ${JSON.stringify(key.value)}`,
       );
     }
-    if (key.type === "Identifier") {
+    if (t.isIdentifier(key)) {
       throw new UnsupportedPatternError(
         `setVar() requires computed keys like [Tokens.Name] or string keys "--my-var", not bare property names`,
       );
@@ -1602,31 +1285,30 @@ function resolveSetVarPropertyKey(prop: t.ObjectProperty, mapping: TrussMapping)
     throw new UnsupportedPatternError(`setVar() property keys must be string literals or [Tokens.*] members`);
   }
 
-  if (key.type === "MemberExpression") {
-    const mem = key;
-    const memberName =
-      !mem.computed && mem.property.type === "Identifier"
-        ? mem.property.name
-        : mem.computed && mem.property.type === "StringLiteral"
-          ? mem.property.value
-          : null;
-    if (memberName == null) {
-      throw new UnsupportedPatternError(
-        `setVar() [Tokens.name] keys must use a plain .member or ["string"] member access`,
-      );
-    }
-    const tokenMap = mapping.tokens;
-    if (!tokenMap || !(memberName in tokenMap)) {
-      throw new UnsupportedPatternError(
-        tokenMap
-          ? `Unknown token "${memberName}" - add it to config.tokens or use a "--" string literal key`
-          : `setVar() [Tokens.*] requires config.tokens; use "--" string literal keys only`,
-      );
-    }
-    return tokenMap[memberName];
+  if (!t.isMemberExpression(key)) {
+    throw new UnsupportedPatternError(`setVar() computed keys must be Tokens.*-style members`);
   }
+  const memberName = memberPropertyName(key);
+  if (memberName === null) {
+    throw new UnsupportedPatternError(
+      `setVar() [Tokens.name] keys must use a plain .member or ["string"] member access`,
+    );
+  }
+  const tokenMap = mapping.tokens;
+  if (!tokenMap || !(memberName in tokenMap)) {
+    throw new UnsupportedPatternError(
+      tokenMap
+        ? `Unknown token "${memberName}" - add it to config.tokens or use a "--" string literal key`
+        : `setVar() [Tokens.*] requires config.tokens; use "--" string literal keys only`,
+    );
+  }
+  return tokenMap[memberName];
+}
 
-  throw new UnsupportedPatternError(`setVar() computed keys must be Tokens.*-style members`);
+/** One concrete value for a setVar custom property, together with the condition it applies under. */
+interface SetVarLeaf {
+  literal: string;
+  context: ResolvedConditionContext;
 }
 
 /**
@@ -1637,7 +1319,8 @@ function resolveSetVarPropertyKey(prop: t.ObjectProperty, mapping: TrussMapping)
  *
  * Output: each leaf is a concrete literal plus a condition context (viewport `mediaQuery`,
  * `@container` string in `mediaQuery`, or base). `resolveSetVarCall` turns each leaf into
- * a `ResolvedSegment` with `defs: { [cssVarName]: literal }`.
+ * a `ResolvedSegment` with `defs: { [cssVarName]: literal }`. Leaves are emitted in the order
+ * default, media, container regardless of the source property order.
  *
  * I.e. `"8px"` → one leaf with the inherited context (often unconditional).
  *
@@ -1650,145 +1333,51 @@ function resolveSetVarPropertyKey(prop: t.ObjectProperty, mapping: TrussMapping)
 function expandSetVarValueToLeaves(
   valueNode: t.Expression,
   mapping: TrussMapping,
-  baseCtx: ResolvedConditionContext,
-): Array<{ literal: string; ctx: ResolvedConditionContext }> {
+  baseContext: ResolvedConditionContext,
+): SetVarLeaf[] {
   const unwrapped = unwrapExpression(valueNode);
   const scalar = tryResolveValueLiteral(unwrapped);
   if (scalar !== null) {
-    return [{ literal: scalar, ctx: cloneConditionContext(baseCtx) }];
+    return [setVarLeaf(scalar, baseContext)];
   }
 
-  if (unwrapped.type !== "ObjectExpression") {
+  if (!t.isObjectExpression(unwrapped)) {
     throw new UnsupportedPatternError(
       `setVar() values must be string/number literals or a { default?, media?, container? } object`,
     );
   }
 
-  let defaultLit: string | undefined;
-  let mediaObj: t.ObjectExpression | undefined;
-  let containerArr: t.ArrayExpression | undefined;
+  let defaultLiteral: string | undefined;
+  let mediaObject: t.ObjectExpression | undefined;
+  let containerArray: t.ArrayExpression | undefined;
 
-  for (const prop of unwrapped.properties) {
-    if (prop.type === "SpreadElement") {
-      throw new UnsupportedPatternError(`setVar() responsive object does not support spread properties`);
-    }
-    if (prop.type !== "ObjectProperty" || prop.computed) {
-      throw new UnsupportedPatternError(`setVar() responsive object only supports plain data properties`);
-    }
-    const name = objectPropertyName(prop.key);
-    if (!name) {
-      throw new UnsupportedPatternError(`setVar() responsive object: invalid property key`);
-    }
-    if (name === "default") {
-      const v = tryResolveValueLiteral(unwrapExpression(prop.value as t.Expression));
-      if (v === null) {
-        throw new UnsupportedPatternError(`setVar().default must be a string or number literal`);
-      }
-      defaultLit = v;
-      continue;
-    }
-    if (name === "media") {
-      if (prop.value.type !== "ObjectExpression") {
+  for (const { key, value } of plainObjectEntries(unwrapped, "setVar() responsive object")) {
+    if (key === "default") {
+      defaultLiteral = requireValueLiteral(value, `setVar().default must be a string or number literal`);
+    } else if (key === "media") {
+      if (!t.isObjectExpression(value)) {
         throw new UnsupportedPatternError(`setVar().media must be an object literal`);
       }
-      mediaObj = prop.value;
-      continue;
-    }
-    if (name === "container") {
-      if (prop.value.type !== "ArrayExpression") {
+      mediaObject = value;
+    } else if (key === "container") {
+      if (!t.isArrayExpression(value)) {
         throw new UnsupportedPatternError(`setVar().container must be an array literal`);
       }
-      containerArr = prop.value;
-      continue;
-    }
-    throw new UnsupportedPatternError(`setVar() responsive object does not support property "${name}"`);
-  }
-
-  const leaves: Array<{ literal: string; ctx: ResolvedConditionContext }> = [];
-
-  if (defaultLit !== undefined) {
-    leaves.push({ literal: defaultLit, ctx: cloneConditionContext(baseCtx) });
-  }
-
-  if (mediaObj) {
-    for (const mprop of mediaObj.properties) {
-      if (mprop.type === "SpreadElement") {
-        throw new UnsupportedPatternError(`setVar().media does not support spread properties`);
-      }
-      if (mprop.type !== "ObjectProperty" || mprop.computed) {
-        throw new UnsupportedPatternError(`setVar().media only supports plain identifier or string keys`);
-      }
-      const bpName = objectPropertyName(mprop.key);
-      if (!bpName) {
-        throw new UnsupportedPatternError(`setVar().media: invalid breakpoint key`);
-      }
-      const mq = mediaQueryForBreakpointName(mapping, bpName);
-      if (!mq) {
-        throw new UnsupportedPatternError(
-          `Unknown breakpoint "${bpName}" in setVar().media - use a Breakpoint name from truss-config`,
-        );
-      }
-      const v = tryResolveValueLiteral(unwrapExpression(mprop.value as t.Expression));
-      if (v === null) {
-        throw new UnsupportedPatternError(`setVar().media[${bpName}] must be a string or number literal`);
-      }
-      const ctx = cloneConditionContext(baseCtx);
-      ctx.mediaQuery = mq;
-      leaves.push({ literal: v, ctx });
+      containerArray = value;
+    } else {
+      throw new UnsupportedPatternError(`setVar() responsive object does not support property "${key}"`);
     }
   }
 
-  if (containerArr) {
-    for (const elt of containerArr.elements) {
-      if (elt === null) {
-        continue;
-      }
-      if (elt.type !== "ObjectExpression") {
-        throw new UnsupportedPatternError(`setVar().container entries must be object literals`);
-      }
-      let rowValue: string | undefined;
-      let cname: string | undefined;
-      let lt: number | undefined;
-      let gt: number | undefined;
-      for (const rprop of elt.properties) {
-        if (rprop.type === "SpreadElement") {
-          throw new UnsupportedPatternError(`setVar().container row does not support spread`);
-        }
-        if (rprop.type !== "ObjectProperty" || rprop.computed) {
-          throw new UnsupportedPatternError(`setVar().container row: use plain properties only`);
-        }
-        const rk = objectPropertyName(rprop.key);
-        if (!rk) {
-          continue;
-        }
-        const rv = rprop.value as t.Expression;
-        if (rk === "value") {
-          const lit = tryResolveValueLiteral(unwrapExpression(rv));
-          if (lit === null) {
-            throw new UnsupportedPatternError(`setVar().container row "value" must be a string or number literal`);
-          }
-          rowValue = lit;
-        } else if (rk === "name") {
-          cname = stringLiteralValue(rv, `setVar().container name must be a string literal`);
-        } else if (rk === "lt") {
-          lt = numericLiteralValue(rv, `setVar().container lt must be a numeric literal`);
-        } else if (rk === "gt") {
-          gt = numericLiteralValue(rv, `setVar().container gt must be a numeric literal`);
-        } else {
-          throw new UnsupportedPatternError(`setVar().container row does not support property "${rk}"`);
-        }
-      }
-      if (rowValue === undefined) {
-        throw new UnsupportedPatternError(`setVar().container row requires a "value" property`);
-      }
-      if (lt === undefined && gt === undefined) {
-        throw new UnsupportedPatternError(`setVar().container row requires at least one of gt or lt`);
-      }
-      const containerMq = containerQueryStringFromBounds(cname, gt, lt);
-      const ctx = cloneConditionContext(baseCtx);
-      ctx.mediaQuery = containerMq;
-      leaves.push({ literal: rowValue, ctx });
-    }
+  const leaves: SetVarLeaf[] = [];
+  if (defaultLiteral !== undefined) {
+    leaves.push(setVarLeaf(defaultLiteral, baseContext));
+  }
+  if (mediaObject) {
+    leaves.push(...setVarMediaLeaves(mediaObject, mapping, baseContext));
+  }
+  if (containerArray) {
+    leaves.push(...setVarContainerLeaves(containerArray, baseContext));
   }
 
   if (leaves.length === 0) {
@@ -1800,59 +1389,61 @@ function expandSetVarValueToLeaves(
   return leaves;
 }
 
-function resolveSetVarCall(
-  node: CallChainNode,
+/** I.e. `{ sm: "green" }` → one leaf per breakpoint, each under that breakpoint's media query. */
+function setVarMediaLeaves(
+  mediaObject: t.ObjectExpression,
   mapping: TrussMapping,
-  mediaQuery: string | null,
-  pseudoClass: string | null,
-  pseudoElement: string | null,
-  whenPseudo: WhenCondition | null,
-): ResolvedSegment[] {
-  if (node.args.length !== 1) {
-    throw new UnsupportedPatternError(`setVar() requires exactly 1 argument (an object literal)`);
-  }
-  const arg = node.args[0];
-  if (arg.type === "SpreadElement") {
-    throw new UnsupportedPatternError(`setVar() does not support spread arguments`);
-  }
-  if (arg.type !== "ObjectExpression") {
-    throw new UnsupportedPatternError(`setVar() requires an object literal argument`);
-  }
-
-  const baseContext: ResolvedConditionContext = {
-    mediaQuery,
-    pseudoClass,
-    pseudoElement,
-    whenPseudo,
-  };
-
-  const segments: ResolvedSegment[] = [];
-
-  for (const prop of arg.properties) {
-    if (prop.type === "SpreadElement") {
-      throw new UnsupportedPatternError(`setVar() does not support spread properties`);
-    }
-    if (prop.type !== "ObjectProperty") {
-      throw new UnsupportedPatternError(`setVar() only supports object properties`);
-    }
-    const cssVarName = resolveSetVarPropertyKey(prop, mapping);
-    const leaves = expandSetVarValueToLeaves(prop.value as t.Expression, mapping, baseContext);
-    for (const leaf of leaves) {
-      const abbr = setVarClassBaseFromCssVarName(cssVarName);
-      segments.push(
-        segmentWithConditionContext(
-          {
-            abbr,
-            defs: { [cssVarName]: leaf.literal },
-            argResolved: leaf.literal,
-          },
-          leaf.ctx,
-        ),
+  baseContext: ResolvedConditionContext,
+): SetVarLeaf[] {
+  return plainObjectEntries(mediaObject, "setVar().media").map(({ key: breakpointName, value }) => {
+    const mediaQuery = mapping.breakpoints?.[`if${pascalCase(breakpointName)}`] ?? null;
+    if (mediaQuery === null) {
+      throw new UnsupportedPatternError(
+        `Unknown breakpoint "${breakpointName}" in setVar().media - use a Breakpoint name from truss-config`,
       );
     }
-  }
+    const literal = requireValueLiteral(value, `setVar().media[${breakpointName}] must be a string or number literal`);
+    return setVarLeaf(literal, baseContext, mediaQuery);
+  });
+}
 
-  return segments;
+/** I.e. `[{ gt: 400, value: "10px" }]` → one leaf per row, each under its `@container` query. */
+function setVarContainerLeaves(containerArray: t.ArrayExpression, baseContext: ResolvedConditionContext): SetVarLeaf[] {
+  const leaves: SetVarLeaf[] = [];
+  for (const element of containerArray.elements) {
+    if (element === null) {
+      continue;
+    }
+    if (!t.isObjectExpression(element)) {
+      throw new UnsupportedPatternError(`setVar().container entries must be object literals`);
+    }
+    let rowValue: string | undefined;
+    const bounds: ContainerBounds = {};
+    for (const { key, value } of plainObjectEntries(element, "setVar().container row")) {
+      if (key === "value") {
+        rowValue = requireValueLiteral(value, `setVar().container row "value" must be a string or number literal`);
+      } else if (!readContainerBound(bounds, key, value, "setVar().container ")) {
+        throw new UnsupportedPatternError(`setVar().container row does not support property "${key}"`);
+      }
+    }
+    if (rowValue === undefined) {
+      throw new UnsupportedPatternError(`setVar().container row requires a "value" property`);
+    }
+    if (bounds.lt === undefined && bounds.gt === undefined) {
+      throw new UnsupportedPatternError(`setVar().container row requires at least one of gt or lt`);
+    }
+    leaves.push(setVarLeaf(rowValue, baseContext, containerQueryString(bounds)));
+  }
+  return leaves;
+}
+
+/** A leaf in the base context, or under `mediaQuery` when given. */
+function setVarLeaf(literal: string, baseContext: ResolvedConditionContext, mediaQuery?: string): SetVarLeaf {
+  const context = cloneConditionContext(baseContext);
+  if (mediaQuery !== undefined) {
+    context.mediaQuery = mediaQuery;
+  }
+  return { literal, context };
 }
 
 // ── Chain node types (parsed from AST) ────────────────────────────────
@@ -1870,14 +1461,23 @@ export interface CallChainNode {
 
 export interface IfChainNode {
   type: "if";
-  conditionNode: t.Expression | t.SpreadElement;
+  conditionNode: t.Expression;
 }
 
 export interface ElseChainNode {
   type: "else";
 }
 
-export type ChainNode = GetterChainNode | CallChainNode | IfChainNode | ElseChainNode;
+/**
+ * A media query context switch. Never produced by `extractChain`; `resolveFullChain` synthesizes
+ * it for `if("@media ...")`, breakpoint getters, and the inverted query of a media `else` branch.
+ */
+export interface MediaQueryChainNode {
+  type: "mediaQuery";
+  mediaQuery: string;
+}
+
+export type ChainNode = GetterChainNode | CallChainNode | IfChainNode | ElseChainNode | MediaQueryChainNode;
 
 export class UnsupportedPatternError extends Error {
   constructor(message: string) {

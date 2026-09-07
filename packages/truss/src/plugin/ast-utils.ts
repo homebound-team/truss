@@ -1,110 +1,9 @@
 import * as t from "@babel/types";
 import type { ChainNode } from "./resolve-chain";
 
-/**
- * Collect module-scope bindings so generated declarations can avoid collisions.
- *
- * We only care about top-level names because the transform injects declarations
- * at the module root, not inside nested blocks.
- */
-export function collectTopLevelBindings(ast: t.File): Set<string> {
-  const used = new Set<string>();
-
-  for (const node of ast.program.body) {
-    if (t.isImportDeclaration(node)) {
-      for (const spec of node.specifiers) {
-        used.add(spec.local.name);
-      }
-      continue;
-    }
-
-    if (t.isVariableDeclaration(node)) {
-      for (const decl of node.declarations) {
-        collectPatternBindings(decl.id, used);
-      }
-      continue;
-    }
-
-    if (t.isFunctionDeclaration(node) && node.id) {
-      used.add(node.id.name);
-      continue;
-    }
-
-    if (t.isClassDeclaration(node) && node.id) {
-      used.add(node.id.name);
-      continue;
-    }
-
-    if (t.isExportNamedDeclaration(node) && node.declaration) {
-      const decl = node.declaration;
-      if (t.isVariableDeclaration(decl)) {
-        for (const varDecl of decl.declarations) {
-          collectPatternBindings(varDecl.id, used);
-        }
-      } else if ((t.isFunctionDeclaration(decl) || t.isClassDeclaration(decl)) && decl.id) {
-        used.add(decl.id.name);
-      }
-      continue;
-    }
-
-    if (t.isExportDefaultDeclaration(node)) {
-      const decl = node.declaration;
-      if ((t.isFunctionDeclaration(decl) || t.isClassDeclaration(decl)) && decl.id) {
-        used.add(decl.id.name);
-      }
-    }
-  }
-
-  return used;
-}
-
-/**
- * Recursively collect names introduced by binding patterns.
- *
- * This handles destructuring (`const { a } = ...`, `const [x] = ...`) so we do
- * not accidentally generate a helper that shadows an existing binding.
- */
-function collectPatternBindings(pattern: t.LVal | t.VoidPattern, used: Set<string>): void {
-  if (t.isVoidPattern(pattern)) {
-    return;
-  }
-
-  if (t.isIdentifier(pattern)) {
-    used.add(pattern.name);
-    return;
-  }
-
-  if (t.isAssignmentPattern(pattern)) {
-    collectPatternBindings(pattern.left, used);
-    return;
-  }
-
-  if (t.isRestElement(pattern)) {
-    collectPatternBindings(pattern.argument as t.LVal, used);
-    return;
-  }
-
-  if (t.isObjectPattern(pattern)) {
-    for (const prop of pattern.properties) {
-      if (t.isObjectProperty(prop)) {
-        collectPatternBindings(prop.value as t.LVal, used);
-      } else if (t.isRestElement(prop)) {
-        collectPatternBindings(prop.argument as t.LVal, used);
-      }
-    }
-    return;
-  }
-
-  if (t.isArrayPattern(pattern)) {
-    for (const el of pattern.elements) {
-      if (!el) continue;
-      if (t.isIdentifier(el) || t.isAssignmentPattern(el) || t.isObjectPattern(el) || t.isArrayPattern(el)) {
-        collectPatternBindings(el, used);
-      } else if (t.isRestElement(el)) {
-        collectPatternBindings(el.argument as t.LVal, used);
-      }
-    }
-  }
+export interface NamedImport {
+  importedName: string;
+  localName: string;
 }
 
 /**
@@ -138,19 +37,9 @@ export function reservePreferredName(used: Set<string>, preferred: string, secon
   return candidate;
 }
 
-/**
- * Find the local binding name for `Css` from import declarations.
- */
+/** Find the local binding name for `Css` from import declarations. */
 export function findCssImportBinding(ast: t.File): string | null {
-  for (const node of ast.program.body) {
-    if (!t.isImportDeclaration(node)) continue;
-    for (const spec of node.specifiers) {
-      if (t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: "Css" })) {
-        return spec.local.name;
-      }
-    }
-  }
-  return null;
+  return findNamedImportBinding(ast, "Css");
 }
 
 /**
@@ -176,22 +65,14 @@ export function findCssBuilderBinding(ast: t.File): string | null {
   return null;
 }
 
-/** Check if the AST contains a `binding.method(...)` call expression. */
-export function hasCssMethodCall(ast: t.File, binding: string, method: string): boolean {
-  let found = false;
-  t.traverseFast(ast, (node) => {
-    if (found) return;
-    if (
-      t.isCallExpression(node) &&
-      t.isMemberExpression(node.callee) &&
-      !node.callee.computed &&
-      t.isIdentifier(node.callee.object, { name: binding }) &&
-      t.isIdentifier(node.callee.property, { name: method })
-    ) {
-      found = true;
-    }
-  });
-  return found;
+/** True for a `binding.method(...)` call, i.e. `Css.props(...)` when `binding` is `"Css"` and `method` is `"props"`. */
+export function isCssMethodCall(node: t.CallExpression, binding: string, method: string): boolean {
+  return (
+    t.isMemberExpression(node.callee) &&
+    !node.callee.computed &&
+    t.isIdentifier(node.callee.object, { name: binding }) &&
+    t.isIdentifier(node.callee.property, { name: method })
+  );
 }
 
 /**
@@ -225,9 +106,27 @@ export function findLastImportIndex(ast: t.File): number {
   return lastImportIndex;
 }
 
-export function findNamedImportBinding(ast: t.File, source: string, importedName: string): string | null {
+/**
+ * Insert statements directly after the module's leading block of imports.
+ *
+ * I.e. before the first non-import statement, so helpers land near the top even when a
+ * later import (like the test-mode `import "virtual:truss:test-css"`) trails the module body.
+ */
+export function insertAfterLeadingImports(ast: t.File, statements: t.Statement[]): void {
+  if (statements.length === 0) return;
+  const firstNonImport = ast.program.body.findIndex((node) => !t.isImportDeclaration(node));
+  ast.program.body.splice(firstNonImport === -1 ? ast.program.body.length : firstNonImport, 0, ...statements);
+}
+
+/**
+ * Find the local name of a named import, i.e. `mergeProps13` for `import { mergeProps as mergeProps13 }`.
+ *
+ * When `source` is given, only imports from that module are considered.
+ */
+export function findNamedImportBinding(ast: t.File, importedName: string, source?: string): string | null {
   for (const node of ast.program.body) {
-    if (!t.isImportDeclaration(node) || node.source.value !== source) continue;
+    if (!t.isImportDeclaration(node)) continue;
+    if (source !== undefined && node.source.value !== source) continue;
     for (const spec of node.specifiers) {
       if (t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: importedName })) {
         return spec.local.name;
@@ -237,6 +136,7 @@ export function findNamedImportBinding(ast: t.File, source: string, importedName
   return null;
 }
 
+/** Find the import declaration for `source`, if the module has one. */
 export function findImportDeclaration(ast: t.File, source: string): t.ImportDeclaration | null {
   for (const node of ast.program.body) {
     if (t.isImportDeclaration(node) && node.source.value === source) {
@@ -246,11 +146,15 @@ export function findImportDeclaration(ast: t.File, source: string): t.ImportDecl
   return null;
 }
 
+/**
+ * Repoint an import that only binds `Css` at `source` with `imports`, so the runtime import
+ * lands on the line the Css import occupied. Returns false when no such sole-specifier import exists.
+ */
 export function replaceCssImportWithNamedImports(
   ast: t.File,
   cssBinding: string,
   source: string,
-  imports: Array<{ importedName: string; localName: string }>,
+  imports: NamedImport[],
 ): boolean {
   for (const node of ast.program.body) {
     if (!t.isImportDeclaration(node)) continue;
@@ -261,44 +165,30 @@ export function replaceCssImportWithNamedImports(
     if (cssSpecIndex === -1 || node.specifiers.length !== 1) continue;
 
     node.source = t.stringLiteral(source);
-    node.specifiers = imports.map((entry) => {
-      return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
-    });
+    node.specifiers = imports.map(toImportSpecifier);
     return true;
   }
 
   return false;
 }
 
-export function upsertNamedImports(
-  ast: t.File,
-  source: string,
-  imports: Array<{ importedName: string; localName: string }>,
-): void {
+/** Add `imports` to the existing import of `source`, or add a new import after the last one. */
+export function upsertNamedImports(ast: t.File, source: string, imports: NamedImport[]): void {
   if (imports.length === 0) return;
 
-  for (const node of ast.program.body) {
-    if (!t.isImportDeclaration(node) || node.source.value !== source) continue;
-
-    for (const entry of imports) {
-      const exists = node.specifiers.some((spec) => {
-        return t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: entry.importedName });
-      });
-      if (exists) continue;
-
-      node.specifiers.push(t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName)));
-    }
+  const existing = findImportDeclaration(ast, source);
+  if (!existing) {
+    const importDecl = t.importDeclaration(imports.map(toImportSpecifier), t.stringLiteral(source));
+    ast.program.body.splice(findLastImportIndex(ast) + 1, 0, importDecl);
     return;
   }
 
-  const importDecl = t.importDeclaration(
-    imports.map((entry) => {
-      return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
-    }),
-    t.stringLiteral(source),
-  );
-  const idx = findLastImportIndex(ast);
-  ast.program.body.splice(idx + 1, 0, importDecl);
+  for (const entry of imports) {
+    const exists = existing.specifiers.some((spec) => {
+      return t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: entry.importedName });
+    });
+    if (!exists) existing.specifiers.push(toImportSpecifier(entry));
+  }
 }
 
 /**
@@ -359,4 +249,48 @@ export function extractChain(node: t.Expression, cssBinding: string): ChainNode[
 
     return null;
   }
+}
+
+/**
+ * Extract the chain of a complete `Css.*.$` expression.
+ *
+ * Returns `null` when `node` does not end in `.$` or is not rooted at `cssBinding`.
+ */
+export function extractDollarChain(node: t.Node, cssBinding: string): ChainNode[] | null {
+  if (!t.isMemberExpression(node) || node.computed || !t.isIdentifier(node.property, { name: "$" })) return null;
+  if (t.isSuper(node.object)) return null;
+  return extractChain(node.object, cssBinding);
+}
+
+/** Strip parentheses and TypeScript-only wrappers, i.e. `(x as Foo)!` → `x`. */
+export function unwrapExpression(node: t.Expression): t.Expression {
+  let current = node;
+  while (
+    t.isParenthesizedExpression(current) ||
+    t.isTSAsExpression(current) ||
+    t.isTSTypeAssertion(current) ||
+    t.isTSNonNullExpression(current) ||
+    t.isTSSatisfiesExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
+}
+
+/** The static name of an object key, i.e. `foo` and `"foo"` → `"foo"`; null for computed or other keys. */
+export function staticPropertyName(key: t.Node): string | null {
+  if (t.isIdentifier(key)) return key.name;
+  if (t.isStringLiteral(key)) return key.value;
+  return null;
+}
+
+/** The static member name of `obj.foo` or `obj["foo"]` → `"foo"`; null for other member access. */
+export function memberPropertyName(node: t.MemberExpression): string | null {
+  if (!node.computed && t.isIdentifier(node.property)) return node.property.name;
+  if (node.computed && t.isStringLiteral(node.property)) return node.property.value;
+  return null;
+}
+
+function toImportSpecifier(entry: NamedImport): t.ImportSpecifier {
+  return t.importSpecifier(t.identifier(entry.localName), t.identifier(entry.importedName));
 }

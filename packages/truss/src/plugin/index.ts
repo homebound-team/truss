@@ -245,12 +245,12 @@ __injectTrussCSS(${JSON.stringify(css)});
     },
 
     transform(code: string, id: string) {
-      // Only process JS/TS/JSX/TSX files
+      // Only process JS/TS/JSX/TSX files outside node_modules
       if (!/\.[cm]?[jt]sx?(\?|$)/.test(id)) return null;
+      const fileId = stripQueryAndHash(id);
+      if (isNodeModulesFile(fileId)) return null;
 
       const rewrittenImports = rewriteCssTsImports(code, id);
-      const rewrittenCode = rewrittenImports.code;
-      const fileId = stripQueryAndHash(id);
 
       // In tests, we do not boot through index.html and the dev runtime fetch path
       // (`virtual:truss:runtime` -> fetch("/virtual:truss.css")), so we inject the
@@ -260,14 +260,13 @@ __injectTrussCSS(${JSON.stringify(css)});
       // but ESM module caching should evaluate that virtual module only once per test
       // module graph. Transformed files may still emit per-file `__injectTrussCSS`
       // calls; exact repeated chunks are deduped in the runtime helper.
-      const shouldBootstrapTestCss = isTest && libraryPaths.length > 0 && !isNodeModulesFile(fileId);
-      const testCssBootstrap = injectTestCssBootstrapImport(rewrittenCode, shouldBootstrapTestCss);
-      const transformedCode = testCssBootstrap.code;
-      const hasCssDsl = rewrittenCode.includes("Css") || rewrittenCode.includes("css=");
-      if (isNodeModulesFile(fileId)) {
-        return null;
-      }
-      if (!hasCssDsl && !rewrittenImports.changed && !testCssBootstrap.changed) return null;
+      const shouldBootstrapTestCss = isTest && libraryPaths.length > 0;
+      const transformedCode = shouldBootstrapTestCss
+        ? `${rewrittenImports.code}\nimport "${VIRTUAL_TEST_CSS_ID}";`
+        : rewrittenImports.code;
+      // The result to return when only the import rewrites changed the module
+      const importsOnlyResult =
+        rewrittenImports.changed || shouldBootstrapTestCss ? { code: transformedCode, map: null } : null;
 
       if (fileId.endsWith(".css.ts")) {
         // Keep `.css.ts` modules as normal TS so named exports like class-name
@@ -278,24 +277,18 @@ __injectTrussCSS(${JSON.stringify(css)});
         // the load hook only runs on first resolve, so edits need to refresh
         // the registry here where Vite re-transforms changed files.
         session.updateArbitraryCssRegistry(fileId, code);
-        return rewrittenImports.changed || testCssBootstrap.changed ? { code: transformedCode, map: null } : null;
+        return importsOnlyResult;
       }
 
-      if (!hasCssDsl) {
-        // Some non-`.css.ts` modules only need the import rewrite and do not have
-        // any `Css.*.$` expressions for the main Truss transform to process.
-        return { code: transformedCode, map: null };
-      }
+      // Some non-`.css.ts` modules only need the import rewrite and do not have
+      // any `Css.*.$` expressions for the main Truss transform to process.
+      const hasCssDsl = rewrittenImports.code.includes("Css") || rewrittenImports.code.includes("css=");
+      if (!hasCssDsl) return importsOnlyResult;
 
       // For regular JS/TS modules that still use the DSL, run the full Truss
       // transform after the import rewrite so both behaviors compose.
       const result = session.transformCode(transformedCode, fileId, { debug, injectCss: isTest });
-      if (!result) {
-        if (!rewrittenImports.changed && !testCssBootstrap.changed) return null;
-        return { code: transformedCode, map: null };
-      }
-
-      return { code: result.code, map: result.map };
+      return result ? { code: result.code, map: result.map } : importsOnlyResult;
     },
 
     // -- Production CSS emission --
@@ -365,19 +358,6 @@ function stripQueryAndHash(id: string): string {
 
 function isNodeModulesFile(filePath: string): boolean {
   return filePath.replace(/\\/g, "/").includes("/node_modules/");
-}
-
-function injectTestCssBootstrapImport(code: string, shouldInject: boolean): { code: string; changed: boolean } {
-  // Keep this as a normal ESM import so Vite/Vitest module caching ensures the
-  // bootstrap executes once per module graph instead of once per transformed file.
-  if (!shouldInject) {
-    return { code, changed: false };
-  }
-
-  return {
-    code: `${code}\nimport "${VIRTUAL_TEST_CSS_ID}";`,
-    changed: true,
-  };
 }
 
 export type { TrussMapping, TrussMappingEntry } from "./types";

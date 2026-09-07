@@ -27,7 +27,6 @@ export interface TrussEsbuildPluginOptions {
  * ```
  */
 export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
-  let outDir: string | undefined;
   const session = createTrussTransformSession({
     mappingPath() {
       return resolve(process.cwd(), opts.mapping);
@@ -40,8 +39,7 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
   return {
     name: "truss",
     setup(build: EsbuildPluginBuild) {
-      // Resolve outDir from esbuild config
-      outDir = build.initialOptions.outdir ?? build.initialOptions.outdir;
+      const outDir = build.initialOptions.outdir ?? join(process.cwd(), "dist");
 
       build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
@@ -64,8 +62,7 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
 
         const css = session.collectCss();
         if (css.length === 0) return;
-        const cssFileName = opts.outputCss ?? "truss.css";
-        const cssPath = resolve(outDir ?? join(process.cwd(), "dist"), cssFileName);
+        const cssPath = resolve(outDir, opts.outputCss ?? "truss.css");
 
         mkdirSync(resolve(cssPath, ".."), { recursive: true });
         writeFileSync(cssPath, css, "utf8");

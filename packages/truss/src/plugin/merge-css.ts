@@ -1,4 +1,5 @@
 import { readFileSync } from "fs";
+import { compareClassNames } from "./priority";
 
 /** A parsed CSS rule extracted from an annotated truss.css file. */
 export interface ParsedCssRule {
@@ -23,7 +24,7 @@ export interface ParsedArbitraryCssBlock {
 export interface ParsedTrussCss {
   rules: ParsedCssRule[];
   properties: ParsedPropertyDeclaration[];
-  arbitraryCssBlocks?: ParsedArbitraryCssBlock[];
+  arbitraryCssBlocks: ParsedArbitraryCssBlock[];
 }
 
 /** Regex matching `/* @truss p:<priority> c:<className> *\/` annotations. */
@@ -55,19 +56,23 @@ export function parseTrussCss(cssText: string): ParsedTrussCss {
   const arbitraryCssBlocks: ParsedArbitraryCssBlock[] = [];
 
   let i = 0;
+
+  /** Advance past the current annotation line and any blank lines to the annotated content line. */
+  function takeAnnotatedLine(): string | null {
+    i++;
+    while (i < lines.length && lines[i].trim() === "") i++;
+    return i < lines.length ? lines[i].trim() : null;
+  }
+
   while (i < lines.length) {
     const line = lines[i].trim();
 
     // Check for rule annotation
     const ruleMatch = RULE_ANNOTATION_RE.exec(line);
     if (ruleMatch) {
-      const priority = parseFloat(ruleMatch[1]);
-      const className = ruleMatch[2];
-      // Next non-empty line is the CSS rule
-      i++;
-      while (i < lines.length && lines[i].trim() === "") i++;
-      if (i < lines.length) {
-        rules.push({ priority, className, cssText: lines[i].trim() });
+      const cssText = takeAnnotatedLine();
+      if (cssText !== null) {
+        rules.push({ priority: parseFloat(ruleMatch[1]), className: ruleMatch[2], cssText });
       }
       i++;
       continue;
@@ -75,14 +80,10 @@ export function parseTrussCss(cssText: string): ParsedTrussCss {
 
     // Check for @property annotation
     if (PROPERTY_ANNOTATION_RE.test(line)) {
-      i++;
-      while (i < lines.length && lines[i].trim() === "") i++;
-      if (i < lines.length) {
-        const propLine = lines[i].trim();
-        const varMatch = PROPERTY_VAR_RE.exec(propLine);
-        if (varMatch) {
-          properties.push({ cssText: propLine, varName: varMatch[1] });
-        }
+      const propLine = takeAnnotatedLine();
+      const varMatch = propLine === null ? null : PROPERTY_VAR_RE.exec(propLine);
+      if (propLine !== null && varMatch) {
+        properties.push({ cssText: propLine, varName: varMatch[1] });
       }
       i++;
       continue;
@@ -159,15 +160,11 @@ export function mergeTrussCss(sources: ParsedTrussCss[]): string {
         allProperties.push(prop);
       }
     }
-    allArbitraryCssBlocks.push(...(source.arbitraryCssBlocks ?? []));
+    allArbitraryCssBlocks.push(...source.arbitraryCssBlocks);
   }
 
   // Sort by priority ascending, tiebreak alphabetically by class name
-  allRules.sort((a, b) => {
-    const diff = a.priority - b.priority;
-    if (diff !== 0) return diff;
-    return a.className < b.className ? -1 : a.className > b.className ? 1 : 0;
-  });
+  allRules.sort((a, b) => a.priority - b.priority || compareClassNames(a.className, b.className));
 
   const lines: string[] = [];
 

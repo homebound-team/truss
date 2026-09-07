@@ -1,10 +1,10 @@
 import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
-import type { TrussMapping } from "./types";
+import { hasCondition, isStyleSegment, type ResolvedSegment, type TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 import { buildStyleHashProperties, markerClassName } from "./emit-truss";
-import type { ResolvedSegment } from "./types";
 import { generate, traverse } from "./babel-utils";
+import { isCssMethodCall, staticPropertyName } from "./ast-utils";
 import { TRUSS_CUSTOM_CLASS_PREFIX, TRUSS_INLINE_STYLE_PREFIX, TRUSS_MARKER_KEY } from "../style-metadata";
 
 export interface ExpressionSite {
@@ -12,23 +12,34 @@ export interface ExpressionSite {
   resolvedChain: ResolvedChain;
 }
 
+/** The `@homebound/truss/runtime` exports the rewritten code may call. */
+export type RuntimeHelperName = "trussProps" | "mergeProps" | "TrussDebugInfo" | "maybeCssVar";
+
+export interface RuntimeHelpers {
+  /**
+   * The local identifier for a runtime export, marking it as used so the import gets added.
+   *
+   * I.e. `use("mergeProps")` → `"mergeProps"`, or `"mergeProps13"` when the module already
+   * has `import { mergeProps as mergeProps13 } from "@homebound/truss/runtime"`.
+   */
+  use(name: RuntimeHelperName): string;
+}
+
 export interface RewriteSitesOptions {
   ast: t.File;
   sites: ExpressionSite[];
-  cssBindingName: string;
+  /** Null when the file only has JSX `css=` attributes and no `Css` binding. */
+  cssBindingName: string | null;
   filename: string;
   debug: boolean;
   mapping: TrussMapping;
   maybeIncHelperName: string | null;
   maybeCssVarHelperName: string | null;
-  mergePropsHelperName: string;
-  needsMergePropsHelper: { current: boolean };
-  trussPropsHelperName: string;
-  needsTrussPropsHelper: { current: boolean };
-  trussDebugInfoName: string;
-  needsTrussDebugInfo: { current: boolean };
+  runtime: RuntimeHelpers;
   runtimeLookupNames: Map<string, string>;
 }
+
+type StyleHashMember = t.ObjectProperty | t.SpreadElement;
 
 /**
  * Rewrite collected `Css...$` expression sites into Truss-native style hash objects.
@@ -58,9 +69,7 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
       }
     } else {
       // Non-JSX position → plain object expression with optional debug info
-      if (options.debug && line !== null) {
-        injectDebugInfo(styleHash, line, options);
-      }
+      injectDebugInfo(styleHash, line, options);
       site.path.replaceWith(styleHash);
     }
   }
@@ -90,7 +99,7 @@ function getCssAttributePath(path: NodePath<t.MemberExpression>): NodePath<t.JSX
 
 /** Build an ObjectExpression from a ResolvedChain, handling conditionals. */
 function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOptions): t.ObjectExpression {
-  const members: (t.ObjectProperty | t.SpreadElement)[] = [];
+  const members: StyleHashMember[] = [];
   const previousProperties = new Map<string, t.ObjectProperty>();
   const pendingUnconditionalSegments: ResolvedSegment[] = [];
 
@@ -111,9 +120,7 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
   }
 
   if (chain.markers.length > 0) {
-    const markerClasses = chain.markers.map((marker) => {
-      return markerClassName(marker.markerNode);
-    });
+    const markerClasses = chain.markers.map((marker) => markerClassName(marker.markerNode));
     members.push(t.objectProperty(t.identifier(TRUSS_MARKER_KEY), t.stringLiteral(markerClasses.join(" "))));
   }
 
@@ -153,11 +160,8 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
  * Special segments (styleArrayArg, typographyLookup, classNameArg, styleArg) produce
  * spread members or reserved metadata properties.
  */
-function buildStyleHashMembers(
-  segments: ResolvedSegment[],
-  options: RewriteSitesOptions,
-): (t.ObjectProperty | t.SpreadElement)[] {
-  const members: (t.ObjectProperty | t.SpreadElement)[] = [];
+function buildStyleHashMembers(segments: ResolvedSegment[], options: RewriteSitesOptions): StyleHashMember[] {
+  const members: StyleHashMember[] = [];
   const normalSegs: ResolvedSegment[] = [];
   const classNameArgs: t.Expression[] = [];
   const styleKeyCounts = new Map<string, number>();
@@ -181,13 +185,13 @@ function buildStyleHashMembers(
 
     if (seg.classNameArg) {
       // I.e. `Css.className(cls).df.$` becomes `className_cls: cls` in the style hash.
-      classNameArgs.push(t.cloneNode(seg.classNameArg, true) as t.Expression);
+      classNameArgs.push(t.cloneNode(seg.classNameArg, true));
       continue;
     }
 
     if (seg.styleArg) {
       flushNormal();
-      members.push(buildInlineStyleMember(seg.styleArg as t.Expression, styleKeyCounts));
+      members.push(buildMetadataMember(TRUSS_INLINE_STYLE_PREFIX, seg.styleArg, styleKeyCounts));
       continue;
     }
 
@@ -196,7 +200,7 @@ function buildStyleHashMembers(
       if (seg.isAddCss && t.isObjectExpression(seg.styleArrayArg)) {
         members.push(...buildAddCssObjectMembers(seg.styleArrayArg));
       } else {
-        members.push(t.spreadElement(seg.styleArrayArg as t.Expression));
+        members.push(t.spreadElement(seg.styleArrayArg));
       }
       continue;
     }
@@ -206,11 +210,7 @@ function buildStyleHashMembers(
       const lookupName = options.runtimeLookupNames.get(seg.typographyLookup.lookupKey);
       if (lookupName) {
         // I.e. `{ ...(__typography[key] ?? {}) }`
-        const lookupAccess = t.memberExpression(
-          t.identifier(lookupName),
-          seg.typographyLookup.argNode as t.Expression,
-          true,
-        );
+        const lookupAccess = t.memberExpression(t.identifier(lookupName), seg.typographyLookup.argNode, true);
         members.push(t.spreadElement(t.logicalExpression("??", lookupAccess, t.objectExpression([]))));
       }
       continue;
@@ -219,7 +219,7 @@ function buildStyleHashMembers(
     // In debug mode, add the abbreviation name as a marker className for multi-property
     // segments so engineers can see the origin in the DOM. I.e. `Css.bb.$` adds "bb"
     // alongside "bbs_solid bbw_1px", and `Css.lineClamp(n).$` adds "lineClamp".
-    if (options.debug && !seg.classNameArg && !seg.styleArg && !seg.styleArrayArg && !seg.typographyLookup) {
+    if (options.debug) {
       const isMultiProp = Object.keys(seg.defs).length > 1;
       const hasExtraDefs = seg.variableExtraDefs && Object.keys(seg.variableExtraDefs).length > 0;
       if (isMultiProp || hasExtraDefs) {
@@ -235,23 +235,15 @@ function buildStyleHashMembers(
     // Prepend so markers/custom classes appear first in the DOM,
     // I.e. `className="bb bbs_solid bbw_1px"` rather than at the end.
     // Uses unique `className_${key}` keys so spreading preserves all entries.
-    members.unshift(...buildCustomClassNameMembers(classNameArgs));
+    const classNameKeyCounts = new Map<string, number>();
+    members.unshift(
+      ...classNameArgs.map((arg) => buildMetadataMember(TRUSS_CUSTOM_CLASS_PREFIX, arg, classNameKeyCounts)),
+    );
   }
   return members;
 }
 
-function buildCustomClassNameMembers(classNameArgs: t.Expression[]): t.ObjectProperty[] {
-  const counts = new Map<string, number>();
-
-  return classNameArgs.map((arg) => {
-    return buildMetadataMember(TRUSS_CUSTOM_CLASS_PREFIX, arg, counts);
-  });
-}
-
-function buildInlineStyleMember(arg: t.Expression, counts: Map<string, number>): t.ObjectProperty {
-  return buildMetadataMember(TRUSS_INLINE_STYLE_PREFIX, arg, counts);
-}
-
+/** I.e. `className_my_btn: "my-btn"`, with `_2`, `_3` suffixes for repeated keys. */
 function buildMetadataMember(prefix: string, arg: t.Expression, counts: Map<string, number>): t.ObjectProperty {
   const baseKey = `${prefix}${sanitizeMetadataKey(arg)}`;
   const count = (counts.get(baseKey) ?? 0) + 1;
@@ -275,12 +267,16 @@ function sanitizeMetadataKey(arg: t.Expression): string {
   return sanitized || "value";
 }
 
-function buildAddCssObjectMembers(styleObject: t.ObjectExpression): (t.ObjectProperty | t.SpreadElement)[] {
-  const members: (t.ObjectProperty | t.SpreadElement)[] = [];
+/**
+ * Spread an `with({ height, ...rest })` object literal member by member, skipping identifier and
+ * member-expression values that are `undefined` at runtime so they do not clobber earlier styles.
+ */
+function buildAddCssObjectMembers(styleObject: t.ObjectExpression): StyleHashMember[] {
+  const members: StyleHashMember[] = [];
 
   for (const property of styleObject.properties) {
     if (t.isSpreadElement(property)) {
-      members.push(t.spreadElement(t.cloneNode(property.argument, true) as t.Expression));
+      members.push(t.spreadElement(t.cloneNode(property.argument, true)));
       continue;
     }
 
@@ -291,6 +287,7 @@ function buildAddCssObjectMembers(styleObject: t.ObjectExpression): (t.ObjectPro
 
     const value = property.value;
     if (t.isIdentifier(value) || t.isMemberExpression(value) || t.isOptionalMemberExpression(value)) {
+      // I.e. `...(height === undefined ? {} : { height })`
       members.push(
         t.spreadElement(
           t.conditionalExpression(
@@ -317,22 +314,16 @@ function buildAddCssObjectMembers(styleObject: t.ObjectExpression): (t.ObjectPro
  * but `bgWhite` → `backgroundColor` is a plain replacement (should NOT merge).
  */
 function collectConditionalOnlyProps(segments: ResolvedSegment[]): Set<string> {
-  const allProps = new Map<string, boolean>();
+  const conditionalOnly = new Map<string, boolean>();
   for (const seg of segments) {
-    if (seg.error || seg.styleArrayArg || seg.typographyLookup || seg.classNameArg || seg.styleArg) continue;
-    const hasCondition = !!(seg.pseudoClass || seg.mediaQuery || seg.pseudoElement || seg.whenPseudo);
-    const props = seg.variableProps ?? Object.keys(seg.defs);
-    for (const prop of props) {
-      const current = allProps.get(prop);
+    if (!isStyleSegment(seg)) continue;
+    const segHasCondition = hasCondition(seg);
+    for (const prop of seg.variableProps ?? Object.keys(seg.defs)) {
       // If any segment for this property is unconditional, it's not conditional-only
-      allProps.set(prop, current === undefined ? hasCondition : current && hasCondition);
+      conditionalOnly.set(prop, (conditionalOnly.get(prop) ?? true) && segHasCondition);
     }
   }
-  const result = new Set<string>();
-  for (const [prop, isConditionalOnly] of allProps) {
-    if (isConditionalOnly) result.add(prop);
-  }
-  return result;
+  return new Set([...conditionalOnly].filter(([, isConditionalOnly]) => isConditionalOnly).map(([prop]) => prop));
 }
 
 /**
@@ -342,10 +333,10 @@ function collectConditionalOnlyProps(segments: ResolvedSegment[]): Set<string> {
  * override the base when the condition is true.
  */
 function mergeConditionalBranchMembers(
-  members: (t.ObjectProperty | t.SpreadElement)[],
+  members: StyleHashMember[],
   previousProperties: Map<string, t.ObjectProperty>,
   conditionalOnlyProps: Set<string>,
-): (t.ObjectProperty | t.SpreadElement)[] {
+): StyleHashMember[] {
   return members.map((member) => {
     if (!t.isObjectProperty(member)) {
       return member;
@@ -364,6 +355,7 @@ function mergeConditionalBranchMembers(
   });
 }
 
+/** Combine a base value and a conditional overlay value for one CSS property, in either string or tuple form. */
 function mergePropertyValues(previousValue: t.Expression, currentValue: t.Expression): t.Expression {
   if (t.isStringLiteral(previousValue) && t.isStringLiteral(currentValue)) {
     return t.stringLiteral(`${previousValue.value} ${currentValue.value}`);
@@ -385,6 +377,7 @@ function mergePropertyValues(previousValue: t.Expression, currentValue: t.Expres
   return t.cloneNode(currentValue, true);
 }
 
+/** I.e. `["mt_var", vars]` plus `"black"` → `["black mt_var", vars]`, merging `previousVars` into the vars object when given. */
 function mergeTupleValue(
   tuple: t.ArrayExpression,
   classNames: string,
@@ -395,11 +388,9 @@ function mergeTupleValue(
   const mergedClassNames = prependClassNames
     ? `${classNames} ${currentClassNames}`
     : `${currentClassNames} ${classNames}`;
-  const varsExpr = tuple.elements[1];
+  const currentVars = arrayElementExpression(tuple.elements[1]);
   const mergedVars =
-    previousVars && arrayElementExpression(varsExpr)
-      ? mergeVarsObject(previousVars, arrayElementExpression(varsExpr)!)
-      : (arrayElementExpression(varsExpr) ?? previousVars ?? null);
+    previousVars && currentVars ? mergeVarsObject(previousVars, currentVars) : (currentVars ?? previousVars);
 
   return t.arrayExpression([
     t.stringLiteral(mergedClassNames),
@@ -418,27 +409,16 @@ function arrayElementExpression(element: t.Expression | t.SpreadElement | null |
 
 function mergeVarsObject(previousVars: t.Expression, currentVars: t.Expression): t.Expression {
   if (t.isObjectExpression(previousVars) && t.isObjectExpression(currentVars)) {
-    return t.objectExpression([
-      ...previousVars.properties.map((property) => {
-        return t.cloneNode(property, true);
-      }),
-      ...currentVars.properties.map((property) => {
-        return t.cloneNode(property, true);
-      }),
-    ]);
+    return t.objectExpression(
+      [...previousVars.properties, ...currentVars.properties].map((property) => t.cloneNode(property, true)),
+    );
   }
 
   return t.cloneNode(currentVars, true);
 }
 
 function propertyName(key: t.Expression | t.Identifier | t.PrivateName): string {
-  if (t.isIdentifier(key)) {
-    return key.name;
-  }
-  if (t.isStringLiteral(key)) {
-    return key.value;
-  }
-  return generate(key).code;
+  return staticPropertyName(key) ?? generate(key).code;
 }
 
 function clonePropertyKey(key: t.Expression | t.Identifier | t.PrivateName): t.Expression | t.Identifier {
@@ -453,36 +433,26 @@ function clonePropertyKey(key: t.Expression | t.Identifier | t.PrivateName): t.E
 // ---------------------------------------------------------------------------
 
 /**
- * Inject debug info into the first property of a style hash ObjectExpression.
+ * Inject debug info into the first style property of a style hash ObjectExpression.
  *
  * For static values, promotes `"df"` to `["df", new TrussDebugInfo("...")]`.
  * For variable tuples, appends the debug info as a third element.
+ * No-op outside debug mode, without a source line, or for non-object hashes.
  */
 function injectDebugInfo(
-  expr: t.ObjectExpression,
-  line: number,
-  options: Pick<RewriteSitesOptions, "debug" | "trussDebugInfoName" | "needsTrussDebugInfo" | "filename">,
+  styleHash: t.Expression,
+  line: number | null,
+  options: Pick<RewriteSitesOptions, "debug" | "filename" | "runtime">,
 ): void {
-  if (!options.debug) return;
+  if (!options.debug || line === null || !t.isObjectExpression(styleHash)) return;
 
-  // Find the first real style property (skip SpreadElements and __marker metadata)
-  const firstProp = expr.properties.find((p) => {
-    return (
-      t.isObjectProperty(p) &&
-      !(
-        (t.isIdentifier(p.key) && p.key.name.startsWith(TRUSS_CUSTOM_CLASS_PREFIX)) ||
-        (t.isStringLiteral(p.key) && p.key.value.startsWith(TRUSS_CUSTOM_CLASS_PREFIX)) ||
-        (t.isIdentifier(p.key) && p.key.name.startsWith(TRUSS_INLINE_STYLE_PREFIX)) ||
-        (t.isStringLiteral(p.key) && p.key.value.startsWith(TRUSS_INLINE_STYLE_PREFIX)) ||
-        (t.isIdentifier(p.key) && p.key.name === TRUSS_MARKER_KEY) ||
-        (t.isStringLiteral(p.key) && p.key.value === TRUSS_MARKER_KEY)
-      )
-    );
-  }) as t.ObjectProperty | undefined;
+  // Find the first real style property (skip SpreadElements and metadata like __marker / className_*)
+  const firstProp = styleHash.properties.find((p): p is t.ObjectProperty => {
+    return t.isObjectProperty(p) && !isMetadataKey(propertyName(p.key));
+  });
   if (!firstProp) return;
 
-  options.needsTrussDebugInfo.current = true;
-  const debugExpr = t.newExpression(t.identifier(options.trussDebugInfoName), [
+  const debugExpr = t.newExpression(t.identifier(options.runtime.use("TrussDebugInfo")), [
     t.stringLiteral(`${options.filename}:${line}`),
   ]);
 
@@ -495,11 +465,25 @@ function injectDebugInfo(
   }
 }
 
+/** I.e. `__marker`, `className_foo`, and `style_vars` carry runtime metadata rather than CSS classes. */
+function isMetadataKey(name: string): boolean {
+  return (
+    name === TRUSS_MARKER_KEY ||
+    name.startsWith(TRUSS_CUSTOM_CLASS_PREFIX) ||
+    name.startsWith(TRUSS_INLINE_STYLE_PREFIX)
+  );
+}
+
 // ---------------------------------------------------------------------------
 // JSX css= attribute handling
 // ---------------------------------------------------------------------------
 
-/** Build the spread attribute for a JSX `css=` attribute. */
+/**
+ * Build the spread attribute for a JSX `css=` attribute.
+ *
+ * I.e. `{...trussProps(hash)}`, or `{...mergeProps(className, style, hash)}` when the element
+ * also has `className`/`style` attributes (which are removed and folded in).
+ */
 function buildCssSpreadAttribute(
   path: NodePath<t.JSXAttribute>,
   styleHash: t.Expression,
@@ -509,35 +493,19 @@ function buildCssSpreadAttribute(
   const existingClassNameExpr = removeExistingAttribute(path, "className");
   const existingStyleExpr = removeExistingAttribute(path, "style");
 
+  injectDebugInfo(styleHash, line, options);
+
   if (!existingClassNameExpr && !existingStyleExpr) {
-    return t.jsxSpreadAttribute(buildPropsCall(styleHash, line, options));
-  }
-
-  // mergeProps(className, style, hash)
-  options.needsMergePropsHelper.current = true;
-
-  if (options.debug && line !== null && t.isObjectExpression(styleHash)) {
-    injectDebugInfo(styleHash, line, options);
+    return t.jsxSpreadAttribute(t.callExpression(t.identifier(options.runtime.use("trussProps")), [styleHash]));
   }
 
   return t.jsxSpreadAttribute(
-    t.callExpression(t.identifier(options.mergePropsHelperName), [
+    t.callExpression(t.identifier(options.runtime.use("mergeProps")), [
       existingClassNameExpr ?? t.identifier("undefined"),
       existingStyleExpr ?? t.identifier("undefined"),
       styleHash,
     ]),
   );
-}
-
-/** Emit `trussProps(hash)` call. In debug mode, injects debug info into the hash first. */
-function buildPropsCall(styleHash: t.Expression, line: number | null, options: RewriteSitesOptions): t.CallExpression {
-  options.needsTrussPropsHelper.current = true;
-
-  if (options.debug && line !== null && t.isObjectExpression(styleHash)) {
-    injectDebugInfo(styleHash, line, options);
-  }
-
-  return t.callExpression(t.identifier(options.trussPropsHelperName), [styleHash]);
 }
 
 /** Remove a sibling JSX attribute and return its expression. */
@@ -576,22 +544,23 @@ function rewriteCssPropsAndCssAttributes(options: RewriteSitesOptions): void {
   traverse(options.ast, {
     // -- Css.props(expr) → trussProps(expr) or mergeProps(...) --
     CallExpression(path: NodePath<t.CallExpression>) {
-      if (!isCssPropsCall(path.node, options.cssBindingName)) return;
+      if (!options.cssBindingName || !isCssMethodCall(path.node, options.cssBindingName, "props")) return;
 
       const arg = path.node.arguments[0];
       if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
 
-      options.needsTrussPropsHelper.current = true;
-
       // Check for a sibling `className` property in the parent object literal
       const classNameExpr = extractSiblingClassName(path);
       if (classNameExpr) {
-        options.needsMergePropsHelper.current = true;
         path.replaceWith(
-          t.callExpression(t.identifier(options.mergePropsHelperName), [classNameExpr, t.identifier("undefined"), arg]),
+          t.callExpression(t.identifier(options.runtime.use("mergeProps")), [
+            classNameExpr,
+            t.identifier("undefined"),
+            arg,
+          ]),
         );
       } else {
-        path.replaceWith(t.callExpression(t.identifier(options.trussPropsHelperName), [arg]));
+        path.replaceWith(t.callExpression(t.identifier(options.runtime.use("trussProps")), [arg]));
       }
     },
     // -- Remaining css={expr} JSX attributes → {...trussProps(expr)} spreads --
@@ -606,20 +575,6 @@ function rewriteCssPropsAndCssAttributes(options: RewriteSitesOptions): void {
       path.replaceWith(buildCssSpreadAttribute(path, value.expression, path.node.loc?.start.line ?? null, options));
     },
   });
-}
-
-// ---------------------------------------------------------------------------
-// Utility helpers
-// ---------------------------------------------------------------------------
-
-/** Match `Css.props(...)` calls. */
-function isCssPropsCall(expr: t.CallExpression, cssBindingName: string): boolean {
-  return (
-    t.isMemberExpression(expr.callee) &&
-    !expr.callee.computed &&
-    t.isIdentifier(expr.callee.object, { name: cssBindingName }) &&
-    t.isIdentifier(expr.callee.property, { name: "props" })
-  );
 }
 
 /**
@@ -638,7 +593,7 @@ function extractSiblingClassName(callPath: NodePath<t.CallExpression>): t.Expres
   for (let i = 0; i < properties.length; i++) {
     const prop = properties[i];
     if (!t.isObjectProperty(prop)) continue;
-    if (!isMatchingPropertyName(prop.key, "className")) continue;
+    if (staticPropertyName(prop.key) !== "className") continue;
     if (!t.isExpression(prop.value)) continue;
 
     const classNameExpr = prop.value;
@@ -649,11 +604,7 @@ function extractSiblingClassName(callPath: NodePath<t.CallExpression>): t.Expres
   return null;
 }
 
-/** Match static object property names. */
-function isMatchingPropertyName(key: t.Expression | t.Identifier | t.PrivateName, name: string): boolean {
-  return (t.isIdentifier(key) && key.name === name) || (t.isStringLiteral(key) && key.value === name);
-}
-
+/** `<RuntimeStyle css={...}>` takes real declarations, not a style hash, so it is left for the runtime. */
 function isRuntimeStyleCssAttribute(path: NodePath<t.JSXAttribute>): boolean {
   const openingElementPath = path.parentPath;
   if (!openingElementPath || !openingElementPath.isJSXOpeningElement()) return false;
@@ -666,11 +617,7 @@ function isRuntimeStyleCssAttribute(path: NodePath<t.JSXAttribute>): boolean {
 
 /** Check whether a style hash has only static string values (no spreads, no tuples). */
 function isFullyStaticStyleHash(hash: t.ObjectExpression): boolean {
-  for (const prop of hash.properties) {
-    if (!t.isObjectProperty(prop)) return false;
-    if (!t.isStringLiteral(prop.value)) return false;
-  }
-  return true;
+  return hash.properties.every((prop) => t.isObjectProperty(prop) && t.isStringLiteral(prop.value));
 }
 
 /** Extract all static class names from a fully-static style hash, joined with spaces. */

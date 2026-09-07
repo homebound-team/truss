@@ -12,16 +12,8 @@ import {
   getAtRulePriority,
   PSEUDO_ELEMENT_PRIORITY,
 } from "./property-priorities";
+import { WHEN_RELATIONSHIPS } from "./when-relationships";
 import type { AtomicRule } from "./emit-truss";
-
-/** Relationship base priorities for when() selectors, matching StyleX's relational selector system. */
-const RELATIONSHIP_BASE: Record<string, number> = {
-  ancestor: 10,
-  descendant: 15,
-  anySibling: 20,
-  siblingBefore: 30,
-  siblingAfter: 40,
-};
 
 /**
  * Compute the numeric priority for a single AtomicRule.
@@ -45,7 +37,7 @@ export function computeRulePriority(rule: AtomicRule): number {
   }
 
   if (rule.whenSelector) {
-    const relBase = RELATIONSHIP_BASE[rule.whenSelector.relationship] ?? 10;
+    const relBase = WHEN_RELATIONSHIPS[rule.whenSelector.relationship].priority;
     const pseudoFraction = getPseudoClassPriority(rule.whenSelector.pseudo) / 100;
     priority += relBase + pseudoFraction;
   }
@@ -64,27 +56,26 @@ function isVariableRule(rule: AtomicRule): boolean {
 }
 
 /**
- * Sort an array of AtomicRules in-place by their computed priority.
+ * Pair each rule with its computed priority and sort ascending.
  *
  * When two rules have the same priority (e.g. two different longhands both at 3000),
  * we tiebreak by class name so the output is fully deterministic regardless of
  * file processing order (which differs between dev HMR and production builds).
  *
- * Uses a decorate-sort-undecorate pattern so each rule's priority is computed
- * once upfront rather than re-evaluated on every comparator call.
+ * Priorities are computed once upfront so the O(n log n) comparisons are just
+ * number/string compares, and callers can reuse them for the `@truss p:` annotations.
  */
-export function sortRulesByPriority(rules: AtomicRule[]): void {
-  // Pre-compute priorities so the O(n log n) comparisons are just number/string compares
-  const decorated = rules.map((rule, i) => {
-    return { rule, priority: computeRulePriority(rule), index: i };
+export function sortRulesByPriority(rules: Iterable<AtomicRule>): Array<{ rule: AtomicRule; priority: number }> {
+  const decorated = Array.from(rules, (rule) => {
+    return { rule, priority: computeRulePriority(rule) };
   });
   decorated.sort((a, b) => {
-    const diff = a.priority - b.priority;
-    if (diff !== 0) return diff;
-    // Alphabetical tiebreaker ensures identical output in dev and production
-    return a.rule.className < b.rule.className ? -1 : a.rule.className > b.rule.className ? 1 : 0;
+    return a.priority - b.priority || compareClassNames(a.rule.className, b.rule.className);
   });
-  for (let i = 0; i < decorated.length; i++) {
-    rules[i] = decorated[i].rule;
-  }
+  return decorated;
+}
+
+/** Code-point order, so identical class sets sort identically in dev and production. */
+export function compareClassNames(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }

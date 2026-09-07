@@ -1,3 +1,6 @@
+import type * as t from "@babel/types";
+import type { WhenRelationship } from "./when-relationships";
+
 /** The shape of the Css.json mapping file consumed by the Vite plugin. */
 export interface TrussMapping {
   increment: number;
@@ -11,8 +14,9 @@ export interface TrussMapping {
 /** A `when()` relationship selector context that can stack with other condition axes. */
 export interface WhenCondition {
   pseudo: string;
-  markerNode?: any;
-  relationship?: string;
+  /** The user's marker variable, i.e. `row` in `when(row, "ancestor", ":hover")`. Absent for the default marker. */
+  markerNode?: t.Identifier;
+  relationship: WhenRelationship;
 }
 
 /** The active modifier axes while resolving a Css chain. */
@@ -68,15 +72,15 @@ export interface ResolvedSegment {
   /** For variable entries: additional static defs applied alongside the variable value. */
   variableExtraDefs?: Record<string, unknown>;
   /** For variable entries: the AST node of the argument. */
-  argNode?: any;
-  /** For composed Css props inserted via `add(cssProp)`. */
-  styleArrayArg?: any;
+  argNode?: t.Expression;
+  /** For composed Css props inserted via `with(cssProp)`. */
+  styleArrayArg?: t.Expression;
   /** True when the composed style arg is an object literal that should skip undefined values. */
   isAddCss?: boolean;
   /** For custom class names inserted via `className(...)`. */
-  classNameArg?: any;
+  classNameArg?: t.Expression;
   /** For custom inline style objects inserted via `style(...)`. */
-  styleArg?: any;
+  styleArg?: t.Expression;
   /**
    * Compile-time resolved argument value.
    * For static folds: the CSS value baked into an atomic class (e.g. `"red"`).
@@ -87,7 +91,7 @@ export interface ResolvedSegment {
   typographyLookup?: {
     /** I.e. `"typography"` or `"typography__sm"` for `Css.typography(key).$` in a given condition context. */
     lookupKey: string;
-    argNode: any;
+    argNode: t.Expression;
     segmentsByName: Record<string, ResolvedSegment[]>;
   };
   /**
@@ -105,32 +109,22 @@ export interface ResolvedSegment {
 export interface MarkerSegment {
   type: "marker";
   /** If set, the AST node of the user-provided marker variable. Otherwise, default marker. */
-  markerNode?: any;
+  markerNode?: t.Expression;
 }
 
-// ── Shared longhand lookup ───────────────────────────────────────────
-
-const _longhandCache = new WeakMap<TrussMapping, Map<string, string>>();
-
 /**
- * Reverse lookup from `"cssProperty\0cssValue"` → canonical abbreviation name.
+ * True for segments that resolve to atomic CSS declarations.
  *
- * I.e. `{ paddingTop: "8px" }` → `"pt1"`, `{ borderStyle: "solid" }` → `"bss"`.
- * Cached per mapping via WeakMap.
+ * I.e. `Css.df.$` and `Css.mt(x).$` are style segments; `className(...)`, `style(...)`,
+ * `with(...)`, runtime `typography(key)`, and error placeholders are not.
  */
-export function getLonghandLookup(mapping: TrussMapping): Map<string, string> {
-  let lookup = _longhandCache.get(mapping);
-  if (lookup) return lookup;
-  lookup = new Map();
-  for (const [abbr, entry] of Object.entries(mapping.abbreviations)) {
-    if (entry.kind !== "static") continue;
-    const keys = Object.keys(entry.defs);
-    if (keys.length !== 1) continue;
-    const key = `${keys[0]}\0${entry.defs[keys[0]]}`;
-    // First match wins — if multiple abbreviations produce the same declaration,
-    // the one that appears first in the mapping is canonical.
-    if (!lookup.has(key)) lookup.set(key, abbr);
-  }
-  _longhandCache.set(mapping, lookup);
-  return lookup;
+export function isStyleSegment(seg: ResolvedSegment): boolean {
+  return !seg.error && !seg.styleArrayArg && !seg.classNameArg && !seg.styleArg && !seg.typographyLookup;
+}
+
+/** True when a segment or context sits under any modifier axis: media query, pseudo-class, pseudo-element, or `when()`. */
+export function hasCondition(
+  target: Pick<ResolvedSegment, "mediaQuery" | "pseudoClass" | "pseudoElement" | "whenPseudo">,
+): boolean {
+  return !!(target.mediaQuery || target.pseudoClass || target.pseudoElement || target.whenPseudo);
 }
