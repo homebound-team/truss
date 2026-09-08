@@ -36,11 +36,7 @@ expect.extend({
     };
   },
 
-  toHaveTrussOutput(
-    received: { code: string | null; css: string | null },
-    expectedCode: string,
-    expectedCss: string,
-  ) {
+  toHaveTrussOutput(received: { code: string | null; css: string | null }, expectedCode: string, expectedCss: string) {
     const normalizedExpectedCode = normalize(expectedCode);
     const normalizedExpectedCss = normalize(expectedCss);
     // Strip priority annotations from actual CSS so test expectations don't need them

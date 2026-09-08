@@ -10,7 +10,7 @@ const additionalDefs: Properties = {
   WebkitBoxOrient: "vertical",
   // tailwinds doesn't add this by default, but it seems like a good default for us.
   textOverflow: "ellipsis",
-}
+};
 
 // https://github.com/tailwindlabs/tailwindcss-line-clamp/
 export const lineClamp: CreateMethodsFn = () =>
@@ -27,5 +27,5 @@ export const lineClamp: CreateMethodsFn = () =>
     },
     "lineClamp",
     false,
-    additionalDefs
-);
+    additionalDefs,
+  );

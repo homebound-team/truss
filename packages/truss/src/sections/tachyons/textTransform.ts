@@ -11,5 +11,5 @@ export const textTransform: CreateMethodsFn = () =>
       ttu: "uppercase",
       ttn: "none",
     },
-    "tt"
+    "tt",
   );

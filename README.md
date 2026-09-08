@@ -886,10 +886,12 @@ React Native: **`setVar`** is not supported (no web atomic pipeline).
 
 ```tsx
 <div
-  css={Css.setVar({
-    [Tokens.ThemePrimary]: "#2563eb",
-    "--one-off": "12px",
-  }).df.$}
+  css={
+    Css.setVar({
+      [Tokens.ThemePrimary]: "#2563eb",
+      "--one-off": "12px",
+    }).df.$
+  }
 />
 ```
 
