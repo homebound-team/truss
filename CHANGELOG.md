@@ -1,3 +1,9 @@
+## [2.29.1](https://github.com/homebound-team/truss/compare/v2.29.0...v2.29.1) (2026-09-08)
+
+### Bug Fixes
+
+* Reuse canonical abbreviations for add("prop", value). ([#270](https://github.com/homebound-team/truss/issues/270)) ([f654506](https://github.com/homebound-team/truss/commit/f6545062ef2ba9b598e20f6c6ebdaeb5636e0292))
+
 ## [2.29.0](https://github.com/homebound-team/truss/compare/v2.28.1...v2.29.0) (2026-08-14)
 
 ### Features
