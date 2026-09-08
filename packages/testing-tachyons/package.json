@@ -13,7 +13,7 @@
     "@homebound/truss": "workspace:*"
   },
   "devDependencies": {
-    "@homebound/tsconfig": "^1.1.1",
+    "@homebound/tsconfig": "^1.2.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
   }

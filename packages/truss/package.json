@@ -39,21 +39,21 @@
     "change-case": "^5.4.4",
     "css-tree": "^3.2.1",
     "csstype": "^3.2.3",
-    "jiti": "^2.6.1",
+    "jiti": "^2.7.0",
     "ts-poet": "^6.12.0"
   },
   "peerDependencies": {
     "react": ">=18"
   },
   "devDependencies": {
-    "@homebound/tsconfig": "^1.1.1",
+    "@homebound/tsconfig": "^1.2.0",
     "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.28.0",
     "@types/css-tree": "^3.2.0",
     "@types/node": "^25.5.2",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.18",
     "jsdom": "^29.0.2",
-    "react": "^19.2.5",
+    "react": "^19.2.8",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
