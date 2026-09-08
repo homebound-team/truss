@@ -1,3 +1,9 @@
+## [2.29.3](https://github.com/homebound-team/truss/compare/v2.29.2...v2.29.3) (2026-09-08)
+
+### Bug Fixes
+
+* Escape quotes in generated code and import csstype as a type. ([93c0736](https://github.com/homebound-team/truss/commit/93c073610f445b0734aec70e5571d611b90fd938))
+
 ## [2.29.2](https://github.com/homebound-team/truss/compare/v2.29.1...v2.29.2) (2026-09-08)
 
 ### Bug Fixes
