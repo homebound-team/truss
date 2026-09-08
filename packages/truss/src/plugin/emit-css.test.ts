@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { collectAtomicRules, generateCssText, type AtomicRule } from "./emit-truss";
+import { collectAtomicRules, generateCssText, type AtomicRule } from "./emit-css";
 import { computeRulePriority } from "./priority";
 import type { ResolvedConditionContext, ResolvedSegment, TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";

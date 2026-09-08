@@ -13,7 +13,7 @@ import {
   PSEUDO_ELEMENT_PRIORITY,
 } from "./property-priorities";
 import { WHEN_RELATIONSHIPS } from "./when-relationships";
-import type { AtomicRule } from "./emit-truss";
+import type { AtomicRule } from "./emit-css";
 
 /**
  * Compute the numeric priority for a single AtomicRule.

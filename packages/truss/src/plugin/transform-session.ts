@@ -1,5 +1,5 @@
 import { resolve } from "path";
-import { generateCssText, type AtomicRule } from "./emit-truss";
+import { generateCssText, type AtomicRule } from "./emit-css";
 import { transformCssTs } from "./transform-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
 import { annotateArbitraryCssBlock, mergeTrussCss, parseTrussCss, readTrussCss, type ParsedTrussCss } from "./merge-css";

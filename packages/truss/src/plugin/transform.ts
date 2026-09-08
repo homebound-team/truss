@@ -20,13 +20,8 @@ import {
   upsertNamedImports,
   type NamedImport,
 } from "./ast-utils";
-import {
-  collectAtomicRules,
-  generateCssText,
-  buildMaybeIncDeclaration,
-  buildRuntimeLookupDeclaration,
-  type AtomicRule,
-} from "./emit-truss";
+import { collectAtomicRules, generateCssText, type AtomicRule } from "./emit-css";
+import { buildMaybeIncDeclaration, buildRuntimeLookupDeclaration } from "./emit-style-hash";
 import {
   rewriteExpressionSites,
   type ExpressionSite,
