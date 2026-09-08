@@ -331,7 +331,8 @@ describe("__injectTrussCSS", () => {
     document.body.appendChild(target);
     try {
       expect(getComputedStyle(target).marginTop).toBe("12px");
-      expect(getComputedStyle(target).marginRight).toBe("0px");
+      // jsdom 30 serializes an unset zero length as "0", where jsdom 29 gave "0px".
+      expect(getComputedStyle(target).marginRight).toBe("0");
       const previousColor = getComputedStyle(target).color;
       __injectTrussCSS({ rules: [...margin.rules!, ...color.rules!] });
       expect(attribute.mock.calls).toEqual([["data-truss", ""]]);
