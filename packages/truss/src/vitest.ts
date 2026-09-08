@@ -5,11 +5,7 @@ export { toHaveStyle } from "src/toHaveStyle";
 export type { StyleExpectation } from "src/toHaveStyle";
 
 declare module "vitest" {
-  interface Assertion<T = any> {
-    toHaveStyle(expected: StyleExpectation): T;
-  }
-
-  interface AsymmetricMatchersContaining {
-    toHaveStyle(expected: StyleExpectation): void;
+  interface Matchers<R, T> {
+    toHaveStyle(expected: StyleExpectation): R;
   }
 }

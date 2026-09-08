@@ -1,14 +1,9 @@
 import { expect } from "vitest";
 
 declare module "vitest" {
-  interface Assertion<T = any> {
-    toBeNormalized(expected: string): T;
-    toHaveTrussOutput(expectedCode: string, expectedCss: string): T;
-  }
-
-  interface AsymmetricMatchersContaining {
-    toBeNormalized(expected: string): void;
-    toHaveTrussOutput(expectedCode: string, expectedCss: string): void;
+  interface Matchers<R, T> {
+    toBeNormalized(expected: string): R;
+    toHaveTrussOutput(expectedCode: string, expectedCss: string): R;
   }
 }
 
