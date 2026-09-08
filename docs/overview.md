@@ -46,7 +46,7 @@ CSS shorthands (`margin`, `padding`, `border`, etc.) always expand to longhands 
 Runtime values use CSS custom properties. A static class points at a CSS variable, and the runtime sets the variable via inline style:
 
 ```ts
-Css.mt(x).$ → { marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }
+Css.mt(x).$ → { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }] }
 ```
 
 The tuple format is `[classNames: string, vars: Record<string, string>]`. At runtime, `trussProps` splits this into `className: "mt_var"` and `style: { "--marginTop": "16px" }`.
@@ -54,7 +54,7 @@ The tuple format is `[classNames: string, vars: Record<string, string>]`. At run
 When the argument is a literal, the value is folded at build time into a static class:
 
 ```ts
-Css.mt(2).$ → { marginTop: "mt_16px" }
+Css.mt(2).$ → { marginTop: "mt_2" }        // .mt_2 { margin-top: calc(var(--t-spacing) * 2) }
 Css.bc("red").$ → { borderColor: "bc_red" }
 ```
 
@@ -185,7 +185,7 @@ Class names are deterministic and human-readable:
 | Media + pseudo        | `sm_h_blue`                | `@media (...) { .sm_h_blue.sm_h_blue:hover { ... } }` |
 | Pseudo-element        | `placeholder_blue`         | `.placeholder_blue::placeholder { color: #526675 }`   |
 | Variable              | `mt_var`                   | `.mt_var { margin-top: var(--marginTop) }`            |
-| Literal-folded        | `mt_16px`                  | `.mt_16px { margin-top: 16px }`                       |
+| Literal-folded        | `mt_2`                     | `.mt_2 { margin-top: calc(var(--t-spacing) * 2) }`    |
 | `add()` literal       | `add_transition_all_240ms` | `.add_transition_all_240ms { transition: all 240ms }` |
 | `add()` variable      | `color_var`                | `.color_var { color: var(--color) }`                  |
 | `when()` relationship | `wh_anc_h_blue`            | `._mrk:hover .wh_anc_h_blue { color: #526675 }`       |
