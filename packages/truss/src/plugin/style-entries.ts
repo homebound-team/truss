@@ -158,9 +158,10 @@ function segmentClassPrefix(condition: ResolvedConditionContext, mapping: TrussM
     parts.push(`${condition.pseudoElement.replace(/^::/, "")}_`);
   }
   if (condition.mediaQuery) {
-    // I.e. the `ifSm` breakpoint → "sm_"; any other media/container query → "mq_"
+    // I.e. the `ifSm` breakpoint → "sm_"; any other media/container query is sanitized in full, i.e.
+    // "@media (min-width: 600px)" → "media_min_width_600px_", so two different queries never share a class
     const breakpoint = breakpointNameForMediaQuery(mapping, condition.mediaQuery);
-    parts.push(breakpoint ? `${breakpoint.toLowerCase()}_` : "mq_");
+    parts.push(`${breakpoint ? breakpoint.toLowerCase() : sanitizeClassNameToken(condition.mediaQuery)}_`);
   }
   if (condition.pseudoClass) {
     parts.push(`${pseudoSelectorPrefix(condition.pseudoClass)}_`);

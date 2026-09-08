@@ -66,7 +66,9 @@ function typographyLookupKeySuffix(context: ResolvedConditionContext, mapping: T
   if (context.pseudoElement) parts.push(context.pseudoElement.replace(/^::/, ""));
   if (context.mediaQuery) {
     const breakpoint = breakpointNameForMediaQuery(mapping, context.mediaQuery);
-    parts.push(breakpoint ? breakpoint.replace(/^./, (c) => c.toLowerCase()) : "mq");
+    parts.push(
+      breakpoint ? breakpoint.replace(/^./, (c) => c.toLowerCase()) : sanitizeClassNameToken(context.mediaQuery),
+    );
   }
   if (context.pseudoClass) parts.push(context.pseudoClass.replace(/^:+/, "").replace(/-/g, "_"));
   if (context.whenPseudo) parts.push(whenLookupKeyPart(context.whenPseudo));
