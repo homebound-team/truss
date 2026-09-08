@@ -1,3 +1,9 @@
+## [2.29.4](https://github.com/homebound-team/truss/compare/v2.29.3...v2.29.4) (2026-09-08)
+
+### Bug Fixes
+
+* Give custom media and container queries distinct class prefixes. ([9419950](https://github.com/homebound-team/truss/commit/94199502c78fd218bd439d9ae56a5703f4056951))
+
 ## [2.29.3](https://github.com/homebound-team/truss/compare/v2.29.2...v2.29.3) (2026-09-08)
 
 ### Bug Fixes
