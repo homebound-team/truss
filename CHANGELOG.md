@@ -1,3 +1,9 @@
+## [2.29.2](https://github.com/homebound-team/truss/compare/v2.29.1...v2.29.2) (2026-09-08)
+
+### Bug Fixes
+
+* Fold negative literals in Px delegates. ([1cad23d](https://github.com/homebound-team/truss/commit/1cad23d22c6f243c97daacf08be239cef9dfc851))
+
 ## [2.29.1](https://github.com/homebound-team/truss/compare/v2.29.0...v2.29.1) (2026-09-08)
 
 ### Bug Fixes
