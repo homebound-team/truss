@@ -1,7 +1,7 @@
 import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
-import { extractChain, findCssImportBinding } from "./ast-utils";
+import { extractDollarChain, findCssImportBinding, unwrapExpression } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
 import { camelToKebab } from "./emit-truss";
 import { parseModule } from "./babel-utils";
@@ -100,18 +100,12 @@ function findNamedCssExportObject(ast: t.File): t.ObjectExpression | null {
     if (!t.isVariableDeclaration(node.declaration)) continue;
 
     for (const declarator of node.declaration.declarations) {
-      if (!t.isIdentifier(declarator.id, { name: "css" })) continue;
-      const value = unwrapObjectExpression(declarator.init);
-      if (value) return value;
+      if (!t.isIdentifier(declarator.id, { name: "css" }) || !declarator.init) continue;
+      // I.e. also accept `export const css = { ... } satisfies Record<string, ...>`
+      const value = unwrapExpression(declarator.init);
+      if (t.isObjectExpression(value)) return value;
     }
   }
-  return null;
-}
-
-function unwrapObjectExpression(node: t.Expression | null | undefined): t.ObjectExpression | null {
-  if (!node) return null;
-  if (t.isObjectExpression(node)) return node;
-  if (t.isTSAsExpression(node) || t.isTSSatisfiesExpression(node)) return unwrapObjectExpression(node.expression);
   return null;
 }
 
@@ -169,14 +163,10 @@ function resolveCssExpression(
   mapping: TrussMapping,
   filename: string,
 ): CssResolution | CssError {
-  // The expression must end with `.$`
-  if (!t.isMemberExpression(node) || node.computed || !t.isIdentifier(node.property, { name: "$" })) {
-    return { error: "value must be a Css.*.$  expression" };
-  }
-
-  const chain = extractChain(node.object, cssBindingName);
+  // The expression must be a `Css.*.$` chain rooted at the Css import
+  const chain = extractDollarChain(node, cssBindingName);
   if (!chain) {
-    return { error: "could not extract Css chain from expression" };
+    return { error: "value must be a Css.*.$ expression" };
   }
 
   // Validate: no if/else nodes

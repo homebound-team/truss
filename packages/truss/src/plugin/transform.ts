@@ -2,27 +2,37 @@ import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 import { basename } from "path";
 import type { TrussMapping, ResolvedSegment } from "./types";
-import { resolveFullChain, type CssChainReferenceResolver, type ResolvedChain } from "./resolve-chain";
+import { chainSegments, resolveFullChain, type CssChainReferenceResolver, type ResolvedChain } from "./resolve-chain";
 import { generate, parseModule, traverse } from "./babel-utils";
 import {
-  collectTopLevelBindings,
-  reservePreferredName,
-  findCssImportBinding,
-  findCssBuilderBinding,
-  removeCssImport,
-  findNamedImportBinding,
-  findImportDeclaration,
-  replaceCssImportWithNamedImports,
-  upsertNamedImports,
   extractChain,
+  extractDollarChain,
+  findCssBuilderBinding,
+  findCssImportBinding,
+  findImportDeclaration,
+  findNamedImportBinding,
+  insertAfterLeadingImports,
+  isCssMethodCall,
+  removeCssImport,
+  replaceCssImportWithNamedImports,
+  reservePreferredName,
+  unwrapExpression,
+  upsertNamedImports,
+  type NamedImport,
 } from "./ast-utils";
 import {
   collectAtomicRules,
   generateCssText,
   buildMaybeIncDeclaration,
   buildRuntimeLookupDeclaration,
+  type AtomicRule,
 } from "./emit-truss";
-import { rewriteExpressionSites, type ExpressionSite } from "./rewrite-sites";
+import {
+  rewriteExpressionSites,
+  type ExpressionSite,
+  type RuntimeHelperName,
+  type RuntimeHelpers,
+} from "./rewrite-sites";
 
 export interface TransformResult {
   code: string;
@@ -30,7 +40,7 @@ export interface TransformResult {
   /** The generated CSS text for this file's Truss usages. */
   css: string;
   /** The atomic CSS rules collected during this transform, keyed by class name. */
-  rules: Map<string, import("./emit-truss").AtomicRule>;
+  rules: Map<string, AtomicRule>;
 }
 
 export interface TransformTrussOptions {
@@ -38,6 +48,11 @@ export interface TransformTrussOptions {
   /** When true, inject `__injectTrussCSS(cssText)` call for jsdom/test environments. */
   injectCss?: boolean;
 }
+
+const RUNTIME_MODULE = "@homebound/truss/runtime";
+
+/** Runtime imports are emitted in this order regardless of which helper the rewrite reached first. */
+const RUNTIME_HELPER_ORDER: RuntimeHelperName[] = ["trussProps", "mergeProps", "TrussDebugInfo", "maybeCssVar"];
 
 /**
  * The core transform function. Given a source file's code and the truss mapping,
@@ -61,22 +76,24 @@ export function transformTruss(
   // May be null when the file only has JSX css= attributes without importing Css.
   const cssImportBinding = findCssImportBinding(ast);
   const cssBindingName = cssImportBinding ?? findCssBuilderBinding(ast);
-  const cssIsImported = cssImportBinding !== null;
 
   // Step 2: Collect all Css.*.$  expression sites AND detect Css.props() / JSX css= in a single pass.
   const sites: ExpressionSite[] = [];
   const errorMessages: Array<{ message: string; line: number | null }> = [];
   let hasCssPropsCall = false;
   let hasBuildtimeJsxCssAttribute = false;
+  // Module-scope names, so injected helpers and imports can avoid collisions
+  let usedTopLevelNames = new Set<string>();
 
   traverse(ast, {
+    Program(path: NodePath<t.Program>) {
+      usedTopLevelNames = new Set(Object.keys(path.scope.bindings));
+    },
     // -- Css.*.$  chain collection --
     MemberExpression(path: NodePath<t.MemberExpression>) {
       if (!cssBindingName) return;
-      if (!t.isIdentifier(path.node.property, { name: "$" })) return;
-      if (path.node.computed) return;
 
-      const chain = extractChain(path.node.object, cssBindingName);
+      const chain = extractDollarChain(path.node, cssBindingName);
       if (!chain) return;
       if (isInsideWhenObjectValue(path, cssBindingName)) {
         return;
@@ -98,14 +115,7 @@ export function transformTruss(
     },
     // -- Css.props() detection (so we don't bail early when there are no Css.*.$ sites) --
     CallExpression(path: NodePath<t.CallExpression>) {
-      if (!cssBindingName || hasCssPropsCall) return;
-      const callee = path.node.callee;
-      if (
-        t.isMemberExpression(callee) &&
-        !callee.computed &&
-        t.isIdentifier(callee.object, { name: cssBindingName }) &&
-        t.isIdentifier(callee.property, { name: "props" })
-      ) {
+      if (cssBindingName && isCssMethodCall(path.node, cssBindingName, "props")) {
         hasCssPropsCall = true;
       }
     },
@@ -124,26 +134,14 @@ export function transformTruss(
   const cssText = generateCssText(rules);
 
   // Step 4: Reserve local names for injected helpers
-  const usedTopLevelNames = collectTopLevelBindings(ast);
+  const runtime = createRuntimeHelpers(ast, usedTopLevelNames);
   const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
-  const existingMaybeCssVarHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "maybeCssVar");
-  const maybeCssVarHelperName = needsMaybeCssVar
-    ? (existingMaybeCssVarHelperName ?? reservePreferredName(usedTopLevelNames, "maybeCssVar"))
-    : null;
-  const existingMergePropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "mergeProps");
-  const mergePropsHelperName = existingMergePropsHelperName ?? reservePreferredName(usedTopLevelNames, "mergeProps");
-  const needsMergePropsHelper = { current: false };
-  const existingTrussPropsHelperName = findNamedImportBinding(ast, "@homebound/truss/runtime", "trussProps");
-  const trussPropsHelperName = existingTrussPropsHelperName ?? reservePreferredName(usedTopLevelNames, "trussProps");
-  const needsTrussPropsHelper = { current: false };
-  const existingTrussDebugInfoName = findNamedImportBinding(ast, "@homebound/truss/runtime", "TrussDebugInfo");
-  const trussDebugInfoName = existingTrussDebugInfoName ?? reservePreferredName(usedTopLevelNames, "TrussDebugInfo");
-  const needsTrussDebugInfo = { current: false };
+  const maybeCssVarHelperName = needsMaybeCssVar ? runtime.use("maybeCssVar") : null;
 
   // Collect typography runtime lookups
-  const runtimeLookupNames = new Map<string, string>();
   const runtimeLookups = collectRuntimeLookups(chains);
-  for (const [lookupKey] of runtimeLookups) {
+  const runtimeLookupNames = new Map<string, string>();
+  for (const lookupKey of runtimeLookups.keys()) {
     runtimeLookupNames.set(lookupKey, reservePreferredName(usedTopLevelNames, `__${lookupKey}`));
   }
 
@@ -151,35 +149,18 @@ export function transformTruss(
   rewriteExpressionSites({
     ast,
     sites,
-    cssBindingName: cssBindingName ?? "",
+    cssBindingName,
     filename: basename(filename),
     debug: options.debug ?? false,
     mapping,
     maybeIncHelperName,
     maybeCssVarHelperName,
-    mergePropsHelperName,
-    needsMergePropsHelper,
-    trussPropsHelperName,
-    needsTrussPropsHelper,
-    trussDebugInfoName,
-    needsTrussDebugInfo,
+    runtime,
     runtimeLookupNames,
   });
 
   // Step 6: Prepare runtime imports before removing the Css import.
-  const runtimeImports: Array<{ importedName: string; localName: string }> = [];
-  if (needsTrussPropsHelper.current && !existingTrussPropsHelperName) {
-    runtimeImports.push({ importedName: "trussProps", localName: trussPropsHelperName });
-  }
-  if (needsMergePropsHelper.current && !existingMergePropsHelperName) {
-    runtimeImports.push({ importedName: "mergeProps", localName: mergePropsHelperName });
-  }
-  if (needsTrussDebugInfo.current && !existingTrussDebugInfoName) {
-    runtimeImports.push({ importedName: "TrussDebugInfo", localName: trussDebugInfoName });
-  }
-  if (needsMaybeCssVar && !existingMaybeCssVarHelperName && maybeCssVarHelperName) {
-    runtimeImports.push({ importedName: "maybeCssVar", localName: maybeCssVarHelperName });
-  }
+  const runtimeImports = runtime.imports();
   if (options.injectCss) {
     runtimeImports.push({ importedName: "__injectTrussCSS", localName: "__injectTrussCSS" });
   }
@@ -187,19 +168,19 @@ export function transformTruss(
   // Step 7: Remove/replace the Css import and inject runtime imports.
   // When Css comes from a local `new CssBuilder(...)` (tsup bundles), skip import removal.
   let reusedCssImportLine = false;
-  if (cssIsImported) {
+  if (cssImportBinding) {
     reusedCssImportLine =
       runtimeImports.length > 0 &&
-      findImportDeclaration(ast, "@homebound/truss/runtime") === null &&
-      replaceCssImportWithNamedImports(ast, cssImportBinding!, "@homebound/truss/runtime", runtimeImports);
+      findImportDeclaration(ast, RUNTIME_MODULE) === null &&
+      replaceCssImportWithNamedImports(ast, cssImportBinding, RUNTIME_MODULE, runtimeImports);
 
     if (!reusedCssImportLine) {
-      removeCssImport(ast, cssImportBinding!);
+      removeCssImport(ast, cssImportBinding);
     }
   }
 
-  if (runtimeImports.length > 0 && !reusedCssImportLine) {
-    upsertNamedImports(ast, "@homebound/truss/runtime", runtimeImports);
+  if (!reusedCssImportLine) {
+    upsertNamedImports(ast, RUNTIME_MODULE, runtimeImports);
   }
 
   // Step 8: Insert helper declarations after imports
@@ -208,10 +189,10 @@ export function transformTruss(
     declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName));
   }
   // Insert runtime lookup tables for typography
-  for (const [lookupKey, lookup] of runtimeLookups) {
+  for (const [lookupKey, segmentsByName] of runtimeLookups) {
     const lookupName = runtimeLookupNames.get(lookupKey);
     if (!lookupName) continue;
-    declarationsToInsert.push(buildRuntimeLookupDeclaration(lookupName, lookup.segmentsByName, mapping));
+    declarationsToInsert.push(buildRuntimeLookupDeclaration(lookupName, segmentsByName, mapping));
   }
 
   // Inject __injectTrussCSS call if requested
@@ -234,12 +215,7 @@ export function transformTruss(
     );
   }
 
-  if (declarationsToInsert.length > 0) {
-    const insertIndex = ast.program.body.findIndex((node) => {
-      return !t.isImportDeclaration(node);
-    });
-    ast.program.body.splice(insertIndex === -1 ? ast.program.body.length : insertIndex, 0, ...declarationsToInsert);
-  }
+  insertAfterLeadingImports(ast, declarationsToInsert);
 
   const output = generate(ast, {
     sourceFileName: filename,
@@ -252,6 +228,41 @@ export function transformTruss(
   return { code: outputCode, map: output.map, css: cssText, rules };
 }
 
+/**
+ * Track which `@homebound/truss/runtime` helpers the rewrite ends up calling.
+ *
+ * `use()` reuses an existing import's local name when the module already imports the helper,
+ * otherwise reserves a collision-free local name; `imports()` lists the helpers that still
+ * need an import statement, in canonical order.
+ */
+function createRuntimeHelpers(
+  ast: t.File,
+  usedTopLevelNames: Set<string>,
+): RuntimeHelpers & { imports(): NamedImport[] } {
+  const localNames = new Map<RuntimeHelperName, string>();
+  const missingImports = new Map<RuntimeHelperName, NamedImport>();
+
+  return {
+    use(name) {
+      let localName = localNames.get(name);
+      if (localName === undefined) {
+        const existing = findNamedImportBinding(ast, name, RUNTIME_MODULE);
+        localName = existing ?? reservePreferredName(usedTopLevelNames, name);
+        if (!existing) missingImports.set(name, { importedName: name, localName });
+        localNames.set(name, localName);
+      }
+      return localName;
+    },
+    imports() {
+      return RUNTIME_HELPER_ORDER.flatMap((name) => {
+        const entry = missingImports.get(name);
+        return entry ? [entry] : [];
+      });
+    },
+  };
+}
+
+/** True when `path` sits inside the object literal of a `Css.…when({ ... })` call, whose values are resolved by the outer chain. */
 function isInsideWhenObjectValue(path: NodePath<t.MemberExpression>, cssBindingName: string): boolean {
   let current: NodePath<t.Node> | null = path.parentPath;
 
@@ -297,10 +308,10 @@ function resolveCssChainReference(
   cssBindingName: string,
   seen: Set<string>,
 ): ReturnType<typeof extractChain> {
-  const value = unwrapReferenceExpression(node);
+  const value = unwrapExpression(node);
 
-  if (t.isMemberExpression(value) && !value.computed && t.isIdentifier(value.property, { name: "$" })) {
-    return extractChain(value.object as t.Expression, cssBindingName);
+  if (t.isMemberExpression(value)) {
+    return extractDollarChain(value, cssBindingName);
   }
 
   if (!t.isIdentifier(value) || seen.has(value.name)) {
@@ -321,46 +332,18 @@ function resolveCssChainReference(
   return resolveCssChainReference(binding.path, init, cssBindingName, seen);
 }
 
-/** Strip TS/paren wrappers before checking whether a reference points at `Css.*.$`. */
-function unwrapReferenceExpression(node: t.Expression): t.Expression {
-  let current = node;
-
-  while (true) {
-    if (
-      t.isParenthesizedExpression(current) ||
-      t.isTSAsExpression(current) ||
-      t.isTSTypeAssertion(current) ||
-      t.isTSNonNullExpression(current) ||
-      t.isTSSatisfiesExpression(current)
-    ) {
-      current = current.expression;
-      continue;
-    }
-
-    return current;
-  }
-}
-
-/** Collect typography runtime lookups from all resolved chains. */
-function collectRuntimeLookups(
-  chains: ResolvedChain[],
-): Map<string, { segmentsByName: Record<string, ResolvedSegment[]> }> {
-  const lookups = new Map<string, { segmentsByName: Record<string, ResolvedSegment[]> }>();
-  for (const chain of chains) {
-    for (const part of chain.parts) {
-      const segs = part.type === "unconditional" ? part.segments : [...part.thenSegments, ...part.elseSegments];
-      for (const seg of segs) {
-        if (seg.typographyLookup && !lookups.has(seg.typographyLookup.lookupKey)) {
-          lookups.set(seg.typographyLookup.lookupKey, {
-            segmentsByName: seg.typographyLookup.segmentsByName,
-          });
-        }
-      }
+/** Collect typography runtime lookups from all resolved chains, keyed by lookup name. */
+function collectRuntimeLookups(chains: ResolvedChain[]): Map<string, Record<string, ResolvedSegment[]>> {
+  const lookups = new Map<string, Record<string, ResolvedSegment[]>>();
+  for (const seg of chains.flatMap((chain) => chainSegments(chain))) {
+    if (seg.typographyLookup && !lookups.has(seg.typographyLookup.lookupKey)) {
+      lookups.set(seg.typographyLookup.lookupKey, seg.typographyLookup.segmentsByName);
     }
   }
   return lookups;
 }
 
+/** Babel's generator drops the blank line after the import block; put it back when the source had one. */
 function preserveBlankLineAfterImports(input: string, output: string): string {
   const inputLines = input.split("\n");
   const outputLines = output.split("\n");

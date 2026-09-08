@@ -1589,7 +1589,7 @@ describe("transform", () => {
       }
     `).toHaveTrussOutput(
       `
-      import { trussProps, mergeProps } from "@homebound/truss/runtime";
+      import { mergeProps } from "@homebound/truss/runtime";
       function Button({ asLink, navLink }) {
         const attrs = {
           ...mergeProps(asLink ? navLink : undefined, undefined, { display: "df", alignItems: "aic" })
@@ -1625,7 +1625,7 @@ describe("transform", () => {
       }
     `).toHaveTrussOutput(
       `
-      import { trussProps, mergeProps } from "@homebound/truss/runtime";
+      import { mergeProps } from "@homebound/truss/runtime";
       function Button({ asLink, navLink, baseStyles, active, hoverStyles }) {
         const attrs = {
           ...mergeProps(asLink ? navLink : undefined, undefined, { ...{ display: "df" }, ...baseStyles, ...(active && hoverStyles) })

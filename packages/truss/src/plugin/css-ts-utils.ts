@@ -1,4 +1,5 @@
 import * as t from "@babel/types";
+import { unwrapExpression } from "./ast-utils";
 
 /** Resolve module-scope string constants so .css.ts selectors can reuse them. */
 export function collectStaticStringBindings(ast: t.File): Map<string, string> {
@@ -31,6 +32,7 @@ export function collectStaticStringBindings(ast: t.File): Map<string, string> {
 /** Resolve a static string expression from a literal, template, or identifier. */
 export function resolveStaticString(node: t.Node | null | undefined, bindings: Map<string, string>): string | null {
   if (!node) return null;
+  if (t.isExpression(node)) node = unwrapExpression(node);
 
   if (t.isStringLiteral(node)) return node.value;
 
@@ -49,14 +51,6 @@ export function resolveStaticString(node: t.Node | null | undefined, bindings: M
 
   if (t.isIdentifier(node)) {
     return bindings.get(node.name) ?? null;
-  }
-
-  if (t.isTSAsExpression(node) || t.isTSSatisfiesExpression(node) || t.isTSNonNullExpression(node)) {
-    return resolveStaticString(node.expression, bindings);
-  }
-
-  if (t.isParenthesizedExpression(node)) {
-    return resolveStaticString(node.expression, bindings);
   }
 
   if (t.isBinaryExpression(node, { operator: "+" })) {
