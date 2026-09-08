@@ -1,5 +1,5 @@
 import { readFileSync } from "fs";
-import { compareClassNames } from "./priority";
+import { compareRuleSortKeys, ruleSortKey } from "./priority";
 
 /** A parsed CSS rule extracted from an annotated truss.css file. */
 export interface ParsedCssRule {
@@ -136,7 +136,7 @@ export function annotateArbitraryCssBlock(cssText: string): string {
  *
  * Rules are deduplicated by class name (first occurrence wins, since
  * deterministic output means identical class names produce identical rules),
- * then sorted by priority ascending with alphabetical class name tiebreaker.
+ * then sorted with the same comparator emit-css uses: priority, then media-query width, then class name.
  * @property declarations are deduplicated by variable name and appended next.
  * Arbitrary CSS blocks are left opaque and appended in source order at the end.
  */
@@ -163,14 +163,17 @@ export function mergeTrussCss(sources: ParsedTrussCss[]): string {
     allArbitraryCssBlocks.push(...source.arbitraryCssBlocks);
   }
 
-  // Sort by priority ascending, tiebreak alphabetically by class name
-  allRules.sort((a, b) => a.priority - b.priority || compareClassNames(a.className, b.className));
+  // Sort exactly as emit-css does, so a merged stylesheet keeps the per-file cascade order
+  const decorated = allRules.map((rule) => {
+    return { rule, key: ruleSortKey(rule.priority, rule.className, atRulePrelude(rule.cssText)) };
+  });
+  decorated.sort((a, b) => compareRuleSortKeys(a.key, b.key));
 
   const lines: string[] = [];
 
-  for (const rule of allRules) {
-    lines.push(`/* @truss p:${rule.priority} c:${rule.className} */`);
-    lines.push(rule.cssText);
+  for (const entry of decorated) {
+    lines.push(`/* @truss p:${entry.rule.priority} c:${entry.rule.className} */`);
+    lines.push(entry.rule.cssText);
   }
 
   for (const prop of allProperties) {
@@ -183,4 +186,11 @@ export function mergeTrussCss(sources: ParsedTrussCss[]): string {
   }
 
   return lines.join("\n");
+}
+
+/** I.e. `"@media (min-width: 600px) { .a.a { color: red; } }"` → `"@media (min-width: 600px)"`, or undefined for a plain rule. */
+function atRulePrelude(cssText: string): string | undefined {
+  if (!cssText.startsWith("@")) return undefined;
+  const brace = cssText.indexOf("{");
+  return brace === -1 ? undefined : cssText.slice(0, brace).trim();
 }

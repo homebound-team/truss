@@ -179,6 +179,54 @@ describe("mergeTrussCss", () => {
     expect(hoverIdx).toBeLessThan(mediaIdx);
   });
 
+  test("orders same-priority media rules by width across sources, wider query first", () => {
+    const library = parsedTrussCss({
+      rules: [
+        {
+          priority: 3200,
+          className: "lg_black",
+          cssText: "@media screen and (min-width: 960px) { .lg_black.lg_black { color: black; } }",
+        },
+      ],
+    });
+    const app = parsedTrussCss({
+      rules: [
+        {
+          priority: 3200,
+          className: "mdandup_white",
+          cssText: "@media screen and (min-width: 600px) { .mdandup_white.mdandup_white { color: white; } }",
+        },
+      ],
+    });
+
+    const merged = mergeTrussCss([library, app]);
+    const widerIdx = merged.indexOf(".mdandup_white.mdandup_white {");
+    const narrowerIdx = merged.indexOf(".lg_black.lg_black {");
+    expect(widerIdx).toBeLessThan(narrowerIdx);
+  });
+
+  test("media rules without a readable width sort after width-bounded ones", () => {
+    const source = parsedTrussCss({
+      rules: [
+        {
+          priority: 3200,
+          className: "print_white",
+          cssText: "@media print { .print_white.print_white { color: white; } }",
+        },
+        {
+          priority: 3200,
+          className: "sm_black",
+          cssText: "@media screen and (max-width: 599px) { .sm_black.sm_black { color: black; } }",
+        },
+      ],
+    });
+
+    const merged = mergeTrussCss([source]);
+    const boundedIdx = merged.indexOf(".sm_black.sm_black {");
+    const unboundedIdx = merged.indexOf(".print_white.print_white {");
+    expect(boundedIdx).toBeLessThan(unboundedIdx);
+  });
+
   test("deduplicates @property declarations by variable name", () => {
     const source1 = parsedTrussCss({
       rules: [{ priority: 4000.5, className: "mt_var", cssText: ".mt_var { margin-top: var(--marginTop); }" }],

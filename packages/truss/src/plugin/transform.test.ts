@@ -3329,6 +3329,167 @@ describe("transform", () => {
     );
   });
 
+  test("overlapping breakpoints emit the wider query first so the narrower one wins", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifMdAndUp.white.ifLg.black.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "mdandup_white lg_black" };
+    `,
+      `
+      @media screen and (min-width: 600px) {
+        .mdandup_white.mdandup_white {
+          color: #fcfcfa;
+        }
+      }
+      @media screen and (min-width: 960px) {
+        .lg_black.lg_black {
+          color: #353535;
+        }
+      }
+    `,
+    );
+  });
+
+  test("a two-sided breakpoint emits after the one-sided breakpoint it overlaps", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifMdAndUp.white.ifMd.black.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "mdandup_white md_black" };
+    `,
+      `
+      @media screen and (min-width: 600px) {
+        .mdandup_white.mdandup_white {
+          color: #fcfcfa;
+        }
+      }
+      @media screen and (min-width: 600px) and (max-width: 959px) {
+        .md_black.md_black {
+          color: #353535;
+        }
+      }
+    `,
+    );
+  });
+
+  test("raw min-width queries emit ascending", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.if("@media (min-width: 600px)").white.if("@media (min-width: 900px)").black.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "media_min_width_600px_white media_min_width_900px_black" };
+    `,
+      `
+      @media (min-width: 600px) {
+        .media_min_width_600px_white.media_min_width_600px_white {
+          color: #fcfcfa;
+        }
+      }
+      @media (min-width: 900px) {
+        .media_min_width_900px_black.media_min_width_900px_black {
+          color: #353535;
+        }
+      }
+    `,
+    );
+  });
+
+  test("raw max-width queries emit descending", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.if("@media (max-width: 1150px)").white.if("@media (max-width: 820px)").black.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "media_max_width_1150px_white media_max_width_820px_black" };
+    `,
+      `
+      @media (max-width: 1150px) {
+        .media_max_width_1150px_white.media_max_width_1150px_white {
+          color: #fcfcfa;
+        }
+      }
+      @media (max-width: 820px) {
+        .media_max_width_820px_black.media_max_width_820px_black {
+          color: #353535;
+        }
+      }
+    `,
+    );
+  });
+
+  test("min-width queries emit before max-width queries", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.if("@media (max-width: 1000px)").white.if("@media (min-width: 901px)").black.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "media_max_width_1000px_white media_min_width_901px_black" };
+    `,
+      `
+      @media (min-width: 901px) {
+        .media_min_width_901px_black.media_min_width_901px_black {
+          color: #353535;
+        }
+      }
+      @media (max-width: 1000px) {
+        .media_max_width_1000px_white.media_max_width_1000px_white {
+          color: #fcfcfa;
+        }
+      }
+    `,
+    );
+  });
+
+  test("queries without a readable width emit last", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifPrint.white.ifLg.black.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "print_white lg_black" };
+    `,
+      `
+      @media screen and (min-width: 960px) {
+        .lg_black.lg_black {
+          color: #353535;
+        }
+      }
+      @media print {
+        .print_white.print_white {
+          color: #fcfcfa;
+        }
+      }
+    `,
+    );
+  });
+
+  test("container queries order by width like media queries", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.ifContainer({ gt: 400 }).white.ifContainer({ gt: 600, lt: 960 }).black.$;
+    `).toHaveTrussOutput(
+      `
+      const s = { color: "container_min_width_401px_white container_min_width_601px_and_max_width_960px_black" };
+    `,
+      `
+      @container (min-width: 401px) {
+        .container_min_width_401px_white.container_min_width_401px_white {
+          color: #fcfcfa;
+        }
+      }
+      @container (min-width: 601px) and (max-width: 960px) {
+        .container_min_width_601px_and_max_width_960px_black.container_min_width_601px_and_max_width_960px_black {
+          color: #353535;
+        }
+      }
+    `,
+    );
+  });
+
   test("breakpoint after base style: Css.df.ifMd.blue.$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
