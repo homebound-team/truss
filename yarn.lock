@@ -545,7 +545,7 @@ __metadata:
     "@types/babel__generator": "npm:^7.27.0"
     "@types/babel__traverse": "npm:^7.28.0"
     "@types/css-tree": "npm:^3.2.0"
-    "@types/node": "npm:^25.5.2"
+    "@types/node": "npm:^26.5.0"
     "@types/react": "npm:^19.2.18"
     change-case: "npm:^5.4.4"
     css-tree: "npm:^3.2.1"
@@ -1902,12 +1902,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^25.5.2, @types/node@npm:~25.5.2":
-  version: 25.5.2
-  resolution: "@types/node@npm:25.5.2"
+"@types/node@npm:^26.5.0, @types/node@npm:~26.5.0":
+  version: 26.5.1
+  resolution: "@types/node@npm:26.5.1"
   dependencies:
-    undici-types: "npm:~7.18.0"
-  checksum: 10/11782030f910ecf600cd537791980bd8b68496570ecd633d512d713b5b8a16ea3740fce85c82d0593305f809a7c205d7e86c07f179063fc98f014a7f9b013166
+    undici-types: "npm:~8.9.0"
+  checksum: 10/5b509d30dc9344c91cba3291acecf6f424320cb763c8192befd50cc8b1a8207dd7dcff8c4f313eea6468e9f2121cc78ffb6affbd7ecd951b4b32e2629ea9856d
   languageName: node
   linkType: hard
 
@@ -7034,7 +7034,7 @@ __metadata:
     "@semantic-release/github": "npm:^12.0.9"
     "@semantic-release/npm": "npm:^13.1.5"
     "@semantic-release/release-notes-generator": "npm:^14.1.1"
-    "@types/node": "npm:~25.5.2"
+    "@types/node": "npm:~26.5.0"
     conventional-changelog-conventionalcommits: "npm:^9.3.1"
     prettier: "npm:^3.9.6"
     semantic-release: "npm:^25.0.9"
@@ -7230,10 +7230,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~7.18.0":
-  version: 7.18.2
-  resolution: "undici-types@npm:7.18.2"
-  checksum: 10/e61a5918f624d68420c3ca9d301e9f15b61cba6e97be39fe2ce266dd6151e4afe424d679372638826cb506be33952774e0424141200111a9857e464216c009af
+"undici-types@npm:~8.9.0":
+  version: 8.9.0
+  resolution: "undici-types@npm:8.9.0"
+  checksum: 10/8785591929de2b71d281c684e915c4a8c41becc225adbf42a3e89148f8b384724a21533494c30a1cbb85b4cbccd088d020788ff4f2d605013eb2863cd47a1639
   languageName: node
   linkType: hard
 
