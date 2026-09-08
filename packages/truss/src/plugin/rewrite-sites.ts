@@ -2,7 +2,7 @@ import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 import { hasCondition, isCssSegment, type CssSegment, type ResolvedSegment, type TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
-import { buildStyleHashProperties, markerClassName } from "./emit-truss";
+import { collectStyleEntryGroups, markerClassName, styleHashProperties, type StyleEntry } from "./emit-truss";
 import { generate, traverse } from "./babel-utils";
 import { isCssMethodCall, staticPropertyName } from "./ast-utils";
 import { TRUSS_CUSTOM_CLASS_PREFIX, TRUSS_INLINE_STYLE_PREFIX, TRUSS_MARKER_KEY } from "../style-metadata";
@@ -40,6 +40,9 @@ export interface RewriteSitesOptions {
 }
 
 type StyleHashMember = t.ObjectProperty | t.SpreadElement;
+
+/** Entry groups keyed by CSS property, i.e. `color → [blue, h_white]`. */
+type StyleEntryGroups = Map<string, StyleEntry[]>;
 
 /**
  * Rewrite collected `Css...$` expression sites into Truss-native style hash objects.
@@ -97,10 +100,17 @@ function getCssAttributePath(path: NodePath<t.MemberExpression>): NodePath<t.JSX
 // Building style hash objects from resolved chains
 // ---------------------------------------------------------------------------
 
-/** Build an ObjectExpression from a ResolvedChain, handling conditionals. */
+/**
+ * Build an ObjectExpression from a ResolvedChain, handling conditionals.
+ *
+ * I.e. `Css.blue.if(cond).onHover.black.$` →
+ * `{ color: "blue", ...(cond ? { color: "blue h_black" } : {}) }`.
+ */
 function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOptions): t.ObjectExpression {
   const members: StyleHashMember[] = [];
-  const previousProperties = new Map<string, t.ObjectProperty>();
+  // The latest entry group per CSS property from the unconditional parts so far, so a conditional
+  // branch can carry the base classes alongside its own conditional-only overlays.
+  const previousGroups: StyleEntryGroups = new Map();
   const pendingUnconditionalSegments: ResolvedSegment[] = [];
 
   function flushPendingUnconditionalSegments(): void {
@@ -109,14 +119,25 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
       return;
     }
 
-    const partMembers = buildStyleHashMembers(pendingUnconditionalSegments, options);
-    members.push(...partMembers);
-    for (const member of partMembers) {
-      if (t.isObjectProperty(member)) {
-        previousProperties.set(propertyName(member.key), member);
-      }
+    const built = buildStyleHashMembers(pendingUnconditionalSegments, options);
+    members.push(...built.members);
+    for (const [cssProp, entries] of built.groups) {
+      previousGroups.set(cssProp, entries);
     }
     pendingUnconditionalSegments.length = 0;
+  }
+
+  /**
+   * Build one `if()` branch.
+   *
+   * Properties the branch only touches conditionally (i.e. `onHover.black`) start from the base
+   * entries, so the spread keeps `blue` alongside `h_black` instead of dropping it. Plain
+   * replacements (i.e. an unconditional `black`) get no seed, so the spread overrides the base.
+   */
+  function buildBranchMembers(segments: ResolvedSegment[]): StyleHashMember[] {
+    const conditionalOnly = collectConditionalOnlyProps(segments);
+    const seed: StyleEntryGroups = new Map([...previousGroups].filter(([cssProp]) => conditionalOnly.has(cssProp)));
+    return buildStyleHashMembers(segments, options, seed).members;
   }
 
   if (chain.markers.length > 0) {
@@ -130,16 +151,8 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
     } else {
       flushPendingUnconditionalSegments();
       // Conditional: ...(cond ? { then } : { else })
-      const thenMembers = mergeConditionalBranchMembers(
-        buildStyleHashMembers(part.thenSegments, options),
-        previousProperties,
-        collectConditionalOnlyProps(part.thenSegments),
-      );
-      const elseMembers = mergeConditionalBranchMembers(
-        buildStyleHashMembers(part.elseSegments, options),
-        previousProperties,
-        collectConditionalOnlyProps(part.elseSegments),
-      );
+      const thenMembers = buildBranchMembers(part.thenSegments);
+      const elseMembers = buildBranchMembers(part.elseSegments);
       members.push(
         t.spreadElement(
           t.conditionalExpression(part.conditionNode, t.objectExpression(thenMembers), t.objectExpression(elseMembers)),
@@ -156,28 +169,31 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
 /**
  * Build ObjectExpression members from a list of segments.
  *
- * CSS segments are batched and processed by buildStyleHashProperties. The other kinds
- * (composed, typography, className, inlineStyle) produce spread members or reserved
- * metadata properties.
+ * CSS segments are batched into entry groups and emitted as style hash properties. The other kinds
+ * (composed, typography, className, inlineStyle) produce spread members or reserved metadata properties.
+ *
+ * Returns the members plus the entry groups they were built from, so an enclosing conditional can
+ * seed its branches with them.
  */
-function buildStyleHashMembers(segments: ResolvedSegment[], options: RewriteSitesOptions): StyleHashMember[] {
+function buildStyleHashMembers(
+  segments: ResolvedSegment[],
+  options: RewriteSitesOptions,
+  seed?: StyleEntryGroups,
+): { members: StyleHashMember[]; groups: StyleEntryGroups } {
   const members: StyleHashMember[] = [];
+  const groups: StyleEntryGroups = new Map();
   const cssSegs: CssSegment[] = [];
   const classNameArgs: t.Expression[] = [];
   const styleKeyCounts = new Map<string, number>();
 
   function flushCssSegs(): void {
-    if (cssSegs.length > 0) {
-      members.push(
-        ...buildStyleHashProperties(
-          cssSegs,
-          options.mapping,
-          options.maybeIncHelperName,
-          options.maybeCssVarHelperName,
-        ),
-      );
-      cssSegs.length = 0;
+    if (cssSegs.length === 0) return;
+    const batchGroups = collectStyleEntryGroups(cssSegs, options.mapping, seed);
+    members.push(...styleHashProperties(batchGroups, options.maybeIncHelperName, options.maybeCssVarHelperName));
+    for (const [cssProp, entries] of batchGroups) {
+      groups.set(cssProp, entries);
     }
+    cssSegs.length = 0;
   }
 
   for (const seg of segments) {
@@ -236,7 +252,7 @@ function buildStyleHashMembers(segments: ResolvedSegment[], options: RewriteSite
       ...classNameArgs.map((arg) => buildMetadataMember(TRUSS_CUSTOM_CLASS_PREFIX, arg, classNameKeyCounts)),
     );
   }
-  return members;
+  return { members, groups };
 }
 
 /** I.e. `className_my_btn: "my-btn"`, with `_2`, `_3` suffixes for repeated keys. */
@@ -321,97 +337,6 @@ function collectConditionalOnlyProps(segments: ResolvedSegment[]): Set<string> {
     }
   }
   return new Set([...conditionalOnly].filter(([, isConditionalOnly]) => isConditionalOnly).map(([prop]) => prop));
-}
-
-/**
- * Merge prior base properties into conditional branch members, but only for
- * properties that are purely conditional (pseudo/media overlays). Plain
- * base-level replacements should NOT be merged — the spread will correctly
- * override the base when the condition is true.
- */
-function mergeConditionalBranchMembers(
-  members: StyleHashMember[],
-  previousProperties: Map<string, t.ObjectProperty>,
-  conditionalOnlyProps: Set<string>,
-): StyleHashMember[] {
-  return members.map((member) => {
-    if (!t.isObjectProperty(member)) {
-      return member;
-    }
-
-    const prop = propertyName(member.key);
-    const prior = previousProperties.get(prop);
-    if (!prior || !conditionalOnlyProps.has(prop)) {
-      return member;
-    }
-
-    return t.objectProperty(
-      clonePropertyKey(member.key),
-      mergePropertyValues(prior.value as t.Expression, member.value as t.Expression),
-    );
-  });
-}
-
-/** Combine a base value and a conditional overlay value for one CSS property, in either string or tuple form. */
-function mergePropertyValues(previousValue: t.Expression, currentValue: t.Expression): t.Expression {
-  if (t.isStringLiteral(previousValue) && t.isStringLiteral(currentValue)) {
-    return t.stringLiteral(`${previousValue.value} ${currentValue.value}`);
-  }
-
-  if (t.isStringLiteral(previousValue) && t.isArrayExpression(currentValue)) {
-    return mergeTupleValue(currentValue, previousValue.value, true);
-  }
-
-  if (t.isArrayExpression(previousValue) && t.isStringLiteral(currentValue)) {
-    return mergeTupleValue(previousValue, currentValue.value, false);
-  }
-
-  if (t.isArrayExpression(previousValue) && t.isArrayExpression(currentValue)) {
-    const previousClassNames = tupleClassNames(previousValue);
-    return mergeTupleValue(currentValue, previousClassNames, true, arrayElementExpression(previousValue.elements[1]));
-  }
-
-  return t.cloneNode(currentValue, true);
-}
-
-/** I.e. `["mt_var", vars]` plus `"black"` → `["black mt_var", vars]`, merging `previousVars` into the vars object when given. */
-function mergeTupleValue(
-  tuple: t.ArrayExpression,
-  classNames: string,
-  prependClassNames: boolean,
-  previousVars?: t.Expression | null,
-): t.ArrayExpression {
-  const currentClassNames = tupleClassNames(tuple);
-  const mergedClassNames = prependClassNames
-    ? `${classNames} ${currentClassNames}`
-    : `${currentClassNames} ${classNames}`;
-  const currentVars = arrayElementExpression(tuple.elements[1]);
-  const mergedVars =
-    previousVars && currentVars ? mergeVarsObject(previousVars, currentVars) : (currentVars ?? previousVars);
-
-  return t.arrayExpression([
-    t.stringLiteral(mergedClassNames),
-    mergedVars ? t.cloneNode(mergedVars, true) : t.objectExpression([]),
-  ]);
-}
-
-function tupleClassNames(tuple: t.ArrayExpression): string {
-  const classNames = tuple.elements[0];
-  return t.isStringLiteral(classNames) ? classNames.value : "";
-}
-
-function arrayElementExpression(element: t.Expression | t.SpreadElement | null | undefined): t.Expression | null {
-  return element && !t.isSpreadElement(element) ? element : null;
-}
-
-function mergeVarsObject(previousVars: t.Expression, currentVars: t.Expression): t.Expression {
-  if (t.isObjectExpression(previousVars) && t.isObjectExpression(currentVars)) {
-    return t.objectExpression(
-      [...previousVars.properties, ...currentVars.properties].map((property) => t.cloneNode(property, true)),
-    );
-  }
-
-  return t.cloneNode(currentVars, true);
 }
 
 function propertyName(key: t.Expression | t.Identifier | t.PrivateName): string {

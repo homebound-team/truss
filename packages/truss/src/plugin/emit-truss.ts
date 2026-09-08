@@ -57,7 +57,7 @@ export interface WhenSelector {
 }
 
 /** One class/property pair derived from a segment; the shared model both CSS rules and style hashes consume. */
-interface StyleEntry {
+export interface StyleEntry {
   cssProp: string;
   className: string;
   isVariable: boolean;
@@ -412,10 +412,8 @@ function buildTargetSelector(rule: AtomicRule, duplicateClassName: boolean, extr
 /**
  * Build the style hash AST for a list of segments (from one `Css.*.$` expression).
  *
- * Groups segments by CSS property and builds space-separated class bundles.
- * I.e. `[blue, h_white]` → `{ color: "blue h_white" }`.
- *
- * Variable entries produce tuples: `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`.
+ * I.e. `[blue, h_white]` → `{ color: "blue h_white" }`, and `[mt(x)]` →
+ * `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`.
  */
 export function buildStyleHashProperties(
   segments: ResolvedSegment[],
@@ -423,30 +421,49 @@ export function buildStyleHashProperties(
   maybeIncHelperName?: string | null,
   maybeCssVarHelperName?: string | null,
 ): t.ObjectProperty[] {
-  // I.e. cssProperty → list of { className, isVariable, isConditional, varName, argNode, ... }
-  const propGroups = new Map<string, StyleEntry[]>();
+  return styleHashProperties(collectStyleEntryGroups(segments, mapping), maybeIncHelperName, maybeCssVarHelperName);
+}
 
-  /**
-   * Push an entry, replacing earlier base-level entries when a new base-level entry
-   * overrides the same property.
-   *
-   * I.e. `Css.blue.black.$` → the later `black` replaces `blue` for `color`,
-   * but `Css.blue.onHover.black.$` accumulates both because `onHover.black` is conditional.
-   */
-  function pushEntry(entry: StyleEntry): void {
-    const entries = propGroups.get(entry.cssProp) ?? [];
-    const kept = entry.isConditional ? entries : entries.filter((existing) => existing.isConditional);
-    propGroups.set(entry.cssProp, [...kept, entry]);
-  }
+/**
+ * Group the style entries of `segments` by CSS property, in order of first appearance.
+ *
+ * Within a group, a new base-level entry replaces earlier base-level entries while conditional
+ * entries accumulate. I.e. `Css.blue.black.$` → the later `black` replaces `blue` for `color`,
+ * but `Css.blue.onHover.black.$` keeps both because `onHover.black` is conditional.
+ *
+ * `seed` supplies the starting entries for a property the first time it appears, i.e. the base
+ * `color` entries that an `if(cond).onHover.black` branch must carry alongside its own `h_black`.
+ */
+export function collectStyleEntryGroups(
+  segments: ResolvedSegment[],
+  mapping: TrussMapping,
+  seed?: ReadonlyMap<string, StyleEntry[]>,
+): Map<string, StyleEntry[]> {
+  const propGroups = new Map<string, StyleEntry[]>();
 
   for (const seg of segments) {
     if (!isCssSegment(seg)) continue;
     for (const entry of styleEntriesForSegment(seg, mapping)) {
-      pushEntry(entry);
+      const entries = propGroups.get(entry.cssProp) ?? seed?.get(entry.cssProp) ?? [];
+      const kept = entry.isConditional ? entries : entries.filter((existing) => existing.isConditional);
+      propGroups.set(entry.cssProp, [...kept, entry]);
     }
   }
 
-  // Build AST ObjectProperty nodes
+  return propGroups;
+}
+
+/**
+ * Build style hash properties from grouped entries.
+ *
+ * Static groups become space-separated class bundles, i.e. `{ color: "blue h_white" }`.
+ * Groups with a variable entry become tuples, i.e. `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`.
+ */
+export function styleHashProperties(
+  propGroups: ReadonlyMap<string, StyleEntry[]>,
+  maybeIncHelperName?: string | null,
+  maybeCssVarHelperName?: string | null,
+): t.ObjectProperty[] {
   const properties: t.ObjectProperty[] = [];
 
   for (const [cssProp, entries] of propGroups) {
@@ -454,12 +471,10 @@ export function buildStyleHashProperties(
     const variableEntries = entries.filter((e) => e.isVariable);
 
     if (variableEntries.length === 0) {
-      // I.e. static: `{ color: "blue h_white" }`
       properties.push(t.objectProperty(toPropertyKey(cssProp), t.stringLiteral(classNames)));
       continue;
     }
 
-    // I.e. `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`
     const varsProps = variableEntries.map((dyn) => {
       return t.objectProperty(
         t.stringLiteral(dyn.varName!),
