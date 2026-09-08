@@ -1343,11 +1343,11 @@ describe("transform", () => {
       const s = Css.ifContainer({ gt: 600, lt: 960 }).gc("span 2").$;
     `).toHaveTrussOutput(
       `
-      const s = { gridColumn: "mq_gc_span_2" };
+      const s = { gridColumn: "container_min_width_601px_and_max_width_960px_gc_span_2" };
     `,
       `
       @container (min-width: 601px) and (max-width: 960px) {
-        .mq_gc_span_2.mq_gc_span_2 {
+        .container_min_width_601px_and_max_width_960px_gc_span_2.container_min_width_601px_and_max_width_960px_gc_span_2 {
           grid-column: span 2;
         }
       }
@@ -1361,14 +1361,14 @@ describe("transform", () => {
       const s = Css.black.ifContainer({ gt: 600, lt: 960 }).blue.$;
     `).toHaveTrussOutput(
       `
-      const s = { color: "black mq_blue" };
+      const s = { color: "black container_min_width_601px_and_max_width_960px_blue" };
     `,
       `
       .black {
         color: #353535;
       }
       @container (min-width: 601px) and (max-width: 960px) {
-        .mq_blue.mq_blue {
+        .container_min_width_601px_and_max_width_960px_blue.container_min_width_601px_and_max_width_960px_blue {
           color: #526675;
         }
       }
@@ -1384,11 +1384,36 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      const s = { color: "mq_blue" };
+      const s = { color: "container_grid_min_width_601px_and_max_width_960px_blue" };
     `,
       `
       @container grid (min-width: 601px) and (max-width: 960px) {
-        .mq_blue.mq_blue {
+        .container_grid_min_width_601px_and_max_width_960px_blue.container_grid_min_width_601px_and_max_width_960px_blue {
+          color: #526675;
+        }
+      }
+    `,
+    );
+  });
+
+  test("different custom queries with the same value get distinct classes", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const a = Css.if("@media (min-width: 600px)").blue.$;
+      const b = Css.ifContainer({ gt: 600 }).blue.$;
+    `).toHaveTrussOutput(
+      `
+      const a = { color: "media_min_width_600px_blue" };
+      const b = { color: "container_min_width_601px_blue" };
+    `,
+      `
+      @media (min-width: 600px) {
+        .media_min_width_600px_blue.media_min_width_600px_blue {
+          color: #526675;
+        }
+      }
+      @container (min-width: 601px) {
+        .container_min_width_601px_blue.container_min_width_601px_blue {
           color: #526675;
         }
       }
@@ -4051,11 +4076,11 @@ test("setVar: responsive container rows emit @container rules", () => {
     `).toHaveTrussOutput(
     `
       import { Tokens } from "./Css";
-      const el = <div className="mq___theme_accent_10px" />;
+      const el = <div className="container_min_width_401px___theme_accent_10px" />;
     `,
     `
       @container (min-width: 401px) {
-        .mq___theme_accent_10px.mq___theme_accent_10px {
+        .container_min_width_401px___theme_accent_10px.container_min_width_401px___theme_accent_10px {
           --theme-accent: 10px;
         }
       }
