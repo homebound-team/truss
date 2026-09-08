@@ -652,6 +652,47 @@ describe("transform", () => {
     );
   });
 
+  test("delegate with negative literal folds like a positive one: Css.mtPx(-4).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.mtPx(-4).$;
+    `).toHaveTrussOutput(
+      `
+      const s = { marginTop: "mt_neg4px" };
+    `,
+      `
+      .mt_neg4px {
+        margin-top: -4px;
+      }
+    `,
+    );
+  });
+
+  test("delegate shorthand with negative literal folds every longhand: Css.mPx(-1).$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.mPx(-1).$;
+    `).toHaveTrussOutput(
+      `
+      const s = { marginTop: "mt_neg1px", marginBottom: "mb_neg1px", marginRight: "mr_neg1px", marginLeft: "ml_neg1px" };
+    `,
+      `
+      .mb_neg1px {
+        margin-bottom: -1px;
+      }
+      .ml_neg1px {
+        margin-left: -1px;
+      }
+      .mr_neg1px {
+        margin-right: -1px;
+      }
+      .mt_neg1px {
+        margin-top: -1px;
+      }
+    `,
+    );
+  });
+
   test("delegate shorthand with multiple props appends px: Css.pxPx(x).$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";

@@ -11,7 +11,7 @@ import { staticPropertyName } from "./ast-utils";
 import { type CallChainNode, UnsupportedPatternError } from "./chain-nodes";
 import { cloneConditionContext } from "./condition-context";
 import { requireEntry, staticSegment } from "./resolve-entry";
-import { isCustomPropertyLiteral, singleArg, tryEvaluatePropertyLiteral } from "./resolve-literals";
+import { isCustomPropertyLiteral, singleArg, tryEvaluatePropertyLiteral, tryNumericLiteral } from "./resolve-literals";
 import { resolveSetVarCall } from "./resolve-setvar";
 import { resolveTypographyCall } from "./resolve-typography";
 
@@ -80,6 +80,8 @@ function resolveDelegateCall(
     throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a variable entry`);
   }
   const arg = singleArg(node, abbr);
+  // I.e. `mtPx(12)` folds to `12px` and `mtPx(-4)` to `-4px`; anything else is a runtime value
+  const pixels = tryNumericLiteral(arg);
   // Use the target abbreviation name for delegate segments (i.e. mtPx → mt)
   return resolveLiteralOrVariableSegment({
     abbr: entry.target,
@@ -88,7 +90,7 @@ function resolveDelegateCall(
     appendPx: true,
     extraDefs: targetEntry.extraDefs,
     argAst: arg,
-    literalValue: t.isNumericLiteral(arg) ? `${arg.value}px` : null,
+    literalValue: pixels === null ? null : `${pixels}px`,
     mapping,
     context,
   });
