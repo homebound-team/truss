@@ -3,7 +3,7 @@ import type { TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import { extractDollarChain, findCssImportBinding, unwrapExpression } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
-import { camelToKebab } from "./emit-truss";
+import { camelToKebab } from "./style-entries";
 import { parseModule } from "./babel-utils";
 
 /**

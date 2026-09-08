@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { tmpdir } from "os";
 import { transformCssTs } from "./transform-css";
-import { camelToKebab } from "./emit-truss";
+import { camelToKebab } from "./style-entries";
 import { loadMapping, trussPlugin } from "./index";
 import { resolve } from "path";
 

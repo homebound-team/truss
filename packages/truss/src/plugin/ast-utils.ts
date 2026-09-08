@@ -1,5 +1,5 @@
 import * as t from "@babel/types";
-import type { ChainNode } from "./resolve-chain";
+import type { ChainNode } from "./chain-nodes";
 
 export interface NamedImport {
   importedName: string;
