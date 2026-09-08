@@ -32,10 +32,10 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@babel/generator": "^7.29.1",
-    "@babel/parser": "^7.29.2",
-    "@babel/traverse": "^7.29.0",
-    "@babel/types": "^7.29.0",
+    "@babel/generator": "^8.0.0",
+    "@babel/parser": "^8.0.4",
+    "@babel/traverse": "^8.0.4",
+    "@babel/types": "^8.0.4",
     "change-case": "^5.4.4",
     "css-tree": "^3.2.1",
     "csstype": "^3.2.3",
@@ -47,8 +47,6 @@
   },
   "devDependencies": {
     "@homebound/tsconfig": "^1.2.0",
-    "@types/babel__generator": "^7.27.0",
-    "@types/babel__traverse": "^7.28.0",
     "@types/css-tree": "^3.2.0",
     "@types/node": "^26.5.0",
     "@types/react": "^19.2.18",
