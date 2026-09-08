@@ -2,6 +2,7 @@ export function lowerCaseFirst(s: string): string {
   return s.charAt(0).toLowerCase() + s.substr(1);
 }
 
+/** A double-quoted JS string literal for `s`, escaping quotes and backslashes, i.e. `[data-state="open"]`. */
 export function quote(s: string): string {
-  return `"${s}"`;
+  return JSON.stringify(s);
 }

@@ -142,7 +142,7 @@ export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
 export function newSetCssVariablesMethod(abbr: UtilityName, defs: Record<string, string>): UtilityMethod {
   collect({ kind: "cssvar", abbr, defs: { ...defs } });
   return `get ${abbr}() { return this${Object.entries(defs)
-    .map(([prop, value]) => `.add("${prop}" as any, "${value}")`)
+    .map(([prop, value]) => `.add("${prop}" as any, ${JSON.stringify(value)})`)
     .join("")}; }`;
 }
 
@@ -236,9 +236,9 @@ export function newPxMethods(abbr: UtilityName, props: Prop[]): UtilityMethod[] 
 
 export const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
 
-/** Keeps numbers as literals, and wraps anything else with double quotes. */
+/** Keeps numbers as literals, and emits anything else as an escaped double-quoted string literal. */
 function maybeWrap(value: unknown): string {
-  return typeof value === "number" ? String(value) : `"${value}"`;
+  return typeof value === "number" ? String(value) : JSON.stringify(String(value));
 }
 
 export function comment(defs: object): string {
