@@ -1,4 +1,4 @@
-import { Properties } from "csstype";
+import { type Properties } from "csstype";
 import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
 import { makeBreakpoints } from "src/breakpoints";
@@ -11,7 +11,8 @@ import { reactNativeSections } from "src/sections/tachyons-rn";
 import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
 import { SPACING_CUSTOM_PROPERTY } from "src/spacing-css-var";
 
-const CssProperties = imp("Properties@csstype");
+// A type-only import, so generated files also compile under `verbatimModuleSyntax`
+const CssProperties = imp("t:Properties@csstype");
 
 export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
   Margin: ["margin", "marginTop", "marginRight", "marginBottom", "marginLeft"],
@@ -330,7 +331,7 @@ function omitUndefinedValues<T extends object>(value: T): T {
 
 export enum Palette {
   ${Object.entries(palette).map(([name, value]) => {
-    return `${name} = "${value}",`;
+    return `${name} = ${JSON.stringify(value)},`;
   })}
 }
 
@@ -421,7 +422,7 @@ function generateWebCssBuilder(config: Config, sections: Record<string, UtilityM
   const breakpointCode = [
     `export type Breakpoint = ${Object.keys(genBreakpointsMap).map(quote).join(" | ")};`,
     `export enum Breakpoints {`,
-    ...Object.entries(genBreakpointsMap).map(([name, value]) => `  ${name} = "${value}",`),
+    ...Object.entries(genBreakpointsMap).map(([name, value]) => `  ${name} = ${JSON.stringify(value)},`),
     `}`,
   ];
 
@@ -723,7 +724,7 @@ function omitUndefinedValues<T extends object>(value: T): T {
 
 export enum Palette {
   ${Object.entries(palette).map(([name, value]) => {
-    return `${name} = "${value}",`;
+    return `${name} = ${JSON.stringify(value)},`;
   })}
 }
 
