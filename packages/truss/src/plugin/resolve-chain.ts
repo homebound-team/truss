@@ -37,8 +37,6 @@ export interface ResolveChainCtx {
   mapping: TrussMapping;
   /** The local identifier bound to the generated `Css` export, if one exists in this file. */
   cssBindingName?: string;
-  /** The starting modifier state for this resolution pass, i.e. inherited media/pseudo context. */
-  initialContext?: ResolvedConditionContext;
   /** Optional lexical binding resolver for `const same = Css.blue.$` style references. */
   resolveCssChainReference?: CssChainReferenceResolver;
 }
@@ -80,7 +78,11 @@ export function chainSegments(chain: ResolvedChain): ResolvedSegment[] {
 }
 
 /**
- * High-level chain resolver that handles if/else by splitting into parts.
+ * Resolve a whole `Css.*.$` chain in one left-to-right pass, splitting at if/else into parts.
+ *
+ * One live condition context is advanced by every modifier node as it is encountered, and each
+ * style node is resolved under the context at that moment. `initialContext` seeds that context,
+ * i.e. the selector of an enclosing `when({ ":hover": ... })` value.
  *
  * ## Chain semantics
  *
@@ -131,47 +133,29 @@ export function chainSegments(chain: ResolvedChain): ResolvedSegment[] {
  * A boolean `if(bool)` nests the chain but inherits the currently-active
  * modifier axes into both branches.
  */
-export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): ResolvedChain {
+export function resolveFullChain(
+  ctx: ResolveChainCtx,
+  chain: ChainNode[],
+  initialContext: ResolvedConditionContext = emptyConditionContext(),
+): ResolvedChain {
   const { mapping } = ctx;
-  const initialContext = ctx.initialContext ?? emptyConditionContext();
-  const parts: ResolvedChainPart[] = [];
-  const nestedErrors: string[] = [];
   const markerScan = scanMarkerNodes(chain);
   const nodes = markerScan.chain;
   const markers = [...markerScan.markers];
+  const errors = [...markerScan.errors];
+  const parts: ResolvedChainPart[] = [];
+  const context = cloneConditionContext(initialContext);
+  // The open unconditional part; closed before each conditional or when({ ... }) part
+  let current: ResolvedSegment[] = [];
 
-  // Split chain at if/else boundaries
+  function closeCurrentPart(): void {
+    if (current.length > 0) {
+      parts.push({ type: "unconditional", segments: current });
+      current = [];
+    }
+  }
+
   let i = 0;
-  let currentNodes: ChainNode[] = [];
-  const currentContext = cloneConditionContext(initialContext);
-  let currentNodesStartContext = cloneConditionContext(initialContext);
-
-  function flushCurrentNodes(): void {
-    if (currentNodes.length === 0) {
-      return;
-    }
-
-    parts.push({
-      type: "unconditional",
-      segments: resolveSegments({ ...ctx, initialContext: currentNodesStartContext }, currentNodes),
-    });
-    currentNodes = [];
-    currentNodesStartContext = cloneConditionContext(currentContext);
-  }
-
-  function pushCurrentNode(nodeToPush: ChainNode): void {
-    if (currentNodes.length === 0) {
-      currentNodesStartContext = cloneConditionContext(currentContext);
-    }
-
-    currentNodes.push(nodeToPush);
-    try {
-      applyModifierNodeToConditionContext(currentContext, nodeToPush, mapping);
-    } catch {
-      // resolveSegments() reports the real unsupported-pattern error later.
-    }
-  }
-
   while (i < nodes.length) {
     const node = nodes[i];
 
@@ -180,46 +164,44 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
       const elseIndex = findElseIndex(nodes, i + 1);
       if (elseIndex === -1) {
         // I.e. `ifSm.black` or `if("@media ...").black`: a media context for the nodes that follow.
-        pushCurrentNode(makeMediaQueryNode(mediaQuery));
+        context.mediaQuery = mediaQuery;
         i++;
         continue;
       }
 
       // I.e. `ifSm.black.else.white[.end]`: the else branch gets the inverted media query.
-      flushCurrentNodes();
-      const branchContext = cloneConditionContext(currentContext);
       const branchEnd = findEndIndex(nodes, elseIndex + 1);
-      const thenNodes = [makeMediaQueryNode(mediaQuery), ...nodes.slice(i + 1, elseIndex)];
-      const elseNodes = [makeMediaQueryNode(invertMediaQuery(mediaQuery)), ...nodes.slice(elseIndex + 1, branchEnd)];
-      parts.push({
-        type: "unconditional",
-        segments: [
-          ...resolveSegments({ ...ctx, initialContext: branchContext }, thenNodes),
-          ...resolveSegments({ ...ctx, initialContext: branchContext }, elseNodes),
-        ],
-      });
+      const thenContext = cloneConditionContext(context);
+      thenContext.mediaQuery = mediaQuery;
+      const elseContext = cloneConditionContext(context);
+      elseContext.mediaQuery = invertMediaQuery(mediaQuery);
+      current.push(
+        ...resolveSegments(ctx, nodes.slice(i + 1, elseIndex), thenContext),
+        ...resolveSegments(ctx, nodes.slice(elseIndex + 1, branchEnd), elseContext),
+      );
       if (branchEnd === nodes.length) {
         break;
       }
-      resetConditionContext(currentContext);
+      resetConditionContext(context);
       i = branchEnd + 1;
       continue;
     }
 
     if (isWhenObjectCall(node)) {
-      flushCurrentNodes();
-      const resolved = resolveWhenObjectSelectors(ctx, node, currentContext);
+      closeCurrentPart();
+      const resolved = resolveWhenObjectSelectors(ctx, node, context);
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
-      nestedErrors.push(...resolved.errors);
+      errors.push(...resolved.errors);
       i++;
       continue;
     }
 
     if (node.type === "if") {
       // Boolean conditional; the string-literal `if(mediaQuery)` overload was handled above.
-      flushCurrentNodes();
-      const branchContext = cloneConditionContext(currentContext);
+      closeCurrentPart();
+      // Both branches inherit the context as of the `if`, even when the group's `end` resets it below
+      const branchContext = cloneConditionContext(context);
 
       // Collect "then" nodes until "else" or end
       const thenNodes: ChainNode[] = [];
@@ -229,7 +211,7 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
       while (i < nodes.length) {
         const branchNode = nodes[i];
         if (branchNode.type === "getter" && branchNode.name === "end") {
-          resetConditionContext(currentContext);
+          resetConditionContext(context);
           i++;
           break;
         }
@@ -252,60 +234,63 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
-        thenSegments: resolveSegments({ ...ctx, initialContext: branchContext }, thenNodes),
-        elseSegments: resolveSegments({ ...ctx, initialContext: branchContext }, elseNodes),
+        thenSegments: resolveSegments(ctx, thenNodes, cloneConditionContext(branchContext)),
+        elseSegments: resolveSegments(ctx, elseNodes, cloneConditionContext(branchContext)),
       });
       continue;
     }
 
-    pushCurrentNode(node);
+    current.push(...resolveNode(ctx, node, context));
     i++;
   }
 
-  // Flush remaining unconditional nodes
-  flushCurrentNodes();
+  closeCurrentPart();
 
   const segmentErrors = parts
     .flatMap((part) => partSegments(part))
     .flatMap((seg) => (seg.kind === "error" ? [seg.message] : []));
-  return { parts, markers, errors: [...new Set([...markerScan.errors, ...nestedErrors, ...segmentErrors])] };
+  return { parts, markers, errors: [...new Set([...errors, ...segmentErrors])] };
 }
 
 /**
- * Walks a Css member-expression chain (the AST between `Css` and `.$`) and
- * resolves each segment into CSS property definitions using the truss mapping.
+ * Resolve a run of nodes under one live `context`, which each modifier node advances in place.
  *
- * Returns an array of ResolvedSegment with flat defs (no condition nesting).
- * Does NOT handle if/else — use resolveFullChain for that.
+ * I.e. the body of an `if()` branch. Does NOT split at if/else — use resolveFullChain for that.
  */
-function resolveSegments(ctx: ResolveChainCtx, chain: ChainNode[]): ResolvedSegment[] {
+function resolveSegments(
+  ctx: ResolveChainCtx,
+  nodes: ChainNode[],
+  context: ResolvedConditionContext,
+): ResolvedSegment[] {
+  return nodes.flatMap((node) => resolveNode(ctx, node, context));
+}
+
+/**
+ * Resolve one chain node under `context`.
+ *
+ * Modifiers (`ifSm`, `onHover`, `end`, ...) advance `context` and yield no segments; abbreviations and
+ * built-in calls yield their segments; an unsupported pattern yields one error segment in their place.
+ */
+function resolveNode(ctx: ResolveChainCtx, node: ChainNode, context: ResolvedConditionContext): ResolvedSegment[] {
   const { mapping } = ctx;
-  const segments: ResolvedSegment[] = [];
-  const context = cloneConditionContext(ctx.initialContext ?? emptyConditionContext());
-
-  for (const node of chain) {
-    try {
-      if (isWhenObjectCall(node)) {
-        segments.push(...flattenWhenObjectParts(resolveWhenObjectSelectors(ctx, node, context)));
-        continue;
-      }
-
-      if (applyModifierNodeToConditionContext(context, node, mapping)) {
-        continue;
-      }
-
-      if (node.type === "getter") {
-        segments.push(...resolveEntry(node.name, requireEntry(mapping, node.name), mapping, context));
-      } else if (node.type === "call") {
-        segments.push(...resolveCallNode(node, mapping, context));
-      }
-    } catch (err) {
-      if (!(err instanceof UnsupportedPatternError)) throw err;
-      segments.push(errorSegment(err.message));
+  try {
+    if (isWhenObjectCall(node)) {
+      return flattenWhenObjectParts(resolveWhenObjectSelectors(ctx, node, context));
     }
+    if (applyModifierNodeToConditionContext(context, node, mapping)) {
+      return [];
+    }
+    if (node.type === "getter") {
+      return resolveEntry(node.name, requireEntry(mapping, node.name), mapping, context);
+    }
+    if (node.type === "call") {
+      return resolveCallNode(node, mapping, context);
+    }
+    return [];
+  } catch (err) {
+    if (!(err instanceof UnsupportedPatternError)) throw err;
+    return [errorSegment(err.message)];
   }
-
-  return segments;
 }
 
 // ── Condition context ─────────────────────────────────────────────────
@@ -341,20 +326,14 @@ function staticSegment(
 /**
  * Apply context-only chain nodes like breakpoints/pseudos/end.
  *
- * Returns false for nodes that produce styles instead. `resolveFullChain` catches errors at
- * speculative context-tracking call sites; `resolveSegments` lets them surface so unsupported
- * patterns are reported.
+ * Returns false for nodes that produce styles instead. Throws UnsupportedPatternError for a
+ * malformed modifier, which `resolveNode` turns into an error segment.
  */
 function applyModifierNodeToConditionContext(
   context: ResolvedConditionContext,
   node: ChainNode,
   mapping: TrussMapping,
 ): boolean {
-  if (node.type === "mediaQuery") {
-    context.mediaQuery = node.mediaQuery;
-    return true;
-  }
-
   if (node.type === "getter") {
     if (node.name === "end") {
       resetConditionContext(context);
@@ -487,10 +466,6 @@ function findEndIndex(chain: ChainNode[], start: number): number {
   return chain.length;
 }
 
-function makeMediaQueryNode(mediaQuery: string): MediaQueryChainNode {
-  return { type: "mediaQuery", mediaQuery };
-}
-
 // ── when({ ... }) object form ─────────────────────────────────────────
 
 /** Detect `when({ ... })` so object-form selector groups can be resolved specially. */
@@ -507,7 +482,7 @@ function isWhenObjectCall(node: ChainNode): node is WhenObjectCallChainNode {
 function resolveWhenObjectSelectors(
   ctx: ResolveChainCtx,
   node: WhenObjectCallChainNode,
-  initialContext: ResolvedConditionContext,
+  context: ResolvedConditionContext,
 ): ResolvedChain {
   if (!ctx.cssBindingName) {
     return {
@@ -539,9 +514,9 @@ function resolveWhenObjectSelectors(
         throw new UnsupportedPatternError(`when({ ... }) values must be Css.*.$ expressions`);
       }
 
-      const selectorContext = cloneConditionContext(initialContext);
+      const selectorContext = cloneConditionContext(context);
       selectorContext.pseudoClass = property.key.value;
-      const resolved = resolveFullChain({ ...ctx, initialContext: selectorContext }, innerChain);
+      const resolved = resolveFullChain(ctx, innerChain, selectorContext);
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
       errors.push(...resolved.errors);
@@ -568,11 +543,11 @@ function resolveWhenObjectValueChain(ctx: ResolveChainCtx, value: t.Expression):
   return direct ?? ctx.resolveCssChainReference?.(value) ?? null;
 }
 
-/** Flatten nested `when({ ... })` parts back into plain segments for `resolveSegments()`. */
+/** Flatten nested `when({ ... })` parts back into plain segments for a branch body. */
 function flattenWhenObjectParts(resolved: ResolvedChain): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
 
-  // I.e. `resolveSegments()` needs a flat segment list, even though `when({ ... })` is resolved via `resolveFullChain()`.
+  // I.e. a branch body needs a flat segment list, even though `when({ ... })` is resolved via `resolveFullChain()`.
   for (const part of resolved.parts) {
     if (part.type !== "unconditional") {
       throw new UnsupportedPatternError(`when({ ... }) values cannot use if()/else in this context`);
@@ -1463,16 +1438,7 @@ export interface ElseChainNode {
   type: "else";
 }
 
-/**
- * A media query context switch. Never produced by `extractChain`; `resolveFullChain` synthesizes
- * it for `if("@media ...")`, breakpoint getters, and the inverted query of a media `else` branch.
- */
-export interface MediaQueryChainNode {
-  type: "mediaQuery";
-  mediaQuery: string;
-}
-
-export type ChainNode = GetterChainNode | CallChainNode | IfChainNode | ElseChainNode | MediaQueryChainNode;
+export type ChainNode = GetterChainNode | CallChainNode | IfChainNode | ElseChainNode;
 
 export class UnsupportedPatternError extends Error {
   constructor(message: string) {
