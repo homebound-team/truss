@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { collectAtomicRules, generateCssText, type AtomicRule } from "./emit-truss";
 import { computeRulePriority } from "./priority";
-import type { ResolvedSegment, TrussMapping } from "./types";
+import type { ResolvedConditionContext, ResolvedSegment, TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 
 const testMapping: TrussMapping = {
@@ -15,7 +15,7 @@ const testMapping: TrussMapping = {
 
 describe("collectAtomicRules", () => {
   test("static single-property segment", () => {
-    const seg: ResolvedSegment = { abbr: "df", defs: { display: "flex" } };
+    const seg: ResolvedSegment = { kind: "static", abbr: "df", defs: { display: "flex" }, condition: condition() };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("df")).toMatchObject({
       className: "df",
@@ -25,8 +25,10 @@ describe("collectAtomicRules", () => {
 
   test("static multi-property segment", () => {
     const seg: ResolvedSegment = {
+      kind: "static",
       abbr: "ba",
       defs: { borderStyle: "solid", borderWidth: "1px" },
+      condition: condition(),
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("bs_solid")).toMatchObject({
@@ -41,9 +43,10 @@ describe("collectAtomicRules", () => {
 
   test("static with pseudo-class", () => {
     const seg: ResolvedSegment = {
+      kind: "static",
       abbr: "blue",
       defs: { color: "#526675" },
-      pseudoClass: ":hover",
+      condition: condition({ pseudoClass: ":hover" }),
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("h_blue")).toMatchObject({
@@ -55,9 +58,10 @@ describe("collectAtomicRules", () => {
 
   test("static with media query", () => {
     const seg: ResolvedSegment = {
+      kind: "static",
       abbr: "blue",
       defs: { color: "#526675" },
-      mediaQuery: "@media screen and (max-width: 599px)",
+      condition: condition({ mediaQuery: "@media screen and (max-width: 599px)" }),
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("sm_blue")).toMatchObject({
@@ -69,10 +73,13 @@ describe("collectAtomicRules", () => {
 
   test("static with media query and relationship selector", () => {
     const seg: ResolvedSegment = {
+      kind: "static",
       abbr: "blue",
       defs: { color: "#526675" },
-      mediaQuery: "@media screen and (max-width: 599px)",
-      whenPseudo: { relationship: "ancestor", pseudo: ":hover" },
+      condition: condition({
+        mediaQuery: "@media screen and (max-width: 599px)",
+        whenPseudo: { relationship: "ancestor", pseudo: ":hover" },
+      }),
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("sm_wh_anc_h_blue")).toMatchObject({
@@ -89,9 +96,10 @@ describe("collectAtomicRules", () => {
 
   test("static with pseudo-element", () => {
     const seg: ResolvedSegment = {
+      kind: "static",
       abbr: "blue",
       defs: { color: "#526675" },
-      pseudoElement: "::placeholder",
+      condition: condition({ pseudoElement: "::placeholder" }),
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("placeholder_blue")).toMatchObject({
@@ -103,11 +111,13 @@ describe("collectAtomicRules", () => {
 
   test("variable segment", () => {
     const seg: ResolvedSegment = {
+      kind: "variable",
       abbr: "mt",
-      defs: {},
-      variableProps: ["marginTop"],
+      props: ["marginTop"],
       incremented: true,
+      appendPx: false,
       argNode: { type: "Identifier", name: "x" },
+      condition: condition(),
     };
     const result = collectAtomicRules([chain([seg])], testMapping);
     expect(result.needsMaybeInc).toBe(true);
@@ -120,11 +130,13 @@ describe("collectAtomicRules", () => {
 
   test("variable segment with multiple props keeps one class and multiple declarations", () => {
     const seg: ResolvedSegment = {
+      kind: "variable",
       abbr: "sq",
-      defs: {},
-      variableProps: ["height", "width"],
+      props: ["height", "width"],
+      incremented: false,
       appendPx: true,
       argNode: { type: "Identifier", name: "x" },
+      condition: condition(),
     };
     const result = collectAtomicRules([chain([seg])], testMapping);
     expect(result.needsMaybeCssVar).toBe(false);
@@ -139,11 +151,13 @@ describe("collectAtomicRules", () => {
 
   test("variable with hover", () => {
     const seg: ResolvedSegment = {
+      kind: "variable",
       abbr: "bc",
-      defs: {},
-      variableProps: ["borderColor"],
-      pseudoClass: ":hover",
+      props: ["borderColor"],
+      incremented: false,
+      appendPx: false,
       argNode: { type: "Identifier", name: "y" },
+      condition: condition({ pseudoClass: ":hover" }),
     };
     const result = collectAtomicRules([chain([seg])], testMapping);
     expect(result.needsMaybeCssVar).toBe(true);
@@ -156,9 +170,10 @@ describe("collectAtomicRules", () => {
 
   test("custom pseudo selectors build a safe class token", () => {
     const seg: ResolvedSegment = {
+      kind: "static",
       abbr: "black",
       defs: { color: "#353535" },
-      pseudoClass: ":hover:not(:disabled)",
+      condition: condition({ pseudoClass: ":hover:not(:disabled)" }),
     };
     const { rules } = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("h_n_d_black")).toMatchObject({
@@ -666,6 +681,11 @@ function stripAnnotations(css: string): string {
 /** Helper to build a minimal ResolvedChain from segments. */
 function chain(segments: ResolvedSegment[]): ResolvedChain {
   return { parts: [{ type: "unconditional", segments }], markers: [], errors: [] };
+}
+
+/** Helper to build a condition context with only the given axes set. */
+function condition(axes: Partial<ResolvedConditionContext> = {}): ResolvedConditionContext {
+  return { mediaQuery: null, pseudoClass: null, pseudoElement: null, whenPseudo: null, ...axes };
 }
 
 /** Helper to build an AtomicRule from shorthand fields. */

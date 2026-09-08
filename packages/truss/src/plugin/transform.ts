@@ -336,8 +336,8 @@ function resolveCssChainReference(
 function collectRuntimeLookups(chains: ResolvedChain[]): Map<string, Record<string, ResolvedSegment[]>> {
   const lookups = new Map<string, Record<string, ResolvedSegment[]>>();
   for (const seg of chains.flatMap((chain) => chainSegments(chain))) {
-    if (seg.typographyLookup && !lookups.has(seg.typographyLookup.lookupKey)) {
-      lookups.set(seg.typographyLookup.lookupKey, seg.typographyLookup.segmentsByName);
+    if (seg.kind === "typography" && !lookups.has(seg.lookupKey)) {
+      lookups.set(seg.lookupKey, seg.segmentsByName);
     }
   }
   return lookups;

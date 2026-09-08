@@ -1,6 +1,14 @@
 import * as t from "@babel/types";
 import { chainSegments, type ResolvedChain } from "./resolve-chain";
-import { isStyleSegment, type ResolvedSegment, type TrussMapping, type WhenCondition } from "./types";
+import {
+  isCssSegment,
+  type CssSegment,
+  type ResolvedConditionContext,
+  type ResolvedSegment,
+  type TrussMapping,
+  type VariableSegment,
+  type WhenCondition,
+} from "./types";
 import { breakpointNameForMediaQuery, findCanonicalAbbreviation } from "./mapping-utils";
 import { sortRulesByPriority } from "./priority";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
@@ -97,16 +105,16 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
   let needsMaybeCssVar = false;
 
   function collectSegment(seg: ResolvedSegment): void {
-    if (seg.typographyLookup) {
-      for (const segments of Object.values(seg.typographyLookup.segmentsByName)) {
+    if (seg.kind === "typography") {
+      for (const segments of Object.values(seg.segmentsByName)) {
         segments.forEach(collectSegment);
       }
       return;
     }
-    if (!isStyleSegment(seg)) return;
-    if (seg.incremented) needsMaybeInc = true;
-    if (seg.variableProps && seg.argResolved === undefined && variableValueNeedsMaybeCssVar(seg)) {
-      needsMaybeCssVar = true;
+    if (!isCssSegment(seg)) return;
+    if (seg.kind === "variable") {
+      if (seg.incremented) needsMaybeInc = true;
+      if (seg.argResolved === undefined && variableValueNeedsMaybeCssVar(seg)) needsMaybeCssVar = true;
     }
     collectSegmentRules(rules, seg, mapping);
   }
@@ -119,7 +127,9 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
 }
 
 /** Collect atomic CSS rules for one resolved style segment. */
-function collectSegmentRules(rules: Map<string, AtomicRule>, seg: ResolvedSegment, mapping: TrussMapping): void {
+function collectSegmentRules(rules: Map<string, AtomicRule>, seg: CssSegment, mapping: TrussMapping): void {
+  const { condition } = seg;
+
   for (const entry of styleEntriesForSegment(seg, mapping)) {
     const declaration: AtomicDeclaration = {
       cssProperty: camelToKebab(entry.cssProp),
@@ -131,10 +141,10 @@ function collectSegmentRules(rules: Map<string, AtomicRule>, seg: ResolvedSegmen
       rules.set(entry.className, {
         className: entry.className,
         declarations: [declaration],
-        pseudoClass: seg.pseudoClass ?? undefined,
-        mediaQuery: seg.mediaQuery ?? undefined,
-        pseudoElement: seg.pseudoElement ?? undefined,
-        whenSelector: seg.whenPseudo ? whenSelectorFor(seg.whenPseudo) : undefined,
+        pseudoClass: condition.pseudoClass ?? undefined,
+        mediaQuery: condition.mediaQuery ?? undefined,
+        pseudoElement: condition.pseudoElement ?? undefined,
+        whenSelector: condition.whenPseudo ? whenSelectorFor(condition.whenPseudo) : undefined,
       });
       continue;
     }
@@ -165,11 +175,11 @@ function whenSelectorFor(whenPseudo: WhenCondition): WhenSelector {
  *
  * I.e. convert one resolved segment into the shared model both CSS rules and style hashes consume.
  */
-function styleEntriesForSegment(seg: ResolvedSegment, mapping: TrussMapping): StyleEntry[] {
-  const prefix = segmentClassPrefix(seg, mapping);
+function styleEntriesForSegment(seg: CssSegment, mapping: TrussMapping): StyleEntry[] {
+  const prefix = segmentClassPrefix(seg.condition, mapping);
   const isConditional = prefix !== "";
 
-  if (seg.variableProps) {
+  if (seg.kind === "variable") {
     return variableStyleEntries(seg, mapping, prefix, isConditional);
   }
 
@@ -182,7 +192,7 @@ function styleEntriesForSegment(seg: ResolvedSegment, mapping: TrussMapping): St
  * I.e. `Css.ba.$` becomes separate `borderStyle -> bss` and `borderWidth -> bw1` entries.
  */
 function staticStyleEntries(
-  seg: ResolvedSegment,
+  seg: CssSegment,
   mapping: TrussMapping,
   prefix: string,
   isConditional: boolean,
@@ -205,13 +215,13 @@ function staticStyleEntries(
  * and `Css.ifSm.mt(x).$` becomes `sm_mt_var` with `--sm_marginTop`.
  */
 function variableStyleEntries(
-  seg: ResolvedSegment,
+  seg: VariableSegment,
   mapping: TrussMapping,
   prefix: string,
   isConditional: boolean,
 ): StyleEntry[] {
   const className = `${prefix}${seg.abbr}_var`;
-  const entries: StyleEntry[] = (seg.variableProps ?? []).map((cssProp) => {
+  const entries: StyleEntry[] = seg.props.map((cssProp) => {
     const varName = `--${prefix}${cssProp}`;
     return {
       cssProp,
@@ -227,8 +237,8 @@ function variableStyleEntries(
     };
   });
 
-  if (seg.variableExtraDefs) {
-    entries.push(...staticStyleEntries(seg, mapping, prefix, isConditional, seg.variableExtraDefs, true));
+  if (seg.extraDefs) {
+    entries.push(...staticStyleEntries(seg, mapping, prefix, isConditional, seg.extraDefs, true));
   }
 
   return entries;
@@ -247,7 +257,7 @@ function variableStyleEntries(
  * I.e. `mt(2)` → `mt_2` (web increment calc), `mt(-1)` → `mt_neg1`, `bc("red")` → `bc_red`.
  */
 function computeStaticBaseName(
-  seg: ResolvedSegment,
+  seg: CssSegment,
   cssProp: string,
   cssValue: string,
   isMultiProp: boolean,
@@ -271,22 +281,22 @@ function computeStaticBaseName(
  * I.e. `ifSm.onHover.bgBlack` → `"sm_h_"` so the final class reads `sm_h_bgBlack`
  * ("on sm + hover, bgBlack"), and `when(row, "ancestor", ":hover").blue` → `"wh_anc_h_row_"`.
  */
-function segmentClassPrefix(seg: ResolvedSegment, mapping: TrussMapping): string {
+function segmentClassPrefix(condition: ResolvedConditionContext, mapping: TrussMapping): string {
   const parts: string[] = [];
-  if (seg.pseudoElement) {
+  if (condition.pseudoElement) {
     // I.e. "::placeholder" → "placeholder_"
-    parts.push(`${seg.pseudoElement.replace(/^::/, "")}_`);
+    parts.push(`${condition.pseudoElement.replace(/^::/, "")}_`);
   }
-  if (seg.mediaQuery) {
+  if (condition.mediaQuery) {
     // I.e. the `ifSm` breakpoint → "sm_"; any other media/container query → "mq_"
-    const breakpoint = breakpointNameForMediaQuery(mapping, seg.mediaQuery);
+    const breakpoint = breakpointNameForMediaQuery(mapping, condition.mediaQuery);
     parts.push(breakpoint ? `${breakpoint.toLowerCase()}_` : "mq_");
   }
-  if (seg.pseudoClass) {
-    parts.push(`${pseudoSelectorPrefix(seg.pseudoClass)}_`);
+  if (condition.pseudoClass) {
+    parts.push(`${pseudoSelectorPrefix(condition.pseudoClass)}_`);
   }
-  if (seg.whenPseudo) {
-    parts.push(whenPrefix(seg.whenPseudo));
+  if (condition.whenPseudo) {
+    parts.push(whenPrefix(condition.whenPseudo));
   }
   return parts.join("");
 }
@@ -430,7 +440,7 @@ export function buildStyleHashProperties(
   }
 
   for (const seg of segments) {
-    if (!isStyleSegment(seg)) continue;
+    if (!isCssSegment(seg)) continue;
     for (const entry of styleEntriesForSegment(seg, mapping)) {
       pushEntry(entry);
     }
