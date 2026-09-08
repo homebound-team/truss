@@ -50,7 +50,7 @@
     "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.28.0",
     "@types/css-tree": "^3.2.0",
-    "@types/node": "^25.5.2",
+    "@types/node": "^26.5.0",
     "@types/react": "^19.2.18",
     "jsdom": "^29.0.2",
     "react": "^19.2.8",
