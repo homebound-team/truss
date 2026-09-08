@@ -198,47 +198,45 @@ function resolveCssExpression(
   for (const part of resolved.parts) {
     if (part.type !== "unconditional") continue;
     for (const seg of part.segments) {
-      if (seg.error) {
-        return { error: seg.error };
+      // Reject segments that need the runtime: variables with runtime args and the non-CSS kinds
+      if (seg.kind === "error") {
+        return { error: seg.message };
       }
-
-      // Reject segments that require runtime (variable with variable args)
-      if (seg.variableProps && !seg.argResolved) {
+      if (seg.kind === "variable" && seg.argResolved === undefined) {
         return { error: `variable value with variable argument is not supported in .css.ts files` };
       }
-      if (seg.typographyLookup) {
+      if (seg.kind === "typography") {
         return { error: `typography() with a runtime key is not supported in .css.ts files` };
       }
-      if (seg.styleArrayArg) {
+      if (seg.kind === "composed") {
         return { error: `add(cssProp) is not supported in .css.ts files` };
       }
-      if (seg.styleArg) {
+      if (seg.kind === "inlineStyle") {
         return { error: `style() is not supported in .css.ts files` };
+      }
+      if (seg.kind === "className") {
+        return { error: `className() is not supported in .css.ts files` };
       }
 
       // Reject segments with media query / pseudo-class / pseudo-element / when modifiers
-      if (seg.mediaQuery) {
+      const { condition } = seg;
+      if (condition.mediaQuery) {
         return { error: `media query modifiers (ifSm, ifMd, etc.) are not supported in .css.ts files` };
       }
-      if (seg.pseudoClass) {
+      if (condition.pseudoClass) {
         return { error: `pseudo-class modifiers (onHover, onFocus, etc.) are not supported in .css.ts files` };
       }
-      if (seg.pseudoElement) {
+      if (condition.pseudoElement) {
         return { error: `pseudo-element modifiers are not supported in .css.ts files` };
       }
-      if (seg.whenPseudo) {
+      if (condition.whenPseudo) {
         return { error: `when() modifiers are not supported in .css.ts files` };
       }
 
-      if (seg.variableProps && seg.argResolved) {
-        for (const prop of seg.variableProps) {
-          declarations.push({ property: camelToKebab(prop), value: seg.argResolved });
-        }
-        continue;
-      }
-
-      // Extract CSS property/value pairs from defs
-      for (const [prop, value] of Object.entries(seg.defs)) {
+      // I.e. a token variable `mt(Tokens.gap)` declares `var(--gap)` for each of its props
+      const pairs: Array<[string, unknown]> =
+        seg.kind === "variable" ? seg.props.map((prop) => [prop, seg.argResolved]) : Object.entries(seg.defs);
+      for (const [prop, value] of pairs) {
         if (typeof value === "string" || typeof value === "number") {
           declarations.push({ property: camelToKebab(prop), value: String(value) });
         } else {

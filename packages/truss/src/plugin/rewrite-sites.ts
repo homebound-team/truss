@@ -1,6 +1,6 @@
 import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
-import { hasCondition, isStyleSegment, type ResolvedSegment, type TrussMapping } from "./types";
+import { hasCondition, isCssSegment, type CssSegment, type ResolvedSegment, type TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 import { buildStyleHashProperties, markerClassName } from "./emit-truss";
 import { generate, traverse } from "./babel-utils";
@@ -156,81 +156,77 @@ function buildStyleHashFromChain(chain: ResolvedChain, options: RewriteSitesOpti
 /**
  * Build ObjectExpression members from a list of segments.
  *
- * Normal segments are batched and processed by buildStyleHashProperties.
- * Special segments (styleArrayArg, typographyLookup, classNameArg, styleArg) produce
- * spread members or reserved metadata properties.
+ * CSS segments are batched and processed by buildStyleHashProperties. The other kinds
+ * (composed, typography, className, inlineStyle) produce spread members or reserved
+ * metadata properties.
  */
 function buildStyleHashMembers(segments: ResolvedSegment[], options: RewriteSitesOptions): StyleHashMember[] {
   const members: StyleHashMember[] = [];
-  const normalSegs: ResolvedSegment[] = [];
+  const cssSegs: CssSegment[] = [];
   const classNameArgs: t.Expression[] = [];
   const styleKeyCounts = new Map<string, number>();
 
-  function flushNormal(): void {
-    if (normalSegs.length > 0) {
+  function flushCssSegs(): void {
+    if (cssSegs.length > 0) {
       members.push(
         ...buildStyleHashProperties(
-          normalSegs,
+          cssSegs,
           options.mapping,
           options.maybeIncHelperName,
           options.maybeCssVarHelperName,
         ),
       );
-      normalSegs.length = 0;
+      cssSegs.length = 0;
     }
   }
 
   for (const seg of segments) {
-    if (seg.error) continue;
-
-    if (seg.classNameArg) {
-      // I.e. `Css.className(cls).df.$` becomes `className_cls: cls` in the style hash.
-      classNameArgs.push(t.cloneNode(seg.classNameArg, true));
-      continue;
-    }
-
-    if (seg.styleArg) {
-      flushNormal();
-      members.push(buildMetadataMember(TRUSS_INLINE_STYLE_PREFIX, seg.styleArg, styleKeyCounts));
-      continue;
-    }
-
-    if (seg.styleArrayArg) {
-      flushNormal();
-      if (seg.isAddCss && t.isObjectExpression(seg.styleArrayArg)) {
-        members.push(...buildAddCssObjectMembers(seg.styleArrayArg));
-      } else {
-        members.push(t.spreadElement(seg.styleArrayArg));
+    switch (seg.kind) {
+      case "error":
+        continue;
+      case "className":
+        // I.e. `Css.className(cls).df.$` becomes `className_cls: cls` in the style hash.
+        classNameArgs.push(t.cloneNode(seg.arg, true));
+        continue;
+      case "inlineStyle":
+        flushCssSegs();
+        members.push(buildMetadataMember(TRUSS_INLINE_STYLE_PREFIX, seg.arg, styleKeyCounts));
+        continue;
+      case "composed":
+        flushCssSegs();
+        if (seg.skipUndefined && t.isObjectExpression(seg.arg)) {
+          members.push(...buildAddCssObjectMembers(seg.arg));
+        } else {
+          members.push(t.spreadElement(seg.arg));
+        }
+        continue;
+      case "typography": {
+        flushCssSegs();
+        const lookupName = options.runtimeLookupNames.get(seg.lookupKey);
+        if (lookupName) {
+          // I.e. `{ ...(__typography[key] ?? {}) }`
+          const lookupAccess = t.memberExpression(t.identifier(lookupName), seg.argNode, true);
+          members.push(t.spreadElement(t.logicalExpression("??", lookupAccess, t.objectExpression([]))));
+        }
+        continue;
       }
-      continue;
-    }
-
-    if (seg.typographyLookup) {
-      flushNormal();
-      const lookupName = options.runtimeLookupNames.get(seg.typographyLookup.lookupKey);
-      if (lookupName) {
-        // I.e. `{ ...(__typography[key] ?? {}) }`
-        const lookupAccess = t.memberExpression(t.identifier(lookupName), seg.typographyLookup.argNode, true);
-        members.push(t.spreadElement(t.logicalExpression("??", lookupAccess, t.objectExpression([]))));
-      }
-      continue;
     }
 
     // In debug mode, add the abbreviation name as a marker className for multi-property
     // segments so engineers can see the origin in the DOM. I.e. `Css.bb.$` adds "bb"
     // alongside "bbs_solid bbw_1px", and `Css.lineClamp(n).$` adds "lineClamp".
     if (options.debug) {
-      const isMultiProp = Object.keys(seg.defs).length > 1;
-      const hasExtraDefs = seg.variableExtraDefs && Object.keys(seg.variableExtraDefs).length > 0;
+      const isMultiProp = seg.kind === "static" && Object.keys(seg.defs).length > 1;
+      const hasExtraDefs = seg.kind === "variable" && !!seg.extraDefs && Object.keys(seg.extraDefs).length > 0;
       if (isMultiProp || hasExtraDefs) {
         classNameArgs.push(t.stringLiteral(seg.abbr));
       }
     }
 
-    normalSegs.push(seg);
+    cssSegs.push(seg);
   }
 
-  flushNormal();
+  flushCssSegs();
   if (classNameArgs.length > 0) {
     // Prepend so markers/custom classes appear first in the DOM,
     // I.e. `className="bb bbs_solid bbw_1px"` rather than at the end.
@@ -316,9 +312,10 @@ function buildAddCssObjectMembers(styleObject: t.ObjectExpression): StyleHashMem
 function collectConditionalOnlyProps(segments: ResolvedSegment[]): Set<string> {
   const conditionalOnly = new Map<string, boolean>();
   for (const seg of segments) {
-    if (!isStyleSegment(seg)) continue;
-    const segHasCondition = hasCondition(seg);
-    for (const prop of seg.variableProps ?? Object.keys(seg.defs)) {
+    if (!isCssSegment(seg)) continue;
+    const segHasCondition = hasCondition(seg.condition);
+    const props = seg.kind === "variable" ? seg.props : Object.keys(seg.defs);
+    for (const prop of props) {
       // If any segment for this property is unconditional, it's not conditional-only
       conditionalOnly.set(prop, (conditionalOnly.get(prop) ?? true) && segHasCondition);
     }

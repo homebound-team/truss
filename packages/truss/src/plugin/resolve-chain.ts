@@ -5,6 +5,7 @@ import {
   type MarkerSegment,
   type ResolvedConditionContext,
   type ResolvedSegment,
+  type StaticSegment,
   type TrussMapping,
   type TrussMappingEntry,
   type WhenCondition,
@@ -264,7 +265,9 @@ export function resolveFullChain(ctx: ResolveChainCtx, chain: ChainNode[]): Reso
   // Flush remaining unconditional nodes
   flushCurrentNodes();
 
-  const segmentErrors = parts.flatMap((part) => partSegments(part)).flatMap((seg) => (seg.error ? [seg.error] : []));
+  const segmentErrors = parts
+    .flatMap((part) => partSegments(part))
+    .flatMap((seg) => (seg.kind === "error" ? [seg.message] : []));
   return { parts, markers, errors: [...new Set([...markerScan.errors, ...nestedErrors, ...segmentErrors])] };
 }
 
@@ -325,18 +328,14 @@ function resetConditionContext(context: ResolvedConditionContext): void {
   Object.assign(context, emptyConditionContext());
 }
 
-/** Snapshot the active condition axes onto a segment. */
-function segmentWithConditionContext(
-  segment: Omit<ResolvedSegment, "mediaQuery" | "pseudoClass" | "pseudoElement" | "whenPseudo">,
+/** A static segment under a snapshot of the active condition axes. */
+function staticSegment(
+  abbr: string,
+  defs: Record<string, unknown>,
   context: ResolvedConditionContext,
-): ResolvedSegment {
-  return {
-    ...segment,
-    mediaQuery: context.mediaQuery,
-    pseudoClass: context.pseudoClass,
-    pseudoElement: context.pseudoElement,
-    whenPseudo: context.whenPseudo,
-  };
+  argResolved?: string,
+): StaticSegment {
+  return { kind: "static", abbr, defs, argResolved, condition: cloneConditionContext(context) };
 }
 
 /**
@@ -601,7 +600,7 @@ function requireEntry(mapping: TrussMapping, abbr: string): TrussMappingEntry {
 
 /** Placeholder segment that carries an unsupported-pattern message through to the emitter. */
 function errorSegment(message: string): ResolvedSegment {
-  return { abbr: "__error", defs: {}, error: message };
+  return { kind: "error", message };
 }
 
 /** Resolve a static or alias entry (from a getter access). Defs are always flat. */
@@ -613,7 +612,7 @@ function resolveEntry(
 ): ResolvedSegment[] {
   switch (entry.kind) {
     case "static": {
-      return [segmentWithConditionContext({ abbr, defs: entry.defs }, context)];
+      return [staticSegment(abbr, entry.defs, context)];
     }
     case "alias": {
       const result: ResolvedSegment[] = [];
@@ -732,26 +731,24 @@ function resolveLiteralOrVariableSegment(params: {
   mapping: TrussMapping;
   context: ResolvedConditionContext;
 }): ResolvedSegment {
-  const { abbr, props, incremented, appendPx, extraDefs, argAst, literalValue, mapping, context } = params;
+  const { abbr, props, incremented, appendPx = false, extraDefs, argAst, literalValue, mapping, context } = params;
 
   if (literalValue !== null && !isCustomPropertyLiteral(argAst, mapping)) {
     const defs: Record<string, unknown> = Object.fromEntries(props.map((prop) => [prop, literalValue]));
-    return segmentWithConditionContext({ abbr, defs: { ...defs, ...extraDefs }, argResolved: literalValue }, context);
+    return staticSegment(abbr, { ...defs, ...extraDefs }, context, literalValue);
   }
 
-  return segmentWithConditionContext(
-    {
-      abbr,
-      defs: {},
-      variableProps: props,
-      incremented,
-      appendPx,
-      variableExtraDefs: extraDefs,
-      argNode: literalValue === null ? argAst : undefined,
-      argResolved: literalValue ?? undefined,
-    },
-    context,
-  );
+  return {
+    kind: "variable",
+    abbr,
+    props,
+    incremented,
+    appendPx,
+    extraDefs,
+    argNode: literalValue === null ? argAst : undefined,
+    argResolved: literalValue ?? undefined,
+    condition: cloneConditionContext(context),
+  };
 }
 
 /** Raw class passthrough, i.e. `Css.className(buttonClass).df.$`. */
@@ -764,7 +761,7 @@ function resolveClassNameCall(node: CallChainNode, context: ResolvedConditionCon
     );
   }
   // I.e. this is metadata for the rewriter/runtime, not an atomic CSS rule.
-  return { abbr: "className", defs: {}, classNameArg: arg };
+  return { kind: "className", arg };
 }
 
 /** Raw inline style passthrough, i.e. `Css.mt(x).style(vars).$`. */
@@ -775,7 +772,7 @@ function resolveStyleCall(node: CallChainNode, context: ResolvedConditionContext
       `style() cannot be used inside media query, pseudo-class, pseudo-element, or when() contexts`,
     );
   }
-  return { abbr: "style", defs: {}, styleArg: arg };
+  return { kind: "inlineStyle", arg };
 }
 
 /**
@@ -794,8 +791,7 @@ function resolveWithCall(node: CallChainNode): ResolvedSegment {
     throw new UnsupportedPatternError(`with() does not support spread arguments`);
   }
   // Object literal: skip undefined values (the old addCss({ height }) pattern)
-  const isAddCss = t.isObjectExpression(styleArg) ? { isAddCss: true } : {};
-  return { abbr: "__composed_css_prop", defs: {}, styleArrayArg: styleArg, ...isAddCss };
+  return { kind: "composed", arg: styleArg, skipUndefined: t.isObjectExpression(styleArg) };
 }
 
 /**
@@ -892,7 +888,7 @@ function resolveAddDeclaration(
       : undefined;
   if (canonicalAbbr) {
     const entry = mapping.abbreviations[canonicalAbbr] as Extract<TrussMappingEntry, { kind: "static" }>;
-    return segmentWithConditionContext({ abbr: canonicalAbbr, defs: entry.defs }, context);
+    return staticSegment(canonicalAbbr, entry.defs, context);
   }
 
   return resolveLiteralOrVariableSegment({
@@ -931,7 +927,7 @@ function resolveTypographyCall(
     segmentsByName[name] = resolveTypographyEntry(name, mapping, context);
   }
 
-  return [{ abbr: lookupKey, defs: {}, typographyLookup: { lookupKey, argNode: arg, segmentsByName } }];
+  return [{ kind: "typography", lookupKey, argNode: arg, segmentsByName }];
 }
 
 /** Resolve a single typography abbreviation name within the current condition context. */
@@ -951,7 +947,7 @@ function resolveTypographyEntry(
 
   const resolved = resolveEntry(name, entry, mapping, context);
   for (const segment of resolved) {
-    if (segment.variableProps) {
+    if (segment.kind === "variable") {
       throw new UnsupportedPatternError(`Typography abbreviation "${name}" cannot require runtime arguments`);
     }
   }
@@ -1257,12 +1253,7 @@ function resolveSetVarCall(
     // I.e. `--theme-accent` → `__theme_accent`, which emit-truss extends with the value, i.e. `__theme_accent_blue`.
     const abbr = `__${sanitizeClassNameToken(cssVarName.replace(/^--/, ""))}`;
     for (const leaf of expandSetVarValueToLeaves(prop.value as t.Expression, mapping, context)) {
-      segments.push(
-        segmentWithConditionContext(
-          { abbr, defs: { [cssVarName]: leaf.literal }, argResolved: leaf.literal },
-          leaf.context,
-        ),
-      );
+      segments.push(staticSegment(abbr, { [cssVarName]: leaf.literal }, leaf.context, leaf.literal));
     }
   }
 
@@ -1323,7 +1314,7 @@ interface SetVarLeaf {
  *
  * Output: each leaf is a concrete literal plus a condition context (viewport `mediaQuery`,
  * `@container` string in `mediaQuery`, or base). `resolveSetVarCall` turns each leaf into
- * a `ResolvedSegment` with `defs: { [cssVarName]: literal }`. Leaves are emitted in the order
+ * a static segment with `defs: { [cssVarName]: literal }`. Leaves are emitted in the order
  * default, media, container regardless of the source property order.
  *
  * I.e. `"8px"` → one leaf with the inherited context (often unconditional).
@@ -1400,7 +1391,7 @@ function setVarMediaLeaves(
   baseContext: ResolvedConditionContext,
 ): SetVarLeaf[] {
   return plainObjectEntries(mediaObject, "setVar().media").map(({ key: breakpointName, value }) => {
-    const mediaQuery = mapping.breakpoints?.[`if${pascalCase(breakpointName)}`] ?? null;
+    const mediaQuery = breakpointMediaQuery(mapping, `if${pascalCase(breakpointName)}`);
     if (mediaQuery === null) {
       throw new UnsupportedPatternError(
         `Unknown breakpoint "${breakpointName}" in setVar().media - use a Breakpoint name from truss-config`,
