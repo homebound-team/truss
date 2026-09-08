@@ -1,3 +1,9 @@
+## [2.29.5](https://github.com/homebound-team/truss/compare/v2.29.4...v2.29.5) (2026-09-08)
+
+### Bug Fixes
+
+* Order overlapping media queries by width so the narrower query wins. ([5ad127f](https://github.com/homebound-team/truss/commit/5ad127f356d9a088d0e94fe962f6f10dad91879b))
+
 ## [2.29.4](https://github.com/homebound-team/truss/compare/v2.29.3...v2.29.4) (2026-09-08)
 
 ### Bug Fixes
