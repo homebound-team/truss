@@ -169,7 +169,7 @@ The plugin accumulates all atomic rules across files during transform. In `gener
 
 ### Library CSS merging
 
-Each CSS rule in the output is annotated with its priority: `/* @truss p:<priority> c:<className> */`. When `libraries` are configured, the plugin parses these annotations from each library's `truss.css`, combines them with the app's own rules, deduplicates by class name (same class name = same rule, since output is deterministic), and sorts by priority ascending with alphabetical class name tiebreaker. `@property` declarations are deduplicated by variable name and appended at the end.
+Each CSS rule in the output is annotated with its priority: `/* @truss p:<priority> c:<className> */`. When `libraries` are configured, the plugin parses these annotations from each library's `truss.css`, combines them with the app's own rules, deduplicates by class name (same class name = same rule, since output is deterministic), and sorts them with the same comparator the per-file emitter uses: priority, then media-query width, then class name. `@property` declarations are deduplicated by variable name and appended at the end.
 
 ## CSS Generation
 
@@ -177,18 +177,19 @@ Each CSS rule in the output is annotated with its priority: `/* @truss p:<priori
 
 Class names are deterministic and human-readable:
 
-| Pattern               | Example class              | CSS                                                   |
-| --------------------- | -------------------------- | ----------------------------------------------------- |
-| Base                  | `df`                       | `.df { display: flex }`                               |
-| Pseudo-class          | `h_blue`                   | `.h_blue:hover { color: #526675 }`                    |
-| Media query           | `sm_df`                    | `@media (...) { .sm_df.sm_df { display: flex } }`     |
-| Media + pseudo        | `sm_h_blue`                | `@media (...) { .sm_h_blue.sm_h_blue:hover { ... } }` |
-| Pseudo-element        | `placeholder_blue`         | `.placeholder_blue::placeholder { color: #526675 }`   |
-| Variable              | `mt_var`                   | `.mt_var { margin-top: var(--marginTop) }`            |
-| Literal-folded        | `mt_2`                     | `.mt_2 { margin-top: calc(var(--t-spacing) * 2) }`    |
-| `add()` literal       | `add_transition_all_240ms` | `.add_transition_all_240ms { transition: all 240ms }` |
-| `add()` variable      | `color_var`                | `.color_var { color: var(--color) }`                  |
-| `when()` relationship | `wh_anc_h_blue`            | `._mrk:hover .wh_anc_h_blue { color: #526675 }`       |
+| Pattern                   | Example class                | CSS                                                                                            |
+| ------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| Base                      | `df`                         | `.df { display: flex }`                                                                        |
+| Pseudo-class              | `h_blue`                     | `.h_blue:hover { color: #526675 }`                                                             |
+| Media query               | `sm_df`                      | `@media (...) { .sm_df.sm_df { display: flex } }`                                              |
+| Media + pseudo            | `sm_h_blue`                  | `@media (...) { .sm_h_blue.sm_h_blue:hover { ... } }`                                          |
+| Raw media/container query | `media_min_width_600px_blue` | `@media (min-width: 600px) { .media_min_width_600px_blue.media_min_width_600px_blue { ... } }` |
+| Pseudo-element            | `placeholder_blue`           | `.placeholder_blue::placeholder { color: #526675 }`                                            |
+| Variable                  | `mt_var`                     | `.mt_var { margin-top: var(--marginTop) }`                                                     |
+| Literal-folded            | `mt_2`                       | `.mt_2 { margin-top: calc(var(--t-spacing) * 2) }`                                             |
+| `add()` literal           | `add_transition_all_240ms`   | `.add_transition_all_240ms { transition: all 240ms }`                                          |
+| `add()` variable          | `color_var`                  | `.color_var { color: var(--color) }`                                                           |
+| `when()` relationship     | `wh_anc_h_blue`              | `._mrk:hover .wh_anc_h_blue { color: #526675 }`                                                |
 
 ### Specificity tiers
 
@@ -211,7 +212,7 @@ Within the same specificity tier, CSS source order determines the winner. Truss 
 
 **Pseudo-class precedence** (weakest to strongest): `:hover` → `:focus` → `:focus-visible` → `:active` → `:disabled`
 
-**Media precedence**: Named breakpoints (`ifSm`, `ifMd`, `ifLg`) follow the breakpoint model ordering.
+**Media precedence**: Rules with the same priority are ordered by the px width interval their query matches, widest first, so the narrower query is emitted later and wins wherever both match. Min-width queries sort ascending, then max-width queries descending, then two-sided ranges such as `ifMd`, then queries with no readable width (`ifPrint`, `not`, comma lists). Class name is the final tiebreak. I.e. `ifMdAndUp.white.ifLg.black` emits `mdandup_white` before `lg_black`, so black wins at 960px and up. `@container` queries follow the same rule.
 
 Rules are emitted in stable tiers: base → pseudo (by precedence) → pseudo-element → `when()` → media → media+pseudo → media+pseudo-element → `@property` declarations.
 
