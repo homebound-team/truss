@@ -804,6 +804,8 @@ function resolveWithCall(node: CallChainNode): ResolvedSegment {
  * Supported overloads:
  * - `add({ prop: value, ... })` to add real CSS property/value pairs (alias for multiple add calls)
  * - `add("propName", value)` for an arbitrary CSS property/value pair
+ *
+ * Both forms reuse a canonical abbreviation when the pair matches one, i.e. `add("display", "grid")` → `dg`.
  */
 function resolveAddCall(
   node: CallChainNode,
@@ -837,25 +839,12 @@ function resolveAddCall(
     throw new UnsupportedPatternError(`add() does not support spread arguments`);
   }
 
-  return [
-    resolveLiteralOrVariableSegment({
-      abbr: propArg.value,
-      props: [propArg.value],
-      incremented: false,
-      argAst: valueArg,
-      literalValue: tryEvaluatePropertyLiteral(valueArg, mapping, false),
-      mapping,
-      context,
-    }),
-  ];
+  return [resolveAddDeclaration(propArg.value, valueArg, mapping, context)];
 }
 
 /**
  * Expand an `add({ prop1: value1, prop2: value2 })` object literal into individual segments,
  * as if the user had called `add("prop1", value1).add("prop2", value2)`.
- *
- * When a property/value pair matches an existing abbreviation in the mapping (e.g.
- * `{ display: "grid" }` → `dg`), the canonical abbreviation is reused.
  */
 function resolveAddObjectLiteral(
   obj: t.ObjectExpression,
@@ -874,32 +863,47 @@ function resolveAddObjectLiteral(
     if (propName === null) {
       throw new UnsupportedPatternError(`add({...}) property keys must be identifiers or string literals`);
     }
-    const valueNode = property.value as t.Expression;
-    const literalValue = tryEvaluatePropertyLiteral(valueNode, mapping, false);
-
-    const canonicalAbbr =
-      literalValue !== null && !isCustomPropertyLiteral(valueNode, mapping)
-        ? findCanonicalAbbreviation(mapping, propName, literalValue)
-        : undefined;
-    if (canonicalAbbr) {
-      const entry = mapping.abbreviations[canonicalAbbr] as Extract<TrussMappingEntry, { kind: "static" }>;
-      segments.push(segmentWithConditionContext({ abbr: canonicalAbbr, defs: entry.defs }, context));
-      continue;
-    }
-
-    segments.push(
-      resolveLiteralOrVariableSegment({
-        abbr: propName,
-        props: [propName],
-        incremented: false,
-        argAst: valueNode,
-        literalValue,
-        mapping,
-        context,
-      }),
-    );
+    segments.push(resolveAddDeclaration(propName, property.value as t.Expression, mapping, context));
   }
   return segments;
+}
+
+/**
+ * Resolve one `add()` property/value pair to a segment.
+ *
+ * When the pair matches an existing single-property abbreviation in the mapping, that abbreviation
+ * is reused so the class is shared with direct uses. Otherwise the property name itself is the
+ * abbreviation, folded to a static class for literal values or a `_var` tuple for runtime values.
+ *
+ * I.e. `("display", "grid")` → the `dg` segment; `("boxShadow", "0 0 0 1px blue")` → `boxShadow_0_0_0_1px_blue`;
+ * `("boxShadow", shadow)` → `boxShadow_var` with `--boxShadow: shadow`.
+ */
+function resolveAddDeclaration(
+  propName: string,
+  valueNode: t.Expression,
+  mapping: TrussMapping,
+  context: ResolvedConditionContext,
+): ResolvedSegment {
+  const literalValue = tryEvaluatePropertyLiteral(valueNode, mapping, false);
+
+  const canonicalAbbr =
+    literalValue !== null && !isCustomPropertyLiteral(valueNode, mapping)
+      ? findCanonicalAbbreviation(mapping, propName, literalValue)
+      : undefined;
+  if (canonicalAbbr) {
+    const entry = mapping.abbreviations[canonicalAbbr] as Extract<TrussMappingEntry, { kind: "static" }>;
+    return segmentWithConditionContext({ abbr: canonicalAbbr, defs: entry.defs }, context);
+  }
+
+  return resolveLiteralOrVariableSegment({
+    abbr: propName,
+    props: [propName],
+    incremented: false,
+    argAst: valueNode,
+    literalValue,
+    mapping,
+    context,
+  });
 }
 
 // ── typography(...) ───────────────────────────────────────────────────

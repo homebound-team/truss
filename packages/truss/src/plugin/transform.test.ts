@@ -3566,7 +3566,7 @@ describe("transform", () => {
       const s = Css.df.add("wordBreak", "break-word").black.$;
     `).toHaveTrussOutput(
       `
-      const s = { display: "df", wordBreak: "wordBreak_break_word", color: "black" };
+      const s = { display: "df", wordBreak: "wbbw", color: "black" };
     `,
       `
       .black {
@@ -3575,7 +3575,7 @@ describe("transform", () => {
       .df {
         display: flex;
       }
-      .wordBreak_break_word {
+      .wbbw {
         word-break: break-word;
       }
     `,
@@ -3641,10 +3641,10 @@ describe("transform", () => {
       const s = Css.onHover.add("textDecoration", "underline").$;
     `).toHaveTrussOutput(
       `
-      const s = { textDecoration: "h_textDecoration_underline" };
+      const s = { textDecoration: "h_tdu" };
     `,
       `
-      .h_textDecoration_underline:hover {
+      .h_tdu:hover {
         text-decoration: underline;
       }
     `,
