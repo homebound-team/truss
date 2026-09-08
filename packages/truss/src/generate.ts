@@ -21,9 +21,7 @@ export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
 /** Emitted in generated Css.ts before CssBuilder so `setVar` types are in scope. */
 function emitTokensEnumAndSetVarTypes(tokens: Config["tokens"] | undefined): string {
   const entries =
-    tokens && typeof tokens === "object"
-      ? Object.entries(tokens).filter(([, v]) => typeof v === "string")
-      : [];
+    tokens && typeof tokens === "object" ? Object.entries(tokens).filter(([, v]) => typeof v === "string") : [];
   const hasTokens = entries.length > 0;
   const enumBlock = hasTokens
     ? `export enum Tokens {\n${entries.map(([name, value]) => `  ${name} = ${JSON.stringify(value)},`).join("\n")}\n}\n\n`

@@ -9,5 +9,5 @@ export const borderWidth: CreateMethodsFn = () =>
       bw1: "1px",
       bw2: "2px",
     },
-    "bw"
+    "bw",
   );

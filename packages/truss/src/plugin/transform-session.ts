@@ -2,7 +2,13 @@ import { resolve } from "path";
 import { generateCssText, type AtomicRule } from "./emit-css";
 import { transformCssTs } from "./transform-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
-import { annotateArbitraryCssBlock, mergeTrussCss, parseTrussCss, readTrussCss, type ParsedTrussCss } from "./merge-css";
+import {
+  annotateArbitraryCssBlock,
+  mergeTrussCss,
+  parseTrussCss,
+  readTrussCss,
+  type ParsedTrussCss,
+} from "./merge-css";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
@@ -59,7 +65,11 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     }
   }
 
-  function transformCode(code: string, fileId: string, transformOptions: TransformTrussOptions = {}): TransformResult | null {
+  function transformCode(
+    code: string,
+    fileId: string,
+    transformOptions: TransformTrussOptions = {},
+  ): TransformResult | null {
     const result = transformTruss(code, fileId, ensureMapping(), transformOptions);
     if (!result) return null;
 

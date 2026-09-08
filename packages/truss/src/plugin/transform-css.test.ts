@@ -528,9 +528,14 @@ describe("trussPlugin .css.ts integration", () => {
     // The CSS should be available via the dev virtual endpoint instead
     const css = getVirtualCss(plugin);
     expect(css).toBe(
-      [":root { --t-spacing: 8px; }", "/* @truss arbitrary:start */", ".foo {", "  display: flex;", "}", "/* @truss arbitrary:end */"].join(
-        "\n",
-      ),
+      [
+        ":root { --t-spacing: 8px; }",
+        "/* @truss arbitrary:start */",
+        ".foo {",
+        "  display: flex;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
     );
   });
 

@@ -541,9 +541,7 @@ describe("Truss CssBuilder", () => {
       const style = document.querySelector("style[data-truss-runtime-style]") as HTMLStyleElement;
 
       expect(style).not.toBeNull();
-      expect(style.textContent).toBe(
-        ".hook-target {\n  margin-top: calc(var(--t-spacing) * 2);\n  color: #353535;\n}",
-      );
+      expect(style.textContent).toBe(".hook-target {\n  margin-top: calc(var(--t-spacing) * 2);\n  color: #353535;\n}");
       expect(el).toHaveStyle({ marginTop: "calc(var(--t-spacing) * 2)", color: "#353535" });
     });
 

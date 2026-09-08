@@ -28,6 +28,6 @@ export const zIndex: CreateMethodsFn = (config) => [
       zInitial: "initial",
       zUnset: "unset",
     },
-    "z"
+    "z",
   ),
 ];

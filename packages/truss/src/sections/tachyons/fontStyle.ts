@@ -6,8 +6,7 @@ export const fontStyle: CreateMethodsFn = () =>
     "fontStyle",
     {
       fsyi: "italic",
-      fsynm: "normal", 
+      fsynm: "normal",
     },
     "fsy",
   );
- 

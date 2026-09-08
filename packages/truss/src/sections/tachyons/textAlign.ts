@@ -11,5 +11,5 @@ export const textAlign: CreateMethodsFn = () =>
       tar: "right",
       taj: "justify",
     },
-    "ta"
+    "ta",
   );

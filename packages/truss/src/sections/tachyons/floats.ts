@@ -9,5 +9,5 @@ export const float: CreateMethodsFn = () =>
       fl: "left",
       fr: "right",
     },
-    "float"
+    "float",
   );
