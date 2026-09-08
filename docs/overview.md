@@ -136,22 +136,26 @@ The Vite plugin (`packages/truss/src/plugin/index.ts`) orchestrates transform an
 
 ### Transform pipeline
 
-1. **Chain extraction** — `transform.ts` parses the file, finds `Css.*.$` chains, and resolves each chain into segments via `resolve-chain.ts`.
-2. **CSS rule collection** — `emit-truss.ts` (`collectAtomicRules`) processes segments into a global `Map<string, AtomicRule>`. Each atomic rule maps one class name to one CSS selector + declaration pair.
-3. **AST rewriting** — `rewrite-sites.ts` replaces each `Css.*.$` expression with an object expression (`{ display: "df", ... }`), and rewrites JSX `css=` props into `trussProps(...)` or `mergeProps(...)` calls.
-4. **CSS text generation** — `emit-truss.ts` (`generateCssText`) serializes collected rules into CSS text, ordered by specificity tiers.
+1. **Chain extraction** — `transform.ts` parses the file, finds `Css.*.$` chains, and resolves each chain into typed segments via `resolve-chain.ts` and its `resolve-*` helpers.
+2. **CSS rule collection** — `emit-css.ts` (`collectAtomicRules`) processes segments into a global `Map<string, AtomicRule>`. Each atomic rule maps one class name to one CSS selector + declaration pair; `style-entries.ts` derives the class names.
+3. **AST rewriting** — `rewrite-sites.ts` replaces each `Css.*.$` expression with an object expression (`{ display: "df", ... }`) built by `emit-style-hash.ts`, and rewrites JSX `css=` props into `trussProps(...)` or `mergeProps(...)` calls.
+4. **CSS text generation** — `emit-css.ts` (`generateCssText`) serializes collected rules into CSS text, ordered by specificity tiers.
 
 ### Key source files
 
-| File               | Role                                                                    |
-| ------------------ | ----------------------------------------------------------------------- |
-| `transform.ts`     | Entry point — orchestrates parsing, chain resolution, rewriting, output |
-| `resolve-chain.ts` | Resolves `Css.*.$` member chains into typed segments                    |
-| `emit-truss.ts`    | Atomic rule collection, class naming, CSS generation, AST building      |
-| `rewrite-sites.ts` | Rewrites expression sites — objects, JSX props, `Css.props()` calls     |
-| `runtime.ts`       | Runtime exports: `trussProps`, `mergeProps`, `TrussDebugInfo`           |
-| `merge-css.ts`     | Parses and merges annotated truss.css files from libraries              |
-| `index.ts`         | Vite plugin — global CSS registry, dev HMR, production CSS emission     |
+| File                 | Role                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| `transform.ts`       | Entry point — orchestrates parsing, chain resolution, rewriting, output                             |
+| `resolve-chain.ts`   | Walks a `Css.*.$` chain, tracking the condition context and splitting at `if()`/`else`              |
+| `resolve-*.ts`       | Resolve individual chain nodes: entries, calls (`add`, `with`, ...), `setVar`, `typography`, `when` |
+| `types.ts`           | `ResolvedSegment` union (static, variable, className, inlineStyle, composed, typography, error)     |
+| `style-entries.ts`   | Turns CSS segments into class names and `StyleEntry` records shared by both emitters                |
+| `emit-css.ts`        | Atomic rule collection and CSS text generation                                                      |
+| `emit-style-hash.ts` | Builds style hash object expressions and the injected helper declarations                           |
+| `rewrite-sites.ts`   | Rewrites expression sites — objects, JSX props, `Css.props()` calls                                 |
+| `runtime.ts`         | Runtime exports: `trussProps`, `mergeProps`, `TrussDebugInfo`                                       |
+| `merge-css.ts`       | Parses and merges annotated truss.css files from libraries                                          |
+| `index.ts`           | Vite plugin — global CSS registry, dev HMR, production CSS emission                                 |
 
 ### Dev mode
 
