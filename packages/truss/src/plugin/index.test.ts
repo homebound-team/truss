@@ -107,18 +107,21 @@ describe("trussPlugin", () => {
       n(`
         import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-        __injectTrussCSS(":root { --t-spacing: 8px; }\\n/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }");
+        __injectTrussCSS("/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }", {"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
       `),
     );
   });
 
-  test("test mode relies on the bootstrap module instead of per-file CSS injection", () => {
+  test("test mode keeps conflicting library CSS separate from per-file application CSS", () => {
+    // Given an application mapping that defines df as display: flex
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
     });
-    writeLibraryCss(root, ["/* @truss p:3000 c:beamStatic */", ".beamStatic { display: flex; }"]);
+    // And the library's df class deliberately differs from the application's flex rule
+    writeLibraryCss(root, ["/* @truss p:3000 c:df */", ".df { display: grid; }"]);
 
+    // And a test-mode plugin configured with that conflicting library
     const plugin = trussPlugin({
       mapping: "./src/Css.json",
       libraries: ["./node_modules/@company/library/dist/truss.css"],
@@ -148,8 +151,140 @@ describe("trussPlugin", () => {
       n(`
         import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-        __injectTrussCSS(":root { --t-spacing: 8px; }\\n/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }\\n/* @truss p:3000 c:df */\\n.df { display: flex; }");
+        __injectTrussCSS("/* @truss p:3000 c:df */\\n.df { display: grid; }", {"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
       `),
+    );
+  });
+
+  test("test mode bootstraps spacing without libraries or local CSS", () => {
+    // Given an application mapping with no libraries
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {});
+    // And a test-mode plugin before any application CSS is transformed
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
+    invokeHook(plugin.buildStart, {});
+    const result = runTransform(plugin, "export const value = 1;", join(root, "src", "plain.ts"));
+    expect(result?.code).toBe('export const value = 1;\nimport "virtual:truss:test-css";');
+    expect(n(getTestCssModule(plugin))).toBe(
+      n(`
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
+      __injectTrussCSS("", {"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
+    `),
+    );
+  });
+
+  test("test mode delivers late arbitrary CSS at module evaluation without import collisions", () => {
+    // Given an application mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And a bootstrap already loaded before the arbitrary file is discovered
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
+    invokeHook(plugin.buildStart, {});
+    const bootstrap = getTestCssModule(plugin);
+    // And a late file whose exports occupy the usual injection helper names
+    const sourcePath = join(root, "src", "Late.css.ts");
+    const code = `import { Css } from "./Css";
+      export const _injectTrussCSS = "occupied";
+      export const __injectTrussCSS = "also occupied";
+      export const css = { ".late": Css.df.$ };`;
+    writeFileSync(sourcePath, code);
+    const result = runTransform(plugin, code, `/@fs/${sourcePath}?v=1`);
+    expect(n(result?.code ?? "")).toBe(
+      n(`
+      import { __injectTrussCSS as _injectTrussCSS2 } from "@homebound/truss/runtime";
+      import { Css } from "./Css";
+      export const _injectTrussCSS = "occupied";
+      export const __injectTrussCSS = "also occupied";
+      export const css = { ".late": Css.df.$ };
+      import "virtual:truss:test-css";
+      _injectTrussCSS2("/* @truss arbitrary:start */\\n.late {\\n  display: flex;\\n}\\n/* @truss arbitrary:end */", { source: ${JSON.stringify(sourcePath)} });
+    `),
+    );
+    expect(getTestCssModule(plugin)).toBe(bootstrap);
+    const resolvedId = invokeHook(plugin.resolveId, {}, "./Late.css.ts?truss-css", join(root, "src", "App.tsx"));
+    expect(resolvedId).toBe("\0truss-test-css:" + sourcePath);
+    expect(n(invokeHook(plugin.load, {}, resolvedId) as string)).toBe(
+      n(`
+      import "virtual:truss:test-css";
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
+      __injectTrussCSS("/* @truss arbitrary:start */\\n.late {\\n  display: flex;\\n}\\n/* @truss arbitrary:end */", {"source":${JSON.stringify(sourcePath)}});
+    `),
+    );
+  });
+
+  test("test mode compiles side-effect-only CSS without evaluating build-only expressions", () => {
+    // Given a CSS file with a setVar expression that cannot execute in CssBuilder
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {});
+    const sourcePath = join(root, "src", "BuildOnly.css.ts");
+    writeFileSync(
+      sourcePath,
+      'import { Css } from "./Css"; export const css = { ".build-only": Css.setVar({ "--test-color": "red" }).$ };',
+    );
+    // And a test-mode plugin receiving a side-effect-only import
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
+    invokeHook(plugin.buildStart, {});
+    const importer = join(root, "src", "App.tsx");
+    const result = runTransform(plugin, 'import "./BuildOnly.css";', importer);
+    expect(result?.code).toBe('import "./BuildOnly.css.ts?truss-css";\nimport "virtual:truss:test-css";');
+    const resolvedId = invokeHook(plugin.resolveId, {}, "./BuildOnly.css.ts?truss-css", importer);
+    expect(resolvedId).toBe("\0truss-test-css:" + sourcePath);
+    const loaded = invokeHook(plugin.load, {}, resolvedId) as string;
+    expect(n(loaded)).toBe(
+      n(`
+      import "virtual:truss:test-css";
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
+      __injectTrussCSS("/* @truss arbitrary:start */\\n.build-only {\\n  --test-color: red;\\n}\\n/* @truss arbitrary:end */", {"source":${JSON.stringify(sourcePath)}});
+    `),
+    );
+    expect(runTransform(plugin, loaded, resolvedId as string)).toBeNull();
+  });
+
+  test("production arbitrary CSS follows codepoint source order instead of discovery order", () => {
+    // Given an application mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And arbitrary files discovered in reverse codepoint order
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "build", mode: "production" });
+    invokeHook(plugin.buildStart, {});
+    runTransform(
+      plugin,
+      'import { Css } from "./Css"; export const css = { ".lower": Css.df.$ };',
+      join(root, "src", "a.css.ts"),
+    );
+    runTransform(
+      plugin,
+      'import { Css } from "./Css"; export const css = { ".upper": Css.df.$ };',
+      join(root, "src", "Z.css.ts"),
+    );
+    let css = "";
+    invokeHook(
+      plugin.generateBundle,
+      {
+        emitFile(asset: { source: string }) {
+          css = asset.source;
+        },
+      },
+      {},
+      {},
+    );
+    expect(css).toBe(
+      [
+        ":root { --t-spacing: 8px; }",
+        "/* @truss arbitrary:start */",
+        ".upper {",
+        "  display: flex;",
+        "}",
+        "",
+        ".lower {",
+        "  display: flex;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
     );
   });
 
@@ -163,9 +298,9 @@ describe("trussPlugin", () => {
     invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
 
     const html = invokeHook(plugin.transformIndexHtml, {} as any, "<html><head></head><body></body></html>") as any;
-    expect(html).toBeTypeOf("string");
-    expect(html.includes('<script type="module" src="/virtual:truss:runtime"></script>')).toBe(true);
-    expect(html.includes("/virtual:truss.css")).toBe(false);
+    expect(html).toBe(
+      '<html><head>    <script type="module" src="/virtual:truss:runtime"></script>\n  </head><body></body></html>',
+    );
   });
 
   test("production html injects a placeholder stylesheet link for truss.css", () => {
@@ -198,8 +333,9 @@ describe("trussPlugin", () => {
       {} as any,
       '<html><head>\n    <link rel="stylesheet" href="/virtual:truss.css" />\n  </head><body></body></html>',
     ) as any;
-    expect(html).not.toContain("virtual:truss.css");
-    expect(html).toContain("__TRUSS_CSS_HASH__");
+    expect(html).toBe(
+      '<html><head>\n      <link rel="stylesheet" href="__TRUSS_CSS_HASH__">\n  </head><body></body></html>',
+    );
   });
 
   test("production html is idempotent across multiple builds (e.g. Storybook)", () => {
@@ -219,8 +355,9 @@ describe("trussPlugin", () => {
     ].join("\n");
     const html = invokeHook(plugin.transformIndexHtml, {} as any, alreadyPatched) as any;
     // The old hashed link should be stripped and replaced with a single placeholder
-    expect(html).not.toContain("truss-abcd1234.css");
-    expect(html).toContain("__TRUSS_CSS_HASH__");
+    expect(html).toBe(
+      '<html><head>\n      <link rel="stylesheet" href="__TRUSS_CSS_HASH__">\n  </head><body></body></html>',
+    );
     // Only one truss CSS link should exist (the placeholder)
     const linkCount = (html.match(/<link[^>]*TRUSS_CSS_HASH/g) || []).length;
     expect(linkCount).toBe(1);

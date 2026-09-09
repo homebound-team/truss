@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mergeProps, TrussDebugInfo, trussProps, __injectTrussCSS } from "./runtime";
+import { mergeTrussCss } from "./plugin/merge-css";
+import { annotateArbitraryCssBlock, parseTrussCss } from "./truss-css";
 
 describe("trussProps", () => {
   test("merges static style hashes", () => {
@@ -229,62 +231,110 @@ describe("mergeProps", () => {
 
 describe("__injectTrussCSS", () => {
   beforeEach(removeTrussStyles);
-  afterEach(removeTrussStyles);
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    removeTrussStyles();
+  });
 
-  test("parses each chunk into its own sheet without changing earlier sheets", () => {
-    const chunks = [".df { display: flex; }", ".aic { align-items: center; }", ".black { color: black; }"];
-    const sheets: CSSStyleSheet[] = [];
-    for (const chunk of chunks) {
-      __injectTrussCSS(chunk);
-      sheets.push(document.styleSheets[document.styleSheets.length - 1]);
+  test.each(["original", "reversed", "shuffled", "bootstrap subset"])(
+    "matches production CSSOM for %s annotated input",
+    (order) => {
+      const chunks = [
+        atomicCss(4000, "top", ".top { margin-top: 12px; }"),
+        atomicCss(1000, "margin", ".margin { margin: 4px; }"),
+        atomicCss(3200, "zMin600", "@media (min-width: 600px) { .zMin600 { color: red; } }"),
+        atomicCss(3200, "aMin960", "@media (min-width: 960px) { .aMin960 { color: blue; } }"),
+        atomicCss(3200, "zMax1150", "@media (max-width: 1150px) { .zMax1150 { color: green; } }"),
+        atomicCss(3200, "aMax820", "@media (max-width: 820px) { .aMax820 { color: black; } }"),
+        atomicCss(3200, "range", "@media (min-width: 600px) and (max-width: 959px) { .range { color: gray; } }"),
+        atomicCss(3200, "print", "@media print { .print { color: purple; } }"),
+        atomicCss(3200, "bMin600", "@media (min-width: 600px) { .bMin600 { color: yellow; } }"),
+      ];
+      const expected = productionRules(chunks);
+      const indices =
+        order === "reversed"
+          ? [8, 7, 6, 5, 4, 3, 2, 1, 0]
+          : order === "shuffled"
+            ? [5, 0, 8, 3, 1, 7, 4, 2, 6]
+            : [0, 1, 2, 3, 4, 5, 6, 7, 8];
+      if (order === "bootstrap subset") {
+        __injectTrussCSS(mergeTrussCss([parseTrussCss(chunks[0]), parseTrussCss(chunks[4])]));
+      }
+      for (const index of indices) __injectTrussCSS(chunks[index]);
+
+      // Media evaluation is not supported by jsdom; compare its parsed rules instead.
+      expect(sheetRules(trussStyle().sheet!)).toEqual(expected);
+      expect(document.querySelectorAll("style[data-truss]").length).toBe(1);
+      expect(document.styleSheets.length).toBe(1);
+      expect(trussStyle().textContent).toBe("");
+    },
+  );
+
+  test("parses only new atomics and retains earlier CSSRule identities when inserting before them", () => {
+    const top = atomicCss(4000, "top", ".top { margin-top: 12px; }");
+    const margin = atomicCss(1000, "margin", ".margin { margin: 4px; }");
+    __injectTrussCSS(top);
+    const style = trussStyle();
+    const sheet = style.sheet!;
+    const firstRule = sheet.cssRules[0];
+    const insert = vi.spyOn(sheet, "insertRule");
+
+    __injectTrussCSS(mergeTrussCss([parseTrussCss(top), parseTrussCss(margin)]));
+    expect(insert.mock.calls).toEqual([[".margin { margin: 4px; }", 0]]);
+    expect(trussStyle()).toBe(style);
+    expect(style.sheet).toBe(sheet);
+    expect(sheet.cssRules[1]).toBe(firstRule);
+    expect(sheetRules(sheet)).toEqual(productionRules([top, margin]));
+  });
+
+  test("invalidates computed styles after late rules without replacing the sheet", () => {
+    const top = atomicCss(4000, "top", ".top { margin-top: 12px; }");
+    const margin = atomicCss(1000, "margin", ".margin { margin: 4px; }");
+    const color = atomicCss(3000, "color", ".color { color: red; }");
+    __injectTrussCSS(top);
+    const style = trussStyle();
+    const sheet = style.sheet;
+    const attribute = vi.spyOn(style, "setAttribute");
+    const target = document.createElement("div");
+    target.className = "top margin color";
+    document.body.appendChild(target);
+    try {
+      expect(getComputedStyle(target).marginTop).toBe("12px");
+      expect(getComputedStyle(target).marginRight).toBe("0px");
+      const previousColor = getComputedStyle(target).color;
+      __injectTrussCSS(`${margin}\n${color}`);
+      expect(attribute.mock.calls).toEqual([["data-truss", ""]]);
+      expect(style.sheet).toBe(sheet);
+      expect(getComputedStyle(target).marginTop).toBe("12px");
+      expect(getComputedStyle(target).marginRight).toBe("4px");
+      expect(getComputedStyle(target).color).not.toBe(previousColor);
+      expect(getComputedStyle(target).color).toBe("rgb(255, 0, 0)");
+    } finally {
+      target.remove();
     }
-
-    expect(document.querySelector("style[data-truss]")?.textContent).toBe("");
-    expect(Array.from(document.querySelectorAll("style[data-truss-chunk]"), (el) => el.textContent)).toEqual(chunks);
-    expect(document.querySelectorAll("style").length).toBe(chunks.length + 1);
-    expect(
-      Array.from(document.styleSheets).flatMap((sheet) => Array.from(sheet.cssRules, (rule) => rule.cssText)),
-    ).toEqual(chunks);
-    for (const sheet of sheets) {
-      expect(Array.from(document.styleSheets).includes(sheet)).toBe(true);
-      expect(sheet.cssRules.length).toBe(1);
-    }
   });
 
-  test("preserves injection order for competing rules", () => {
-    __injectTrussCSS(".target { color: red; }");
-    __injectTrussCSS(".target { color: blue; }");
-
-    expect(
-      Array.from(document.styleSheets).flatMap((sheet) => Array.from(sheet.cssRules, (rule) => rule.cssText)),
-    ).toEqual([".target { color: red; }", ".target { color: blue; }"]);
-  });
-
-  test("deduplicates identical CSS text", () => {
-    __injectTrussCSS(".df { display: flex; }");
-    __injectTrussCSS(".df { display: flex; }");
-
-    // Should only appear once
-    expect(document.querySelectorAll("style[data-truss-chunk]").length).toBe(1);
-    expect(document.querySelector("style[data-truss-chunk]")?.textContent).toBe(".df { display: flex; }");
-  });
-
-  test("deduplicates repeated merged bootstrap CSS chunks across runtime reloads", async () => {
-    const cssText = "/* @truss p:3000 c:beamStatic */\n.beamStatic { display: flex; }";
+  test("deduplicates exact chunks and merged bootstrap CSS across runtime reloads on the same anchor", async () => {
+    const cssText = mergeTrussCss([parseTrussCss(atomicCss(3000, "df", ".df { display: flex; }"))]);
+    __injectTrussCSS(cssText);
+    const style = trussStyle();
+    const sheet = style.sheet!;
+    const rule = sheet.cssRules[0];
+    const insert = vi.spyOn(sheet, "insertRule");
     __injectTrussCSS(cssText);
     vi.resetModules();
     const runtime = await import("./runtime");
     runtime.__injectTrussCSS(cssText);
 
+    expect(insert.mock.calls).toEqual([]);
+    expect(trussStyle()).toBe(style);
+    expect(style.sheet).toBe(sheet);
+    expect(sheet.cssRules[0]).toBe(rule);
+    expect(sheetRules(sheet)).toEqual(productionRules([cssText]));
     expect(document.querySelectorAll("style[data-truss]").length).toBe(1);
-    expect(document.querySelectorAll("style[data-truss-chunk]").length).toBe(1);
-    expect(document.querySelector("style[data-truss-chunk]")?.textContent).toBe(cssText);
-  });
-
-  test("does not treat a substring of an earlier chunk as a duplicate", () => {
-    __injectTrussCSS(".df { display: flex; }.aic { align-items: center; }");
-    __injectTrussCSS(".df { display: flex; }");
-    expect(document.querySelectorAll("style[data-truss-chunk]").length).toBe(2);
+    runtime.__injectTrussCSS(atomicCss(1000, "aic", ".aic { align-items: center; }"));
+    expect(sheet.cssRules[1]).toBe(rule);
   });
 
   test("ignores empty CSS", () => {
@@ -293,33 +343,197 @@ describe("__injectTrussCSS", () => {
   });
 
   test("ignores CSS when there is no document", () => {
+    const css = atomicCss(3000, "df", ".df { display: flex; }");
     vi.stubGlobal("document", undefined);
     try {
-      expect(() => __injectTrussCSS(".df { display: flex; }")).not.toThrow();
+      expect(() => __injectTrussCSS(css)).not.toThrow();
     } finally {
       vi.unstubAllGlobals();
     }
     expect(document.querySelectorAll("style").length).toBe(0);
+    __injectTrussCSS(css);
+    expect(sheetRules(trussStyle().sheet!)).toEqual(productionRules([css]));
   });
 
-  test("recreates the cached style tag after removal", () => {
-    __injectTrussCSS(".df { display: flex; }");
-    const firstStyle = document.querySelector("style[data-truss]") as HTMLStyleElement;
-    firstStyle.remove();
+  test.each(["app first", "library first"])("uses the lower-order library class definition: %s", (order) => {
+    const app = atomicCss(4000, "target", ".target { color: blue; }");
+    const library = atomicCss(1000, "target", ".target { color: red; }");
+    const other = atomicCss(3000, "other", ".other { display: flex; }");
+    __injectTrussCSS(other);
+    const sheet = trussStyle().sheet!;
+    const otherRule = sheet.cssRules[0];
+    if (order === "app first") __injectTrussCSS(app, { source: "/app.ts", order: 1 });
+    __injectTrussCSS(library, { source: "/library.css", order: 0 });
+    const libraryRule = sheet.cssRules[0];
+    const insert = vi.spyOn(sheet, "insertRule");
+    __injectTrussCSS(app, { source: "/late-app.ts", order: 1 });
+    expect(insert.mock.calls).toEqual([]);
+    expect(sheetRules(sheet)).toEqual(productionRules([library, app, other]));
+    expect(sheet.cssRules[0]).toBe(libraryRule);
+    expect(sheet.cssRules[1]).toBe(otherRule);
+  });
 
-    __injectTrussCSS(".aic { align-items: center; }");
+  test("orders arbitrary library CSS before canonical app sources and preserves opaque block order and duplicates", () => {
+    const duplicate = ".duplicate { color: red; }";
+    const appA = annotateArbitraryCssBlock(
+      `${duplicate}\n@media (min-width: 600px) { @supports (display: grid) { .nested { display: grid; } } }\n${duplicate}`,
+    );
+    const appZ = annotateArbitraryCssBlock(duplicate);
+    const libraryB = annotateArbitraryCssBlock(".libraryB { color: blue; }");
+    const libraryA = annotateArbitraryCssBlock(".libraryA { color: green; }");
+    const atomic = atomicCss(3000, "df", ".df { display: flex; }");
+    __injectTrussCSS(appZ, { source: "/app/Z.css.ts" });
+    const sheet = trussStyle().sheet!;
+    const appZRule = sheet.cssRules[0];
+    __injectTrussCSS(libraryB, { order: 0 });
+    __injectTrussCSS(appA, { source: "/app/A.css.ts" });
+    __injectTrussCSS(libraryA, { order: 0 });
+    __injectTrussCSS(atomic);
 
-    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
-    expect(style).not.toBe(firstStyle);
-    expect(style.textContent).toBe("");
-    expect(Array.from(document.querySelectorAll("style[data-truss-chunk]"), (el) => el.textContent)).toEqual([
-      ".df { display: flex; }",
-      ".aic { align-items: center; }",
+    expect(sheetRules(sheet)).toEqual(productionRules([atomic, libraryB, libraryA, appA, appZ]));
+    expect(sheet.cssRules.length).toBe(7);
+    expect(sheet.cssRules[6]).toBe(appZRule);
+    const insert = vi.spyOn(sheet, "insertRule");
+    __injectTrussCSS(appA, { source: "/app/A.css.ts" });
+    expect(insert.mock.calls).toEqual([]);
+  });
+
+  test("retains the prelude from an empty bootstrap before all later rules", () => {
+    const prelude = ":root { --truss-ready: 1; }";
+    __injectTrussCSS("", { prelude });
+    const sheet = trussStyle().sheet!;
+    const preludeRule = sheet.cssRules[0];
+    const atomic = atomicCss(1000, "df", ".df { display: flex; }");
+    __injectTrussCSS(atomic);
+    __injectTrussCSS("", { prelude });
+    expect(sheetRules(sheet)).toEqual(parseCssRules(`${prelude}\n${mergeTrussCss([parseTrussCss(atomic)])}`));
+    expect(sheet.cssRules[0]).toBe(preludeRule);
+  });
+
+  test("skips unsupported @property without losing surrounding or later rules", () => {
+    const first = atomicCss(3000, "df", ".df { display: flex; }");
+    const property =
+      "/* @truss @property */\n@property --gap { syntax: '<length>'; inherits: false; initial-value: 0px; }";
+    const arbitrary = annotateArbitraryCssBlock(".target { color: red; }");
+    const later = atomicCss(1000, "margin", ".margin { margin: 4px; }");
+    __injectTrussCSS(first);
+    const sheet = trussStyle().sheet!;
+    const rule = sheet.cssRules[0];
+    // jsdom rejects @property through insertRule but skips it when parsing style text.
+    expect(() => sheet.insertRule(parseTrussCss(property).properties[0].cssText, 0)).toThrowError(DOMException);
+    const insert = vi.spyOn(sheet, "insertRule");
+    expect(() => __injectTrussCSS(`${first}\n${property}\n${arbitrary}`)).not.toThrow();
+    expect(insert.mock.calls).toEqual([
+      [parseTrussCss(property).properties[0].cssText, 1],
+      [parseCssRules(".target { color: red; }")[0], 1],
     ]);
+    __injectTrussCSS(later);
+    expect(sheetRules(sheet)).toEqual(productionRules([first, property, arbitrary, later]));
+    expect(sheet.cssRules[1]).toBe(rule);
+  });
+
+  test("propagates invalid atomic errors and retries failed chunks without duplicating installed rules", () => {
+    const first = atomicCss(3000, "df", ".df { display: flex; }");
+    const invalid = atomicCss(4000, "invalid", "not a CSS rule");
+    const last = atomicCss(5000, "last", ".last { color: red; }");
+    __injectTrussCSS(first);
+    const sheet = trussStyle().sheet!;
+    const rule = sheet.cssRules[0];
+    const insert = vi.spyOn(sheet, "insertRule");
+    const chunk = `${first}\n${invalid}\n${last}`;
+    expect(() => __injectTrussCSS(chunk)).toThrow();
+    expect(() => __injectTrussCSS(chunk)).toThrow();
+    expect(insert.mock.calls).toEqual([
+      ["not a CSS rule", 1],
+      ["not a CSS rule", 1],
+    ]);
+    expect(sheetRules(sheet)).toEqual(productionRules([first]));
+    const corrected = atomicCss(4000, "invalid", ".invalid { color: blue; }");
+    __injectTrussCSS(`${first}\n${corrected}\n${last}`);
+    expect(sheetRules(sheet)).toEqual(productionRules([first, corrected, last]));
+    expect(sheet.cssRules[0]).toBe(rule);
+  });
+
+  test.each([false, true])("resets the registry after removal with reattach=%s", (reattach) => {
+    const first = atomicCss(3000, "df", ".df { display: flex; }");
+    const second = atomicCss(4000, "aic", ".aic { align-items: center; }");
+    __injectTrussCSS(`${first}\n${second}`);
+    const style = trussStyle();
+    const sheet = style.sheet;
+    style.remove();
+    if (reattach) document.head.appendChild(style);
+    __injectTrussCSS(first);
+    expect(trussStyle() === style).toBe(reattach);
+    expect(trussStyle().sheet).not.toBe(sheet);
+    expect(sheetRules(trussStyle().sheet!)).toEqual(productionRules([first]));
+    __injectTrussCSS(`${first}\n${second}`);
+    expect(sheetRules(trussStyle().sheet!)).toEqual(productionRules([first, second]));
+  });
+
+  test("recovers in a replacement document and reuses the original document registry on return", () => {
+    const css = atomicCss(3000, "df", ".df { display: flex; }");
+    const expected = productionRules([css]);
+    __injectTrussCSS(css);
+    const original = trussStyle();
+    const originalRule = original.sheet!.cssRules[0];
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    const replacement = frame.contentDocument!;
+    vi.stubGlobal("document", replacement);
+    try {
+      __injectTrussCSS(css);
+      expect(trussStyle()).not.toBe(original);
+      expect(trussStyle().ownerDocument).toBe(replacement);
+      expect(sheetRules(trussStyle().sheet!)).toEqual(expected);
+      expect(replacement.querySelectorAll("style[data-truss]").length).toBe(1);
+    } finally {
+      vi.unstubAllGlobals();
+      frame.remove();
+    }
+    __injectTrussCSS(css);
+    expect(trussStyle()).toBe(original);
+    expect(original.sheet!.cssRules[0]).toBe(originalRule);
+    expect(sheetRules(original.sheet!)).toEqual(expected);
   });
 });
 
-/** Clean up any prior style tags, including the dedupe anchor and injected chunks. */
+/** Annotate one atomic rule with its production priority and class identity. */
+function atomicCss(priority: number, className: string, cssText: string): string {
+  return `/* @truss p:${priority} c:${className} */\n${cssText}`;
+}
+
+/** Merge canonical production sources and parse their expected CSSOM in a separate document. */
+function productionRules(sources: string[]): string[] {
+  return parseCssRules(mergeTrussCss(sources.map((source) => parseTrussCss(source))));
+}
+
+/** Parse stylesheet text without adding expected rules to the document under test. */
+function parseCssRules(cssText: string): string[] {
+  // createHTMLDocument has no browsing context, so jsdom does not create its stylesheets.
+  const frame = document.createElement("iframe");
+  document.body.appendChild(frame);
+  try {
+    const parserDocument = frame.contentDocument!;
+    const style = parserDocument.createElement("style");
+    parserDocument.head.appendChild(style);
+    style.textContent = cssText;
+    return sheetRules(style.sheet!);
+  } finally {
+    frame.remove();
+  }
+}
+
+/** Return the complete ordered CSSOM text, including nested at-rules. */
+function sheetRules(sheet: CSSStyleSheet): string[] {
+  return Array.from(sheet.cssRules, (rule) => rule.cssText);
+}
+
+/** Find the single runtime injection anchor. */
+function trussStyle(): HTMLStyleElement {
+  return document.querySelector<HTMLStyleElement>("style[data-truss]")!;
+}
+
+/** Remove the static stylesheet and its registry between tests. */
 function removeTrussStyles(): void {
-  document.querySelectorAll("style[data-truss], style[data-truss-chunk]").forEach((el) => el.remove());
+  document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
 }

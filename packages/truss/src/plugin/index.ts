@@ -3,6 +3,10 @@ import { resolve, dirname, isAbsolute, join } from "path";
 import { createHash } from "crypto";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import { createTrussTransformSession } from "./transform-session";
+import { annotateArbitraryCssBlock } from "./merge-css";
+import { rootSpacingPreludeCss } from "../spacing-css-var";
+import { generate, parseModule, traverse } from "./babel-utils";
+import * as t from "@babel/types";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
@@ -30,6 +34,7 @@ export interface TrussVitePlugin {
 
 /** Prefix for virtual CSS module IDs generated from .css.ts files. */
 const VIRTUAL_CSS_PREFIX = "\0truss-css:";
+const VIRTUAL_TEST_CSS_PREFIX = "\0truss-test-css:";
 const CSS_TS_QUERY = "?truss-css";
 
 /** Placeholder injected into HTML during build; replaced with the hashed CSS filename in generateBundle. */
@@ -39,8 +44,8 @@ const TRUSS_CSS_PLACEHOLDER = "__TRUSS_CSS_HASH__";
 const VIRTUAL_CSS_ENDPOINT = "/virtual:truss.css";
 const VIRTUAL_RUNTIME_ID = "virtual:truss:runtime";
 const RESOLVED_VIRTUAL_RUNTIME_ID = "\0" + VIRTUAL_RUNTIME_ID;
-// Test-only bootstrap that injects the same merged collectCss() output used by
-// /virtual:truss.css, but as a virtual module side effect instead of an HTTP
+// Test-only bootstrap that injects merged library CSS and the spacing prelude
+// as a virtual module side effect instead of an HTTP
 // fetch. In dev, the browser reaches /virtual:truss.css via transformIndexHtml
 // -> virtual:truss:runtime -> fetch("/virtual:truss.css") -> configureServer.
 // Vitest/jsdom does not boot from index.html or run that browser fetch/HMR path;
@@ -179,6 +184,9 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // Only handle it if the .css.ts file actually exists
       if (!existsSync(absolutePath)) return null;
 
+      // Compile test side effects without evaluating build-only CssBuilder expressions.
+      if (isTest) return VIRTUAL_TEST_CSS_PREFIX + absolutePath;
+
       // Return a virtual CSS module ID that maps back to the source .css.ts file.
       // Strip the trailing `.ts` so the ID ends in `.css` — this tells Vite to
       // route the loaded content through its CSS pipeline.
@@ -217,13 +225,30 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 `;
       }
       if (id === RESOLVED_VIRTUAL_TEST_CSS_ID) {
-        // Vitest/jsdom has no dev server stylesheet fetch, so inject the full
-        // merged CSS payload once via a virtual side-effect module.
-        const css = session.collectCss();
+        // Vitest/jsdom has no dev server stylesheet fetch, so inject libraries
+        // once; application modules deliver CSS when they evaluate.
+        const css = session.collectTestCss();
+        const options = {
+          source: "libraries",
+          order: 0,
+          prelude: rootSpacingPreludeCss(session.ensureMapping().increment),
+        };
         return `
 import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-__injectTrussCSS(${JSON.stringify(css)});
+__injectTrussCSS(${JSON.stringify(css)}, ${JSON.stringify(options)});
+`;
+      }
+
+      if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) {
+        const sourcePath = resolve(id.slice(VIRTUAL_TEST_CSS_PREFIX.length)).replace(/\\/g, "/");
+        session.updateArbitraryCssRegistry(sourcePath, readFileSync(sourcePath, "utf8"));
+        const css = annotateArbitraryCssBlock(session.getArbitraryCss(sourcePath));
+        return `
+import "${VIRTUAL_TEST_CSS_ID}";
+import { __injectTrussCSS } from "@homebound/truss/runtime";
+
+__injectTrussCSS(${JSON.stringify(css)}, ${JSON.stringify({ source: sourcePath })});
 `;
       }
 
@@ -245,6 +270,8 @@ __injectTrussCSS(${JSON.stringify(css)});
     },
 
     transform(code: string, id: string) {
+      // The virtual test module already contains compiled CSS, not source TypeScript.
+      if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) return null;
       // Only process JS/TS/JSX/TSX files outside node_modules
       if (!/\.[cm]?[jt]sx?(\?|$)/.test(id)) return null;
       const fileId = stripQueryAndHash(id);
@@ -254,13 +281,13 @@ __injectTrussCSS(${JSON.stringify(css)});
 
       // In tests, we do not boot through index.html and the dev runtime fetch path
       // (`virtual:truss:runtime` -> fetch("/virtual:truss.css")), so we inject the
-      // merged application + library CSS through a virtual module side effect instead.
+      // library CSS and spacing through a virtual module side effect instead.
       //
       // We add `import "virtual:truss:test-css"` to each eligible transformed module,
       // but ESM module caching should evaluate that virtual module only once per test
       // module graph. Transformed files may still emit per-file `__injectTrussCSS`
-      // calls; exact repeated chunks are deduped in the runtime helper.
-      const shouldBootstrapTestCss = isTest && libraryPaths.length > 0;
+      // calls; atomic classes are deduped in the runtime helper.
+      const shouldBootstrapTestCss = isTest;
       const transformedCode = shouldBootstrapTestCss
         ? `${rewrittenImports.code}\nimport "${VIRTUAL_TEST_CSS_ID}";`
         : rewrittenImports.code;
@@ -270,13 +297,40 @@ __injectTrussCSS(${JSON.stringify(css)});
 
       if (fileId.endsWith(".css.ts")) {
         // Keep `.css.ts` modules as normal TS so named exports like class-name
-        // constants still work at runtime; only return code when we injected the
-        // companion `?truss-css` side-effect import.
+        // constants still work at runtime. Tests also inject their CSS at evaluation.
         //
         // Also update the arbitrary CSS registry so HMR picks up changes —
         // the load hook only runs on first resolve, so edits need to refresh
         // the registry here where Vite re-transforms changed files.
         session.updateArbitraryCssRegistry(fileId, code);
+        if (isTest) {
+          const css = annotateArbitraryCssBlock(session.getArbitraryCss(fileId));
+          const ast = parseModule(transformedCode, fileId);
+          traverse(ast, {
+            Program(path) {
+              const inject = path.scope.generateUidIdentifier("injectTrussCSS");
+              path.unshiftContainer(
+                "body",
+                t.importDeclaration(
+                  [t.importSpecifier(inject, t.identifier("__injectTrussCSS"))],
+                  t.stringLiteral("@homebound/truss/runtime"),
+                ),
+              );
+              path.pushContainer(
+                "body",
+                t.expressionStatement(
+                  t.callExpression(inject, [
+                    t.stringLiteral(css),
+                    t.objectExpression([
+                      t.objectProperty(t.identifier("source"), t.stringLiteral(resolve(fileId).replace(/\\/g, "/"))),
+                    ]),
+                  ]),
+                ),
+              );
+            },
+          });
+          return { code: generate(ast, { sourceFileName: fileId }).code, map: null };
+        }
         return importsOnlyResult;
       }
 
