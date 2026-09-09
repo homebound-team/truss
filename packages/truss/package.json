@@ -50,6 +50,7 @@
     "@types/babel__traverse": "^7.28.0",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
+    "jsdom": "^29.0.2",
     "react": "^19.2.5",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",

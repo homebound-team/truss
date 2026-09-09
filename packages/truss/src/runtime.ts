@@ -173,7 +173,17 @@ export function mergeProps(
 /**
  * Inject CSS text into the document for jsdom/test environments.
  *
- * In browser dev mode, CSS is served via the Vite virtual endpoint instead.
+ * A chunk is one transformed module's CSS or the test bootstrap's merged application
+ * and library CSS snapshot. Chunks are static, append-only, and live until the document
+ * is discarded; component unmounts do not remove them. Exact repeated chunks are skipped,
+ * but different chunks can contain overlapping rules. Injecting changed CSS does not
+ * replace old rules or remove declarations omitted from the new chunk.
+ *
+ * Each new chunk is appended in injection order, including after any mounted
+ * useRuntimeStyle elements. Normal cascade rules apply across these sheets.
+ * useRuntimeStyle owns its transient styles separately and removes them on effect cleanup.
+ * In browser dev mode, the Vite virtual stylesheet is replaced on updates instead;
+ * this helper is not an HMR replacement mechanism.
  */
 export function __injectTrussCSS(cssText: string): void {
   if (typeof document === "undefined" || cssText.length === 0) return;
@@ -183,13 +193,14 @@ export function __injectTrussCSS(cssText: string): void {
   // Track exact injected chunks on the style node so repeated execution of the
   // test bootstrap or transformed modules does not append duplicate CSS text.
   const injectedChunks = (style[TRUSS_CSS_CHUNKS] ??= new Set<string>());
-  if (injectedChunks.has(cssText) || style.textContent?.includes(cssText)) {
-    injectedChunks.add(cssText);
-    return;
-  }
+  if (injectedChunks.has(cssText)) return;
 
   injectedChunks.add(cssText);
-  style.textContent = (style.textContent ?? "") + cssText;
+  // Separate sheets let jsdom parse each chunk once instead of reparsing all prior chunks.
+  const chunkStyle = document.createElement("style");
+  chunkStyle.setAttribute("data-truss-chunk", "");
+  chunkStyle.textContent = cssText;
+  document.head.appendChild(chunkStyle);
 }
 
 export interface RuntimeStyleProps {

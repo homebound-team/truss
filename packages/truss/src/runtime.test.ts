@@ -1,4 +1,5 @@
-import { describe, expect, test, vi } from "vitest";
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mergeProps, TrussDebugInfo, trussProps, __injectTrussCSS } from "./runtime";
 
 describe("trussProps", () => {
@@ -226,57 +227,82 @@ describe("mergeProps", () => {
   });
 });
 
-const hasDocument = typeof document !== "undefined";
+describe("__injectTrussCSS", () => {
+  beforeEach(removeTrussStyles);
+  afterEach(removeTrussStyles);
 
-describe.skipIf(!hasDocument)("__injectTrussCSS", () => {
-  test("creates a style tag and injects CSS", () => {
-    // Clean up any prior style tags
-    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
+  test("parses each chunk into its own sheet without changing earlier sheets", () => {
+    const chunks = [".df { display: flex; }", ".aic { align-items: center; }", ".black { color: black; }"];
+    const sheets: CSSStyleSheet[] = [];
+    for (const chunk of chunks) {
+      __injectTrussCSS(chunk);
+      sheets.push(document.styleSheets[document.styleSheets.length - 1]);
+    }
 
-    __injectTrussCSS(".df { display: flex; }");
-
-    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
-    expect(style).not.toBeNull();
-    expect(style.textContent).toContain(".df { display: flex; }");
+    expect(document.querySelector("style[data-truss]")?.textContent).toBe("");
+    expect(Array.from(document.querySelectorAll("style[data-truss-chunk]"), (el) => el.textContent)).toEqual(chunks);
+    expect(document.querySelectorAll("style").length).toBe(chunks.length + 1);
+    expect(
+      Array.from(document.styleSheets).flatMap((sheet) => Array.from(sheet.cssRules, (rule) => rule.cssText)),
+    ).toEqual(chunks);
+    for (const sheet of sheets) {
+      expect(Array.from(document.styleSheets).includes(sheet)).toBe(true);
+      expect(sheet.cssRules.length).toBe(1);
+    }
   });
 
-  test("appends to existing style tag", () => {
-    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
+  test("preserves injection order for competing rules", () => {
+    __injectTrussCSS(".target { color: red; }");
+    __injectTrussCSS(".target { color: blue; }");
 
-    __injectTrussCSS(".df { display: flex; }");
-    __injectTrussCSS(".aic { align-items: center; }");
-
-    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
-    expect(style.textContent).toContain(".df { display: flex; }");
-    expect(style.textContent).toContain(".aic { align-items: center; }");
+    expect(
+      Array.from(document.styleSheets).flatMap((sheet) => Array.from(sheet.cssRules, (rule) => rule.cssText)),
+    ).toEqual([".target { color: red; }", ".target { color: blue; }"]);
   });
 
   test("deduplicates identical CSS text", () => {
-    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
-
     __injectTrussCSS(".df { display: flex; }");
     __injectTrussCSS(".df { display: flex; }");
 
-    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
     // Should only appear once
-    const count = (style.textContent?.match(/\.df/g) ?? []).length;
-    expect(count).toBe(1);
+    expect(document.querySelectorAll("style[data-truss-chunk]").length).toBe(1);
+    expect(document.querySelector("style[data-truss-chunk]")?.textContent).toBe(".df { display: flex; }");
   });
 
-  test("deduplicates repeated merged bootstrap CSS chunks", () => {
-    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
-
+  test("deduplicates repeated merged bootstrap CSS chunks across runtime reloads", async () => {
     const cssText = "/* @truss p:3000 c:beamStatic */\n.beamStatic { display: flex; }";
     __injectTrussCSS(cssText);
-    __injectTrussCSS(cssText);
+    vi.resetModules();
+    const runtime = await import("./runtime");
+    runtime.__injectTrussCSS(cssText);
 
-    const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
-    expect(style.textContent).toBe("/* @truss p:3000 c:beamStatic */\n.beamStatic { display: flex; }");
+    expect(document.querySelectorAll("style[data-truss]").length).toBe(1);
+    expect(document.querySelectorAll("style[data-truss-chunk]").length).toBe(1);
+    expect(document.querySelector("style[data-truss-chunk]")?.textContent).toBe(cssText);
+  });
+
+  test("does not treat a substring of an earlier chunk as a duplicate", () => {
+    __injectTrussCSS(".df { display: flex; }.aic { align-items: center; }");
+    __injectTrussCSS(".df { display: flex; }");
+    expect(document.querySelectorAll("style[data-truss-chunk]").length).toBe(2);
+  });
+
+  test("ignores empty CSS", () => {
+    __injectTrussCSS("");
+    expect(document.querySelectorAll("style").length).toBe(0);
+  });
+
+  test("ignores CSS when there is no document", () => {
+    vi.stubGlobal("document", undefined);
+    try {
+      expect(() => __injectTrussCSS(".df { display: flex; }")).not.toThrow();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(document.querySelectorAll("style").length).toBe(0);
   });
 
   test("recreates the cached style tag after removal", () => {
-    document.querySelectorAll("style[data-truss]").forEach((el) => el.remove());
-
     __injectTrussCSS(".df { display: flex; }");
     const firstStyle = document.querySelector("style[data-truss]") as HTMLStyleElement;
     firstStyle.remove();
@@ -284,6 +310,16 @@ describe.skipIf(!hasDocument)("__injectTrussCSS", () => {
     __injectTrussCSS(".aic { align-items: center; }");
 
     const style = document.querySelector("style[data-truss]") as HTMLStyleElement;
-    expect(style.textContent).toBe(".aic { align-items: center; }");
+    expect(style).not.toBe(firstStyle);
+    expect(style.textContent).toBe("");
+    expect(Array.from(document.querySelectorAll("style[data-truss-chunk]"), (el) => el.textContent)).toEqual([
+      ".df { display: flex; }",
+      ".aic { align-items: center; }",
+    ]);
   });
 });
+
+/** Clean up any prior style tags, including the dedupe anchor and injected chunks. */
+function removeTrussStyles(): void {
+  document.querySelectorAll("style[data-truss], style[data-truss-chunk]").forEach((el) => el.remove());
+}
