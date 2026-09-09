@@ -568,6 +568,7 @@ __metadata:
     change-case: "npm:^5.4.4"
     csstype: "npm:^3.2.3"
     jiti: "npm:^2.6.1"
+    jsdom: "npm:^29.0.2"
     react: "npm:^19.2.5"
     ts-poet: "npm:^6.12.0"
     tsup: "npm:^8.5.1"
