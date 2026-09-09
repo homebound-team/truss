@@ -161,7 +161,11 @@ The Vite plugin (`packages/truss/src/plugin/index.ts`) orchestrates transform an
 
 The plugin serves collected CSS via a virtual endpoint (`/virtual:truss.css`) and uses Vite's HMR to push updates. A virtual runtime script creates a `<style>` tag and re-fetches CSS on `truss:css-update` events. No per-file CSS injection is needed in the browser.
 
-For jsdom tests, the plugin passes `injectCss: true`, which injects `__injectTrussCSS(cssText)` calls into each transformed file so `document.styleSheets` reflects the rules.
+For jsdom tests, the plugin passes `injectCss: true`, which injects `__injectTrussCSS(cssText)` calls into each transformed file. The runtime deduplicates annotated atomic rules by class and inserts them into one CSSOM stylesheet with the same priority, query-width, and class-name ordering as production. A late module can add an earlier-priority rule without reparsing existing rules or moving static CSS after mounted runtime styles.
+
+A virtual test bootstrap supplies library CSS and the root spacing variable. Application modules and `.css.ts` files deliver their own CSS when loaded, including dynamic imports; the bootstrap does not need to discover the entire module graph. Arbitrary CSS follows atomic rules and property declarations: library blocks retain configured library order, and application blocks use canonical source-path order in both tests and production. This makes application block precedence independent of import order.
+
+The static registry lives on the style element for the document lifetime and survives runtime module reloads. Component unmounts only remove their transient `useRuntimeStyle` sheets. The injection helper accepts the plugin's annotated CSS payloads, with spacing passed explicitly as a prelude; unannotated CSS is ignored. Arbitrary selectors remain supported through annotated `.css.ts` and library blocks. The runtime also refreshes jsdom's computed-style cache after CSSOM changes and tolerates its unsupported `@property` declarations, which text-based stylesheet parsing already ignores.
 
 ### Production mode
 
@@ -169,7 +173,7 @@ The plugin accumulates all atomic rules across files during transform. In `gener
 
 ### Library CSS merging
 
-Each CSS rule in the output is annotated with its priority: `/* @truss p:<priority> c:<className> */`. When `libraries` are configured, the plugin parses these annotations from each library's `truss.css`, combines them with the app's own rules, deduplicates by class name (same class name = same rule, since output is deterministic), and sorts them with the same comparator the per-file emitter uses: priority, then media-query width, then class name. `@property` declarations are deduplicated by variable name and appended at the end.
+Each CSS rule in the output is annotated with its priority: `/* @truss p:<priority> c:<className> */`. When `libraries` are configured, the plugin parses these annotations from each library's `truss.css`, combines them with the app's own rules, deduplicates by class name (same class name = same rule, since output is deterministic), and sorts them with the same comparator the per-file emitter uses: priority, then media-query width, then class name. Library definitions take precedence if a class conflicts with an application definition. `@property` declarations are deduplicated by variable name and appended before arbitrary CSS blocks.
 
 ## CSS Generation
 

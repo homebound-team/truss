@@ -1,4 +1,5 @@
 import { useInsertionEffect } from "react";
+import { getOrCreateTrussStyleElement } from "./runtime-css";
 import {
   TRUSS_CSS_MARKER_KEY,
   TRUSS_CUSTOM_CLASS_PREFIX,
@@ -8,6 +9,7 @@ import {
 
 export { invertMediaQuery as __invertTrussMediaQuery } from "./media-query";
 export { maybeCssVar } from "./css-custom-property";
+export { __injectTrussCSS } from "./runtime-css";
 
 /** A compact source label for a Truss CSS expression, used in debug mode. */
 export class TrussDebugInfo {
@@ -42,8 +44,6 @@ export type RuntimeStyleCss = Record<string, RuntimeStyleDeclarations | string>;
 
 const shouldValidateTrussStyleValues = resolveShouldValidateTrussStyleValues();
 const shouldEmitTrussSrcAttribute = resolveShouldEmitTrussSrcAttribute();
-const TRUSS_CSS_CHUNKS = "__trussCssChunks__";
-let trussStyleElement: TrussStyleElement | null = null;
 
 /** Merge one or more Truss style hashes into `{ className, style?, data-truss-src? }`. */
 export function trussProps(
@@ -170,39 +170,6 @@ export function mergeProps(
   return result;
 }
 
-/**
- * Inject CSS text into the document for jsdom/test environments.
- *
- * A chunk is one transformed module's CSS or the test bootstrap's merged application
- * and library CSS snapshot. Chunks are static, append-only, and live until the document
- * is discarded; component unmounts do not remove them. Exact repeated chunks are skipped,
- * but different chunks can contain overlapping rules. Injecting changed CSS does not
- * replace old rules or remove declarations omitted from the new chunk.
- *
- * Each new chunk is appended in injection order, including after any mounted
- * useRuntimeStyle elements. Normal cascade rules apply across these sheets.
- * useRuntimeStyle owns its transient styles separately and removes them on effect cleanup.
- * In browser dev mode, the Vite virtual stylesheet is replaced on updates instead;
- * this helper is not an HMR replacement mechanism.
- */
-export function __injectTrussCSS(cssText: string): void {
-  if (typeof document === "undefined" || cssText.length === 0) return;
-
-  const style = getOrCreateTrussStyleElement();
-
-  // Track exact injected chunks on the style node so repeated execution of the
-  // test bootstrap or transformed modules does not append duplicate CSS text.
-  const injectedChunks = (style[TRUSS_CSS_CHUNKS] ??= new Set<string>());
-  if (injectedChunks.has(cssText)) return;
-
-  injectedChunks.add(cssText);
-  // Separate sheets let jsdom parse each chunk once instead of reparsing all prior chunks.
-  const chunkStyle = document.createElement("style");
-  chunkStyle.setAttribute("data-truss-chunk", "");
-  chunkStyle.textContent = cssText;
-  document.head.appendChild(chunkStyle);
-}
-
 export interface RuntimeStyleProps {
   css: RuntimeStyleCss;
 }
@@ -273,6 +240,15 @@ export function useRuntimeStyle(css: RuntimeStyleCss): void {
   const cssText = buildRuntimeStyleCssText(css);
   useInsertionEffect(() => {
     if (typeof document === "undefined" || cssText.length === 0) return;
+    // Reserve the static sheet before transient styles, even when no module CSS has loaded yet.
+    //
+    // This call is not redundant with getOrCreateTrussStyleElement inserting the static sheet
+    // before the first runtime style. jsdom cascades document.styleSheets in attach order, not
+    // DOM order. Without this reservation, a static sheet created after this runtime style
+    // mounts lands before it in <head> but after it in document.styleSheets, so the static
+    // rule wins the cascade. I.e. a runtime `.x { color: green }` mounted first loses to a
+    // later injected static `.x { color: red }`.
+    getOrCreateTrussStyleElement();
     const style = document.createElement("style");
     style.setAttribute("data-truss-runtime-style", "");
     style.textContent = cssText;
@@ -370,22 +346,3 @@ function resolveShouldEmitTrussSrcAttribute(): boolean {
   }
   return true;
 }
-
-function getOrCreateTrussStyleElement(): TrussStyleElement {
-  const id = "data-truss";
-  if (trussStyleElement?.ownerDocument === document && trussStyleElement.isConnected) {
-    return trussStyleElement;
-  }
-
-  const style = (document.querySelector(`style[${id}]`) as TrussStyleElement | null) ?? document.createElement("style");
-  if (!style.isConnected) {
-    style.setAttribute(id, "");
-    document.head.appendChild(style);
-  }
-  trussStyleElement = style;
-  return trussStyleElement;
-}
-
-type TrussStyleElement = HTMLStyleElement & {
-  [TRUSS_CSS_CHUNKS]?: Set<string>;
-};

@@ -1,2 +1,4 @@
 /* @truss p:3000 c:beamStatic */
 .beamStatic { display: flex; }
+/* @truss p:3500.5 c:mt_137px */
+.mt_137px { margin-top: 23px; }

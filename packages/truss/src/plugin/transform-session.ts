@@ -12,6 +12,7 @@ import {
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
+import { compareClassNames } from "../css-order";
 
 export interface TrussTransformSessionOptions {
   mappingPath: () => string;
@@ -52,6 +53,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   }
 
   function updateArbitraryCssRegistry(sourcePath: string, sourceCode: string): void {
+    sourcePath = resolve(sourcePath).replace(/\\/g, "/");
     const css = transformCssTs(sourceCode, sourcePath, ensureMapping()).trim();
     if (css.length > 0) {
       const prev = arbitraryCssRegistry.get(sourcePath);
@@ -90,7 +92,10 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   function collectCss(): string {
     const mapping = ensureMapping();
     const appCssParts = [generateCssText(cssRegistry)];
-    const allArbitrary = Array.from(arbitraryCssRegistry.values()).join("\n\n");
+    const allArbitrary = Array.from(arbitraryCssRegistry.entries())
+      .sort((a, b) => compareClassNames(a[0], b[0]))
+      .map((entry) => entry[1])
+      .join("\n\n");
     appCssParts.push(annotateArbitraryCssBlock(allArbitrary));
     const appCss = appCssParts.filter((part) => part.length > 0).join("\n");
     const libs = loadLibraries();
@@ -103,8 +108,20 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     return cssRegistry.size > 0 || arbitraryCssRegistry.size > 0 || libraryPaths.length > 0;
   }
 
+  /** Collect only libraries; application modules deliver their own CSS in tests. */
+  function collectTestCss(): string {
+    return mergeTrussCss(loadLibraries());
+  }
+
+  /** Read the transformed arbitrary CSS for one canonical source file. */
+  function getArbitraryCss(sourcePath: string): string {
+    return arbitraryCssRegistry.get(resolve(sourcePath).replace(/\\/g, "/")) ?? "";
+  }
+
   return {
     collectCss,
+    collectTestCss,
+    getArbitraryCss,
     ensureMapping,
     hasCss,
     reset,
@@ -115,6 +132,8 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
 
 export interface TrussTransformSession {
   collectCss: () => string;
+  collectTestCss: () => string;
+  getArbitraryCss: (sourcePath: string) => string;
   ensureMapping: () => TrussMapping;
   hasCss: () => boolean;
   reset: () => void;
