@@ -1,3 +1,9 @@
+## [2.29.6](https://github.com/homebound-team/truss/compare/v2.29.5...v2.29.6) (2026-09-09)
+
+### Bug Fixes
+
+* Avoid reparsing accumulated CSS in jsdom. ([92558c7](https://github.com/homebound-team/truss/commit/92558c7064efd1d3e7a2256a2fc95010d1bad535))
+
 ## [2.29.5](https://github.com/homebound-team/truss/compare/v2.29.4...v2.29.5) (2026-09-08)
 
 ### Bug Fixes
