@@ -2,13 +2,8 @@ import { resolve } from "path";
 import { generateCssText, type AtomicRule } from "./emit-css";
 import { transformCssTs } from "./transform-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
-import {
-  annotateArbitraryCssBlock,
-  mergeTrussCss,
-  parseTrussCss,
-  readTrussCss,
-  type ParsedTrussCss,
-} from "./merge-css";
+import { mergeTrussCss, readTrussCss } from "./merge-css";
+import { annotateArbitraryCssBlock, parseTrussCss, type ParsedTrussCss } from "../truss-css";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
 import { rootSpacingPreludeCss } from "../spacing-css-var";

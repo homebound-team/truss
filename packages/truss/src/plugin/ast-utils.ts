@@ -119,16 +119,20 @@ export function insertAfterLeadingImports(ast: t.File, statements: t.Statement[]
 }
 
 /**
- * Find the local name of a named import, i.e. `mergeProps13` for `import { mergeProps as mergeProps13 }`.
+ * Find the local name of a named value import, i.e. `mergeProps13` for `import { mergeProps as mergeProps13 }`.
  *
  * When `source` is given, only imports from that module are considered.
  */
 export function findNamedImportBinding(ast: t.File, importedName: string, source?: string): string | null {
   for (const node of ast.program.body) {
-    if (!t.isImportDeclaration(node)) continue;
+    if (!t.isImportDeclaration(node) || node.importKind === "type") continue;
     if (source !== undefined && node.source.value !== source) continue;
     for (const spec of node.specifiers) {
-      if (t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: importedName })) {
+      if (
+        t.isImportSpecifier(spec) &&
+        spec.importKind !== "type" &&
+        t.isIdentifier(spec.imported, { name: importedName })
+      ) {
         return spec.local.name;
       }
     }
@@ -172,11 +176,20 @@ export function replaceCssImportWithNamedImports(
   return false;
 }
 
-/** Add `imports` to the existing import of `source`, or add a new import after the last one. */
+/**
+ * Add named value imports to a compatible declaration, or add a new import after the last one.
+ * Type-only declarations are erased, and namespace imports cannot contain named specifiers.
+ */
 export function upsertNamedImports(ast: t.File, source: string, imports: NamedImport[]): void {
   if (imports.length === 0) return;
 
-  const existing = findImportDeclaration(ast, source);
+  const existing = ast.program.body.find(
+    (node): node is t.ImportDeclaration =>
+      t.isImportDeclaration(node) &&
+      node.source.value === source &&
+      node.importKind !== "type" &&
+      !node.specifiers.some((spec) => t.isImportNamespaceSpecifier(spec)),
+  );
   if (!existing) {
     const importDecl = t.importDeclaration(imports.map(toImportSpecifier), t.stringLiteral(source));
     ast.program.body.splice(findLastImportIndex(ast) + 1, 0, importDecl);
@@ -185,7 +198,11 @@ export function upsertNamedImports(ast: t.File, source: string, imports: NamedIm
 
   for (const entry of imports) {
     const exists = existing.specifiers.some((spec) => {
-      return t.isImportSpecifier(spec) && t.isIdentifier(spec.imported, { name: entry.importedName });
+      return (
+        t.isImportSpecifier(spec) &&
+        spec.importKind !== "type" &&
+        t.isIdentifier(spec.imported, { name: entry.importedName })
+      );
     });
     if (!exists) existing.specifiers.push(toImportSpecifier(entry));
   }

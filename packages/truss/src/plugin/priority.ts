@@ -20,9 +20,6 @@ import {
 import { WHEN_RELATIONSHIPS } from "./when-relationships";
 import type { AtomicRule } from "./emit-css";
 
-export { compareClassNames, compareRuleSortKeys, ruleSortKey } from "../css-order";
-export type { RuleSortKey, WidthInterval } from "../css-order";
-
 /**
  * Compute the numeric priority for a single AtomicRule.
  *

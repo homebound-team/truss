@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { parseTrussCss, mergeTrussCss, type ParsedTrussCss } from "./merge-css";
+import { mergeTrussCss } from "./merge-css";
+import { parseTrussCss, type ParsedTrussCss } from "../truss-css";
 
 describe("parseTrussCss", () => {
   test("parses rules with priority annotations", () => {
