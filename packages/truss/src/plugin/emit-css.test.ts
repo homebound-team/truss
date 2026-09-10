@@ -1,8 +1,48 @@
 import { describe, expect, test } from "vitest";
-import { collectAtomicRules, generateCssText, type AtomicRule } from "./emit-css";
+import { collectAtomicRules, generateCssData, generateCssText, type AtomicRule } from "./emit-css";
 import { computeRulePriority } from "./priority";
 import type { ResolvedConditionContext, ResolvedSegment, TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
+
+test("structured emission retains duplicate property declarations and exact production text", () => {
+  const rules = new Map<string, AtomicRule>([
+    [
+      "h_w_var",
+      {
+        className: "h_w_var",
+        pseudoClass: ":hover",
+        declarations: [{ cssProperty: "width", cssValue: "var(--width)", cssVarName: "--width" }],
+      },
+    ],
+    [
+      "w_var",
+      { className: "w_var", declarations: [{ cssProperty: "width", cssValue: "var(--width)", cssVarName: "--width" }] },
+    ],
+  ]);
+  expect(generateCssData(rules)).toEqual({
+    rules: [
+      { priority: 4000.5, className: "w_var", cssText: ".w_var { width: var(--width); }" },
+      { priority: 4130.5, className: "h_w_var", cssText: ".h_w_var:hover { width: var(--width); }" },
+    ],
+    properties: [
+      { varName: "--width", cssText: '@property --width { syntax: "*"; inherits: false; }' },
+      { varName: "--width", cssText: '@property --width { syntax: "*"; inherits: false; }' },
+    ],
+    arbitraryCssBlocks: [],
+  });
+  expect(generateCssText(rules)).toEqual(
+    [
+      "/* @truss p:4000.5 c:w_var */",
+      ".w_var { width: var(--width); }",
+      "/* @truss p:4130.5 c:h_w_var */",
+      ".h_w_var:hover { width: var(--width); }",
+      "/* @truss @property */",
+      '@property --width { syntax: "*"; inherits: false; }',
+      "/* @truss @property */",
+      '@property --width { syntax: "*"; inherits: false; }',
+    ].join("\n"),
+  );
+});
 
 const testMapping: TrussMapping = {
   increment: 8,

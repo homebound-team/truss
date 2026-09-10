@@ -1,9 +1,12 @@
 import { resolve } from "path";
-import { generateCssText, type AtomicRule } from "./emit-css";
+import { generateCssData, type AtomicRule } from "./emit-css";
 import { transformCssTs } from "./transform-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
-import { mergeTrussCss, readTrussCss } from "./merge-css";
-import { annotateArbitraryCssBlock, parseTrussCss, type ParsedTrussCss } from "../truss-css";
+import { mergeTrussCssData, readTrussCss } from "./merge-css";
+import type { ParsedTrussCss } from "../truss-css";
+import { serializeTrussCss } from "./truss-css";
+import { createTestCssPayload } from "./test-css";
+import type { TestCssPayload } from "../test-css";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
@@ -86,15 +89,14 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
 
   function collectCss(): string {
     const mapping = ensureMapping();
-    const appCssParts = [generateCssText(cssRegistry)];
+    const appCss = generateCssData(cssRegistry);
     const allArbitrary = Array.from(arbitraryCssRegistry.entries())
       .sort((a, b) => compareClassNames(a[0], b[0]))
       .map((entry) => entry[1])
       .join("\n\n");
-    appCssParts.push(annotateArbitraryCssBlock(allArbitrary));
-    const appCss = appCssParts.filter((part) => part.length > 0).join("\n");
+    if (allArbitrary.length > 0) appCss.arbitraryCssBlocks.push({ cssText: allArbitrary });
     const libs = loadLibraries();
-    const body = libs.length === 0 ? appCss : mergeTrussCss([...libs, parseTrussCss(appCss)]);
+    const body = serializeTrussCss(libs.length === 0 ? appCss : mergeTrussCssData([...libs, appCss]));
     if (body.length === 0) return "";
     return `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
   }
@@ -104,8 +106,8 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   }
 
   /** Collect only libraries; application modules deliver their own CSS in tests. */
-  function collectTestCss(): string {
-    return mergeTrussCss(loadLibraries());
+  function collectTestCss(): TestCssPayload {
+    return createTestCssPayload(mergeTrussCssData(loadLibraries()));
   }
 
   /** Read the transformed arbitrary CSS for one canonical source file. */
@@ -127,7 +129,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
 
 export interface TrussTransformSession {
   collectCss: () => string;
-  collectTestCss: () => string;
+  collectTestCss: () => TestCssPayload;
   getArbitraryCss: (sourcePath: string) => string;
   ensureMapping: () => TrussMapping;
   hasCss: () => boolean;

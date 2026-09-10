@@ -107,7 +107,38 @@ describe("trussPlugin", () => {
       n(`
         import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-        __injectTrussCSS("/* @truss p:3000 c:beamStatic */\\n.beamStatic { display: flex; }", {"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
+        __injectTrussCSS({"rules":[{"priority":3000,"className":"beamStatic","cssText":".beamStatic { display: flex; }"}],"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
+      `),
+    );
+  });
+
+  test("test bootstrap serializes query metadata, properties, and split arbitrary rules", () => {
+    // Given an application mapping without local rules
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {});
+    // And library CSS with an unbounded media query, a property, and two arbitrary rules
+    writeLibraryCss(root, [
+      "/* @truss p:3200 c:wide */",
+      "@media (min-width: 600px) { .wide { color: red; } }",
+      "/* @truss @property */",
+      '@property --color { syntax: "*"; inherits: false; }',
+      "/* @truss arbitrary:start */",
+      ".first { color: red; }",
+      "@supports (display: grid) { .second { display: grid; } }",
+      "/* @truss arbitrary:end */",
+    ]);
+    // And a test-mode plugin configured to bootstrap the library
+    const plugin = trussPlugin({
+      mapping: "./src/Css.json",
+      libraries: ["./node_modules/@company/library/dist/truss.css"],
+    });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
+    invokeHook(plugin.buildStart, {});
+
+    expect(n(getTestCssModule(plugin))).toBe(
+      n(`
+        import { __injectTrussCSS } from "@homebound/truss/runtime";
+        __injectTrussCSS({"rules":[{"priority":3200,"className":"wide","cssText":"@media (min-width: 600px) { .wide { color: red; } }","atRule":"@media (min-width: 600px)"}],"properties":[{"cssText":"@property --color { syntax: \\"*\\"; inherits: false; }","varName":"--color"}],"arbitraryRules":[".first { color: red; }","@supports (display: grid) { .second { display: grid; } }"],"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
       `),
     );
   });
@@ -138,7 +169,7 @@ describe("trussPlugin", () => {
     expect(n(result?.code ?? "")).toBe(
       n(`
         import { mergeProps, TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
-        __injectTrussCSS("/* @truss p:3000 c:df */\\n.df { display: flex; }");
+        __injectTrussCSS({ rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }] });
         const el = <div {...mergeProps("beamStatic", undefined, {
           display: ["df", new TrussDebugInfo("App.tsx:1")]
         })} />;
@@ -151,7 +182,7 @@ describe("trussPlugin", () => {
       n(`
         import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-        __injectTrussCSS("/* @truss p:3000 c:df */\\n.df { display: grid; }", {"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
+        __injectTrussCSS({"rules":[{"priority":3000,"className":"df","cssText":".df { display: grid; }"}],"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
       `),
     );
   });
@@ -169,7 +200,7 @@ describe("trussPlugin", () => {
     expect(n(getTestCssModule(plugin))).toBe(
       n(`
       import { __injectTrussCSS } from "@homebound/truss/runtime";
-      __injectTrussCSS("", {"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
+      __injectTrussCSS({"source":"libraries","order":0,"prelude":":root { --t-spacing: 8px; }"});
     `),
     );
   });
@@ -199,7 +230,7 @@ describe("trussPlugin", () => {
       export const css = { ".late": Css.df.$ };
       import "virtual:truss:test-css";
       import { __injectTrussCSS as __injectTrussCSS_1 } from "@homebound/truss/runtime";
-      __injectTrussCSS_1("/* @truss arbitrary:start */\\n.late {\\n  display: flex;\\n}\\n/* @truss arbitrary:end */", { source: ${JSON.stringify(sourcePath)} });
+      __injectTrussCSS_1({ arbitraryRules: [".late {\\n  display: flex;\\n}"], source: ${JSON.stringify(sourcePath)} });
     `),
     );
     expect(getTestCssModule(plugin)).toBe(bootstrap);
@@ -209,7 +240,7 @@ describe("trussPlugin", () => {
       n(`
       import "virtual:truss:test-css";
       import { __injectTrussCSS } from "@homebound/truss/runtime";
-      __injectTrussCSS("/* @truss arbitrary:start */\\n.late {\\n  display: flex;\\n}\\n/* @truss arbitrary:end */", {"source":${JSON.stringify(sourcePath)}});
+      __injectTrussCSS({"arbitraryRules":[".late {\\n  display: flex;\\n}"],"source":${JSON.stringify(sourcePath)}});
     `),
     );
   });
@@ -280,7 +311,7 @@ describe("trussPlugin", () => {
         export const css = { ".target": "color: red;" };
         import "virtual:truss:test-css";
         ${scenario.addedImport}
-        ${scenario.helper}("/* @truss arbitrary:start */\\n.target {\\n  color: red;\\n}\\n/* @truss arbitrary:end */", { source: ${JSON.stringify(sourcePath)} });
+        ${scenario.helper}({ arbitraryRules: [".target {\\n  color: red;\\n}"], source: ${JSON.stringify(sourcePath)} });
       `),
     );
   });
@@ -308,7 +339,7 @@ describe("trussPlugin", () => {
       n(`
       import "virtual:truss:test-css";
       import { __injectTrussCSS } from "@homebound/truss/runtime";
-      __injectTrussCSS("/* @truss arbitrary:start */\\n.build-only {\\n  --test-color: red;\\n}\\n/* @truss arbitrary:end */", {"source":${JSON.stringify(sourcePath)}});
+      __injectTrussCSS({"arbitraryRules":[".build-only {\\n  --test-color: red;\\n}"],"source":${JSON.stringify(sourcePath)}});
     `),
     );
     expect(runTransform(plugin, loaded, resolvedId as string)).toBeNull();

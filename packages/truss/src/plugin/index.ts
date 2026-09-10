@@ -3,7 +3,7 @@ import { resolve, dirname, isAbsolute, join } from "path";
 import { createHash } from "crypto";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import { createTrussTransformSession } from "./transform-session";
-import { annotateArbitraryCssBlock } from "../truss-css";
+import { splitArbitraryCss } from "./test-css";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
 import { generate, parseModule, traverse } from "./babel-utils";
 import { findNamedImportBinding, reservePreferredName, upsertNamedImports } from "./ast-utils";
@@ -230,8 +230,8 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       if (id === RESOLVED_VIRTUAL_TEST_CSS_ID) {
         // Vitest/jsdom has no dev server stylesheet fetch, so inject libraries
         // once; application modules deliver CSS when they evaluate.
-        const css = session.collectTestCss();
-        const options = {
+        const payload = {
+          ...session.collectTestCss(),
           source: "libraries",
           order: 0,
           prelude: rootSpacingPreludeCss(session.ensureMapping().increment),
@@ -239,19 +239,22 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
         return `
 import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-__injectTrussCSS(${JSON.stringify(css)}, ${JSON.stringify(options)});
+__injectTrussCSS(${JSON.stringify(payload)});
 `;
       }
 
       if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) {
         const sourcePath = canonicalSourcePath(id.slice(VIRTUAL_TEST_CSS_PREFIX.length));
         session.updateArbitraryCssRegistry(sourcePath, readFileSync(sourcePath, "utf8"));
-        const css = annotateArbitraryCssBlock(session.getArbitraryCss(sourcePath));
+        const payload = {
+          arbitraryRules: splitArbitraryCss(session.getArbitraryCss(sourcePath)),
+          source: sourcePath,
+        };
         return `
 import "${VIRTUAL_TEST_CSS_ID}";
 import { __injectTrussCSS } from "@homebound/truss/runtime";
 
-__injectTrussCSS(${JSON.stringify(css)}, ${JSON.stringify({ source: sourcePath })});
+__injectTrussCSS(${JSON.stringify(payload)});
 `;
       }
 
@@ -307,7 +310,7 @@ __injectTrussCSS(${JSON.stringify(css)}, ${JSON.stringify({ source: sourcePath }
         // the registry here where Vite re-transforms changed files.
         session.updateArbitraryCssRegistry(fileId, code);
         if (isTest) {
-          const css = annotateArbitraryCssBlock(session.getArbitraryCss(fileId));
+          const css = session.getArbitraryCss(fileId);
           return { code: appendTestCssInjection(transformedCode, fileId, css), map: null };
         }
         return importsOnlyResult;
@@ -422,8 +425,7 @@ function appendTestCssInjection(code: string, fileId: string, css: string): stri
   ast.program.body.push(
     t.expressionStatement(
       t.callExpression(t.identifier(localName), [
-        t.stringLiteral(css),
-        t.objectExpression([t.objectProperty(t.identifier("source"), t.stringLiteral(canonicalSourcePath(fileId)))]),
+        t.valueToNode({ arbitraryRules: splitArbitraryCss(css), source: canonicalSourcePath(fileId) }),
       ]),
     ),
   );

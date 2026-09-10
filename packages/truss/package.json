@@ -37,6 +37,7 @@
     "@babel/traverse": "^7.29.0",
     "@babel/types": "^7.29.0",
     "change-case": "^5.4.4",
+    "css-tree": "^3.2.1",
     "csstype": "^3.2.3",
     "jiti": "^2.6.1",
     "ts-poet": "^6.12.0"
@@ -48,6 +49,7 @@
     "@homebound/tsconfig": "^1.1.1",
     "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.28.0",
+    "@types/css-tree": "^3.2.0",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "jsdom": "^29.0.2",

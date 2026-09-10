@@ -4,6 +4,8 @@ import { sortRulesByPriority } from "./priority";
 import { camelToKebab, markerClassName, styleEntriesForSegment } from "./style-entries";
 import { WHEN_RELATIONSHIPS, type WhenRelationship } from "./when-relationships";
 import { variableValueNeedsMaybeCssVar } from "../css-custom-property";
+import type { ParsedTrussCss } from "../truss-css";
+import { serializeTrussCss } from "./truss-css";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 
@@ -141,25 +143,35 @@ function whenSelectorFor(whenPseudo: WhenCondition): WhenSelector {
  * ```
  */
 export function generateCssText(rules: Map<string, AtomicRule>): string {
-  const sorted = sortRulesByPriority(rules.values());
-  const lines: string[] = [];
+  return serializeTrussCss(generateCssData(rules));
+}
 
-  for (const { rule, priority } of sorted) {
-    lines.push(`/* @truss p:${priority} c:${rule.className} */`);
-    lines.push(formatRule(rule));
-  }
+/** Generate sorted atomic CSS data, retaining every emitted custom property declaration. */
+export function generateCssData(rules: Map<string, AtomicRule>): ParsedTrussCss {
+  const sorted = sortRulesByPriority(rules.values());
+  const css: ParsedTrussCss = {
+    rules: sorted.map((entry) => ({
+      priority: entry.priority,
+      className: entry.rule.className,
+      cssText: formatRule(entry.rule),
+    })),
+    properties: [],
+    arbitraryCssBlocks: [],
+  };
 
   // I.e. `@property --marginTop { syntax: "*"; inherits: false; }` for variable rules
   for (const { rule } of sorted) {
     for (const declaration of rule.declarations) {
       if (declaration.cssVarName) {
-        lines.push(`/* @truss @property */`);
-        lines.push(`@property ${declaration.cssVarName} { syntax: "*"; inherits: false; }`);
+        css.properties.push({
+          varName: declaration.cssVarName,
+          cssText: `@property ${declaration.cssVarName} { syntax: "*"; inherits: false; }`,
+        });
       }
     }
   }
 
-  return lines.join("\n");
+  return css;
 }
 
 /**
