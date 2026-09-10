@@ -1,3 +1,9 @@
+## [2.29.7](https://github.com/homebound-team/truss/compare/v2.29.6...v2.29.7) (2026-09-10)
+
+### Bug Fixes
+
+* Match test CSS ordering to production. ([7054cc6](https://github.com/homebound-team/truss/commit/7054cc6e54635c4b6124badda073cd34f98ef034))
+
 ## [2.29.6](https://github.com/homebound-team/truss/compare/v2.29.5...v2.29.6) (2026-09-09)
 
 ### Bug Fixes
