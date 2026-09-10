@@ -1,6 +1,6 @@
 /**
- * The sort key shared by `emit-css` and `merge-css`, so a stylesheet merged from library CSS
- * keeps the same rule order as the per-file output.
+ * The sort key shared by `emit-css`, `merge-css`, and `runtime-css`, so a stylesheet merged from
+ * library CSS or assembled rule by rule in jsdom keeps the same rule order as the per-file output.
  */
 export interface RuleSortKey {
   priority: number;

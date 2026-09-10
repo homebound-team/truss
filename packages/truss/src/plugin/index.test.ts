@@ -193,13 +193,13 @@ describe("trussPlugin", () => {
     const result = runTransform(plugin, code, `/@fs/${sourcePath}?v=1`);
     expect(n(result?.code ?? "")).toBe(
       n(`
-      import { __injectTrussCSS as _injectTrussCSS2 } from "@homebound/truss/runtime";
       import { Css } from "./Css";
       export const _injectTrussCSS = "occupied";
       export const __injectTrussCSS = "also occupied";
       export const css = { ".late": Css.df.$ };
       import "virtual:truss:test-css";
-      _injectTrussCSS2("/* @truss arbitrary:start */\\n.late {\\n  display: flex;\\n}\\n/* @truss arbitrary:end */", { source: ${JSON.stringify(sourcePath)} });
+      import { __injectTrussCSS as __injectTrussCSS_1 } from "@homebound/truss/runtime";
+      __injectTrussCSS_1("/* @truss arbitrary:start */\\n.late {\\n  display: flex;\\n}\\n/* @truss arbitrary:end */", { source: ${JSON.stringify(sourcePath)} });
     `),
     );
     expect(getTestCssModule(plugin)).toBe(bootstrap);
@@ -211,6 +211,77 @@ describe("trussPlugin", () => {
       import { __injectTrussCSS } from "@homebound/truss/runtime";
       __injectTrussCSS("/* @truss arbitrary:start */\\n.late {\\n  display: flex;\\n}\\n/* @truss arbitrary:end */", {"source":${JSON.stringify(sourcePath)}});
     `),
+    );
+  });
+
+  test.each([
+    {
+      name: "a type-only declaration",
+      imports: 'import type { RuntimeStyleCss } from "@homebound/truss/runtime";',
+      expectedImports: 'import type { RuntimeStyleCss } from "@homebound/truss/runtime";',
+      addedImport: 'import { __injectTrussCSS } from "@homebound/truss/runtime";',
+      helper: "__injectTrussCSS",
+    },
+    {
+      name: "a type-only helper declaration",
+      imports: 'import type { __injectTrussCSS } from "@homebound/truss/runtime";',
+      expectedImports: 'import type { __injectTrussCSS } from "@homebound/truss/runtime";',
+      addedImport: 'import { __injectTrussCSS as __injectTrussCSS_1 } from "@homebound/truss/runtime";',
+      helper: "__injectTrussCSS_1",
+    },
+    {
+      name: "an inline type-only helper specifier",
+      imports: 'import { type __injectTrussCSS } from "@homebound/truss/runtime";',
+      expectedImports:
+        'import { type __injectTrussCSS, __injectTrussCSS as __injectTrussCSS_1 } from "@homebound/truss/runtime";',
+      addedImport: "",
+      helper: "__injectTrussCSS_1",
+    },
+    {
+      name: "a namespace import",
+      imports: 'import * as runtime from "@homebound/truss/runtime";',
+      expectedImports: 'import * as runtime from "@homebound/truss/runtime";',
+      addedImport: 'import { __injectTrussCSS } from "@homebound/truss/runtime";',
+      helper: "__injectTrussCSS",
+    },
+    {
+      name: "an existing aliased value import",
+      imports: 'import { __injectTrussCSS as inject } from "@homebound/truss/runtime";',
+      expectedImports: 'import { __injectTrussCSS as inject } from "@homebound/truss/runtime";',
+      addedImport: "",
+      helper: "inject",
+    },
+    {
+      name: "a value declaration after a type-only declaration",
+      imports: `import type { RuntimeStyleCss } from "@homebound/truss/runtime";
+        import { RuntimeStyle } from "@homebound/truss/runtime";`,
+      expectedImports: `import type { RuntimeStyleCss } from "@homebound/truss/runtime";
+        import { RuntimeStyle, __injectTrussCSS } from "@homebound/truss/runtime";`,
+      addedImport: "",
+      helper: "__injectTrussCSS",
+    },
+  ])("test mode injects arbitrary CSS with $name", (scenario) => {
+    // Given an application mapping without atomic rules
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {});
+    // And a test-mode plugin that injects CSS when the module evaluates
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
+    invokeHook(plugin.buildStart, {});
+    // And an arbitrary CSS module with an existing runtime import
+    const sourcePath = join(root, "src", "Imports.css.ts");
+    const code = `${scenario.imports}\nexport const css = { ".target": "color: red;" };`;
+
+    const result = runTransform(plugin, code, sourcePath);
+
+    expect(n(result?.code ?? "")).toBe(
+      n(`
+        ${scenario.expectedImports}
+        export const css = { ".target": "color: red;" };
+        import "virtual:truss:test-css";
+        ${scenario.addedImport}
+        ${scenario.helper}("/* @truss arbitrary:start */\\n.target {\\n  color: red;\\n}\\n/* @truss arbitrary:end */", { source: ${JSON.stringify(sourcePath)} });
+      `),
     );
   });
 

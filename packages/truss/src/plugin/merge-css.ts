@@ -3,9 +3,6 @@ import { atRulePrelude, compareRuleSortKeys, ruleSortKey } from "../css-order";
 import { annotateArbitraryCssBlock, parseTrussCss } from "../truss-css";
 import type { ParsedArbitraryCssBlock, ParsedCssRule, ParsedPropertyDeclaration, ParsedTrussCss } from "../truss-css";
 
-export { annotateArbitraryCssBlock, parseTrussCss } from "../truss-css";
-export type { ParsedArbitraryCssBlock, ParsedCssRule, ParsedPropertyDeclaration, ParsedTrussCss } from "../truss-css";
-
 /**
  * Read and parse an annotated truss.css file from disk.
  *

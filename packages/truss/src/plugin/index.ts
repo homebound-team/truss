@@ -3,9 +3,10 @@ import { resolve, dirname, isAbsolute, join } from "path";
 import { createHash } from "crypto";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import { createTrussTransformSession } from "./transform-session";
-import { annotateArbitraryCssBlock } from "./merge-css";
+import { annotateArbitraryCssBlock } from "../truss-css";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
 import { generate, parseModule, traverse } from "./babel-utils";
+import { findNamedImportBinding, reservePreferredName, upsertNamedImports } from "./ast-utils";
 import * as t from "@babel/types";
 
 export interface TrussPluginOptions {
@@ -36,6 +37,8 @@ export interface TrussVitePlugin {
 const VIRTUAL_CSS_PREFIX = "\0truss-css:";
 const VIRTUAL_TEST_CSS_PREFIX = "\0truss-test-css:";
 const CSS_TS_QUERY = "?truss-css";
+const RUNTIME_MODULE = "@homebound/truss/runtime";
+const INJECT_CSS_HELPER = "__injectTrussCSS";
 
 /** Placeholder injected into HTML during build; replaced with the hashed CSS filename in generateBundle. */
 const TRUSS_CSS_PLACEHOLDER = "__TRUSS_CSS_HASH__";
@@ -241,7 +244,7 @@ __injectTrussCSS(${JSON.stringify(css)}, ${JSON.stringify(options)});
       }
 
       if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) {
-        const sourcePath = resolve(id.slice(VIRTUAL_TEST_CSS_PREFIX.length)).replace(/\\/g, "/");
+        const sourcePath = canonicalSourcePath(id.slice(VIRTUAL_TEST_CSS_PREFIX.length));
         session.updateArbitraryCssRegistry(sourcePath, readFileSync(sourcePath, "utf8"));
         const css = annotateArbitraryCssBlock(session.getArbitraryCss(sourcePath));
         return `
@@ -305,31 +308,7 @@ __injectTrussCSS(${JSON.stringify(css)}, ${JSON.stringify({ source: sourcePath }
         session.updateArbitraryCssRegistry(fileId, code);
         if (isTest) {
           const css = annotateArbitraryCssBlock(session.getArbitraryCss(fileId));
-          const ast = parseModule(transformedCode, fileId);
-          traverse(ast, {
-            Program(path) {
-              const inject = path.scope.generateUidIdentifier("injectTrussCSS");
-              path.unshiftContainer(
-                "body",
-                t.importDeclaration(
-                  [t.importSpecifier(inject, t.identifier("__injectTrussCSS"))],
-                  t.stringLiteral("@homebound/truss/runtime"),
-                ),
-              );
-              path.pushContainer(
-                "body",
-                t.expressionStatement(
-                  t.callExpression(inject, [
-                    t.stringLiteral(css),
-                    t.objectExpression([
-                      t.objectProperty(t.identifier("source"), t.stringLiteral(resolve(fileId).replace(/\\/g, "/"))),
-                    ]),
-                  ]),
-                ),
-              );
-            },
-          });
-          return { code: generate(ast, { sourceFileName: fileId }).code, map: null };
+          return { code: appendTestCssInjection(transformedCode, fileId, css), map: null };
         }
         return importsOnlyResult;
       }
@@ -412,6 +391,43 @@ function stripQueryAndHash(id: string): string {
 
 function isNodeModulesFile(filePath: string): boolean {
   return filePath.replace(/\\/g, "/").includes("/node_modules/");
+}
+
+/** Absolute, forward-slashed path, matching the arbitrary CSS registry keys on every platform. */
+function canonicalSourcePath(filePath: string): string {
+  return resolve(filePath).replace(/\\/g, "/");
+}
+
+/**
+ * Append an `__injectTrussCSS` call so a `.css.ts` module delivers its compiled CSS when it
+ * evaluates in tests, including through dynamic imports the import rewrite cannot see.
+ *
+ * Reuses an existing runtime import of the helper, otherwise reserves a collision-free local
+ * name the same way the main transform does, so `export const __injectTrussCSS` in the module
+ * still works.
+ */
+function appendTestCssInjection(code: string, fileId: string, css: string): string {
+  const ast = parseModule(code, fileId);
+  // Module-scope names, so the injected import can avoid collisions
+  let usedTopLevelNames = new Set<string>();
+  traverse(ast, {
+    Program(path) {
+      usedTopLevelNames = new Set(Object.keys(path.scope.bindings));
+      path.stop();
+    },
+  });
+  const existing = findNamedImportBinding(ast, INJECT_CSS_HELPER, RUNTIME_MODULE);
+  const localName = existing ?? reservePreferredName(usedTopLevelNames, INJECT_CSS_HELPER);
+  if (!existing) upsertNamedImports(ast, RUNTIME_MODULE, [{ importedName: INJECT_CSS_HELPER, localName }]);
+  ast.program.body.push(
+    t.expressionStatement(
+      t.callExpression(t.identifier(localName), [
+        t.stringLiteral(css),
+        t.objectExpression([t.objectProperty(t.identifier("source"), t.stringLiteral(canonicalSourcePath(fileId)))]),
+      ]),
+    ),
+  );
+  return generate(ast, { sourceFileName: fileId }).code;
 }
 
 export type { TrussMapping, TrussMappingEntry } from "./types";

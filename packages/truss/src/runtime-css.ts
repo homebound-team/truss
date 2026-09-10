@@ -1,7 +1,8 @@
 import { atRulePrelude, compareClassNames, compareRuleSortKeys, ruleSortKey, type RuleSortKey } from "./css-order";
 import { parseTrussCss } from "./truss-css";
 
-interface InjectionOptions {
+/** Options for `__injectTrussCSS`; the plugin passes these from its generated test modules. */
+export interface InjectionOptions {
   /** Canonical source path for ordering and deduplicating application arbitrary CSS. */
   source?: string;
   /** Libraries use 0 and application modules use 1, matching the production merge. */
