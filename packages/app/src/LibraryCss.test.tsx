@@ -40,7 +40,9 @@ describe("library css", () => {
   });
 
   test("keeps runtime styles after the fixed static sheet during late injection", () => {
-    __injectTrussCSS("/* @truss p:3000 c:injection-order-red */\n.injection-order { color: red; }");
+    __injectTrussCSS({
+      rules: [{ priority: 3000, className: "injection-order-red", cssText: ".injection-order { color: red; }" }],
+    });
     const r = render(<RuntimeStyleHarness />);
     const el = r.container.firstChild as HTMLElement;
     const runtimeStyle = document.querySelector("style[data-truss-runtime-style]") as HTMLStyleElement;
@@ -49,7 +51,9 @@ describe("library css", () => {
     const staticSheet = staticStyle.sheet;
     expect(el).toHaveStyle({ color: "rgb(0, 128, 0)" });
 
-    __injectTrussCSS("/* @truss p:3001 c:injection-order-blue */\n.injection-order { color: blue; }");
+    __injectTrussCSS({
+      rules: [{ priority: 3001, className: "injection-order-blue", cssText: ".injection-order { color: blue; }" }],
+    });
 
     expect(runtimeStyle.previousElementSibling).toBe(staticStyle);
     expect(runtimeStyle.nextElementSibling).toBeNull();

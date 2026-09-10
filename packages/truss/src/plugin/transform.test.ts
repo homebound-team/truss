@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { transformTruss } from "./transform";
+import { transformTruss, type TransformTrussOptions } from "./transform";
 import { loadMapping } from "./index";
 import { resolve } from "path";
 import { normalize } from "../testUtils";
@@ -7,6 +7,76 @@ import { normalize } from "../testUtils";
 const mapping = loadMapping(resolve(__dirname, "../../../app/src/Css.json"));
 
 describe("transform", () => {
+  test("injects structured priorities and one-sided query metadata", () => {
+    // Given media and container queries with no upper width bound
+    expectTrussTransform(
+      `
+      import { Css } from "./Css";
+      const a = Css.if("@media (min-width: 600px)").blue.$;
+      const b = Css.ifContainer({ gt: 600 }).blue.$;
+      `,
+      { injectCss: true },
+    ).toHaveTrussOutput(
+      `
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
+      __injectTrussCSS({ rules: [{
+        priority: 3200,
+        className: "media_min_width_600px_blue",
+        cssText: "@media (min-width: 600px) { .media_min_width_600px_blue.media_min_width_600px_blue { color: #526675; } }",
+        atRule: "@media (min-width: 600px)"
+      }, {
+        priority: 3300,
+        className: "container_min_width_601px_blue",
+        cssText: "@container (min-width: 601px) { .container_min_width_601px_blue.container_min_width_601px_blue { color: #526675; } }",
+        atRule: "@container (min-width: 601px)"
+      }] });
+      const a = { color: "media_min_width_600px_blue" };
+      const b = { color: "container_min_width_601px_blue" };
+      `,
+      `
+      @media (min-width: 600px) {
+        .media_min_width_600px_blue.media_min_width_600px_blue { color: #526675; }
+      }
+      @container (min-width: 601px) {
+        .container_min_width_601px_blue.container_min_width_601px_blue { color: #526675; }
+      }
+      `,
+    );
+  });
+
+  test("injects property registrations alongside variable atomic rules", () => {
+    // Given a border color supplied through a custom property
+    expectTrussTransform(
+      `
+      import { Css, Tokens } from "./Css";
+      const s = Css.bc(Tokens.ThemeAccent).$;
+      `,
+      { injectCss: true },
+    ).toHaveTrussOutput(
+      `
+      import { Tokens } from "./Css";
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
+      __injectTrussCSS({
+        rules: [{ priority: 2000.5, className: "bc_var", cssText: ".bc_var { border-color: var(--borderColor); }" }],
+        properties: [{ varName: "--borderColor", cssText: "@property --borderColor { syntax: \\"*\\"; inherits: false; }" }]
+      });
+      const s = { borderColor: ["bc_var", { "--borderColor": "var(--theme-accent)" }] };
+      `,
+      `
+      .bc_var { border-color: var(--borderColor); }
+      @property --borderColor { syntax: "*"; inherits: false; }
+      `,
+    );
+  });
+
+  test("does not inject an empty atomic payload", () => {
+    // Given an empty Css chain that emits no CSS
+    expectTrussTransform(`import { Css } from "./Css"; const s = Css.$;`, { injectCss: true }).toHaveTrussOutput(
+      `import { __injectTrussCSS } from "@homebound/truss/runtime"; const s = {};`,
+      "",
+    );
+  });
+
   test("returns null for files without Css import", () => {
     expectTrussTransform(`
       const x = 1;
@@ -4264,7 +4334,7 @@ test("setVar: unknown token member errors and skips defs", () => {
 });
 
 /** Expect helper around transform code and css outputs. */
-function expectTrussTransform(code: string, options?: { debug?: boolean }) {
+function expectTrussTransform(code: string, options?: TransformTrussOptions) {
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);
   return expect({
     code: result?.code ? normalize(result.code) : null,

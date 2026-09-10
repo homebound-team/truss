@@ -29,7 +29,8 @@ void runtimeInBuildtimeProp;
 
 /**
  * The truss plugin transforms `Css.*.$` expressions at build time and injects
- * the resulting CSS rules into a `<style>` tag via `__injectTrussCSS`. This
+ * structured CSS rule data into one CSSOM stylesheet via `__injectTrussCSS`,
+ * without runtime annotation parsing or temporary style parsing. This
  * means jsdom's `getComputedStyle` can resolve class-based styles, and
  * `toHaveStyle` works for static (class-based) styles.
  *

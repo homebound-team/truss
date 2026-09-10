@@ -563,9 +563,11 @@ __metadata:
     "@homebound/tsconfig": "npm:^1.1.1"
     "@types/babel__generator": "npm:^7.27.0"
     "@types/babel__traverse": "npm:^7.28.0"
+    "@types/css-tree": "npm:^3.2.0"
     "@types/node": "npm:^25.5.2"
     "@types/react": "npm:^19.2.14"
     change-case: "npm:^5.4.4"
+    css-tree: "npm:^3.2.1"
     csstype: "npm:^3.2.3"
     jiti: "npm:^2.6.1"
     jsdom: "npm:^29.0.2"
@@ -1873,6 +1875,13 @@ __metadata:
     "@types/deep-eql": "npm:*"
     assertion-error: "npm:^2.0.1"
   checksum: 10/e79947307dc235953622e65f83d2683835212357ca261389116ab90bed369ac862ba28b146b4fed08b503ae1e1a12cb93ce783f24bb8d562950469f4320e1c7c
+  languageName: node
+  linkType: hard
+
+"@types/css-tree@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "@types/css-tree@npm:3.2.0"
+  checksum: 10/bf179b0eef4bebedacaae3a73d488040c52ac10886ab6e6cdc503d6abbf1e13b2e6f8548f42a82cccbcac76e9a07b78bf889e4a16ebc159f3c4cb60f184f4031
   languageName: node
   linkType: hard
 

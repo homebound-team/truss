@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mergeProps, TrussDebugInfo, trussProps, __injectTrussCSS } from "./runtime";
 import { mergeTrussCss } from "./plugin/merge-css";
-import { annotateArbitraryCssBlock, parseTrussCss } from "./truss-css";
+import type { TestCssPayload } from "./test-css";
 
 describe("trussProps", () => {
   test("merges static style hashes", () => {
@@ -238,20 +238,50 @@ describe("__injectTrussCSS", () => {
   });
 
   test.each(["original", "reversed", "shuffled", "bootstrap subset"])(
-    "matches production CSSOM for %s annotated input",
+    "matches production CSSOM for %s structured input after JSON roundtrip",
     (order) => {
-      const chunks = [
-        atomicCss(4000, "top", ".top { margin-top: 12px; }"),
-        atomicCss(1000, "margin", ".margin { margin: 4px; }"),
-        atomicCss(3200, "zMin600", "@media (min-width: 600px) { .zMin600 { color: red; } }"),
-        atomicCss(3200, "aMin960", "@media (min-width: 960px) { .aMin960 { color: blue; } }"),
-        atomicCss(3200, "zMax1150", "@media (max-width: 1150px) { .zMax1150 { color: green; } }"),
-        atomicCss(3200, "aMax820", "@media (max-width: 820px) { .aMax820 { color: black; } }"),
-        atomicCss(3200, "range", "@media (min-width: 600px) and (max-width: 959px) { .range { color: gray; } }"),
-        atomicCss(3200, "print", "@media print { .print { color: purple; } }"),
-        atomicCss(3200, "bMin600", "@media (min-width: 600px) { .bMin600 { color: yellow; } }"),
+      const payloads = [
+        atomicPayload(4000, "top", ".top { margin-top: 12px; }"),
+        atomicPayload(1000, "margin", ".margin { margin: 4px; }"),
+        atomicPayload(
+          3200,
+          "zMin600",
+          "@media (min-width: 600px) { .zMin600 { color: red; } }",
+          "@media (min-width: 600px)",
+        ),
+        atomicPayload(
+          3200,
+          "aMin960",
+          "@media (min-width: 960px) { .aMin960 { color: blue; } }",
+          "@media (min-width: 960px)",
+        ),
+        atomicPayload(
+          3200,
+          "zMax1150",
+          "@media (max-width: 1150px) { .zMax1150 { color: green; } }",
+          "@media (max-width: 1150px)",
+        ),
+        atomicPayload(
+          3200,
+          "aMax820",
+          "@media (max-width: 820px) { .aMax820 { color: black; } }",
+          "@media (max-width: 820px)",
+        ),
+        atomicPayload(
+          3200,
+          "range",
+          "@media (min-width: 600px) and (max-width: 959px) { .range { color: gray; } }",
+          "@media (min-width: 600px) and (max-width: 959px)",
+        ),
+        atomicPayload(3200, "print", "@media print { .print { color: purple; } }", "@media print"),
+        atomicPayload(
+          3200,
+          "bMin600",
+          "@media (min-width: 600px) { .bMin600 { color: yellow; } }",
+          "@media (min-width: 600px)",
+        ),
       ];
-      const expected = productionRules(chunks);
+      const expected = productionRules(payloads);
       const indices =
         order === "reversed"
           ? [8, 7, 6, 5, 4, 3, 2, 1, 0]
@@ -259,9 +289,9 @@ describe("__injectTrussCSS", () => {
             ? [5, 0, 8, 3, 1, 7, 4, 2, 6]
             : [0, 1, 2, 3, 4, 5, 6, 7, 8];
       if (order === "bootstrap subset") {
-        __injectTrussCSS(mergeTrussCss([parseTrussCss(chunks[0]), parseTrussCss(chunks[4])]));
+        __injectTrussCSS({ rules: [...payloads[0].rules!, ...payloads[4].rules!] });
       }
-      for (const index of indices) __injectTrussCSS(chunks[index]);
+      for (const index of indices) __injectTrussCSS(JSON.parse(JSON.stringify(payloads[index])));
 
       // Media evaluation is not supported by jsdom; compare its parsed rules instead.
       expect(sheetRules(trussStyle().sheet!)).toEqual(expected);
@@ -272,15 +302,15 @@ describe("__injectTrussCSS", () => {
   );
 
   test("parses only new atomics and retains earlier CSSRule identities when inserting before them", () => {
-    const top = atomicCss(4000, "top", ".top { margin-top: 12px; }");
-    const margin = atomicCss(1000, "margin", ".margin { margin: 4px; }");
+    const top = atomicPayload(4000, "top", ".top { margin-top: 12px; }");
+    const margin = atomicPayload(1000, "margin", ".margin { margin: 4px; }");
     __injectTrussCSS(top);
     const style = trussStyle();
     const sheet = style.sheet!;
     const firstRule = sheet.cssRules[0];
     const insert = vi.spyOn(sheet, "insertRule");
 
-    __injectTrussCSS(mergeTrussCss([parseTrussCss(top), parseTrussCss(margin)]));
+    __injectTrussCSS({ rules: [...top.rules!.map((rule) => ({ ...rule })), ...margin.rules!] });
     expect(insert.mock.calls).toEqual([[".margin { margin: 4px; }", 0]]);
     expect(trussStyle()).toBe(style);
     expect(style.sheet).toBe(sheet);
@@ -289,9 +319,9 @@ describe("__injectTrussCSS", () => {
   });
 
   test("invalidates computed styles after late rules without replacing the sheet", () => {
-    const top = atomicCss(4000, "top", ".top { margin-top: 12px; }");
-    const margin = atomicCss(1000, "margin", ".margin { margin: 4px; }");
-    const color = atomicCss(3000, "color", ".color { color: red; }");
+    const top = atomicPayload(4000, "top", ".top { margin-top: 12px; }");
+    const margin = atomicPayload(1000, "margin", ".margin { margin: 4px; }");
+    const color = atomicPayload(3000, "color", ".color { color: red; }");
     __injectTrussCSS(top);
     const style = trussStyle();
     const sheet = style.sheet;
@@ -303,7 +333,7 @@ describe("__injectTrussCSS", () => {
       expect(getComputedStyle(target).marginTop).toBe("12px");
       expect(getComputedStyle(target).marginRight).toBe("0px");
       const previousColor = getComputedStyle(target).color;
-      __injectTrussCSS(`${margin}\n${color}`);
+      __injectTrussCSS({ rules: [...margin.rules!, ...color.rules!] });
       expect(attribute.mock.calls).toEqual([["data-truss", ""]]);
       expect(style.sheet).toBe(sheet);
       expect(getComputedStyle(target).marginTop).toBe("12px");
@@ -315,35 +345,37 @@ describe("__injectTrussCSS", () => {
     }
   });
 
-  test("deduplicates exact chunks and merged bootstrap CSS across runtime reloads on the same anchor", async () => {
-    const cssText = mergeTrussCss([parseTrussCss(atomicCss(3000, "df", ".df { display: flex; }"))]);
-    __injectTrussCSS(cssText);
+  test("deduplicates copied payloads across runtime reloads on the same anchor", async () => {
+    const payload = atomicPayload(3000, "df", ".df { display: flex; }");
+    __injectTrussCSS(payload);
     const style = trussStyle();
     const sheet = style.sheet!;
     const rule = sheet.cssRules[0];
     const insert = vi.spyOn(sheet, "insertRule");
-    __injectTrussCSS(cssText);
+    const attribute = vi.spyOn(style, "setAttribute");
+    __injectTrussCSS(JSON.parse(JSON.stringify(payload)));
     vi.resetModules();
     const runtime = await import("./runtime");
-    runtime.__injectTrussCSS(cssText);
+    runtime.__injectTrussCSS(JSON.parse(JSON.stringify(payload)));
 
     expect(insert.mock.calls).toEqual([]);
+    expect(attribute.mock.calls).toEqual([]);
     expect(trussStyle()).toBe(style);
     expect(style.sheet).toBe(sheet);
     expect(sheet.cssRules[0]).toBe(rule);
-    expect(sheetRules(sheet)).toEqual(productionRules([cssText]));
+    expect(sheetRules(sheet)).toEqual(productionRules([payload]));
     expect(document.querySelectorAll("style[data-truss]").length).toBe(1);
-    runtime.__injectTrussCSS(atomicCss(1000, "aic", ".aic { align-items: center; }"));
+    runtime.__injectTrussCSS(atomicPayload(1000, "aic", ".aic { align-items: center; }"));
     expect(sheet.cssRules[1]).toBe(rule);
   });
 
   test("ignores empty CSS", () => {
-    __injectTrussCSS("");
+    __injectTrussCSS({});
     expect(document.querySelectorAll("style").length).toBe(0);
   });
 
   test("ignores CSS when there is no document", () => {
-    const css = atomicCss(3000, "df", ".df { display: flex; }");
+    const css = atomicPayload(3000, "df", ".df { display: flex; }");
     vi.stubGlobal("document", undefined);
     try {
       expect(() => __injectTrussCSS(css)).not.toThrow();
@@ -356,17 +388,17 @@ describe("__injectTrussCSS", () => {
   });
 
   test.each(["app first", "library first"])("uses the lower-order library class definition: %s", (order) => {
-    const app = atomicCss(4000, "target", ".target { color: blue; }");
-    const library = atomicCss(1000, "target", ".target { color: red; }");
-    const other = atomicCss(3000, "other", ".other { display: flex; }");
+    const app = atomicPayload(4000, "target", ".target { color: blue; }");
+    const library = { ...atomicPayload(1000, "target", ".target { color: red; }"), order: 0 };
+    const other = atomicPayload(3000, "other", ".other { display: flex; }");
     __injectTrussCSS(other);
     const sheet = trussStyle().sheet!;
     const otherRule = sheet.cssRules[0];
-    if (order === "app first") __injectTrussCSS(app, { source: "/app.ts", order: 1 });
-    __injectTrussCSS(library, { source: "/library.css", order: 0 });
+    if (order === "app first") __injectTrussCSS({ ...app, source: "/app.ts" });
+    __injectTrussCSS(library);
     const libraryRule = sheet.cssRules[0];
     const insert = vi.spyOn(sheet, "insertRule");
-    __injectTrussCSS(app, { source: "/late-app.ts", order: 1 });
+    __injectTrussCSS({ ...app, source: "/late-app.ts", order: 1 });
     expect(insert.mock.calls).toEqual([]);
     expect(sheetRules(sheet)).toEqual(productionRules([library, app, other]));
     expect(sheet.cssRules[0]).toBe(libraryRule);
@@ -375,89 +407,218 @@ describe("__injectTrussCSS", () => {
 
   test("orders arbitrary library CSS before canonical app sources and preserves opaque block order and duplicates", () => {
     const duplicate = ".duplicate { color: red; }";
-    const appA = annotateArbitraryCssBlock(
-      `${duplicate}\n@media (min-width: 600px) { @supports (display: grid) { .nested { display: grid; } } }\n${duplicate}`,
-    );
-    const appZ = annotateArbitraryCssBlock(duplicate);
-    const libraryB = annotateArbitraryCssBlock(".libraryB { color: blue; }");
-    const libraryA = annotateArbitraryCssBlock(".libraryA { color: green; }");
-    const atomic = atomicCss(3000, "df", ".df { display: flex; }");
-    __injectTrussCSS(appZ, { source: "/app/Z.css.ts" });
+    const appA: TestCssPayload = {
+      source: "/app/A.css.ts",
+      arbitraryRules: [
+        duplicate,
+        "@media (min-width: 600px) { @supports (display: grid) { .nested { display: grid; } } }",
+        duplicate,
+      ],
+    };
+    const appZ: TestCssPayload = { source: "/app/Z.css.ts", arbitraryRules: [duplicate] };
+    const libraries: TestCssPayload = {
+      source: "libraries",
+      order: 0,
+      arbitraryRules: [".libraryB { color: blue; }", ".libraryA { color: green; }"],
+    };
+    const atomic = atomicPayload(3000, "df", ".df { display: flex; }");
+    __injectTrussCSS(appZ);
     const sheet = trussStyle().sheet!;
     const appZRule = sheet.cssRules[0];
-    __injectTrussCSS(libraryB, { order: 0 });
-    __injectTrussCSS(appA, { source: "/app/A.css.ts" });
-    __injectTrussCSS(libraryA, { order: 0 });
+    __injectTrussCSS(libraries);
+    __injectTrussCSS(appA);
     __injectTrussCSS(atomic);
 
-    expect(sheetRules(sheet)).toEqual(productionRules([atomic, libraryB, libraryA, appA, appZ]));
+    expect(sheetRules(sheet)).toEqual(productionRules([atomic, libraries, appA, appZ]));
     expect(sheet.cssRules.length).toBe(7);
     expect(sheet.cssRules[6]).toBe(appZRule);
     const insert = vi.spyOn(sheet, "insertRule");
-    __injectTrussCSS(appA, { source: "/app/A.css.ts" });
+    __injectTrussCSS(JSON.parse(JSON.stringify(appA)));
     expect(insert.mock.calls).toEqual([]);
+  });
+
+  test("inserts arbitrary top-level rules once without temporary parser elements or text writes", () => {
+    const atomic = atomicPayload(3000, "df", ".df { display: flex; }");
+    const payload: TestCssPayload = {
+      source: "/nested.css.ts",
+      arbitraryRules: [
+        "@media (min-width: 600px) { @supports (display: grid) { .nested { display: grid; } } }",
+        ".target { color: red; }",
+      ],
+    };
+    const expected = productionRules([atomic, payload]);
+    __injectTrussCSS(atomic);
+    const sheet = trussStyle().sheet!;
+    const earlierRule = sheet.cssRules[0];
+    const createElement = vi.spyOn(document, "createElement");
+    const textContent = vi.spyOn(Node.prototype, "textContent", "set");
+    const insert = vi.spyOn(sheet, "insertRule");
+
+    __injectTrussCSS(payload);
+    __injectTrussCSS(JSON.parse(JSON.stringify(payload)));
+
+    expect(createElement.mock.calls).toEqual([]);
+    expect(textContent.mock.calls).toEqual([]);
+    expect(insert.mock.calls).toEqual([
+      [payload.arbitraryRules![0], 1],
+      [payload.arbitraryRules![1], 2],
+    ]);
+    expect(sheet.cssRules[0]).toBe(earlierRule);
+    expect(sheetRules(sheet)).toEqual(expected);
+  });
+
+  test("skips unsupported arbitrary at-rules without shifting subsequent positions", () => {
+    const first = atomicPayload(3000, "df", ".df { display: flex; }");
+    const payload: TestCssPayload = {
+      source: "/unsupported.css.ts",
+      arbitraryRules: [
+        "@property --gap { syntax: '<length>'; inherits: false; initial-value: 0px; }",
+        ".before { color: red; }",
+        "@unknown-truss-rule foo { arbitrary tokens; }",
+        ".after { color: blue; }",
+      ],
+    };
+    __injectTrussCSS(first);
+    const sheet = trussStyle().sheet!;
+    const earlierRule = sheet.cssRules[0];
+    const insert = vi.spyOn(sheet, "insertRule");
+
+    expect(() => __injectTrussCSS(payload)).not.toThrow();
+    expect(insert.mock.calls).toEqual([
+      [payload.arbitraryRules![0], 1],
+      [payload.arbitraryRules![1], 1],
+      [payload.arbitraryRules![2], 2],
+      [payload.arbitraryRules![3], 2],
+    ]);
+    insert.mockClear();
+    __injectTrussCSS(JSON.parse(JSON.stringify(payload)));
+    expect(insert.mock.calls).toEqual([]);
+    const later = atomicPayload(1000, "margin", ".margin { margin: 4px; }");
+    __injectTrussCSS(later);
+    expect(insert.mock.calls).toEqual([[".margin { margin: 4px; }", 0]]);
+    expect(sheet.cssRules[1]).toBe(earlierRule);
+    expect(sheetRules(sheet)).toEqual(
+      productionRules([
+        first,
+        later,
+        {
+          ...payload,
+          arbitraryRules: [payload.arbitraryRules![1], payload.arbitraryRules![3]],
+        },
+      ]),
+    );
+  });
+
+  test("deduplicates properties by variable name and replaces higher-order definitions", () => {
+    const first = atomicPayload(3000, "df", ".df { display: flex; }");
+    const app: TestCssPayload = {
+      properties: [
+        { varName: "--gap", cssText: "@property --gap { syntax: '<length>'; inherits: false; initial-value: 4px; }" },
+      ],
+    };
+    const library: TestCssPayload = {
+      order: 0,
+      properties: [
+        { varName: "--gap", cssText: "@property --gap { syntax: '<length>'; inherits: false; initial-value: 8px; }" },
+      ],
+    };
+    __injectTrussCSS(first);
+    const sheet = trussStyle().sheet!;
+    const earlierRule = sheet.cssRules[0];
+    const nativeInsert = sheet.insertRule.bind(sheet);
+    // jsdom does not support @property; use a supported rule to exercise successful registration.
+    const insert = vi
+      .spyOn(sheet, "insertRule")
+      .mockImplementation((cssText, index) =>
+        nativeInsert(cssText === app.properties![0].cssText ? ":root { --gap: 4px; }" : ":root { --gap: 8px; }", index),
+      );
+    __injectTrussCSS(app);
+    __injectTrussCSS(JSON.parse(JSON.stringify(app)));
+    __injectTrussCSS(library);
+    __injectTrussCSS(JSON.parse(JSON.stringify(library)));
+    __injectTrussCSS(app);
+    expect(insert.mock.calls).toEqual([
+      [app.properties![0].cssText, 1],
+      [library.properties![0].cssText, 1],
+    ]);
+    expect(sheet.cssRules[0]).toBe(earlierRule);
+    expect(sheetRules(sheet)).toEqual([".df { display: flex; }", ":root { --gap: 8px; }"]);
   });
 
   test("retains the prelude from an empty bootstrap before all later rules", () => {
     const prelude = ":root { --truss-ready: 1; }";
-    __injectTrussCSS("", { prelude });
+    __injectTrussCSS({ prelude });
     const sheet = trussStyle().sheet!;
     const preludeRule = sheet.cssRules[0];
-    const atomic = atomicCss(1000, "df", ".df { display: flex; }");
+    const atomic = atomicPayload(1000, "df", ".df { display: flex; }");
     __injectTrussCSS(atomic);
-    __injectTrussCSS("", { prelude });
-    expect(sheetRules(sheet)).toEqual(parseCssRules(`${prelude}\n${mergeTrussCss([parseTrussCss(atomic)])}`));
+    __injectTrussCSS({ prelude });
+    expect(sheetRules(sheet)).toEqual([...parseCssRules(prelude), ...productionRules([atomic])]);
     expect(sheet.cssRules[0]).toBe(preludeRule);
   });
 
   test("skips unsupported @property without losing surrounding or later rules", () => {
-    const first = atomicCss(3000, "df", ".df { display: flex; }");
-    const property =
-      "/* @truss @property */\n@property --gap { syntax: '<length>'; inherits: false; initial-value: 0px; }";
-    const arbitrary = annotateArbitraryCssBlock(".target { color: red; }");
-    const later = atomicCss(1000, "margin", ".margin { margin: 4px; }");
+    const first = atomicPayload(3000, "df", ".df { display: flex; }");
+    const property: TestCssPayload = {
+      properties: [
+        { varName: "--gap", cssText: "@property --gap { syntax: '<length>'; inherits: false; initial-value: 0px; }" },
+      ],
+    };
+    const arbitrary: TestCssPayload = { source: "/target.css.ts", arbitraryRules: [".target { color: red; }"] };
+    const later = atomicPayload(1000, "margin", ".margin { margin: 4px; }");
     __injectTrussCSS(first);
     const sheet = trussStyle().sheet!;
     const rule = sheet.cssRules[0];
     // jsdom rejects @property through insertRule but skips it when parsing style text.
-    expect(() => sheet.insertRule(parseTrussCss(property).properties[0].cssText, 0)).toThrowError(DOMException);
+    expect(() => sheet.insertRule(property.properties![0].cssText, 0)).toThrowError(DOMException);
     const insert = vi.spyOn(sheet, "insertRule");
-    expect(() => __injectTrussCSS(`${first}\n${property}\n${arbitrary}`)).not.toThrow();
+    expect(() => __injectTrussCSS({ ...first, ...property, ...arbitrary })).not.toThrow();
     expect(insert.mock.calls).toEqual([
-      [parseTrussCss(property).properties[0].cssText, 1],
-      [parseCssRules(".target { color: red; }")[0], 1],
+      [property.properties![0].cssText, 1],
+      [".target { color: red; }", 1],
     ]);
+    insert.mockClear();
+    const attribute = vi.spyOn(trussStyle(), "setAttribute");
+    __injectTrussCSS(JSON.parse(JSON.stringify({ ...first, ...property, ...arbitrary })));
+    expect(insert.mock.calls).toEqual([]);
+    expect(attribute.mock.calls).toEqual([]);
     __injectTrussCSS(later);
     expect(sheetRules(sheet)).toEqual(productionRules([first, property, arbitrary, later]));
     expect(sheet.cssRules[1]).toBe(rule);
   });
 
-  test("propagates invalid atomic errors and retries failed chunks without duplicating installed rules", () => {
-    const first = atomicCss(3000, "df", ".df { display: flex; }");
-    const invalid = atomicCss(4000, "invalid", "not a CSS rule");
-    const last = atomicCss(5000, "last", ".last { color: red; }");
+  test("propagates invalid atomic errors and retries copied payloads without duplicating installed rules", () => {
+    const first = atomicPayload(3000, "df", ".df { display: flex; }");
+    const installed = atomicPayload(3500, "installed", ".installed { color: green; }");
+    const invalid = atomicPayload(4000, "invalid", "not a CSS rule");
+    const last = atomicPayload(5000, "last", ".last { color: red; }");
     __injectTrussCSS(first);
     const sheet = trussStyle().sheet!;
     const rule = sheet.cssRules[0];
     const insert = vi.spyOn(sheet, "insertRule");
-    const chunk = `${first}\n${invalid}\n${last}`;
-    expect(() => __injectTrussCSS(chunk)).toThrow();
-    expect(() => __injectTrussCSS(chunk)).toThrow();
+    const attribute = vi.spyOn(trussStyle(), "setAttribute");
+    const payload = { rules: [...first.rules!, ...installed.rules!, ...invalid.rules!, ...last.rules!] };
+    expect(() => __injectTrussCSS(payload)).toThrow();
+    expect(attribute.mock.calls).toEqual([["data-truss", ""]]);
+    attribute.mockClear();
+    expect(() => __injectTrussCSS(JSON.parse(JSON.stringify(payload)))).toThrow();
+    expect(attribute.mock.calls).toEqual([]);
     expect(insert.mock.calls).toEqual([
-      ["not a CSS rule", 1],
-      ["not a CSS rule", 1],
+      [".installed { color: green; }", 1],
+      ["not a CSS rule", 2],
+      ["not a CSS rule", 2],
     ]);
-    expect(sheetRules(sheet)).toEqual(productionRules([first]));
-    const corrected = atomicCss(4000, "invalid", ".invalid { color: blue; }");
-    __injectTrussCSS(`${first}\n${corrected}\n${last}`);
-    expect(sheetRules(sheet)).toEqual(productionRules([first, corrected, last]));
+    expect(sheetRules(sheet)).toEqual(productionRules([first, installed]));
+    const corrected = atomicPayload(4000, "invalid", ".invalid { color: blue; }");
+    __injectTrussCSS({ rules: [...first.rules!, ...installed.rules!, ...corrected.rules!, ...last.rules!] });
+    expect(sheetRules(sheet)).toEqual(productionRules([first, installed, corrected, last]));
     expect(sheet.cssRules[0]).toBe(rule);
   });
 
   test.each([false, true])("resets the registry after removal with reattach=%s", (reattach) => {
-    const first = atomicCss(3000, "df", ".df { display: flex; }");
-    const second = atomicCss(4000, "aic", ".aic { align-items: center; }");
-    __injectTrussCSS(`${first}\n${second}`);
+    const first = atomicPayload(3000, "df", ".df { display: flex; }");
+    const second = atomicPayload(4000, "aic", ".aic { align-items: center; }");
+    __injectTrussCSS({ rules: [...first.rules!, ...second.rules!] });
     const style = trussStyle();
     const sheet = style.sheet;
     style.remove();
@@ -466,12 +627,12 @@ describe("__injectTrussCSS", () => {
     expect(trussStyle() === style).toBe(reattach);
     expect(trussStyle().sheet).not.toBe(sheet);
     expect(sheetRules(trussStyle().sheet!)).toEqual(productionRules([first]));
-    __injectTrussCSS(`${first}\n${second}`);
+    __injectTrussCSS({ rules: [...first.rules!, ...second.rules!] });
     expect(sheetRules(trussStyle().sheet!)).toEqual(productionRules([first, second]));
   });
 
   test("recovers in a replacement document and reuses the original document registry on return", () => {
-    const css = atomicCss(3000, "df", ".df { display: flex; }");
+    const css = atomicPayload(3000, "df", ".df { display: flex; }");
     const expected = productionRules([css]);
     __injectTrussCSS(css);
     const original = trussStyle();
@@ -497,14 +658,22 @@ describe("__injectTrussCSS", () => {
   });
 });
 
-/** Annotate one atomic rule with its production priority and class identity. */
-function atomicCss(priority: number, className: string, cssText: string): string {
-  return `/* @truss p:${priority} c:${className} */\n${cssText}`;
+/** Supply one atomic rule with its production priority, class identity, and explicit query. */
+function atomicPayload(priority: number, className: string, cssText: string, atRule?: string): TestCssPayload {
+  return { rules: [{ priority, className, cssText, atRule }] };
 }
 
 /** Merge canonical production sources and parse their expected CSSOM in a separate document. */
-function productionRules(sources: string[]): string[] {
-  return parseCssRules(mergeTrussCss(sources.map((source) => parseTrussCss(source))));
+function productionRules(sources: TestCssPayload[]): string[] {
+  return parseCssRules(
+    mergeTrussCss(
+      sources.map((source) => ({
+        rules: source.rules ?? [],
+        properties: source.properties ?? [],
+        arbitraryCssBlocks: source.arbitraryRules?.length ? [{ cssText: source.arbitraryRules.join("\n") }] : [],
+      })),
+    ),
+  );
 }
 
 /** Parse stylesheet text without adding expected rules to the document under test. */

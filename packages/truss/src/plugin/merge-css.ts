@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { atRulePrelude, compareRuleSortKeys, ruleSortKey } from "../css-order";
-import { annotateArbitraryCssBlock, parseTrussCss } from "../truss-css";
+import { parseTrussCss, serializeTrussCss } from "./truss-css";
 import type { ParsedArbitraryCssBlock, ParsedCssRule, ParsedPropertyDeclaration, ParsedTrussCss } from "../truss-css";
 
 /**
@@ -14,7 +14,7 @@ export function readTrussCss(filePath: string): ParsedTrussCss {
 }
 
 /**
- * Merge multiple parsed truss CSS sources into a single CSS string.
+ * Merge multiple parsed truss CSS sources into structured CSS.
  *
  * Rules are deduplicated by class name (first occurrence wins, since
  * deterministic output means identical class names produce identical rules),
@@ -22,7 +22,7 @@ export function readTrussCss(filePath: string): ParsedTrussCss {
  * @property declarations are deduplicated by variable name and appended next.
  * Arbitrary CSS blocks are left opaque and appended in source order at the end.
  */
-export function mergeTrussCss(sources: ParsedTrussCss[]): string {
+export function mergeTrussCssData(sources: ParsedTrussCss[]): ParsedTrussCss {
   const seenClasses = new Set<string>();
   const allRules: ParsedCssRule[] = [];
   const seenProperties = new Set<string>();
@@ -51,21 +51,14 @@ export function mergeTrussCss(sources: ParsedTrussCss[]): string {
   });
   decorated.sort((a, b) => compareRuleSortKeys(a.key, b.key));
 
-  const lines: string[] = [];
+  return {
+    rules: decorated.map((entry) => entry.rule),
+    properties: allProperties,
+    arbitraryCssBlocks: allArbitraryCssBlocks,
+  };
+}
 
-  for (const entry of decorated) {
-    lines.push(`/* @truss p:${entry.rule.priority} c:${entry.rule.className} */`);
-    lines.push(entry.rule.cssText);
-  }
-
-  for (const prop of allProperties) {
-    lines.push(`/* @truss @property */`);
-    lines.push(prop.cssText);
-  }
-
-  for (const block of allArbitraryCssBlocks) {
-    lines.push(annotateArbitraryCssBlock(block.cssText));
-  }
-
-  return lines.join("\n");
+/** Merge and serialize annotated Truss CSS with the first source winning duplicate names. */
+export function mergeTrussCss(sources: ParsedTrussCss[]): string {
+  return serializeTrussCss(mergeTrussCssData(sources));
 }

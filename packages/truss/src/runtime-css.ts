@@ -1,14 +1,5 @@
-import { atRulePrelude, compareClassNames, compareRuleSortKeys, ruleSortKey, type RuleSortKey } from "./css-order";
-import { parseTrussCss } from "./truss-css";
-
-/** Options for `__injectTrussCSS`; the plugin passes these from its generated test modules. */
-export interface InjectionOptions {
-  /** Canonical source path for ordering and deduplicating application arbitrary CSS. */
-  source?: string;
-  /** Libraries use 0 and application modules use 1, matching the production merge. */
-  order?: number;
-  prelude?: string;
-}
+import { compareClassNames, compareRuleSortKeys, ruleSortKey, type RuleSortKey } from "./css-order";
+import type { TestCssPayload } from "./test-css";
 
 interface InstalledRule {
   id: string;
@@ -18,7 +9,6 @@ interface InstalledRule {
   key: RuleSortKey | null;
   order: number;
   source: string;
-  sequence: number;
   position: number;
 }
 
@@ -26,21 +16,20 @@ interface InjectionState {
   sheet: CSSStyleSheet;
   rules: InstalledRule[];
   byId: Map<string, InstalledRule>;
-  chunks: Set<string>;
-  sources: Map<string, number>;
 }
 
 type TrussStyleElement = HTMLStyleElement & { __trussCssState__?: InjectionState };
 let trussStyleElement: TrussStyleElement | null = null;
 
 /**
- * Register annotated module or library CSS in the document's ordered test stylesheet.
+ * Register structured module or library CSS in the document's ordered test stylesheet.
  *
- * Annotated atomic rules are deduplicated by class and inserted with the production
+ * Atomic rules are deduplicated by class and inserted with the production
  * comparator, regardless of module execution order. Library definitions take precedence
  * over application definitions of the same class. Arbitrary blocks stay after atomics,
- * in library order followed by canonical application source path order. The plugin
- * supplies spacing explicitly through options.prelude; unannotated CSS is ignored.
+ * in library order followed by canonical application source path order. The plugin supplies
+ * rule identities, query metadata, spacing, and complete top-level arbitrary rules. The
+ * runtime does not parse annotations, split CSS blocks, or serialize payloads for dedupe.
  *
  * Rules live until the document is discarded, not until a component unmounts. Repeated
  * imports reuse state on the style element. This is not HMR: within one source rank,
@@ -50,68 +39,74 @@ let trussStyleElement: TrussStyleElement | null = null;
  * Only new or replaced rules are parsed by CSSOM. I.e. a late priority-1000 shorthand
  * is inserted before an existing priority-4000 longhand without reparsing that longhand.
  */
-export function __injectTrussCSS(cssText: string, options: InjectionOptions = {}): void {
-  if (typeof document === "undefined" || (!cssText && !options.prelude)) return;
+export function __injectTrussCSS(payload: TestCssPayload): void {
+  if (
+    typeof document === "undefined" ||
+    (!payload.rules?.length && !payload.properties?.length && !payload.arbitraryRules?.length && !payload.prelude)
+  )
+    return;
+  if (payload.arbitraryRules?.length && !payload.source) {
+    throw new Error("Truss arbitrary CSS requires a source identity.");
+  }
   const style = getOrCreateTrussStyleElement();
   const sheet = style.sheet;
   if (!sheet) throw new Error("Truss could not create its test stylesheet.");
   // A removed and reattached style element has a new CSSOM sheet, even in the same document.
   if (style.__trussCssState__?.sheet !== sheet) {
-    style.__trussCssState__ = { sheet, rules: [], byId: new Map(), chunks: new Set(), sources: new Map() };
+    style.__trussCssState__ = { sheet, rules: [], byId: new Map() };
   }
   const state = style.__trussCssState__!;
-  const chunkId = JSON.stringify([options.source, options.order, options.prelude, cssText]);
-  if (state.chunks.has(chunkId)) return;
-  const sourceId = options.source ?? cssText;
-  if (!state.sources.has(sourceId)) state.sources.set(sourceId, state.sources.size);
   const base = {
-    order: options.order ?? 1,
-    source: options.source ?? "",
-    sequence: state.sources.get(sourceId)!,
+    order: payload.order ?? 1,
+    source: payload.source ?? "",
     position: 0,
     key: null,
   };
-  const parsed = parseTrussCss(cssText);
+  let changed = false;
   try {
-    if (options.prelude) {
-      installRule(state, { ...base, id: "prelude", section: 0, cssText: options.prelude });
+    if (payload.prelude) {
+      changed = installRule(state, { ...base, id: "prelude", section: 0, cssText: payload.prelude }) || changed;
     }
-    for (const rule of parsed.rules) {
-      installRule(state, {
-        ...base,
-        id: `class:${rule.className}`,
-        section: 1,
-        cssText: rule.cssText,
-        key: ruleSortKey(rule.priority, rule.className, atRulePrelude(rule.cssText)),
-      });
-    }
-    for (const property of parsed.properties) {
-      installRule(state, { ...base, id: `property:${property.varName}`, section: 2, cssText: property.cssText });
-    }
-    let position = 0;
-    for (const block of parsed.arbitraryCssBlocks) {
-      for (const text of parseArbitraryRules(block.cssText)) {
+    for (const rule of payload.rules ?? []) {
+      changed =
         installRule(state, {
           ...base,
-          id: `arbitrary:${base.sequence}:${position}`,
-          section: 3,
-          position: position++,
-          cssText: text,
-        });
-      }
+          id: `class:${rule.className}`,
+          section: 1,
+          cssText: rule.cssText,
+          key: ruleSortKey(rule.priority, rule.className, rule.atRule),
+        }) || changed;
     }
-    state.chunks.add(chunkId);
+    for (const property of payload.properties ?? []) {
+      changed =
+        installRule(state, { ...base, id: `property:${property.varName}`, section: 2, cssText: property.cssText }) ||
+        changed;
+    }
+    for (const [position, cssText] of (payload.arbitraryRules ?? []).entries()) {
+      changed =
+        installRule(state, {
+          ...base,
+          id: `arbitrary:${payload.source}:${position}`,
+          section: 3,
+          position,
+          cssText,
+        }) || changed;
+    }
   } finally {
     // jsdom 29 does not invalidate computed styles after insertRule/deleteRule. An attribute
     // mutation clears that cache without replacing the sheet or reparsing its previous rules.
-    style.setAttribute("data-truss", "");
+    if (changed) style.setAttribute("data-truss", "");
   }
 }
 
-/** Insert a unique rule at its production sort position; lower source ranks can replace it. */
-function installRule(state: InjectionState, rule: InstalledRule): void {
+/**
+ * Insert a unique rule at its production sort position and report whether the sheet changed.
+ * Lower source ranks can replace existing definitions. Unsupported declarations are registered
+ * for dedupe without taking a CSSOM index; invalid atomic rules still throw and can be retried.
+ */
+function installRule(state: InjectionState, rule: InstalledRule): boolean {
   const previous = state.byId.get(rule.id);
-  if (previous && previous.order <= rule.order) return;
+  if (previous && previous.order <= rule.order) return false;
   let lo = 0;
   let hi = state.rules.length;
   while (lo < hi) {
@@ -122,48 +117,38 @@ function installRule(state: InjectionState, rule: InstalledRule): void {
   try {
     state.sheet.insertRule(rule.cssText, lo);
   } catch (error) {
-    // jsdom silently skips @property when parsing style text, but insertRule throws.
+    // jsdom silently skips unsupported property/arbitrary at-rules in style text, but insertRule throws.
     // Do not swallow errors for atomic rules or corrupt the installed-rule indexes.
     if (
-      rule.section === 2 &&
+      rule.section >= 2 &&
       typeof error === "object" &&
       error !== null &&
       "name" in error &&
       error.name === "SyntaxError"
-    )
-      return;
+    ) {
+      // Do not replace an installed definition with one the browser cannot parse.
+      if (!previous || !state.rules.includes(previous)) state.byId.set(rule.id, rule);
+      return false;
+    }
     throw error;
   }
   state.rules.splice(lo, 0, rule);
   state.byId.set(rule.id, rule);
   if (previous) {
     const oldIndex = state.rules.indexOf(previous);
-    state.sheet.deleteRule(oldIndex);
-    state.rules.splice(oldIndex, 1);
+    if (oldIndex !== -1) {
+      state.sheet.deleteRule(oldIndex);
+      state.rules.splice(oldIndex, 1);
+    }
   }
+  return true;
 }
 
 /** Use the production atomic comparator and preserve source order within opaque blocks. */
 function compareInstalledRules(a: InstalledRule, b: InstalledRule): number {
   if (a.section !== b.section) return a.section - b.section;
   if (a.key && b.key) return compareRuleSortKeys(a.key, b.key);
-  return (
-    a.order - b.order || compareClassNames(a.source, b.source) || a.sequence - b.sequence || a.position - b.position
-  );
-}
-
-/** Parse only the new opaque block, preserving CSS parser recovery for unsupported rules. */
-function parseArbitraryRules(cssText: string): string[] {
-  // jsdom does not create sheets in detached documents. Remove this temporary sheet
-  // synchronously before returning; no earlier static rules are reparsed.
-  const style = document.createElement("style");
-  style.textContent = cssText;
-  document.head.appendChild(style);
-  try {
-    return Array.from(style.sheet?.cssRules ?? [], (rule) => rule.cssText);
-  } finally {
-    style.remove();
-  }
+  return a.order - b.order || compareClassNames(a.source, b.source) || a.position - b.position;
 }
 
 /** Keep one static sheet before transient runtime styles, and recover after document replacement. */

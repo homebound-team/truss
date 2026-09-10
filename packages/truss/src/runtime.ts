@@ -9,7 +9,8 @@ import {
 
 export { invertMediaQuery as __invertTrussMediaQuery } from "./media-query";
 export { maybeCssVar } from "./css-custom-property";
-export { __injectTrussCSS, type InjectionOptions } from "./runtime-css";
+export { __injectTrussCSS } from "./runtime-css";
+export type { TestCssPayload, TestCssRule } from "./test-css";
 
 /** A compact source label for a Truss CSS expression, used in debug mode. */
 export class TrussDebugInfo {

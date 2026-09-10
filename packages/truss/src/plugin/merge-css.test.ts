@@ -1,6 +1,41 @@
 import { describe, expect, test } from "vitest";
-import { mergeTrussCss } from "./merge-css";
-import { parseTrussCss, type ParsedTrussCss } from "../truss-css";
+import { mergeTrussCss, mergeTrussCssData } from "./merge-css";
+import type { ParsedTrussCss } from "../truss-css";
+import { parseTrussCss, serializeTrussCss } from "./truss-css";
+
+test("structured merge keeps first-source rules and properties and opaque arbitrary blocks", () => {
+  const library = parsedTrussCss({
+    rules: [{ priority: 3000, className: "blue", cssText: ".blue { color: blue; }" }],
+    properties: [{ varName: "--width", cssText: '@property --width { syntax: "*"; inherits: false; }' }],
+    arbitraryCssBlocks: [{ cssText: "/* library */\n.a {\n  color: blue;\n}\n\n.a {color: blue}" }],
+  });
+  const app = parsedTrussCss({
+    rules: [{ priority: 3000, className: "blue", cssText: ".blue { color: red; }" }],
+    properties: [
+      { varName: "--width", cssText: '@property --width { syntax: "<length>"; inherits: true; initial-value: 0px; }' },
+    ],
+    arbitraryCssBlocks: [{ cssText: "/* app */\n@layer base;\n.a { content: '}'; }" }],
+  });
+  const merged = mergeTrussCssData([library, app]);
+  expect(merged.rules).toEqual(library.rules);
+  expect(merged.properties).toEqual(library.properties);
+  expect(merged.arbitraryCssBlocks).toEqual([...library.arbitraryCssBlocks, ...app.arbitraryCssBlocks]);
+  expect(serializeTrussCss(merged)).toEqual(
+    [
+      "/* @truss p:3000 c:blue */",
+      ".blue { color: blue; }",
+      "/* @truss @property */",
+      '@property --width { syntax: "*"; inherits: false; }',
+      "/* @truss arbitrary:start */",
+      "/* library */\n.a {\n  color: blue;\n}\n\n.a {color: blue}",
+      "/* @truss arbitrary:end */",
+      "/* @truss arbitrary:start */",
+      "/* app */\n@layer base;\n.a { content: '}'; }",
+      "/* @truss arbitrary:end */",
+    ].join("\n"),
+  );
+  expect(mergeTrussCss([library, app])).toEqual(serializeTrussCss(merged));
+});
 
 describe("parseTrussCss", () => {
   test("parses rules with priority annotations", () => {

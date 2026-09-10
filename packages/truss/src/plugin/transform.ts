@@ -20,7 +20,9 @@ import {
   upsertNamedImports,
   type NamedImport,
 } from "./ast-utils";
-import { collectAtomicRules, generateCssText, type AtomicRule } from "./emit-css";
+import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css";
+import { serializeTrussCss } from "./truss-css";
+import { createTestCssPayload } from "./test-css";
 import { buildMaybeIncDeclaration, buildRuntimeLookupDeclaration } from "./emit-style-hash";
 import {
   rewriteExpressionSites,
@@ -40,7 +42,7 @@ export interface TransformResult {
 
 export interface TransformTrussOptions {
   debug?: boolean;
-  /** When true, inject `__injectTrussCSS(cssText)` call for jsdom/test environments. */
+  /** When true, inject `__injectTrussCSS(payload)` call for jsdom/test environments. */
   injectCss?: boolean;
 }
 
@@ -126,7 +128,8 @@ export function transformTruss(
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
   const { rules, needsMaybeInc, needsMaybeCssVar } = collectAtomicRules(chains, mapping);
-  const cssText = generateCssText(rules);
+  const cssData = generateCssData(rules);
+  const cssText = serializeTrussCss(cssData);
 
   // Step 4: Reserve local names for injected helpers
   const runtime = createRuntimeHelpers(ast, usedTopLevelNames);
@@ -193,7 +196,9 @@ export function transformTruss(
   // Inject __injectTrussCSS call if requested
   if (options.injectCss && cssText.length > 0) {
     declarationsToInsert.push(
-      t.expressionStatement(t.callExpression(t.identifier("__injectTrussCSS"), [t.stringLiteral(cssText)])),
+      t.expressionStatement(
+        t.callExpression(t.identifier("__injectTrussCSS"), [t.valueToNode(createTestCssPayload(cssData))]),
+      ),
     );
   }
 
