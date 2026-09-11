@@ -1,3 +1,9 @@
+## [2.29.12](https://github.com/homebound-team/truss/compare/v2.29.11...v2.29.12) (2026-09-11)
+
+### Bug Fixes
+
+* Notify CSS HMR only after transforms change styles. ([0b10585](https://github.com/homebound-team/truss/commit/0b105854a871dba81fa6cd7322c67827c038b361))
+
 ## [2.29.11](https://github.com/homebound-team/truss/compare/v2.29.10...v2.29.11) (2026-09-11)
 
 ### Bug Fixes
