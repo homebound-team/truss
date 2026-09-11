@@ -253,9 +253,11 @@ function resolveAddObjectLiteral(
  *
  * When the pair matches an existing single-property abbreviation in the mapping, that abbreviation
  * is reused so the class is shared with direct uses. Otherwise the property name itself is the
- * abbreviation, folded to a static class for literal values or a `_var` tuple for runtime values.
+ * abbreviation: a literal value folds to a static class named with the property's short form from
+ * the CSS property abbreviation table, and a runtime value becomes a `_var` tuple that keeps the
+ * property name.
  *
- * I.e. `("display", "grid")` → the `dg` segment; `("boxShadow", "0 0 0 1px blue")` → `boxShadow_0_0_0_1px_blue`;
+ * I.e. `("display", "grid")` → the `dg` segment; `("boxShadow", "0 0 0 1px blue")` → `bxs_0_0_0_1px_blue`;
  * `("boxShadow", shadow)` → `boxShadow_var` with `--boxShadow: shadow`.
  */
 function resolveAddDeclaration(

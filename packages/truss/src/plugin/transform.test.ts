@@ -234,39 +234,39 @@ describe("transform", () => {
       `
       const s = {
         transformBox: "transformBox_fill_box",
-        transformOrigin: "transformOrigin_center",
-        transform: "transform_scale_0_5",
-        animationName: "animationName_aiStarLoader",
-        animationDuration: "animationDuration_1500ms",
-        animationIterationCount: "animationIterationCount_infinite",
-        animationTimingFunction: "animationTimingFunction_ease_in_out",
-        animationDelay: "animationDelay_500ms"
+        transformOrigin: "tfo_center",
+        transform: "tf_scale_0_5",
+        animationName: "animn_aiStarLoader",
+        animationDuration: "animdu_1500ms",
+        animationIterationCount: "animic_infinite",
+        animationTimingFunction: "animtf_ease_in_out",
+        animationDelay: "animd_500ms"
       };
     `,
       `
-      .animationDelay_500ms {
+      .animd_500ms {
         animation-delay: 500ms;
       }
-      .animationDuration_1500ms {
+      .animdu_1500ms {
         animation-duration: 1500ms;
       }
-      .animationIterationCount_infinite {
+      .animic_infinite {
         animation-iteration-count: infinite;
       }
-      .animationName_aiStarLoader {
+      .animn_aiStarLoader {
         animation-name: aiStarLoader;
       }
-      .animationTimingFunction_ease_in_out {
+      .animtf_ease_in_out {
         animation-timing-function: ease-in-out;
+      }
+      .tf_scale_0_5 {
+        transform: scale(0.5);
+      }
+      .tfo_center {
+        transform-origin: center;
       }
       .transformBox_fill_box {
         transform-box: fill-box;
-      }
-      .transformOrigin_center {
-        transform-origin: center;
-      }
-      .transform_scale_0_5 {
-        transform: scale(0.5);
       }
     `,
     );
@@ -278,10 +278,10 @@ describe("transform", () => {
       const s = Css.animation("pulse 2s ease-in-out infinite").$;
     `).toHaveTrussOutput(
       `
-      const s = { animation: "animation_pulse_2s_ease_in_out_infinite" };
+      const s = { animation: "anim_pulse_2s_ease_in_out_infinite" };
     `,
       `
-      .animation_pulse_2s_ease_in_out_infinite {
+      .anim_pulse_2s_ease_in_out_infinite {
         animation: pulse 2s ease-in-out infinite;
       }
     `,
@@ -294,16 +294,16 @@ describe("transform", () => {
       const s = Css.rotate("45deg").scale("1.5").translate("10px 20px").$;
     `).toHaveTrussOutput(
       `
-      const s = { rotate: "rotate_45deg", scale: "scale_1_5", translate: "translate_10px_20px" };
+      const s = { rotate: "rot_45deg", scale: "sc_1_5", translate: "tsl_10px_20px" };
     `,
       `
-      .rotate_45deg {
+      .rot_45deg {
         rotate: 45deg;
       }
-      .scale_1_5 {
+      .sc_1_5 {
         scale: 1.5;
       }
-      .translate_10px_20px {
+      .tsl_10px_20px {
         translate: 10px 20px;
       }
     `,
@@ -317,19 +317,19 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       const s = {
-        transitionProperty: "transitionProperty_transform",
-        transitionDuration: "transitionDuration_200ms",
-        transform: "h_transform_scale_1_1"
+        transitionProperty: "tsnp_transform",
+        transitionDuration: "tsndu_200ms",
+        transform: "h_tf_scale_1_1"
       };
     `,
       `
-      .transitionDuration_200ms {
+      .tsndu_200ms {
         transition-duration: 200ms;
       }
-      .transitionProperty_transform {
+      .tsnp_transform {
         transition-property: transform;
       }
-      .h_transform_scale_1_1:hover {
+      .h_tf_scale_1_1:hover {
         transform: scale(1.1);
       }
     `,
@@ -344,10 +344,10 @@ describe("transform", () => {
       const el = <div css={Css.mt2.transition("all 240ms").$} />;
     `).toHaveTrussOutput(
       `
-      const el = <div className="mt2 transition_all_240ms" />;
+      const el = <div className="mt2 tsn_all_240ms" />;
     `,
       `
-      .transition_all_240ms {
+      .tsn_all_240ms {
         transition: all 240ms;
       }
       .mt2 {
@@ -2312,7 +2312,7 @@ describe("transform", () => {
       import { trussProps } from "@homebound/truss/runtime";
       const el = <div {...trussProps({
         position: "absolute",
-        bottom: "bottom_4px",
+        bottom: "bot_4px",
         width: "w_4px",
         height: "h_4px",
         backgroundColor: "bgBlue",
@@ -2333,7 +2333,7 @@ describe("transform", () => {
       .bgWhite {
         background-color: #fcfcfa;
       }
-      .bottom_4px {
+      .bot_4px {
         bottom: 4px;
       }
       .h_4px {
@@ -2378,17 +2378,17 @@ describe("transform", () => {
       const s = Css.ba.add("borderWidth", "3px").$;
     `).toHaveTrussOutput(
       `
-      const s = { borderStyle: "bss", borderWidth: "borderWidth_3px" };
+      const s = { borderStyle: "bss", borderWidth: "bw_3px" };
     `,
       `
-      .borderWidth_3px {
-        border-width: 3px;
-      }
       .bss {
         border-style: solid;
       }
       .bw1 {
         border-width: 1px;
+      }
+      .bw_3px {
+        border-width: 3px;
       }
     `,
     );
@@ -3863,10 +3863,10 @@ describe("transform", () => {
       const s = Css.add("boxShadow", "0 0 0 1px blue").$;
     `).toHaveTrussOutput(
       `
-      const s = { boxShadow: "boxShadow_0_0_0_1px_blue" };
+      const s = { boxShadow: "bxs_0_0_0_1px_blue" };
     `,
       `
-      .boxShadow_0_0_0_1px_blue {
+      .bxs_0_0_0_1px_blue {
         box-shadow: 0 0 0 1px blue;
       }
     `,
@@ -3879,11 +3879,71 @@ describe("transform", () => {
       const s = Css.add("animationDelay", "300ms").$;
     `).toHaveTrussOutput(
       `
-      const s = { animationDelay: "animationDelay_300ms" };
+      const s = { animationDelay: "animd_300ms" };
     `,
       `
-      .animationDelay_300ms {
+      .animd_300ms {
         animation-delay: 300ms;
+      }
+    `,
+    );
+  });
+
+  test("add abbreviates the property name: Css.add('letterSpacing', '-0.022em').$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.add("letterSpacing", "-0.022em").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { letterSpacing: "ls_neg0_022em" };
+    `,
+      `
+      .ls_neg0_022em {
+        letter-spacing: -0.022em;
+      }
+    `,
+    );
+  });
+
+  test("add keeps the property name when it has no abbreviation: Css.add('scrollbarGutter', 'stable').$", () => {
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.add("scrollbarGutter", "stable").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { scrollbarGutter: "scrollbarGutter_stable" };
+    `,
+      `
+      .scrollbarGutter_stable {
+        scrollbar-gutter: stable;
+      }
+    `,
+    );
+  });
+
+  test("add shares one class with a multi-property abbreviation for the same declaration", () => {
+    // Given `Css.bb`, whose two properties take abbreviated names from the multi-property path
+    // And an `add` of `borderBottomStyle: solid`, the same declaration `bb` already emits, but
+    // reached through the single-property path, which folds the literal and used to spell the
+    // property out
+    const code = `
+      import { Css } from "./Css";
+      const s = Css.bb.$;
+      const t = Css.add("borderBottomStyle", "solid").$;
+    `;
+
+    // Then both paths name it `bbs_solid` and the stylesheet carries the declaration once
+    expectTrussTransform(code).toHaveTrussOutput(
+      `
+      const s = { borderBottomStyle: "bbs_solid", borderBottomWidth: "bbw_1px" };
+      const t = { borderBottomStyle: "bbs_solid" };
+    `,
+      `
+      .bbs_solid {
+        border-bottom-style: solid;
+      }
+      .bbw_1px {
+        border-bottom-width: 1px;
       }
     `,
     );
@@ -3936,7 +3996,7 @@ describe("transform", () => {
     );
   });
 
-  test("add uses property name in jsx output and generated css", () => {
+  test("add uses the property abbreviation in jsx output and generated css", () => {
     const code = `
       import { Css } from "./Css";
       const el = <div css={Css.mt2.add("transition", "all 240ms").$} />;
@@ -3944,10 +4004,10 @@ describe("transform", () => {
 
     expectTrussTransform(code).toHaveTrussOutput(
       `
-      const el = <div className="mt2 transition_all_240ms" />;
+      const el = <div className="mt2 tsn_all_240ms" />;
     `,
       `
-      .transition_all_240ms {
+      .tsn_all_240ms {
         transition: all 240ms;
       }
       .mt2 {

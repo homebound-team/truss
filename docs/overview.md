@@ -191,7 +191,7 @@ Class names are deterministic and human-readable:
 | Pseudo-element            | `placeholder_blue`           | `.placeholder_blue::placeholder { color: #526675 }`                                            |
 | Variable                  | `mt_var`                     | `.mt_var { margin-top: var(--marginTop) }`                                                     |
 | Literal-folded            | `mt_2`                       | `.mt_2 { margin-top: calc(var(--t-spacing) * 2) }`                                             |
-| `add()` literal           | `add_transition_all_240ms`   | `.add_transition_all_240ms { transition: all 240ms }`                                          |
+| `add()` literal           | `tsn_all_240ms`              | `.tsn_all_240ms { transition: all 240ms }`                                                     |
 | `add()` variable          | `color_var`                  | `.color_var { color: var(--color) }`                                                           |
 | `when()` relationship     | `wh_anc_h_blue`              | `._mrk:hover .wh_anc_h_blue { color: #526675 }`                                                |
 

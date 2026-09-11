@@ -12,6 +12,9 @@
  * over these — this mapping is only the fallback.
  */
 export const cssPropertyAbbreviations: Record<string, string> = {
+  // Accent color
+  accentColor: "acc",
+
   // Alignment
   alignContent: "ac",
   alignItems: "ai",
