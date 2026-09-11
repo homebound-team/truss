@@ -157,6 +157,7 @@ export function generateCssData(rules: Map<string, AtomicRule>): ParsedTrussCss 
       cssText: formatRule(entry.rule),
     })),
     properties: [],
+    keyframes: [],
     arbitraryCssBlocks: [],
   };
 

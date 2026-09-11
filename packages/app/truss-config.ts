@@ -36,6 +36,16 @@ export default defineConfig({
   breakpoints: { sm: 0, md: 600, lg: 960 },
   tokens: {
     ThemeAccent: "--theme-accent",
+    // Registered, so the browser types `--angle` and can interpolate it.
+    Angle: { var: "--angle", syntax: "<angle>", inherits: false, initialValue: "0deg" },
+  },
+  keyframes: {
+    spin: { to: { transform: "rotate(360deg)" } },
+    // Animating a registered property: the only reference to `--angle` is inside this keyframe.
+    sweep: { to: { "--angle": "360deg" } },
+    pulse: { "0%, 100%": { opacity: 1 }, "50%": { opacity: 0.45 } },
+    // Defined by a global stylesheet, not by Truss; declared so animations may still name it.
+    aiStarLoader: null,
   },
   target: "web",
 });

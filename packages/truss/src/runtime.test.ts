@@ -546,6 +546,29 @@ describe("__injectTrussCSS", () => {
     expect(sheetRules(sheet)).toEqual([".df { display: flex; }", ":root { --gap: 8px; }"]);
   });
 
+  test("installs keyframes once per name, after atomic rules and before arbitrary CSS", () => {
+    // Given an atomic rule, a keyframe block, and an arbitrary block from a .css.ts
+    const atomic = atomicPayload(3000, "df", ".df { display: flex; }");
+    const keyframes: TestCssPayload = {
+      keyframes: [{ name: "spin", cssText: "@keyframes spin { to { transform: rotate(360deg); } }" }],
+    };
+    const arbitrary: TestCssPayload = { source: "/target.css.ts", arbitraryRules: [".target { color: red; }"] };
+
+    // When each payload is injected, and the keyframe payload arrives a second time
+    __injectTrussCSS(atomic);
+    const sheet = trussStyle().sheet!;
+    __injectTrussCSS(keyframes);
+    __injectTrussCSS(arbitrary);
+    const insert = vi.spyOn(sheet, "insertRule");
+    // And that repeat is a fresh object, as a second module evaluating the same import would deliver
+    __injectTrussCSS(JSON.parse(JSON.stringify(keyframes)));
+
+    // Then the name is deduplicated rather than reinserted
+    expect(insert.mock.calls).toEqual([]);
+    // And the block sits between the atomic rule and the arbitrary one, matching the production order
+    expect(sheetRules(sheet)).toEqual(productionRules([atomic, keyframes, arbitrary]));
+  });
+
   test("retains the prelude from an empty bootstrap before all later rules", () => {
     const prelude = ":root { --truss-ready: 1; }";
     __injectTrussCSS({ prelude });
@@ -671,6 +694,7 @@ function productionRules(sources: TestCssPayload[]): string[] {
       sources.map((source) => ({
         rules: source.rules ?? [],
         properties: source.properties ?? [],
+        keyframes: source.keyframes ?? [],
         arbitraryCssBlocks: source.arbitraryRules?.length ? [{ cssText: source.arbitraryRules.join("\n") }] : [],
       })),
     ),

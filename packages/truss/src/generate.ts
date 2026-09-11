@@ -10,6 +10,7 @@ import { pascalCase } from "change-case";
 import { reactNativeSections } from "src/sections/tachyons-rn";
 import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
 import { SPACING_CUSTOM_PROPERTY } from "src/spacing-css-var";
+import { keyframesBlocks, tokenPropertyBlocks, tokenVarNames } from "src/at-rules";
 
 // A type-only import, so generated files also compile under `verbatimModuleSyntax`
 const CssProperties = imp("t:Properties@csstype");
@@ -21,8 +22,8 @@ export const defaultTypeAliases: Record<string, Array<keyof Properties>> = {
 
 /** Emitted in generated Css.ts before CssBuilder so `setVar` types are in scope. */
 function emitTokensEnumAndSetVarTypes(tokens: Config["tokens"] | undefined): string {
-  const entries =
-    tokens && typeof tokens === "object" ? Object.entries(tokens).filter(([, v]) => typeof v === "string") : [];
+  // Both token forms produce the same enum member; the object form only adds `@property` registration.
+  const entries = Object.entries(tokenVarNames(tokens));
   const hasTokens = entries.length > 0;
   const enumBlock = hasTokens
     ? `export enum Tokens {\n${entries.map(([name, value]) => `  ${name} = ${JSON.stringify(value)},`).join("\n")}\n}\n\n`
@@ -39,6 +40,19 @@ function emitTokensEnumAndSetVarTypes(tokens: Config["tokens"] | undefined): str
       container?: Array<{ name?: string; gt?: number; lt?: number; value: CssSetVarScalar }>;
     };\n\n`;
   return enumBlock + keysType + scalar + valueType;
+}
+
+/**
+ * Emitted in generated Css.ts so `Css.animation(`${Keyframes.Spin} 1s`)` names a checked keyframe.
+ *
+ * I.e. `{ spin: … }` → `export enum Keyframes { Spin = "spin" }`. The member is PascalCase like
+ * `Tokens`, and its value is the name written to the stylesheet.
+ */
+function emitKeyframesEnum(keyframes: Config["keyframes"] | undefined): string {
+  const names = Object.keys(keyframes ?? {});
+  if (names.length === 0) return "";
+  const members = names.map((name) => `  ${pascalCase(name)} = ${JSON.stringify(name)},`).join("\n");
+  return `export enum Keyframes {\n${members}\n}\n\n`;
 }
 
 export async function generate(config: Config): Promise<void> {
@@ -481,7 +495,7 @@ export type ${def("RuntimeStyles")} = RawCssProperties & { readonly __kind: "run
 ${typographyType}
 
 ${emitTokensEnumAndSetVarTypes(tokens)}
-
+${emitKeyframesEnum(config.keyframes)}
 // Augment React types so all JSX elements accept the \`css\` prop:
 // - HTMLAttributes/SVGAttributes cover intrinsic elements (div, svg, etc.)
 // - JSX.IntrinsicAttributes covers custom components (Card, Page, etc.)
@@ -773,6 +787,10 @@ export interface TrussMapping {
   breakpoints?: Record<string, string>;
   typography?: string[];
   tokens?: Record<string, string>;
+  /** CSS custom property → its `@property` block, for the tokens that declare a `syntax`. */
+  properties?: Record<string, string>;
+  /** Keyframe name → its `@keyframes` block, from `config.keyframes`. */
+  keyframes?: Record<string, string>;
   abbreviations: Record<string, TrussMappingEntry>;
 }
 
@@ -836,13 +854,17 @@ function generateTrussMapping(config: Config, entries: WebEntry[]): TrussMapping
     breakpointEntries[`if${pascalCase(name)}`] = mediaQuery;
   }
 
-  const tokenEntries = config.tokens && Object.keys(config.tokens).length > 0 ? config.tokens : undefined;
+  const tokenEntries = tokenVarNames(config.tokens);
+  const propertyEntries = tokenPropertyBlocks(config.tokens);
+  const keyframeEntries = keyframesBlocks(config.keyframes);
 
   return {
     increment: config.increment,
     ...(Object.keys(breakpointEntries).length > 0 ? { breakpoints: breakpointEntries } : {}),
     ...(Object.keys(config.fonts).length > 0 ? { typography: Object.keys(config.fonts) } : {}),
-    ...(tokenEntries ? { tokens: tokenEntries as Record<string, string> } : {}),
+    ...(Object.keys(tokenEntries).length > 0 ? { tokens: tokenEntries } : {}),
+    ...(Object.keys(propertyEntries).length > 0 ? { properties: propertyEntries } : {}),
+    ...(Object.keys(keyframeEntries).length > 0 ? { keyframes: keyframeEntries } : {}),
     abbreviations,
   };
 }
@@ -860,6 +882,12 @@ function condensedJson(mapping: TrussMapping): string {
   }
   if (mapping.tokens && Object.keys(mapping.tokens).length > 0) {
     lines.push(`  "tokens": ${JSON.stringify(mapping.tokens)},`);
+  }
+  if (mapping.properties && Object.keys(mapping.properties).length > 0) {
+    lines.push(`  "properties": ${JSON.stringify(mapping.properties)},`);
+  }
+  if (mapping.keyframes && Object.keys(mapping.keyframes).length > 0) {
+    lines.push(`  "keyframes": ${JSON.stringify(mapping.keyframes)},`);
   }
   lines.push(`  "abbreviations": {`);
   const entries = Object.entries(mapping.abbreviations);

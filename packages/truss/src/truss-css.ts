@@ -12,6 +12,13 @@ export interface ParsedPropertyDeclaration {
   varName: string;
 }
 
+/** A parsed @keyframes block extracted from an annotated truss.css file. */
+export interface ParsedKeyframesBlock {
+  cssText: string;
+  /** The animation name, i.e. `spin`. */
+  name: string;
+}
+
 /** A parsed arbitrary CSS block extracted from an annotated truss.css file. */
 export interface ParsedArbitraryCssBlock {
   cssText: string;
@@ -21,5 +28,6 @@ export interface ParsedArbitraryCssBlock {
 export interface ParsedTrussCss {
   rules: ParsedCssRule[];
   properties: ParsedPropertyDeclaration[];
+  keyframes: ParsedKeyframesBlock[];
   arbitraryCssBlocks: ParsedArbitraryCssBlock[];
 }

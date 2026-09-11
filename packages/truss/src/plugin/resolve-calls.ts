@@ -12,6 +12,7 @@ import { type CallChainNode, UnsupportedPatternError } from "./chain-nodes";
 import { cloneConditionContext } from "./condition-context";
 import { requireEntry, staticSegment } from "./resolve-entry";
 import { isCustomPropertyLiteral, singleArg, tryEvaluatePropertyLiteral, tryNumericLiteral } from "./resolve-literals";
+import { validateAnimationValue } from "./keyframe-names";
 import { resolveSetVarCall } from "./resolve-setvar";
 import { resolveTypographyCall } from "./resolve-typography";
 
@@ -116,6 +117,8 @@ function resolveLiteralOrVariableSegment(params: {
   context: ResolvedConditionContext;
 }): ResolvedSegment {
   const { abbr, props, incremented, appendPx = false, extraDefs, argAst, literalValue, mapping, context } = params;
+
+  if (literalValue !== null) validateAnimationValue(props, literalValue, mapping);
 
   if (literalValue !== null && !isCustomPropertyLiteral(argAst, mapping)) {
     const defs: Record<string, unknown> = Object.fromEntries(props.map((prop) => [prop, literalValue]));

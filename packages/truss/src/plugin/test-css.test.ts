@@ -5,9 +5,14 @@ import { createTestCssPayload, splitArbitraryCss } from "./test-css";
 
 describe("createTestCssPayload", () => {
   test("omits empty arrays and caller metadata", () => {
-    expect(createTestCssPayload({ rules: [], properties: [], arbitraryCssBlocks: [] })).toEqual({});
+    expect(createTestCssPayload({ rules: [], properties: [], keyframes: [], arbitraryCssBlocks: [] })).toEqual({});
     expect(
-      createTestCssPayload({ rules: [], properties: [], arbitraryCssBlocks: [{ cssText: "/* only */" }] }),
+      createTestCssPayload({
+        rules: [],
+        properties: [],
+        keyframes: [],
+        arbitraryCssBlocks: [{ cssText: "/* only */" }],
+      }),
     ).toEqual({});
   });
 
@@ -27,6 +32,7 @@ describe("createTestCssPayload", () => {
         },
       ],
       properties: [{ varName: "--width", cssText: '@property --width { syntax: "*"; inherits: false; }' }],
+      keyframes: [],
       arbitraryCssBlocks: [],
     });
     const restored: TestCssPayload = JSON.parse(JSON.stringify(payload));
@@ -62,6 +68,7 @@ describe("createTestCssPayload", () => {
       createTestCssPayload({
         rules: [],
         properties: [],
+        keyframes: [],
         arbitraryCssBlocks: [{ cssText: "/* first */ .a { color: red; }" }, { cssText: ".a { color: red; }" }],
       }),
     ).toEqual({ arbitraryRules: [".a { color: red; }", ".a { color: red; }"] });
@@ -104,7 +111,9 @@ describe("splitArbitraryCss", () => {
     "preserves recovered EOF rule text: %s",
     (cssText) => {
       expect(splitArbitraryCss(cssText)).toEqual([cssText]);
-      expect(createTestCssPayload({ rules: [], properties: [], arbitraryCssBlocks: [{ cssText }] })).toEqual({
+      expect(
+        createTestCssPayload({ rules: [], properties: [], keyframes: [], arbitraryCssBlocks: [{ cssText }] }),
+      ).toEqual({
         arbitraryRules: [cssText],
       });
     },
@@ -113,7 +122,12 @@ describe("splitArbitraryCss", () => {
   test("ignores unterminated top-level comments", () => {
     expect(splitArbitraryCss("/* unterminated")).toEqual([]);
     expect(
-      createTestCssPayload({ rules: [], properties: [], arbitraryCssBlocks: [{ cssText: "/* unterminated" }] }),
+      createTestCssPayload({
+        rules: [],
+        properties: [],
+        keyframes: [],
+        arbitraryCssBlocks: [{ cssText: "/* unterminated" }],
+      }),
     ).toEqual({});
     expect(splitArbitraryCss(".a { color: red; } /* unterminated")).toEqual([".a { color: red; }"]);
   });

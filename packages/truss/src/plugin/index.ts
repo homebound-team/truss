@@ -5,6 +5,8 @@ import { type PluginContext } from "rollup";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import { createTrussTransformSession } from "./transform-session";
 import { splitArbitraryCss } from "./test-css";
+import { applyReferencedKeyframes } from "./at-rule-refs";
+import type { ParsedTrussCss } from "../truss-css";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
 import { generate, parseModule, traverse } from "./babel-utils";
 import { findNamedImportBinding, reservePreferredName, upsertNamedImports } from "./ast-utils";
@@ -251,8 +253,18 @@ __injectTrussCSS(${JSON.stringify(payload)});
       if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) {
         const sourcePath = canonicalSourcePath(id.slice(VIRTUAL_TEST_CSS_PREFIX.length));
         session.updateArbitraryCssRegistry(sourcePath, readFileSync(sourcePath, "utf8"), diagnostics(this));
+        const arbitraryRules = splitArbitraryCss(session.getArbitraryCss(sourcePath));
+        // Raw blocks name keyframes too, so this module carries the ones it animates.
+        const atRules: ParsedTrussCss = {
+          rules: [],
+          properties: [],
+          keyframes: [],
+          arbitraryCssBlocks: arbitraryRules.map((cssText) => ({ cssText })),
+        };
+        applyReferencedKeyframes(atRules, session.ensureMapping());
         const payload = {
-          arbitraryRules: splitArbitraryCss(session.getArbitraryCss(sourcePath)),
+          arbitraryRules,
+          ...(atRules.keyframes.length > 0 ? { keyframes: atRules.keyframes } : {}),
           source: sourcePath,
         };
         return `

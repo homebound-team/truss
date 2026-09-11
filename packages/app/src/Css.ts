@@ -43,6 +43,7 @@ export type Typography = "f24" | "f18" | "f16" | "f14" | "f12" | "f10";
 
 export enum Tokens {
   ThemeAccent = "--theme-accent",
+  Angle = "--angle",
 }
 
 export type CssSetVarKeys = Tokens | `--${string}`;
@@ -54,6 +55,13 @@ export type CssSetVarValue = CssSetVarScalar | {
   media?: Partial<Record<Breakpoint, CssSetVarScalar>>;
   container?: Array<{ name?: string; gt?: number; lt?: number; value: CssSetVarScalar }>;
 };
+
+export enum Keyframes {
+  Spin = "spin",
+  Sweep = "sweep",
+  Pulse = "pulse",
+  AiStarLoader = "aiStarLoader",
+}
 
 // Augment React types so all JSX elements accept the `css` prop:
 // - HTMLAttributes/SVGAttributes cover intrinsic elements (div, svg, etc.)

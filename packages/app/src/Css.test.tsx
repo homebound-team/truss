@@ -1,7 +1,17 @@
 import React from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
-import { Css, Palette, RuntimeCss, Tokens, useRuntimeStyle, type Only, type Properties, type Xss } from "./Css";
+import {
+  Css,
+  Keyframes,
+  Palette,
+  RuntimeCss,
+  Tokens,
+  useRuntimeStyle,
+  type Only,
+  type Properties,
+  type Xss,
+} from "./Css";
 import { hasCssDeclaration } from "./testCssUtils";
 
 afterEach(cleanup);
@@ -530,6 +540,29 @@ describe("Truss CssBuilder", () => {
     });
   });
 
+  describe("keyframes and registered properties", () => {
+    test("the animated keyframe reaches the document stylesheet", () => {
+      // Given a component whose animation names the configured `spin` keyframe
+      const r = render(<div css={Css.animation(`${Keyframes.Spin} 0.8s linear infinite`).$} />);
+      const el = r.container.firstChild as HTMLElement;
+
+      // Then the rule applies the shorthand with the configured name
+      expect(el).toHaveStyle({ animation: "spin 0.8s linear infinite" });
+      // And the browser can resolve that name, because its block is in the sheet
+      // jsdom normalizes the `to` selector to `100%`
+      expect(keyframesText("spin")).toEqual("100% { transform: rotate(360deg); }");
+    });
+
+    test("a keyframe nothing animates is never written", () => {
+      // Given a render that names no animation at all
+      render(<div css={Css.df.$} />);
+
+      // Then `shimmer` is not a configured keyframe, and `pulse` is configured but unused
+      expect(keyframesText("pulse")).toBeUndefined();
+      expect(keyframesText("shimmer")).toBeUndefined();
+    });
+  });
+
   describe("useRuntimeStyle", () => {
     function UseRuntimeStyleHarness(props: { space: number }) {
       useRuntimeStyle({ ".hook-target": RuntimeCss.mt(props.space).black.$ });
@@ -707,3 +740,25 @@ describe("Truss CssBuilder", () => {
     expect(el).toHaveStyle({ display: "flex", color: "#353535" });
   });
 });
+
+/** The body of an `@keyframes` block in the injected stylesheet, or undefined when none was written. */
+function keyframesText(name: string): string | undefined {
+  for (const rule of allRules()) {
+    if (rule.type === CSSRule.KEYFRAMES_RULE && (rule as CSSKeyframesRule).name === name) {
+      return Array.from((rule as CSSKeyframesRule).cssRules)
+        .map((frame) => frame.cssText)
+        .join(" ");
+    }
+  }
+  return undefined;
+}
+
+function allRules(): CSSRule[] {
+  return Array.from(document.styleSheets).flatMap((sheet) => {
+    try {
+      return Array.from(sheet.cssRules);
+    } catch {
+      return [];
+    }
+  });
+}
