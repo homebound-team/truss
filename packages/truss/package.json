@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss",
-  "version": "2.29.7",
+  "version": "2.29.8",
   "type": "module",
   "main": "build/index.js",
   "bin": "cli.js",

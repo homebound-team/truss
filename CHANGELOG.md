@@ -1,3 +1,9 @@
+## [2.29.8](https://github.com/homebound-team/truss/compare/v2.29.7...v2.29.8) (2026-09-11)
+
+### Bug Fixes
+
+* Mark the Css import type-only when only types remain. ([db3b1e6](https://github.com/homebound-team/truss/commit/db3b1e6f220f1c182cd7157cae8b55ea809312c8))
+
 ## [2.29.7](https://github.com/homebound-team/truss/compare/v2.29.6...v2.29.7) (2026-09-10)
 
 ### Bug Fixes
