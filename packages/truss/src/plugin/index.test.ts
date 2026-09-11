@@ -8,6 +8,7 @@ import { trussPlugin } from "./index";
 const tempDirs: string[] = [];
 
 afterEach(() => {
+  vi.useRealTimers();
   for (const dir of tempDirs) {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -627,6 +628,135 @@ describe("trussPlugin", () => {
         "}",
       ].join("\n"),
     );
+  });
+
+  test("dev batches CSS changes after transforms and ignores unchanged CSS", () => {
+    // Given a mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And a dev server with controlled update timing and a captured CSS endpoint
+    vi.useFakeTimers();
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "development" });
+    invokeHook(plugin.buildStart, {});
+    const send = vi.fn();
+    const use = vi.fn();
+    const server = { middlewares: { use }, ws: { send }, httpServer: { on() {} } };
+    invokeHook(plugin.configureServer, {}, server);
+
+    // When Vite reports a file change before transforming it
+    invokeHook(plugin.handleHotUpdate, {}, { server });
+    vi.runAllTimers();
+
+    // Then no stale stylesheet update is sent and no poller is running
+    expect(send.mock.calls).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+
+    // When an application module and a .css.ts module add CSS in the same turn
+    const appId = join(root, "src", "App.tsx");
+    const cssId = join(root, "src", "App.css.ts");
+    const appCode = 'import { Css } from "./Css"; const s = Css.df.$;';
+    const cssCode = 'export const css = { body: "color: red;" };';
+    runTransform(plugin, appCode, appId);
+    runTransform(plugin, cssCode, cssId);
+
+    // Then notification is deferred and both changes share one timer
+    expect(send.mock.calls).toEqual([]);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.runAllTimers();
+    expect(send.mock.calls).toEqual([[{ type: "custom", event: "truss:css-update" }]]);
+    // And the endpoint already serves both completed transforms
+    const end = vi.fn();
+    use.mock.calls[0][0]({ url: "/virtual:truss.css" }, { setHeader() {}, end }, () => {});
+    expect(end.mock.calls).toEqual([
+      [
+        [
+          ":root { --t-spacing: 8px; }",
+          "/* @truss p:3000 c:df */",
+          ".df { display: flex; }",
+          "/* @truss arbitrary:start */",
+          "body {",
+          "  color: red;",
+          "}",
+          "/* @truss arbitrary:end */",
+        ].join("\n"),
+      ],
+    ]);
+
+    // When Vite retransforms unchanged CSS or a module without styles
+    send.mockClear();
+    runTransform(plugin, appCode, appId);
+    runTransform(plugin, cssCode, cssId);
+    runTransform(plugin, "export const value = 1;", join(root, "src", "other.ts"));
+    vi.runAllTimers();
+
+    // Then no stylesheet is requested
+    expect(send.mock.calls).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+
+    // When a later .css.ts edit replaces its rules
+    runTransform(plugin, 'export const css = { body: "color: blue;" };', cssId);
+    vi.runAllTimers();
+
+    // Then the edit gets one new notification without an initial file-change event
+    expect(send.mock.calls).toEqual([[{ type: "custom", event: "truss:css-update" }]]);
+  });
+
+  test.each(["close", "buildStart"])("dev cancels pending CSS updates on %s", (event) => {
+    // Given a mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And a dev server with a pending CSS update
+    vi.useFakeTimers();
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "development" });
+    invokeHook(plugin.buildStart, {});
+    const send = vi.fn();
+    const on = vi.fn();
+    invokeHook(plugin.configureServer, {}, { middlewares: { use() {} }, ws: { send }, httpServer: { on } });
+    runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "App.tsx"));
+    expect(vi.getTimerCount()).toBe(1);
+
+    // When the server closes or the build state resets before notification
+    if (event === "close") {
+      expect(on.mock.calls[0][0]).toBe("close");
+      on.mock.calls[0][1]();
+    } else {
+      invokeHook(plugin.buildStart, {});
+    }
+
+    // Then the pending timer is removed and no update is sent
+    expect(vi.getTimerCount()).toBe(0);
+    vi.runAllTimers();
+    expect(send.mock.calls).toEqual([]);
+  });
+
+  test("dev runtime fetches initially and only subscribes to CSS changes", async () => {
+    // Given the dev runtime and a browser with an existing Truss style element
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    const id = invokeHook(plugin.resolveId, {}, "virtual:truss:runtime", undefined);
+    const code = invokeHook(plugin.load, {}, id) as string;
+    const style = { textContent: "" };
+    const document = { getElementById: () => style };
+    const fetch = vi.fn().mockResolvedValue({ text: async () => ".df { display: flex; }" });
+    const on = vi.fn();
+
+    // When the browser evaluates the runtime
+    new Function("document", "fetch", "hot", code.replaceAll("import.meta.hot", "hot"))(document, fetch, { on });
+
+    // Then it fetches once on startup and does not subscribe to Vite JS updates
+    expect(fetch.mock.calls).toEqual([["/virtual:truss.css"]]);
+    expect(on.mock.calls.map((call) => call[0])).toEqual(["truss:css-update"]);
+    await vi.waitFor(() => expect(style.textContent).toBe(".df { display: flex; }"));
+
+    // When the server reports changed CSS
+    fetch.mockClear();
+    fetch.mockResolvedValue({ text: async () => ".df { display: grid; }" });
+    on.mock.calls[0][1]();
+
+    // Then the browser fetches and applies the stylesheet once
+    expect(fetch.mock.calls).toEqual([["/virtual:truss.css"]]);
+    await vi.waitFor(() => expect(style.textContent).toBe(".df { display: grid; }"));
   });
 
   test("dev html injects the runtime without a stylesheet link", () => {

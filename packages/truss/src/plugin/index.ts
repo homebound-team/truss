@@ -85,8 +85,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   /** The hashed CSS filename emitted during generateBundle, used by writeBundle to patch HTML. */
   let emittedCssFileName: string | null = null;
 
-  let cssVersion = 0;
-  let lastSentVersion = 0;
+  let cssUpdateTimer: ReturnType<typeof setTimeout> | undefined;
 
   function mappingPath(): string {
     return resolve(projectRoot || process.cwd(), opts.mapping);
@@ -104,7 +103,12 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
     projectRoot: () => projectRoot || process.cwd(),
     libraries: libraryPaths,
     onCssChanged() {
-      cssVersion++;
+      if (!devSocket || cssUpdateTimer !== undefined) return;
+      // Notify after transforms finish, batching registry changes in this event-loop turn.
+      cssUpdateTimer = setTimeout(() => {
+        cssUpdateTimer = undefined;
+        devSocket?.send({ type: "custom", event: "truss:css-update" });
+      }, 0);
     },
   });
 
@@ -124,15 +128,15 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       session.ensureMapping();
       // Reset registries and library cache at start of each build
       session.reset();
-      cssVersion = 0;
-      lastSentVersion = 0;
+      clearTimeout(cssUpdateTimer);
+      cssUpdateTimer = undefined;
     },
 
     // -- Dev mode HMR --
 
     configureServer(server: any) {
       // Skip dev-server setup in test mode — Vitest doesn't start a real HTTP
-      // server, so the interval would keep the process alive.
+      // server and does not use browser CSS updates.
       if (isTest) return;
       devSocket = server.ws;
 
@@ -145,17 +149,11 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
         res.end(css);
       });
 
-      // Poll for CSS version changes and push HMR updates
-      const interval = setInterval(() => {
-        if (cssVersion !== lastSentVersion && server.ws) {
-          lastSentVersion = cssVersion;
-          server.ws.send({ type: "custom", event: "truss:css-update" });
-        }
-      }, 150);
-
-      // Clean up interval when server closes
+      // Cancel pending CSS updates when the server closes.
       server.httpServer?.on("close", () => {
-        clearInterval(interval);
+        clearTimeout(cssUpdateTimer);
+        cssUpdateTimer = undefined;
+        devSocket = undefined;
       });
     },
 
@@ -176,13 +174,6 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // Inject the virtual runtime script for dev mode; it owns style updates.
       const tag = `<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`;
       return html.replace("</head>", `    ${tag}\n  </head>`);
-    },
-
-    handleHotUpdate(ctx: any) {
-      // Send CSS update event on any file change for safety
-      if (ctx.server?.ws) {
-        ctx.server.ws.send({ type: "custom", event: "truss:css-update" });
-      }
     },
 
     // -- Virtual module resolution --
@@ -237,9 +228,6 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
   if (import.meta.hot) {
     import.meta.hot.on("truss:css-update", fetchCss);
-    import.meta.hot.on("vite:afterUpdate", () => {
-      setTimeout(fetchCss, 50);
-    });
   }
 })();
 `;
