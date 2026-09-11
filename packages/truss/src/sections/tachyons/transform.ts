@@ -15,4 +15,5 @@ export const transform: CreateMethodsFn = () => [
   ...newMethodsForProp("transformOrigin", {}),
   ...newMethodsForProp("transformStyle", {}),
   ...newMethodsForProp("translate", {}),
+  ...newMethodsForProp("willChange", {}),
 ];

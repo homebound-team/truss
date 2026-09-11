@@ -1,0 +1,8 @@
+import { CreateMethodsFn } from "src/config";
+import { newMethodsForProp } from "src/methods";
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/list-style
+export const listStyle: CreateMethodsFn = () =>
+  newMethodsForProp("listStyle", {
+    listNone: "none",
+  });

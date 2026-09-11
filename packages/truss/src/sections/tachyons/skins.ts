@@ -21,5 +21,7 @@ export const skins: CreateMethodsFn = (config) => {
     Object.fromEntries(Object.entries(palette).map(([key, value]) => [`f${key}`, value])),
   );
 
-  return [...colors, ...backgroundColors, ...fillColors];
+  const otherColors = [...newMethodsForProp("accentColor", {}), ...newMethodsForProp("caretColor", {})];
+
+  return [...colors, ...backgroundColors, ...fillColors, ...otherColors];
 };
