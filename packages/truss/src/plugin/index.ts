@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
-import { resolve, dirname, isAbsolute, join } from "path";
+import { readFileSync, existsSync } from "fs";
+import { resolve, dirname, isAbsolute } from "path";
 import { createHash } from "crypto";
 import { type PluginContext } from "rollup";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
@@ -35,10 +35,11 @@ export interface TrussVitePlugin {
   load?: (this: DiagnosticContext, id: string) => string | null;
   transform?: (this: DiagnosticContext, code: string, id: string) => { code: string; map: any } | null;
   configureServer?: (server: any) => void;
-  transformIndexHtml?: (html: string) => string;
+  transformIndexHtml?: ((html: string) => string) | { order?: "pre" | "post"; handler: (html: string) => string };
   handleHotUpdate?: (ctx: any) => void;
-  generateBundle?: (options: any, bundle: any) => void;
-  writeBundle?: (options: any, bundle: any) => void;
+  generateBundle?:
+    | ((options: any, bundle: any) => void)
+    | { order?: "pre" | "post"; handler: (this: PluginContext, options: any, bundle: any) => void };
 }
 
 /** Prefix for virtual CSS module IDs generated from .css.ts files. */
@@ -48,20 +49,29 @@ const CSS_TS_QUERY = "?truss-css";
 const RUNTIME_MODULE = "@homebound/truss/runtime";
 const INJECT_CSS_HELPER = "__injectTrussCSS";
 
-/** Placeholder injected into HTML during build; replaced with the hashed CSS filename in generateBundle. */
-const TRUSS_CSS_PLACEHOLDER = "__TRUSS_CSS_HASH__";
+/**
+ * The app's stylesheet. `import "virtual:truss.css"` in the entry module lets the framework
+ * link and bundle Truss's CSS the same as any other stylesheet, which works for a Vite SPA and
+ * for an app that renders its own document, i.e. React Router, Remix, TanStack Start.
+ */
+const VIRTUAL_STYLESHEET_ID = "virtual:truss.css";
+const RESOLVED_VIRTUAL_STYLESHEET_ID = "\0" + VIRTUAL_STYLESHEET_ID;
+/**
+ * Stand-in rule that `virtual:truss.css` loads during a build. Vite bundles and hashes the
+ * stylesheet before the last module is transformed, so the real rules are not known yet; a
+ * post-ordered `generateBundle` swaps this rule for `collectCss()` once they are.
+ */
+const STYLESHEET_PLACEHOLDER = ".__truss_placeholder__ { --truss-placeholder: 0; }";
+const STYLESHEET_PLACEHOLDER_RE = /\.__truss_placeholder__\s*\{[^}]*\}/;
 
-/** Virtual module IDs for dev HMR. */
-const VIRTUAL_CSS_ENDPOINT = "/virtual:truss.css";
-const VIRTUAL_RUNTIME_ID = "virtual:truss:runtime";
-const RESOLVED_VIRTUAL_RUNTIME_ID = "\0" + VIRTUAL_RUNTIME_ID;
-// Test-only bootstrap that injects merged library CSS and the spacing prelude
-// as a virtual module side effect instead of an HTTP
-// fetch. In dev, the browser reaches /virtual:truss.css via transformIndexHtml
-// -> virtual:truss:runtime -> fetch("/virtual:truss.css") -> configureServer.
-// Vitest/jsdom does not boot from index.html or run that browser fetch/HMR path;
-// it imports modules directly into the test environment, so CSS has to enter via
-// a module side effect instead.
+/** Any `index.html` tag left over from the stylesheet link Truss used to write itself. */
+const LEGACY_CSS_LINK_RE =
+  /<link[^>]*href=["'][^"']*(?:virtual:truss\.css|__TRUSS_CSS_HASH__|\/assets\/truss-[0-9a-f]+\.css)["'][^>]*\/?>/;
+
+// Test-only bootstrap that injects merged library CSS and the spacing prelude as a virtual
+// module side effect. Vitest/jsdom does not import `virtual:truss.css` or run browser CSS
+// HMR; it imports modules directly into the test environment, so CSS has to enter via a
+// module side effect instead.
 const VIRTUAL_TEST_CSS_ID = "virtual:truss:test-css";
 const RESOLVED_VIRTUAL_TEST_CSS_ID = "\0" + VIRTUAL_TEST_CSS_ID;
 
@@ -81,11 +91,13 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let debug = false;
   let isTest = false;
   let isBuild = false;
+  let isLib = false;
   let annotate = true;
   let devSocket: { send: (payload: unknown) => void } | undefined;
+  let devServer: any;
+  /** True once a module imported `virtual:truss.css`, i.e. the app links its stylesheet itself. */
+  let stylesheetImported = false;
   const libraryPaths = opts.libraries ?? [];
-  /** The hashed CSS filename emitted during generateBundle, used by writeBundle to patch HTML. */
-  let emittedCssFileName: string | null = null;
 
   let cssUpdateTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -109,7 +121,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // Notify after transforms finish, batching registry changes in this event-loop turn.
       cssUpdateTimer = setTimeout(() => {
         cssUpdateTimer = undefined;
-        devSocket?.send({ type: "custom", event: "truss:css-update" });
+        reloadVirtualStylesheet();
       }, 0);
     },
   });
@@ -123,13 +135,15 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       debug = config.command === "serve" || config.mode === "development" || config.mode === "test";
       isTest = config.mode === "test";
       isBuild = config.command === "build";
-      annotate = !isBuild || Boolean(config.build?.lib);
+      isLib = Boolean(config.build?.lib);
+      annotate = !isBuild || isLib;
     },
 
     buildStart() {
       session.ensureMapping();
       // Reset registries and library cache at start of each build
       session.reset();
+      stylesheetImported = false;
       clearTimeout(cssUpdateTimer);
       cssUpdateTimer = undefined;
     },
@@ -141,50 +155,47 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // server and does not use browser CSS updates.
       if (isTest) return;
       devSocket = server.ws;
-
-      // Serve the current collected CSS at the virtual endpoint
-      server.middlewares.use((req: any, res: any, next: any) => {
-        if (req.url !== VIRTUAL_CSS_ENDPOINT) return next();
-        const css = session.collectCss(annotate);
-        res.setHeader("Content-Type", "text/css");
-        res.setHeader("Cache-Control", "no-store");
-        res.end(css);
-      });
+      devServer = server;
 
       // Cancel pending CSS updates when the server closes.
       server.httpServer?.on("close", () => {
         clearTimeout(cssUpdateTimer);
         cssUpdateTimer = undefined;
         devSocket = undefined;
+        devServer = undefined;
       });
     },
 
-    transformIndexHtml(html: string) {
-      if (isBuild) {
-        // Strip any existing truss CSS references so the hook is idempotent when
-        // a tool (e.g. Storybook) runs multiple Vite builds with the same plugin.
-        // I.e. removes /virtual:truss.css, __TRUSS_CSS_HASH__, and /assets/truss-<hash>.css
-        const stripped = html
-          .replace(/\s*<link[^>]*href=["'][^"']*virtual:truss\.css["'][^>]*\/?>/g, "")
-          .replace(/\s*<link[^>]*href=["'][^"']*__TRUSS_CSS_HASH__["'][^>]*\/?>/g, "")
-          .replace(/\s*<link[^>]*href=["'][^"']*\/assets\/truss-[0-9a-f]+\.css["'][^>]*\/?>/g, "");
-        // Inject a stylesheet link with a placeholder; writeBundle replaces it
-        // with the content-hashed filename for long-term caching.
-        const link = `<link rel="stylesheet" href="${TRUSS_CSS_PLACEHOLDER}">`;
-        return stripped.replace("</head>", `    ${link}\n  </head>`);
-      }
-      // Inject the virtual runtime script for dev mode; it owns style updates.
-      const tag = `<script type="module" src="/${VIRTUAL_RUNTIME_ID}"></script>`;
-      return html.replace("</head>", `    ${tag}\n  </head>`);
+    /**
+     * Reject an `index.html` that still links Truss's stylesheet.
+     *
+     * Truss used to write that tag itself; the app imports `virtual:truss.css` now. A leftover
+     * tag no longer names a stylesheet — in dev the URL falls through to Vite's HTML fallback,
+     * so the page silently loads `index.html` as CSS — hence failing rather than warning.
+     *
+     * Ordered pre, so the raw HTML is checked before Vite's own HTML plugin rewrites its links.
+     */
+    transformIndexHtml: {
+      order: "pre",
+      handler(html: string) {
+        if (LEGACY_CSS_LINK_RE.test(html)) {
+          throw new Error(
+            "[truss] index.html still links Truss's stylesheet. Delete that <link> tag and add " +
+              '`import "virtual:truss.css";` to your entry module instead.',
+          );
+        }
+        return html;
+      },
     },
 
     // -- Virtual module resolution --
 
     resolveId(source: string, importer: string | undefined) {
-      // Handle the dev HMR runtime virtual module
-      if (source === VIRTUAL_RUNTIME_ID || source === "/" + VIRTUAL_RUNTIME_ID) {
-        return RESOLVED_VIRTUAL_RUNTIME_ID;
+      if (source === VIRTUAL_STYLESHEET_ID) {
+        stylesheetImported = true;
+        return RESOLVED_VIRTUAL_STYLESHEET_ID;
       }
+
       if (source === VIRTUAL_TEST_CSS_ID || source === "/" + VIRTUAL_TEST_CSS_ID) {
         return RESOLVED_VIRTUAL_TEST_CSS_ID;
       }
@@ -200,40 +211,19 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // Compile test side effects without evaluating build-only CssBuilder expressions.
       if (isTest) return VIRTUAL_TEST_CSS_PREFIX + absolutePath;
 
-      // Return a virtual CSS module ID that maps back to the source .css.ts file.
-      // Strip the trailing `.ts` so the ID ends in `.css` — this tells Vite to
-      // route the loaded content through its CSS pipeline.
-      return VIRTUAL_CSS_PREFIX + absolutePath.slice(0, -3);
+      // Return a virtual module ID that maps back to the source .css.ts file. Its rules go
+      // into collectCss(), so the module itself stays JavaScript and Vite writes no stylesheet
+      // for it — a CSS module here becomes a near-empty per-route asset the document must link.
+      return VIRTUAL_CSS_PREFIX + absolutePath;
     },
 
     load(id: string) {
-      // Serve the dev HMR runtime script
-      if (id === RESOLVED_VIRTUAL_RUNTIME_ID) {
-        return `
-// Truss dev HMR runtime — keeps styles up to date without page reload
-(() => {
-  let style = document.getElementById("__truss_virtual__");
-  if (!style) {
-    style = document.createElement("style");
-    style.id = "__truss_virtual__";
-    document.head.appendChild(style);
-  }
-
-  function fetchCss() {
-    fetch("${VIRTUAL_CSS_ENDPOINT}")
-      .then((r) => r.text())
-      .then((css) => { style.textContent = css; })
-      .catch(() => {});
-  }
-
-  fetchCss();
-
-  if (import.meta.hot) {
-    import.meta.hot.on("truss:css-update", fetchCss);
-  }
-})();
-`;
+      // Dev serves the rules collected so far and pushes the rest over Vite's CSS HMR;
+      // a build gets a placeholder that generateBundle fills in.
+      if (id === RESOLVED_VIRTUAL_STYLESHEET_ID) {
+        return isBuild ? STYLESHEET_PLACEHOLDER : session.collectCss(annotate);
       }
+
       if (id === RESOLVED_VIRTUAL_TEST_CSS_ID) {
         // Vitest/jsdom has no dev server stylesheet fetch, so inject libraries
         // once; application modules deliver CSS when they evaluate.
@@ -278,23 +268,22 @@ __injectTrussCSS(${JSON.stringify(payload)});
       // Handle .css.ts virtual modules
       if (!id.startsWith(VIRTUAL_CSS_PREFIX)) return null;
 
-      // Re-add `.ts` to recover the original source file path
-      const sourcePath = id.slice(VIRTUAL_CSS_PREFIX.length) + ".ts";
+      const sourcePath = id.slice(VIRTUAL_CSS_PREFIX.length);
       const sourceCode = readFileSync(sourcePath, "utf8");
 
       // Populate the arbitrary CSS registry on first load; subsequent updates
       // happen in the transform hook when Vite re-transforms the changed file.
       session.updateArbitraryCssRegistry(sourcePath, sourceCode, diagnostics(this));
 
-      // Return an empty stylesheet to Vite's CSS pipeline — the real CSS is now
-      // served via collectCss() (dev: /virtual:truss.css, build: truss-<hash>.css)
-      // so we avoid duplicating it in Vite's own CSS bundle.
-      return `/* [truss] ${sourcePath} — included via truss.css */`;
+      // Return an empty module — the real CSS is served via collectCss(), either through
+      // the app's own `virtual:truss.css` import or, without one, the dev endpoint and the
+      // emitted truss-<hash>.css. So we avoid duplicating it in Vite's own CSS bundle.
+      return `/* [truss] ${sourcePath} — included via truss.css */\nexport {};`;
     },
 
     transform(code: string, id: string) {
-      // The virtual test module already contains compiled CSS, not source TypeScript.
-      if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) return null;
+      // The virtual modules already contain compiled CSS or an empty body, not source TypeScript.
+      if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX) || id.startsWith(VIRTUAL_CSS_PREFIX)) return null;
       // Only process JS/TS/JSX/TSX files outside node_modules
       if (!/\.[cm]?[jt]sx?(\?|$)/.test(id)) return null;
       const fileId = stripQueryAndHash(id);
@@ -346,38 +335,54 @@ __injectTrussCSS(${JSON.stringify(payload)});
 
     // -- Production CSS emission --
 
-    generateBundle(_options: any, _bundle: any) {
-      if (!isBuild) return;
-      const css = session.collectCss(annotate);
-      if (!css) return;
+    // Post, so Vite's own CSS assets are in the bundle and can be patched.
+    generateBundle: {
+      order: "post",
+      handler(_options: any, bundle: any) {
+        if (!isBuild) return;
+        const css = session.collectCss(annotate);
+        if (!css) return;
 
-      // Compute a content hash so the filename is cache-bustable.
-      const hash = createHash("sha256").update(css).digest("hex").slice(0, 8);
-      const fileName = `assets/truss-${hash}.css`;
-      emittedCssFileName = fileName;
-
-      (this as any).emitFile({
-        type: "asset",
-        fileName,
-        source: css,
-      });
-    },
-
-    /** Patch HTML files on disk to replace the CSS placeholder with the hashed filename. */
-    writeBundle(options: any, _bundle: any) {
-      if (!emittedCssFileName) return;
-      const outDir = options.dir || join(projectRoot, "dist");
-      // Find and patch all HTML files in the output directory
-      for (const entry of readdirSync(outDir)) {
-        if (!entry.endsWith(".html")) continue;
-        const htmlPath = join(outDir, entry);
-        const html = readFileSync(htmlPath, "utf8");
-        if (html.includes(TRUSS_CSS_PLACEHOLDER)) {
-          writeFileSync(htmlPath, html.replace(TRUSS_CSS_PLACEHOLDER, `/${emittedCssFileName}`), "utf8");
+        // A library has no entry module of its own to import the stylesheet, so it keeps
+        // writing a standalone file for the consuming app to merge through `libraries`.
+        if (isLib) {
+          const hash = createHash("sha256").update(css).digest("hex").slice(0, 8);
+          (this as any).emitFile({ type: "asset", fileName: `assets/truss-${hash}.css`, source: css });
+          return;
         }
-      }
+
+        if (!stylesheetImported) {
+          (this as any).warn(
+            '[truss] No module imported "virtual:truss.css", so this build ships no Truss stylesheet. ' +
+              'Add `import "virtual:truss.css";` to your entry module.',
+          );
+          return;
+        }
+
+        // The framework has already bundled, hashed and linked a stylesheet holding the
+        // placeholder, so fill that in rather than emit a file nothing links.
+        fillStylesheetPlaceholder(bundle, css);
+      },
     },
   };
+
+  /**
+   * Send new rules to a dev page that imports `virtual:truss.css`.
+   *
+   * Vite transforms modules on demand, so the load hook answers the stylesheet import with only
+   * the rules known at that moment. Reloading the module re-runs load and lets Vite's own CSS
+   * HMR replace the stylesheet, the same as editing a `.css` file would.
+   *
+   * Only the browser's copy is reloaded. Reloading the server copy makes Vite reload the whole
+   * page, which a style change does not need.
+   */
+  function reloadVirtualStylesheet(): void {
+    const client = devServer?.environments?.client ?? devServer;
+    const module = client?.moduleGraph?.getModuleById?.(RESOLVED_VIRTUAL_STYLESHEET_ID);
+    if (!module) return;
+    Promise.resolve(client.reloadModule(module)).catch(() => {});
+  }
+
   /** Reject fatal diagnostics; report the rest in the terminal and dev overlay. */
   function reportDiagnostic(context: DiagnosticContext, error: TransformDiagnostic): void {
     if ((opts.unsupportedPattern ?? (isBuild ? "error" : "warn")) === "error") {
@@ -388,6 +393,55 @@ __injectTrussCSS(${JSON.stringify(payload)});
       type: "error",
       err: { message: error.message, stack: "", id: error.id, loc: error.loc, plugin: "truss" },
     });
+  }
+}
+
+/**
+ * Put the collected stylesheet into whichever bundled CSS asset holds the `virtual:truss.css`
+ * placeholder rule.
+ *
+ * I.e. React Router bundles `import "virtual:truss.css"` into `assets/root-B1c2d3.css`, whose
+ * source starts as `.__truss_placeholder__ { --truss-placeholder: 0; }`; this replaces that rule
+ * with every rule the transforms produced, so the document's existing `<link>` carries them.
+ * The placeholder is matched as a whole rule, so a CSS minifier that reformats it still matches.
+ */
+function fillStylesheetPlaceholder(bundle: Record<string, any>, css: string): void {
+  for (const item of Object.values(bundle)) {
+    if (item.type !== "asset" || !item.fileName.endsWith(".css")) continue;
+    const source = String(item.source);
+    if (!STYLESHEET_PLACEHOLDER_RE.test(source)) continue;
+    item.source = source.replace(STYLESHEET_PLACEHOLDER_RE, css);
+    rehashStylesheet(bundle, item);
+  }
+}
+
+/**
+ * Rename a filled stylesheet so its name hashes the rules it holds.
+ *
+ * The framework hashes the asset while it still holds only the placeholder, so every build would
+ * otherwise reuse one filename and browsers would keep serving the rules they cached from an
+ * earlier deploy. I.e. `assets/root-DrDJUF32.css` becomes `assets/root-9f1c2ab3.css`, and every
+ * manifest, HTML file and chunk in this bundle that names the old file is rewritten. A name with
+ * no hash in it is left alone.
+ */
+function rehashStylesheet(bundle: Record<string, any>, item: any): void {
+  const hashed = /^(.*-)[A-Za-z0-9_-]{8}(\.css)$/.exec(item.fileName);
+  if (!hashed) return;
+  const hash = createHash("sha256").update(String(item.source)).digest("hex").slice(0, 8);
+  const oldFileName: string = item.fileName;
+  const newFileName = `${hashed[1]}${hash}${hashed[2]}`;
+  if (newFileName === oldFileName) return;
+
+  // Rename in place: Rolldown ignores new keys added to the bundle, and writes each entry
+  // under its own `fileName`, so the stale key is harmless.
+  item.fileName = newFileName;
+  for (const other of Object.values(bundle)) {
+    if (other === item) continue;
+    if (other.type === "chunk") {
+      other.code = other.code.split(oldFileName).join(newFileName);
+    } else if (typeof other.source === "string") {
+      other.source = other.source.split(oldFileName).join(newFileName);
+    }
   }
 }
 
