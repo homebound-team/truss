@@ -1,10 +1,11 @@
 import * as t from "@babel/types";
-import type { TrussMapping } from "./types";
+import { type DiagnosticOptions, type TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import { extractDollarChain, findCssImportBinding, unwrapExpression } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
 import { camelToKebab } from "./style-entries";
 import { parseModule } from "./babel-utils";
+import { Diagnostic } from "./diagnostic";
 
 /**
  * Transform a `.css.ts` file into a plain CSS string.
@@ -28,7 +29,12 @@ import { parseModule } from "./babel-utils";
  *
  * Returns the generated CSS string.
  */
-export function transformCssTs(code: string, filename: string, mapping: TrussMapping): string {
+export function transformCssTs(
+  code: string,
+  filename: string,
+  mapping: TrussMapping,
+  options: DiagnosticOptions = {},
+): string {
   const ast = parseModule(code, filename);
 
   // Css import is optional — only needed when Css.*.$  chains are used
@@ -37,6 +43,9 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
   // Find the `export const css = { ... }` expression
   const cssExport = findNamedCssExportObject(ast);
   if (!cssExport) {
+    options.onDiagnostic?.(
+      new Diagnostic("expected `export const css = { ... }` with an object literal", filename, ast.program),
+    );
     return `/* [truss] ${filename}: expected \`export const css = { ... }\` with an object literal */\n`;
   }
 
@@ -45,19 +54,19 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
 
   for (const prop of cssExport.properties) {
     if (t.isSpreadElement(prop)) {
-      rules.push(`/* [truss] unsupported: spread elements in css.ts export */`);
+      rules.push(unsupported("spread elements in css.ts export", prop));
       continue;
     }
 
     if (!t.isObjectProperty(prop)) {
-      rules.push(`/* [truss] unsupported: non-property in css.ts export */`);
+      rules.push(unsupported("non-property in css.ts export", prop));
       continue;
     }
 
     // Key must be a string literal (the CSS selector)
     const selector = objectPropertyStringKey(prop, stringBindings);
     if (selector === null) {
-      rules.push(`/* [truss] unsupported: non-string-literal key in css.ts export */`);
+      rules.push(unsupported("non-string-literal key in css.ts export", prop));
       continue;
     }
 
@@ -72,18 +81,18 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
 
     // Otherwise value must be a Css.*.$  expression
     if (!t.isExpression(valueNode)) {
-      rules.push(`/* [truss] unsupported: "${selector}" value is not an expression */`);
+      rules.push(unsupported(`"${selector}" value is not an expression`, valueNode));
       continue;
     }
 
     if (!cssBindingName) {
-      rules.push(`/* [truss] unsupported: "${selector}" — Css.*.$  chain requires a Css import */`);
+      rules.push(unsupported(`"${selector}" — Css.*.$  chain requires a Css import`, valueNode));
       continue;
     }
 
-    const cssResult = resolveCssExpression(valueNode, cssBindingName, mapping, filename);
+    const cssResult = resolveCssExpression(valueNode, cssBindingName, mapping);
     if ("error" in cssResult) {
-      rules.push(`/* [truss] unsupported: "${selector}" — ${cssResult.error} */`);
+      rules.push(unsupported(`"${selector}" — ${cssResult.error}`, valueNode));
       continue;
     }
 
@@ -91,6 +100,12 @@ export function transformCssTs(code: string, filename: string, mapping: TrussMap
   }
 
   return rules.join("\n\n") + "\n";
+
+  /** Report omitted CSS to the build tool and retain a comment for non-fatal transforms. */
+  function unsupported(message: string, node: t.Node): string {
+    options.onDiagnostic?.(new Diagnostic(message, filename, node));
+    return `/* [truss] unsupported: ${message} */`;
+  }
 }
 
 /** Find the object expression in `export const css = { ... }`. */
@@ -161,7 +176,6 @@ function resolveCssExpression(
   node: t.Expression,
   cssBindingName: string,
   mapping: TrussMapping,
-  filename: string,
 ): CssResolution | CssError {
   // The expression must be a `Css.*.$` chain rooted at the Css import
   const chain = extractDollarChain(node, cssBindingName);

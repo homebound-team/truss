@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { resolve, dirname, isAbsolute, join } from "path";
 import { createHash } from "crypto";
+import { type PluginContext } from "rollup";
 import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import { createTrussTransformSession } from "./transform-session";
 import { splitArbitraryCss } from "./test-css";
@@ -8,15 +9,20 @@ import { rootSpacingPreludeCss } from "../spacing-css-var";
 import { generate, parseModule, traverse } from "./babel-utils";
 import { findNamedImportBinding, reservePreferredName, upsertNamedImports } from "./ast-utils";
 import * as t from "@babel/types";
+import { type DiagnosticOptions, type TransformDiagnostic } from "./types";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
   mapping: string;
   /** Paths to pre-compiled truss.css files from libraries to merge into the app's CSS. */
   libraries?: string[];
+  /** Unsupported patterns fail builds by default; dev transforms warn and keep serving the page. */
+  unsupportedPattern?: "error" | "warn";
 }
 
-// Intentionally loose Vite types so we don't depend on the `vite` package at compile time.
+type DiagnosticContext = Pick<PluginContext, "warn">;
+
+// Use Rollup's context for diagnostics; keep other hooks loose without a Vite compile-time dependency.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface TrussVitePlugin {
   name: string;
@@ -24,8 +30,8 @@ export interface TrussVitePlugin {
   configResolved?: (config: any) => void;
   buildStart?: () => void;
   resolveId?: (source: string, importer: string | undefined) => string | null;
-  load?: (id: string) => string | null;
-  transform?: (code: string, id: string) => { code: string; map: any } | null;
+  load?: (this: DiagnosticContext, id: string) => string | null;
+  transform?: (this: DiagnosticContext, code: string, id: string) => { code: string; map: any } | null;
   configureServer?: (server: any) => void;
   transformIndexHtml?: (html: string) => string;
   handleHotUpdate?: (ctx: any) => void;
@@ -73,6 +79,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let debug = false;
   let isTest = false;
   let isBuild = false;
+  let devSocket: { send: (payload: unknown) => void } | undefined;
   const libraryPaths = opts.libraries ?? [];
   /** The hashed CSS filename emitted during generateBundle, used by writeBundle to patch HTML. */
   let emittedCssFileName: string | null = null;
@@ -82,6 +89,13 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
   function mappingPath(): string {
     return resolve(projectRoot || process.cwd(), opts.mapping);
+  }
+
+  /** Connect transform diagnostics to Vite reporting. */
+  function diagnostics(context: DiagnosticContext): DiagnosticOptions {
+    return {
+      onDiagnostic: (error) => reportDiagnostic(context, error),
+    };
   }
 
   const session = createTrussTransformSession({
@@ -118,6 +132,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // Skip dev-server setup in test mode — Vitest doesn't start a real HTTP
       // server, so the interval would keep the process alive.
       if (isTest) return;
+      devSocket = server.ws;
 
       // Serve the current collected CSS at the virtual endpoint
       server.middlewares.use((req: any, res: any, next: any) => {
@@ -245,7 +260,7 @@ __injectTrussCSS(${JSON.stringify(payload)});
 
       if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) {
         const sourcePath = canonicalSourcePath(id.slice(VIRTUAL_TEST_CSS_PREFIX.length));
-        session.updateArbitraryCssRegistry(sourcePath, readFileSync(sourcePath, "utf8"));
+        session.updateArbitraryCssRegistry(sourcePath, readFileSync(sourcePath, "utf8"), diagnostics(this));
         const payload = {
           arbitraryRules: splitArbitraryCss(session.getArbitraryCss(sourcePath)),
           source: sourcePath,
@@ -267,7 +282,7 @@ __injectTrussCSS(${JSON.stringify(payload)});
 
       // Populate the arbitrary CSS registry on first load; subsequent updates
       // happen in the transform hook when Vite re-transforms the changed file.
-      session.updateArbitraryCssRegistry(sourcePath, sourceCode);
+      session.updateArbitraryCssRegistry(sourcePath, sourceCode, diagnostics(this));
 
       // Return an empty stylesheet to Vite's CSS pipeline — the real CSS is now
       // served via collectCss() (dev: /virtual:truss.css, build: truss-<hash>.css)
@@ -308,7 +323,7 @@ __injectTrussCSS(${JSON.stringify(payload)});
         // Also update the arbitrary CSS registry so HMR picks up changes —
         // the load hook only runs on first resolve, so edits need to refresh
         // the registry here where Vite re-transforms changed files.
-        session.updateArbitraryCssRegistry(fileId, code);
+        session.updateArbitraryCssRegistry(fileId, code, diagnostics(this));
         if (isTest) {
           const css = session.getArbitraryCss(fileId);
           return { code: appendTestCssInjection(transformedCode, fileId, css), map: null };
@@ -323,7 +338,7 @@ __injectTrussCSS(${JSON.stringify(payload)});
 
       // For regular JS/TS modules that still use the DSL, run the full Truss
       // transform after the import rewrite so both behaviors compose.
-      const result = session.transformCode(transformedCode, fileId, { debug, injectCss: isTest });
+      const result = session.transformCode(transformedCode, fileId, { debug, injectCss: isTest, ...diagnostics(this) });
       return result ? { code: result.code, map: result.map } : importsOnlyResult;
     },
 
@@ -361,6 +376,17 @@ __injectTrussCSS(${JSON.stringify(payload)});
       }
     },
   };
+  /** Reject fatal diagnostics; report the rest in the terminal and dev overlay. */
+  function reportDiagnostic(context: DiagnosticContext, error: TransformDiagnostic): void {
+    if ((opts.unsupportedPattern ?? (isBuild ? "error" : "warn")) === "error") {
+      throw error;
+    }
+    context.warn(error);
+    devSocket?.send({
+      type: "error",
+      err: { message: error.message, stack: "", id: error.id, loc: error.loc, plugin: "truss" },
+    });
+  }
 }
 
 function resolveImportPath(source: string, importer: string | undefined, projectRoot: string | undefined): string {

@@ -8,7 +8,7 @@ import { serializeTrussCss } from "./truss-css";
 import { createTestCssPayload } from "./test-css";
 import type { TestCssPayload } from "../test-css";
 import { loadMapping } from "./mapping-utils";
-import type { TrussMapping } from "./types";
+import { type DiagnosticOptions, type TrussMapping } from "./types";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
 import { compareClassNames } from "../css-order";
 
@@ -50,9 +50,13 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     libraryCache = null;
   }
 
-  function updateArbitraryCssRegistry(sourcePath: string, sourceCode: string): void {
+  function updateArbitraryCssRegistry(
+    sourcePath: string,
+    sourceCode: string,
+    diagnostics: DiagnosticOptions = {},
+  ): void {
     sourcePath = resolve(sourcePath).replace(/\\/g, "/");
-    const css = transformCssTs(sourceCode, sourcePath, ensureMapping()).trim();
+    const css = transformCssTs(sourceCode, sourcePath, ensureMapping(), diagnostics).trim();
     if (css.length > 0) {
       const prev = arbitraryCssRegistry.get(sourcePath);
       arbitraryCssRegistry.set(sourcePath, css);
@@ -135,5 +139,5 @@ export interface TrussTransformSession {
   hasCss: () => boolean;
   reset: () => void;
   transformCode: (code: string, fileId: string, options?: TransformTrussOptions) => TransformResult | null;
-  updateArbitraryCssRegistry: (sourcePath: string, sourceCode: string) => void;
+  updateArbitraryCssRegistry: (sourcePath: string, sourceCode: string, options?: DiagnosticOptions) => void;
 }

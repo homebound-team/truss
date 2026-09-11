@@ -1,7 +1,7 @@
 import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 import { basename } from "path";
-import type { TrussMapping, ResolvedSegment } from "./types";
+import { type DiagnosticOptions, type TrussMapping, type ResolvedSegment } from "./types";
 import { chainSegments, resolveFullChain, type CssChainReferenceResolver, type ResolvedChain } from "./resolve-chain";
 import { generate, parseModule, traverse } from "./babel-utils";
 import {
@@ -24,6 +24,7 @@ import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css
 import { serializeTrussCss } from "./truss-css";
 import { createTestCssPayload } from "./test-css";
 import { buildMaybeIncDeclaration, buildRuntimeLookupDeclaration } from "./emit-style-hash";
+import { Diagnostic } from "./diagnostic";
 import {
   rewriteExpressionSites,
   type ExpressionSite,
@@ -40,7 +41,7 @@ export interface TransformResult {
   rules: Map<string, AtomicRule>;
 }
 
-export interface TransformTrussOptions {
+export interface TransformTrussOptions extends DiagnosticOptions {
   debug?: boolean;
   /** When true, inject `__injectTrussCSS(payload)` call for jsdom/test environments. */
   injectCss?: boolean;
@@ -102,11 +103,19 @@ export function transformTruss(
       }
 
       const resolveCssChainReference = buildCssChainReferenceResolver(path, cssBindingName);
-      const resolvedChain = resolveFullChain({ mapping, cssBindingName, resolveCssChainReference }, chain);
+      const resolvedChain = resolveFullChain(
+        {
+          mapping,
+          cssBindingName,
+          resolveCssChainReference,
+        },
+        chain,
+      );
       sites.push({ path, resolvedChain });
 
       const line = path.node.loc?.start.line ?? null;
       for (const err of resolvedChain.errors) {
+        options.onDiagnostic?.(new Diagnostic(err, filename, path.node));
         errorMessages.push({ message: err, line });
       }
     },
