@@ -86,7 +86,8 @@ describe("methods", () => {
 
   describe("newParamMethod", () => {
     it("creates a new method with a parameter", () => {
-      // Given a new method with a parameter
+      // Given the bgColor alias for the backgroundColor property
+      // When we create a method that takes the value as a parameter
       const result = newParamMethod("bgColor", "backgroundColor");
       // Then it should output the expected method
       expect(result).toMatchInlineSnapshot(`
@@ -96,7 +97,9 @@ describe("methods", () => {
     });
 
     it("creates a new method with a parameter and additional properties", () => {
-      // Given a new method with a parameter and additional properties
+      // Given the bgColor alias for the backgroundColor property
+      // And display: block as an additional property to always set
+      // When we create a method that takes the value as a parameter
       const result = newParamMethod("bgColor", "backgroundColor", { display: "block" });
       // Then it should output the expected method
       expect(result).toMatchInlineSnapshot(`

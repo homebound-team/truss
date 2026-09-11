@@ -54,16 +54,17 @@ describe("trussPlugin", () => {
   });
 
   test("transforms application files importing library Css.ts", () => {
+    // Given the library ships a Css.json with a df rule
     const root = createTempRoot();
     writeMapping(join(root, "node_modules", "@company", "library", "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
     });
-    // Given we're running the application build, pointing to the library's Css.json
+    // And we're running the application build, pointing to the library's Css.json
     const plugin = trussPlugin({
       mapping: "./node_modules/@company/library/src/Css.json",
     });
     runConfigHooks(plugin, root);
-    // And we have application src/Button.tsx importing Css from the library
+    // When we see application src/Button.tsx importing Css from the library
     const result = runTransform(
       plugin,
       `import { Css } from "@company/library"; const el = <div css={Css.df.$} />;`,
@@ -132,9 +133,11 @@ describe("trussPlugin", () => {
       mapping: "./src/Css.json",
       libraries: ["./node_modules/@company/library/dist/truss.css"],
     });
+    // When the plugin starts the build
     invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
     invokeHook(plugin.buildStart, {});
 
+    // Then the bootstrap keeps the at-rule, the property, and both arbitrary rules
     expect(n(getTestCssModule(plugin))).toBe(
       n(`
         import { __injectTrussCSS } from "@homebound/truss/runtime";
@@ -160,12 +163,14 @@ describe("trussPlugin", () => {
     invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "test" } as any);
     invokeHook(plugin.buildStart, {} as any);
 
+    // When we transform an application file that uses both classes
     const result = runTransform(
       plugin,
       `import { Css } from "./Css"; const el = <div css={Css.df.$} className="beamStatic" />;`,
       join(root, "src", "App.tsx"),
     );
 
+    // Then the file delivers the application's own df rule
     expect(n(result?.code ?? "")).toBe(
       n(`
         import { mergeProps, TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
@@ -177,6 +182,7 @@ describe("trussPlugin", () => {
       `),
     );
 
+    // And the bootstrap keeps the library's conflicting df rule
     const bootstrapModule = getTestCssModule(plugin);
     expect(n(bootstrapModule)).toBe(
       n(`
@@ -195,8 +201,11 @@ describe("trussPlugin", () => {
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
     invokeHook(plugin.buildStart, {});
+    // When we transform a file with no Truss usage
     const result = runTransform(plugin, "export const value = 1;", join(root, "src", "plain.ts"));
+    // Then the file still imports the bootstrap
     expect(result?.code).toBe('export const value = 1;\nimport "virtual:truss:test-css";');
+    // And the bootstrap only sets the spacing variable
     expect(n(getTestCssModule(plugin))).toBe(
       n(`
       import { __injectTrussCSS } from "@homebound/truss/runtime";
@@ -221,7 +230,9 @@ describe("trussPlugin", () => {
       export const __injectTrussCSS = "also occupied";
       export const css = { ".late": Css.df.$ };`;
     writeFileSync(sourcePath, code);
+    // When we transform the late file
     const result = runTransform(plugin, code, `/@fs/${sourcePath}?v=1`);
+    // Then the injection uses an aliased helper that avoids the existing exports
     expect(n(result?.code ?? "")).toBe(
       n(`
       import { Css } from "./Css";
@@ -233,7 +244,9 @@ describe("trussPlugin", () => {
       __injectTrussCSS_1({ arbitraryRules: [".late {\\n  display: flex;\\n}"], source: ${JSON.stringify(sourcePath)} });
     `),
     );
+    // And the bootstrap module is unchanged
     expect(getTestCssModule(plugin)).toBe(bootstrap);
+    // And the late file's own module delivers the same rule
     const resolvedId = invokeHook(plugin.resolveId, {}, "./Late.css.ts?truss-css", join(root, "src", "App.tsx"));
     expect(resolvedId).toBe("\0truss-test-css:" + sourcePath);
     expect(n(invokeHook(plugin.load, {}, resolvedId) as string)).toBe(
@@ -303,8 +316,10 @@ describe("trussPlugin", () => {
     const sourcePath = join(root, "src", "Imports.css.ts");
     const code = `${scenario.imports}\nexport const css = { ".target": "color: red;" };`;
 
+    // When we transform the module
     const result = runTransform(plugin, code, sourcePath);
 
+    // Then the injection call uses a helper name that does not collide
     expect(n(result?.code ?? "")).toBe(
       n(`
         ${scenario.expectedImports}
@@ -330,8 +345,11 @@ describe("trussPlugin", () => {
     invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
     invokeHook(plugin.buildStart, {});
     const importer = join(root, "src", "App.tsx");
+    // When we transform the importer
     const result = runTransform(plugin, 'import "./BuildOnly.css";', importer);
+    // Then the import points at the compiled CSS module
     expect(result?.code).toBe('import "./BuildOnly.css.ts?truss-css";\nimport "virtual:truss:test-css";');
+    // And that module injects the rule the setVar expression declares
     const resolvedId = invokeHook(plugin.resolveId, {}, "./BuildOnly.css.ts?truss-css", importer);
     expect(resolvedId).toBe("\0truss-test-css:" + sourcePath);
     const loaded = invokeHook(plugin.load, {}, resolvedId) as string;
@@ -342,6 +360,7 @@ describe("trussPlugin", () => {
       __injectTrussCSS({"arbitraryRules":[".build-only {\\n  --test-color: red;\\n}"],"source":${JSON.stringify(sourcePath)}});
     `),
     );
+    // And the loaded module is not transformed again
     expect(runTransform(plugin, loaded, resolvedId as string)).toBeNull();
   });
 
@@ -363,6 +382,7 @@ describe("trussPlugin", () => {
       'import { Css } from "./Css"; export const css = { ".upper": Css.df.$ };',
       join(root, "src", "Z.css.ts"),
     );
+    // When the bundle is generated
     let css = "";
     invokeHook(
       plugin.generateBundle,
@@ -374,6 +394,7 @@ describe("trussPlugin", () => {
       {},
       {},
     );
+    // Then the arbitrary block follows codepoint source order
     expect(css).toBe(
       [
         ":root { --t-spacing: 8px; }",

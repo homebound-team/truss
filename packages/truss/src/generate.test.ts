@@ -18,10 +18,14 @@ describe("generate", () => {
       numberOfIncrements: 1,
     };
     try {
+      // When we generate the Css.ts file
       await generate(config);
       const lines = readFileSync(config.outputPath, "utf8").split("\n");
+      // Then csstype is imported as a type
       expect(lines[0]).toEqual('import type { Properties as Properties1 } from "csstype";');
+      // And the palette value keeps its double quote
       expect(lines.find((line) => line.includes("Quoted ="))).toEqual("  Quoted = 'a\"b',");
+      // And the font family keeps the quotes around the name with a space
       const bodyIndex = lines.findIndex((line) => line.includes("get body()"));
       expect(lines[bodyIndex + 1]).toEqual('    return this.add("fontFamily", \'"Helvetica Neue", sans-serif\');');
     } finally {
