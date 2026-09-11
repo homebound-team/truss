@@ -9,9 +9,12 @@ afterEach(cleanup);
 describe("library css", () => {
   test("compiles side-effect-only CSS without executing build-only expressions", () => {
     // Given the side-effect fixture uses Css.setVar, which cannot execute in CssBuilder
+    // When we render an element that uses the fixture's class
     const r = render(<div className="build-only-css">compiled</div>);
     const el = r.container.firstChild as HTMLElement;
+    // Then the compiled rule is applied
     expect(el).toHaveStyle({ display: "flex" });
+    // And the variable that setVar declared is applied
     expect(getComputedStyle(el).getPropertyValue("--test-color")).toBe("red");
   });
 
@@ -33,9 +36,12 @@ describe("library css", () => {
   test("keeps the library's conflicting atomic rule over application delivery", () => {
     // Given library bootstrap defines mt_137px as margin-top: 23px
     // And this application module compiles the same class with margin-top: 137px
+    // When we render an element with the application's mtPx(137)
     const r = render(<div css={Css.mtPx(137).$}>conflicting</div>);
     const el = r.container.firstChild as HTMLElement;
+    // Then the element uses the shared class name
     expect(el.className).toBe("mt_137px");
+    // And the library's rule wins
     expect(el).toHaveStyle({ marginTop: "23px" });
   });
 
@@ -81,18 +87,23 @@ describe("library css", () => {
     const el = r.container.firstChild as HTMLElement;
     expect(getComputedStyle(el).display).toBe("block");
 
+    // When the late CSS module is imported
     const late = await import("./test-fixtures/LateLibrary.css");
 
+    // Then it exports its class name
     expect(late.lateClassName).toBe("late-library-css");
+    // And the already-mounted element picks up the late rule
     expect(el).toHaveStyle({ display: "flex" });
     // And a named import adds the virtual side effect for the same canonical source
     const named = await import("./test-fixtures/LateLibraryImport");
     expect(named.lateClassName).toBe("late-library-css");
+    // And the rule is delivered only once
     expect(
       Array.from(sheet!.cssRules)
         .filter((rule) => (rule as CSSStyleRule).selectorText === ".late-library-css")
         .map((rule) => rule.cssText),
     ).toEqual([".late-library-css { display: flex; }"]);
+    // And the existing static sheet is reused instead of replaced
     expect(staticStyle.sheet).toBe(sheet);
     expect(staticStyle.textContent).toBe("");
     expect(document.querySelectorAll("style[data-truss]").length).toBe(1);

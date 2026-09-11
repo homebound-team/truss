@@ -9,14 +9,15 @@ const mapping = loadMapping(resolve(__dirname, "../../../app/src/Css.json"));
 describe("transform", () => {
   test("injects structured priorities and one-sided query metadata", () => {
     // Given media and container queries with no upper width bound
-    expectTrussTransform(
-      `
+    const source = `
       import { Css } from "./Css";
       const a = Css.if("@media (min-width: 600px)").blue.$;
       const b = Css.ifContainer({ gt: 600 }).blue.$;
-      `,
-      { injectCss: true },
-    ).toHaveTrussOutput(
+      `;
+    // When we transform the file with CSS injection on
+    const transform = expectTrussTransform(source, { injectCss: true });
+    // Then each rule carries its priority and its at-rule
+    transform.toHaveTrussOutput(
       `
       import { __injectTrussCSS } from "@homebound/truss/runtime";
       __injectTrussCSS({ rules: [{
@@ -46,13 +47,14 @@ describe("transform", () => {
 
   test("injects property registrations alongside variable atomic rules", () => {
     // Given a border color supplied through a custom property
-    expectTrussTransform(
-      `
+    const source = `
       import { Css, Tokens } from "./Css";
       const s = Css.bc(Tokens.ThemeAccent).$;
-      `,
-      { injectCss: true },
-    ).toHaveTrussOutput(
+      `;
+    // When we transform the file with CSS injection on
+    const transform = expectTrussTransform(source, { injectCss: true });
+    // Then the injection registers the property next to the variable rule
+    transform.toHaveTrussOutput(
       `
       import { Tokens } from "./Css";
       import { __injectTrussCSS } from "@homebound/truss/runtime";
@@ -71,10 +73,11 @@ describe("transform", () => {
 
   test("does not inject an empty atomic payload", () => {
     // Given an empty Css chain that emits no CSS
-    expectTrussTransform(`import { Css } from "./Css"; const s = Css.$;`, { injectCss: true }).toHaveTrussOutput(
-      `import { __injectTrussCSS } from "@homebound/truss/runtime"; const s = {};`,
-      "",
-    );
+    const source = `import { Css } from "./Css"; const s = Css.$;`;
+    // When we transform the file with CSS injection on
+    const transform = expectTrussTransform(source, { injectCss: true });
+    // Then no injection call is emitted
+    transform.toHaveTrussOutput(`import { __injectTrussCSS } from "@homebound/truss/runtime"; const s = {};`, "");
   });
 
   test("returns null for files without Css import", () => {
@@ -1209,12 +1212,16 @@ describe("transform", () => {
   test("type-only remainder becomes a type-only import", () => {
     // Given a file that imports Css alongside a type from the same module
     // And the type is still referenced in an annotation, so its binding must survive
-    expectTrussTransform(`
+    const source = `
       import { Css, type Properties } from "./Css";
       export function Foo(p: Properties) {
         return Css.df.$;
       }
-    `).toHaveTrussOutput(
+    `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the remaining import becomes type-only
+    transform.toHaveTrussOutput(
       `
       import type { Properties } from "./Css";
       export function Foo(p: Properties) {
@@ -1232,12 +1239,16 @@ describe("transform", () => {
   test("value remainder keeps the import runnable", () => {
     // Given a file that imports Css alongside both a value and a type from the same module
     // And the value keeps the declaration a real import, so it must not become type-only
-    expectTrussTransform(`
+    const source = `
       import { Css, Palette, type Properties } from "./Css";
       export function Foo(p: Properties) {
         return [Css.df.$, Palette.Black];
       }
-    `).toHaveTrussOutput(
+    `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the remaining import stays a value import
+    transform.toHaveTrussOutput(
       `
       import { Palette, type Properties } from "./Css";
       export function Foo(p: Properties) {
