@@ -835,6 +835,129 @@ Truss conventionally uses the `xss` prop name for "the component's allowed exten
 
 Also note that the XStyles/Xss feature is completely opt-in; you can use it if you want, or you can use Truss solely for the `Css.m2.black.$` abbreviations.
 
+## Variants
+
+Truss does not have a dedicated `variants` API, because we don't need one: `Css.*.$` expressions are POJOs, so the
+variant pattern can be expressed as just an object literal keyed by the variant name:
+
+```tsx
+export type ChipType = "caution" | "warning" | "success" | "neutral";
+
+export function Chip(props: { text: string; type?: ChipType }) {
+  const { text, type = "neutral" } = props;
+  return <span css={{ ...chipBaseStyles, ...typeStyles[type] }}>{text}</span>;
+}
+
+const chipBaseStyles = Css.xsSb.dif.aic.br16.px1.gray900.$;
+
+const typeStyles: Record<ChipType, Properties> = {
+  caution: Css.bgYellow200.$,
+  warning: Css.bgRed100.$,
+  success: Css.bgGreen100.$,
+  neutral: Css.bgGray200.$,
+};
+```
+
+The `Record<ChipType, Properties>` annotation is the point of the convention: TypeScript fails the
+build when a new variant is added to the union but not to the map, and when a map key is not a real
+variant. A `switch` with a `default` case quietly loses both checks.
+
+### Variants that set more than styles
+
+When a variant also drives other behavior, such as an icon or a label, we can simply change the
+`typeStyles` value to itself be a record of key/value pairs:
+
+```tsx
+type TypeStyle = {
+  icon: IconKey;
+  tagType: TagType;
+  label: string;
+};
+
+const typeStyles: Record<BannerType, TypeStyle> = {
+  error: { icon: "xCircle", tagType: "error", label: "Error" },
+  warning: { icon: "error", tagType: "warning", label: "Warning" },
+};
+```
+
+### Variants with hover/pressed/disabled states
+
+If we need "per variant, per _state_", we can have our `variantStyles` become a two-level
+map of `variant -> state -> styles`:
+
+```tsx
+const variantStyles: Record<
+  ButtonVariant,
+  {
+    baseStyles: Properties;
+    hoverStyles: Properties;
+    pressedStyles: Properties;
+    disabledStyles: Properties;
+  }
+> = {
+  primary: {
+    baseStyles: Css.bgColor(Tokens.Primary).color(Tokens.OnPrimary).$,
+    hoverStyles: Css.bgColor(Tokens.PrimaryHover).$,
+    pressedStyles: Css.bgColor(Tokens.PrimaryPressed).$,
+    disabledStyles: Css.bgColor(Tokens.ButtonDisabledBg).color(Tokens.ButtonDisabledFg).$,
+  },
+  // ...secondary, danger, text, etc.
+};
+
+function Button(props: ButtonProps) {
+  // ...
+  const { baseStyles, hoverStyles, pressedStyles, disabledStyles } = variantStyles[variant];
+  return (
+    <button
+      css={{
+        ...Css.buttonBase.$,
+        ...baseStyles,
+        ...(isHovered && !isPressed ? hoverStyles : {}),
+        ...(isPressed ? pressedStyles : {}),
+        ...(isDisabled ? disabledStyles : {}),
+      }}
+    />
+  );
+}
+```
+
+Because Truss `...` style spreads are "last property wins", each state only needs to list what
+it changes, and the ordering of the spreads _is_ the state precedence--there is no specificity
+to reason about.
+
+### Independent axes stay independent
+
+If your component has multiple inputs that drive its styles, i.e. a `variant` prop (what it looks like)
+and a `size` (how big it is) prop, we can just use "two record `const`s", one per prop, and
+combine them at render time:
+
+```tsx
+const sizeStyles: Record<ButtonSize, Properties> = {
+  sm: Css.hPx(32).pxPx(12).$,
+  md: Css.hPx(40).px2.$,
+  lg: Css.hPx(48).px3.$,
+};
+
+const baseStyles = Css.with(variantStyles[variant].baseStyles).with(sizeStyles[size]).$;
+```
+
+Use `with()`, not a spread, when either side may carry pseudo-selector or breakpoint styles that the
+other side would otherwise clobber. For plain property hashes a spread is fine.
+
+### Compared to other CSS-in-JS libraries
+
+Given how ubiquitous the variant pattern is in UX design, most CSS-in-JS libraries also ship
+support for it, but usually via a dedicated variants API.
+
+(I.e. Stitches's and Panda's `variants` / `compoundVariants`, vanilla-extract's `recipes`,
+`class-variance-authority` and `tailwind-variants` on top of Tailwind, and the `variants` slot
+in MUI/Chakra theme files.)
+
+These all solve the same problem, but have to invent a library-specific, potentially esoteric,
+config format to do it.
+
+In Truss the "config format" is just TypeScript. 🚀
+
 ## Customization
 
 Truss supports several levels of customization:
