@@ -80,7 +80,7 @@ function resolveDelegateCall(
     throw new UnsupportedPatternError(`Delegate "${abbr}" targets "${entry.target}" which is not a variable entry`);
   }
   const arg = singleArg(node, abbr);
-  // I.e. `mtPx(12)` folds to `12px` and `mtPx(-4)` to `-4px`; anything else is a runtime value
+  // I.e. `mtPx(12)` evaluates to `12px` and `mtPx(-4)` to `-4px`; anything else is a runtime value
   const pixels = tryNumericLiteral(arg);
   // Use the target abbreviation name for delegate segments (i.e. mtPx → mt)
   return resolveLiteralOrVariableSegment({
@@ -97,10 +97,10 @@ function resolveDelegateCall(
 }
 
 /**
- * Resolve a parameterized call argument to either a static fold, a compile-time `_var` tuple,
+ * Resolve a parameterized call argument to either a static evaluation, a compile-time `_var` tuple,
  * or a runtime `_var` tuple.
  *
- * I.e. `mt(2)` folds to `defs: { marginTop: "calc(var(--t-spacing) * 2)" }`; `mt(Tokens.gap)` stays a
+ * I.e. `mt(2)` evaluates to `defs: { marginTop: "calc(var(--t-spacing) * 2)" }`; `mt(Tokens.gap)` stays a
  * `_var` segment with `argResolved: "var(--gap)"` so every token shares one `mt_var` class; and `mt(x)`
  * is a `_var` segment whose value is only known at runtime.
  */
@@ -253,7 +253,7 @@ function resolveAddObjectLiteral(
  *
  * When the pair matches an existing single-property abbreviation in the mapping, that abbreviation
  * is reused so the class is shared with direct uses. Otherwise the property name itself is the
- * abbreviation: a literal value folds to a static class named with the property's short form from
+ * abbreviation: a literal value evaluates to a static class named with the property's short form from
  * the CSS property abbreviation table, and a runtime value becomes a `_var` tuple that keeps the
  * property name.
  *

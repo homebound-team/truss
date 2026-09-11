@@ -405,7 +405,7 @@ function isMetadataKey(name: string): boolean {
  * Build the spread attribute for a JSX `css=` attribute.
  *
  * I.e. `{...trussProps(hash)}`, or `{...mergeProps(className, style, hash)}` when the element
- * also has `className`/`style` attributes (which are removed and folded in).
+ * also has `className`/`style` attributes (which are removed and merged in).
  */
 function buildCssSpreadAttribute(
   path: NodePath<t.JSXAttribute>,
