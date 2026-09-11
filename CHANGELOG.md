@@ -1,3 +1,9 @@
+## [2.29.10](https://github.com/homebound-team/truss/compare/v2.29.9...v2.29.10) (2026-09-11)
+
+### Bug Fixes
+
+* Fail production builds on unsupported patterns. ([f0509d6](https://github.com/homebound-team/truss/commit/f0509d689631194ffc1765f1b802d2d0a8ed1b54))
+
 ## [2.29.9](https://github.com/homebound-team/truss/compare/v2.29.8...v2.29.9) (2026-09-11)
 
 ### Bug Fixes
