@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
 import { createTrussTransformSession } from "./transform-session";
+import { type DiagnosticOptions } from "./types";
 
 export interface TrussEsbuildPluginOptions {
   /** Path to the Css.json mapping file (relative to cwd or absolute). */
@@ -27,6 +28,11 @@ export interface TrussEsbuildPluginOptions {
  * ```
  */
 export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
+  const diagnostics: DiagnosticOptions = {
+    onDiagnostic(error) {
+      throw error;
+    },
+  };
   const session = createTrussTransformSession({
     mappingPath() {
       return resolve(process.cwd(), opts.mapping);
@@ -45,13 +51,13 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
         const code = readFileSync(args.path, "utf8");
 
         if (args.path.endsWith(".css.ts")) {
-          session.updateArbitraryCssRegistry(args.path, code);
+          session.updateArbitraryCssRegistry(args.path, code, diagnostics);
           return { contents: code, loader: loaderForPath(args.path) };
         }
 
         if (!code.includes("Css") && !code.includes("css=")) return undefined;
 
-        const result = session.transformCode(code, args.path);
+        const result = session.transformCode(code, args.path, diagnostics);
         if (!result) return undefined;
 
         return { contents: result.code, loader: loaderForPath(args.path) };

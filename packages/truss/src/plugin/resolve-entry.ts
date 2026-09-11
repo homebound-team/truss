@@ -7,12 +7,13 @@ import type {
 } from "./types";
 import { UnsupportedPatternError } from "./chain-nodes";
 import { cloneConditionContext } from "./condition-context";
+import { UnknownAbbreviationError } from "./unknown-abbreviation";
 
 /** The mapping entry for `abbr`, or an unsupported-pattern error for an unknown abbreviation. */
 export function requireEntry(mapping: TrussMapping, abbr: string): TrussMappingEntry {
   const entry = mapping.abbreviations[abbr];
   if (!entry) {
-    throw new UnsupportedPatternError(`Unknown abbreviation "${abbr}"`);
+    throw new UnknownAbbreviationError(abbr, Object.keys(mapping.abbreviations));
   }
   return entry;
 }

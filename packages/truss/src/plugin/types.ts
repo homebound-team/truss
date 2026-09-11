@@ -1,6 +1,17 @@
 import type * as t from "@babel/types";
 import type { WhenRelationship } from "./when-relationships";
 
+/** A transform error with optional source metadata for build-tool reporting. */
+export interface TransformDiagnostic extends Error {
+  id?: string;
+  loc?: { file: string; line: number; column: number };
+}
+
+/** Report transform diagnostics; the build tool decides whether they are fatal. */
+export interface DiagnosticOptions {
+  onDiagnostic?: (diagnostic: TransformDiagnostic) => void;
+}
+
 /** The shape of the Css.json mapping file consumed by the Vite plugin. */
 export interface TrussMapping {
   increment: number;
@@ -126,12 +137,7 @@ export type CssSegment = StaticSegment | VariableSegment;
 
 /** A resolved chain segment — one abbreviation resolved to its effect on the element. */
 export type ResolvedSegment =
-  | CssSegment
-  | ClassNameSegment
-  | InlineStyleSegment
-  | ComposedSegment
-  | TypographyLookupSegment
-  | ErrorSegment;
+  CssSegment | ClassNameSegment | InlineStyleSegment | ComposedSegment | TypographyLookupSegment | ErrorSegment;
 
 /**
  * A marker segment — not a CSS style, but a directive to attach

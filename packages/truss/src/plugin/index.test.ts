@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { tmpdir } from "os";
@@ -14,6 +14,114 @@ afterEach(() => {
 });
 
 describe("trussPlugin", () => {
+  test("production source typos fail with a location and suggestion", () => {
+    // Given a mapping with accent but no acent abbreviation
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { accent: { kind: "static", defs: { color: "red" } } });
+    // And a build using the default unsupported-pattern policy
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "build", mode: "production" });
+    invokeHook(plugin.buildStart, {});
+    // And a component with a misspelled abbreviation on its second line
+    const id = join(root, "src", "Button.tsx");
+    const code = 'import { Css } from "./Css";\nconst el = <div css={Css.acent.$} />;';
+
+    // When the component is transformed, then the build fails at the original source line
+    expect(() => runTransform(plugin, code, id)).toThrow(
+      `${id}:2:22: [truss] Unsupported pattern: Unknown abbreviation "acent". Did you mean "accent"?`,
+    );
+  });
+
+  test("production rejects unsupported .css.ts in virtual load and transform", () => {
+    // Given a mapping without atomic abbreviations
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {});
+    // And an arbitrary CSS file with an unsupported spread
+    const id = join(root, "src", "Button.css.ts");
+    const code = "export const css = { ...styles };";
+    writeFileSync(id, code);
+    // And a build using the default unsupported-pattern policy
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "build", mode: "production" });
+    invokeHook(plugin.buildStart, {});
+    const virtualId = invokeHook(plugin.resolveId, {}, "./Button.css.ts?truss-css", join(root, "src", "App.tsx"));
+    expect(virtualId).toBe("\0truss-css:" + id.slice(0, -3));
+
+    // When Vite loads then transforms the CSS, then both hooks reject the spread
+    expect(() => invokeHook(plugin.load, {}, virtualId)).toThrow("spread elements in css.ts export");
+    expect(() => runTransform(plugin, code, id)).toThrow("spread elements in css.ts export");
+  });
+
+  test("dev warns and sends an overlay for a non-typo error, then accepts corrected source", () => {
+    // Given a mapping with a valid accent abbreviation
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { accent: { kind: "static", defs: { color: "red" } } });
+    // And a plugin using the default serve policy
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "development" });
+    invokeHook(plugin.buildStart, {});
+    // And a dev socket whose server close handler is always cleaned up
+    const send = vi.fn();
+    const on = vi.fn<(event: string, callback: () => void) => void>();
+    invokeHook(plugin.configureServer, {}, { middlewares: { use() {} }, ws: { send }, httpServer: { on } });
+    // And a component whose markerOf call is missing its required marker argument
+    const id = join(root, "src", "Button.tsx");
+    const code = 'import { Css } from "./Css";\nconst el = <div css={Css.markerOf().$} />;';
+    const warn = vi.fn();
+
+    try {
+      // When the component is transformed, then compilation continues with a located Error warning
+      const result = invokeHook(plugin.transform, { warn }, code, id);
+      expect(result).toMatchObject({ code: expect.any(String) });
+      expect(warn).toHaveBeenCalledTimes(1);
+      const warning = warn.mock.calls[0][0];
+      expect(warning).toBeInstanceOf(Error);
+      expect(warning).toMatchObject({ id, loc: { file: id, line: 2, column: 21 } });
+      expect(warning.message).toBe(
+        `${id}:2:22: [truss] Unsupported pattern: markerOf() requires exactly one argument (a marker variable)`,
+      );
+      // And the dev server receives a Vite error overlay
+      expect(send.mock.calls).toEqual([
+        [
+          {
+            type: "error",
+            err: { message: warning.message, stack: "", id, loc: warning.loc, plugin: "truss" },
+          },
+        ],
+      ]);
+      // And the component is corrected to use the configured accent abbreviation
+      warn.mockClear();
+      send.mockClear();
+      // When Vite transforms the corrected component, then it sends no warning or error overlay
+      const clean = invokeHook(plugin.transform, { warn }, code.replace("Css.markerOf().$", "Css.accent.$"), id);
+      expect(clean).toMatchObject({ code: expect.any(String) });
+      expect(warn).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
+    } finally {
+      for (const [event, close] of on.mock.calls) {
+        if (event === "close") close();
+      }
+    }
+  });
+
+  test("production warn override is nonfatal", () => {
+    // Given a mapping with accent but no acent abbreviation
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { accent: { kind: "static", defs: { color: "red" } } });
+    // And a production plugin explicitly configured to warn about unsupported patterns
+    const plugin = trussPlugin({ mapping: "./src/Css.json", unsupportedPattern: "warn" });
+    invokeHook(plugin.configResolved, {}, { root, command: "build", mode: "production" });
+    invokeHook(plugin.buildStart, {});
+    // And a component containing a misspelled abbreviation
+    const id = join(root, "src", "Button.tsx");
+    const code = 'import { Css } from "./Css";\nconst el = <div css={Css.acent.$} />;';
+    const warn = vi.fn();
+
+    // When the component is transformed, then the override warns and compilation continues
+    expect(invokeHook(plugin.transform, { warn }, code, id)).toMatchObject({ code: expect.any(String) });
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   test("uses the configured mapping for library files", () => {
     // Given we have a src/Css.json
     const root = createTempRoot();

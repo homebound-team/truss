@@ -40,6 +40,7 @@
     "css-tree": "^3.2.1",
     "csstype": "^3.2.3",
     "jiti": "^2.7.0",
+    "rollup": "^4.34.8",
     "ts-poet": "^6.12.0"
   },
   "peerDependencies": {

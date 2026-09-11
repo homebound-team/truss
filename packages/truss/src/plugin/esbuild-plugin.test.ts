@@ -14,6 +14,32 @@ afterEach(() => {
 });
 
 describe("trussEsbuildPlugin", () => {
+  test.each([
+    {
+      file: "Button.tsx",
+      source: "const el = <div css={Css.markerOf().$} />;",
+      message: "markerOf() requires exactly one argument (a marker variable)",
+    },
+    {
+      file: "Button.css.ts",
+      source: "export const css = { ...styles };",
+      message: "spread elements in css.ts export",
+    },
+  ])("rejects diagnostics from $file: $source", (scenario) => {
+    // Given a mapping without atomic abbreviations
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {});
+    // And an esbuild plugin whose source and arbitrary CSS transforms must both reject diagnostics
+    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
+    const { onLoadCallback } = setupPlugin(plugin, join(root, "dist"));
+    // And a module containing an unsupported pattern
+    const id = join(root, "src", scenario.file);
+    const contents = `import { Css } from "./Css";\n${scenario.source}`;
+
+    // When esbuild loads the module, then it rejects the unsupported pattern
+    expect(() => onLoadCallback({ path: id, contents })).toThrow(scenario.message);
+  });
+
   test("transforms source files via onLoad", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {

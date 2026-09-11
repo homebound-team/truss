@@ -252,6 +252,9 @@ npm install --save-dev @homebound/truss
    });
    ```
 
+   - In production builds with `vite build`, unsupported patterns (including unknown abbreviations) fail the build with a source location. Override with `unsupportedPattern: "warn"`.
+   - In dev builds with `vite dev`, unsupported patterns show a terminal warning and error overlay without stopping compilation. Override with `unsupportedPattern: "error"`.
+
    If the library builds with **tsup** (or esbuild), use the esbuild plugin:
 
    ```ts
@@ -265,7 +268,7 @@ npm install --save-dev @homebound/truss
    });
    ```
 
-   Both plugins transform `Css.*.$` expressions to plain objects and emit a `truss.css` file with annotations that enable correct merging. `.css.ts` arbitrary-selector rules are also emitted into `truss.css` and preserved as opaque blocks during app-level merges.
+   Both plugins transform `Css.*.$` expressions to plain objects and emit a `truss.css` file with annotations that enable correct merging. `.css.ts` arbitrary-selector rules are also emitted into `truss.css` and preserved as opaque blocks during app-level merges. The esbuild plugin also rejects unsupported patterns.
 
    For Vitest, use the Vite plugin:
 

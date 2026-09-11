@@ -274,6 +274,8 @@ function resolveNode(ctx: ResolveChainCtx, node: ChainNode, context: ResolvedCon
     }
     return [];
   } catch (err) {
+    // Preserve unsupported patterns as error segments so transforms can report them to the build tool.
+    // Production rejects these diagnostics; dev can keep valid segments while reporting the errors.
     if (!(err instanceof UnsupportedPatternError)) throw err;
     return [errorSegment(err.message)];
   }

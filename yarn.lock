@@ -533,6 +533,7 @@ __metadata:
     jiti: "npm:^2.7.0"
     jsdom: "npm:^30.0.1"
     react: "npm:^19.2.8"
+    rollup: "npm:^4.34.8"
     ts-poet: "npm:^6.12.0"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"

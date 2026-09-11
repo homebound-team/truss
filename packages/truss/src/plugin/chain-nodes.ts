@@ -32,8 +32,8 @@ export interface ElseChainNode {
 /**
  * A chain pattern the compiler cannot resolve.
  *
- * Resolution catches it per node and records an error segment in the chain, which transform
- * reports as a `console.error` in the output and transform-css as a CSS comment.
+ * Resolution catches it per node and records an error segment for transforms to report to the
+ * build tool. Non-fatal transforms also retain a `console.error` or CSS comment in the output.
  */
 export class UnsupportedPatternError extends Error {
   constructor(message: string) {
