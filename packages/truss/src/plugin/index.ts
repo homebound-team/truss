@@ -79,6 +79,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let debug = false;
   let isTest = false;
   let isBuild = false;
+  let annotate = true;
   let devSocket: { send: (payload: unknown) => void } | undefined;
   const libraryPaths = opts.libraries ?? [];
   /** The hashed CSS filename emitted during generateBundle, used by writeBundle to patch HTML. */
@@ -116,6 +117,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       debug = config.command === "serve" || config.mode === "development" || config.mode === "test";
       isTest = config.mode === "test";
       isBuild = config.command === "build";
+      annotate = !isBuild || Boolean(config.build?.lib);
     },
 
     buildStart() {
@@ -137,7 +139,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       // Serve the current collected CSS at the virtual endpoint
       server.middlewares.use((req: any, res: any, next: any) => {
         if (req.url !== VIRTUAL_CSS_ENDPOINT) return next();
-        const css = session.collectCss();
+        const css = session.collectCss(annotate);
         res.setHeader("Content-Type", "text/css");
         res.setHeader("Cache-Control", "no-store");
         res.end(css);
@@ -346,7 +348,7 @@ __injectTrussCSS(${JSON.stringify(payload)});
 
     generateBundle(_options: any, _bundle: any) {
       if (!isBuild) return;
-      const css = session.collectCss();
+      const css = session.collectCss(annotate);
       if (!css) return;
 
       // Compute a content hash so the filename is cache-bustable.

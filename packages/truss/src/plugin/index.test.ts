@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { tmpdir } from "os";
+import { createHash } from "crypto";
 import { trussPlugin } from "./index";
 
 const tempDirs: string[] = [];
@@ -14,6 +15,117 @@ afterEach(() => {
 });
 
 describe("trussPlugin", () => {
+  test.each([
+    { command: "build", mode: "production", lib: false, expected: false },
+    { command: "build", mode: "development", lib: false, expected: false },
+    { command: "build", mode: "production", lib: { entry: "src/index.ts" }, expected: true },
+    { command: "serve", mode: "development", lib: false, expected: true },
+  ])("annotation policy: $command $mode lib=$lib", (scenario) => {
+    // Given a mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And a plugin configured for this output type without CSS minification
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(
+      plugin.configResolved,
+      {},
+      {
+        root,
+        command: scenario.command,
+        mode: scenario.mode,
+        build: { lib: scenario.lib, cssMinify: false },
+      },
+    );
+    invokeHook(plugin.buildStart, {});
+    // And an application module using the flex rule
+    runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "App.tsx"));
+
+    // When the stylesheet is served or emitted
+    let css = "";
+    let fileName = "";
+    if (scenario.command === "serve") {
+      css = getVirtualCss(plugin);
+    } else {
+      invokeHook(
+        plugin.generateBundle,
+        {
+          emitFile(asset: { source: string; fileName: string }) {
+            css = asset.source;
+            fileName = asset.fileName;
+          },
+        },
+        {},
+        {},
+      );
+    }
+
+    // Then only library and dev outputs carry merge annotations
+    expect(css).toBe(
+      ":root { --t-spacing: 8px; }\n" +
+        (scenario.expected ? "/* @truss p:3000 c:df */\n" : "") +
+        ".df { display: flex; }",
+    );
+    if (scenario.command === "build") {
+      // And the asset name hashes the exact final stylesheet
+      expect(fileName).toBe(`assets/truss-${createHash("sha256").update(css).digest("hex").slice(0, 8)}.css`);
+    }
+  });
+
+  test("an annotated library build merges into an annotation-free application build", () => {
+    // Given a mapping shared by a library and its consuming application
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+      black: { kind: "static", defs: { color: "black" } },
+    });
+    // And a library build containing an atomic rule and arbitrary CSS
+    const library = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(library.configResolved, {}, { root, command: "build", mode: "production", build: { lib: {} } });
+    invokeHook(library.buildStart, {});
+    runTransform(library, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "Lib.tsx"));
+    runTransform(library, 'export const css = { body: "/* keep */ margin: 0;" };', join(root, "src", "Lib.css.ts"));
+    invokeHook(
+      library.generateBundle,
+      {
+        emitFile(asset: { source: string }) {
+          writeFileSync(join(root, "library.css"), asset.source);
+        },
+      },
+      {},
+      {},
+    );
+    // And an application using the library stylesheet and an overlapping atomic rule
+    const app = trussPlugin({ mapping: "./src/Css.json", libraries: ["./library.css"] });
+    invokeHook(app.configResolved, {}, { root, command: "build", mode: "production" });
+    invokeHook(app.buildStart, {});
+    runTransform(app, 'import { Css } from "./Css"; const s = Css.df.black.$;', join(root, "src", "App.tsx"));
+
+    // When the application emits its final stylesheet
+    let css = "";
+    invokeHook(
+      app.generateBundle,
+      {
+        emitFile(asset: { source: string }) {
+          css = asset.source;
+        },
+      },
+      {},
+      {},
+    );
+
+    // Then library rules survive, atomic rules are sorted and deduplicated, and user comments remain
+    expect(css).toBe(
+      [
+        ":root { --t-spacing: 8px; }",
+        ".black { color: black; }",
+        ".df { display: flex; }",
+        "body {",
+        "  /* keep */ margin: 0;",
+        "}",
+      ].join("\n"),
+    );
+  });
+
   test("production source typos fail with a location and suggestion", () => {
     // Given a mapping with accent but no acent abbreviation
     const root = createTempRoot();
@@ -506,7 +618,6 @@ describe("trussPlugin", () => {
     expect(css).toBe(
       [
         ":root { --t-spacing: 8px; }",
-        "/* @truss arbitrary:start */",
         ".upper {",
         "  display: flex;",
         "}",
@@ -514,7 +625,6 @@ describe("trussPlugin", () => {
         ".lower {",
         "  display: flex;",
         "}",
-        "/* @truss arbitrary:end */",
       ].join("\n"),
     );
   });
