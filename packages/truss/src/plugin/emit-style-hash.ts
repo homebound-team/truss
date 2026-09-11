@@ -88,7 +88,8 @@ export function styleHashProperties(
 /**
  * The runtime value stored in a variable tuple's vars object.
  *
- * I.e. an evaluated `Tokens.gap` → `"var(--gap)"`; `mt(x)` → `maybeCssVar(__maybeInc(x))`; `mtPx(x)` → `` `${x}px` ``.
+ * I.e. an evaluated `Tokens.gap` → `"var(--gap)"`; `mt(x)` → `maybeCssVar(__maybeInc(x))`; `mtPx(x)` → `` `${x}px` ``;
+ * `sweep(x)` → `` `sweep ${maybeCssVar(x)}` ``.
  */
 function variableValueExpression(
   dyn: StyleEntry,
@@ -112,6 +113,16 @@ function variableValueExpression(
   }
   if (maybeCssVarHelperName && variableValueNeedsMaybeCssVar(dyn)) {
     valueExpr = t.callExpression(t.identifier(maybeCssVarHelperName), [valueExpr]);
+  }
+  if (dyn.valuePrefix) {
+    // I.e. a keyframe method wraps with `` `sweep ${x}` `` so the value still names its keyframe.
+    valueExpr = t.templateLiteral(
+      [
+        t.templateElement({ raw: dyn.valuePrefix, cooked: dyn.valuePrefix }, false),
+        t.templateElement({ raw: "", cooked: "" }, true),
+      ],
+      [valueExpr],
+    );
   }
   return valueExpr;
 }

@@ -46,6 +46,10 @@ export default defineConfig({
     pulse: { "0%, 100%": { opacity: 1 }, "50%": { opacity: 0.45 } },
     // Defined by a global stylesheet, not by Truss; declared so animations may still name it.
     aiStarLoader: null,
+    // A kebab-case name, so its method is `Css.fadeIn(...)`.
+    "fade-in": { from: { opacity: 0 } },
+    // A name the tachyons `float` method already owns, so its method is `Css.animateFloat(...)`.
+    float: { to: { transform: "translateY(-4px)" } },
   },
   target: "web",
 });

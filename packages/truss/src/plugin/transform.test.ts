@@ -289,6 +289,81 @@ describe("transform", () => {
     );
   });
 
+  test("names a keyframe through its own method", () => {
+    // Given the `pulse` keyframe animated through the method its config entry generates
+    const source = `
+      import { Css } from "./Css";
+      const s = Css.pulse("2s ease-in-out infinite").$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then it resolves to the rule the spelled-out `Css.animation("pulse 2s ease-in-out infinite")` makes,
+    // so the two spellings share one class rather than writing the same declaration twice
+    transform.toHaveTrussOutput(
+      `
+      const s = { animation: "anim_pulse_2s_ease_in_out_infinite" };
+      `,
+      `
+      .anim_pulse_2s_ease_in_out_infinite { animation: pulse 2s ease-in-out infinite; }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+      `,
+    );
+  });
+
+  test("keeps the keyframe name in front of a runtime animation value", () => {
+    // Given a keyframe method whose value is a runtime expression, i.e. only the duration varies
+    const source = `
+      import { Css } from "./Css";
+      function f(timing: string) { return Css.pulse(timing).$; }
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the name is written into the custom property, since the value alone would not name it
+    transform.toHaveTrussOutput(
+      `
+      import { maybeCssVar } from "@homebound/truss/runtime";
+      function f(timing: string) { return { animation: ["animation_var", { "--animation": \`pulse \${maybeCssVar(timing)}\` }] }; }
+      `,
+      `
+      .animation_var { animation: var(--animation); }
+      @property --animation { syntax: "*"; inherits: false; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes sweep { to { --angle: 360deg; } }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+      @keyframes fade-in { from { opacity: 0; } }
+      @keyframes float { to { transform: translateY(-4px); } }
+      `,
+    );
+  });
+
+  test("names a keyframe whose method name is not its own", () => {
+    // Given the kebab-case `fade-in` keyframe, whose method name has to be camelCased
+    // And the `float` keyframe, whose plain name the tachyons `float` method already owns
+    const source = `
+      import { Css } from "./Css";
+      const a = Css.fadeIn("1s ease").$;
+      const b = Css.animateFloat("2s ease-in-out infinite").$;
+      const c = Css.float("left").$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then each method writes the keyframe name as configured, and `float` still sets the property
+    transform.toHaveTrussOutput(
+      `
+      const a = { animation: "anim_fade_in_1s_ease" };
+      const b = { animation: "anim_float_2s_ease_in_out_infinite" };
+      const c = { float: "fl_left" };
+      `,
+      `
+      .anim_fade_in_1s_ease { animation: fade-in 1s ease; }
+      .anim_float_2s_ease_in_out_infinite { animation: float 2s ease-in-out infinite; }
+      .fl_left { float: left; }
+      @keyframes fade-in { from { opacity: 0; } }
+      @keyframes float { to { transform: translateY(-4px); } }
+      `,
+    );
+  });
+
   test("names a configured keyframe through the Keyframes enum", () => {
     // Given an animation whose name comes from the generated Keyframes enum
     const source = `
@@ -427,6 +502,8 @@ describe("transform", () => {
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes sweep { to { --angle: 360deg; } }
       @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+      @keyframes fade-in { from { opacity: 0; } }
+      @keyframes float { to { transform: translateY(-4px); } }
       `,
     );
   });

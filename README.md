@@ -1080,18 +1080,29 @@ keyframes: {
 
 Each entry is a keyframe selector (`from`, `to`, `50%`, `0%, 100%`), which csstype validates like any other declaration — plus custom properties, since animating a registered property is written as a keyframe that sets it. A **string** is a raw body, for a timeline the typed form cannot express. **`null`** declares a name some other stylesheet owns (a global CSS file, a third-party package): Truss accepts the name and writes nothing.
 
-The generated `Css.ts` file will have an **`export enum Keyframes { … }`** with a PascalCase member per name:
+Each keyframe also gets its own utility method, which puts the name in front of the rest of the `animation` shorthand:
+
+```tsx
+<div css={Css.spin("0.8s linear infinite").$} />
+```
+
+The method is named after the keyframe, camelCased, i.e. `fade-in` becomes `Css.fadeIn(...)`. When that name is already an abbreviation, an alias, or a `CssBuilder` method, the method is named `animate` plus the keyframe, i.e. a keyframe named `float` becomes `Css.animateFloat(...)`, so the `Css.float(...)` property method keeps its name. If both names are taken, generation fails and asks you to rename the keyframe.
+
+The generated `Css.ts` file also has an **`export enum Keyframes { … }`** with a PascalCase member per name, for the animations one method cannot write, i.e. two animations on one element:
 
 ```tsx
 <div css={Css.animationName(Keyframes.Spin).animationDuration("0.8s").$} />
 <div css={Css.animation(`${Keyframes.Spin} 0.8s linear infinite`).$} />
+<div css={Css.animation(`${Keyframes.Spin} 0.8s linear infinite, ${Keyframes.Pulse} 2s ease-in-out infinite`).$} />
 ```
+
+`Css.spin("0.8s linear infinite")` and ``Css.animation(`${Keyframes.Spin} 0.8s linear infinite`)`` resolve to the same declaration, and so share one atomic class.
 
 Once keyframes are configured, Truss checks every `animation` / `animation-name` usage at build-time and fails the build on a name you have not declared, the same way a mistyped abbreviation does — `Unknown keyframes "spinn" - add it to config.keyframes. Did you mean "spin"?`.
 
 A keyframe declaration is written only when used, so unused animations are pruned — the same effect as declaring them in a `.css.ts` file that is never actually imported.
 
-The disclaimer is that values built at runtime, i.e. `Css.animation(motion)`, leave no name in the CSS, so a) they are not checked, and b) they trigger every configured keyframe to emit, just in case the browser ends up asking for one.
+The disclaimer is that values built at runtime, i.e. `Css.animation(motion)`, leave no name in the CSS, so a) they are not checked, and b) they trigger every configured keyframe to emit, just in case the browser ends up asking for one. This holds for `Css.spin(timing)` too: the name is written into the runtime value, so the animation still runs, but the CSS only says `animation: var(--animation)`, so every keyframe is kept.
 
 ### Per-Project Utility Methods
 

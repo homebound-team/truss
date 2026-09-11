@@ -61,6 +61,8 @@ export enum Keyframes {
   Sweep = "sweep",
   Pulse = "pulse",
   AiStarLoader = "aiStarLoader",
+  FadeIn = "fade-in",
+  Float = "float",
 }
 
 // Augment React types so all JSX elements accept the `css` prop:
@@ -2470,6 +2472,32 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   // aliases
   get bodyText() {
     return this.f14.black;
+  }
+
+  // keyframes
+  /** Sets `animation: spin value`. */
+  spin(value: string) {
+    return this.add("animation", `spin ${value}`);
+  }
+  /** Sets `animation: sweep value`. */
+  sweep(value: string) {
+    return this.add("animation", `sweep ${value}`);
+  }
+  /** Sets `animation: pulse value`. */
+  pulse(value: string) {
+    return this.add("animation", `pulse ${value}`);
+  }
+  /** Sets `animation: aiStarLoader value`. */
+  aiStarLoader(value: string) {
+    return this.add("animation", `aiStarLoader ${value}`);
+  }
+  /** Sets `animation: fade-in value`. */
+  fadeIn(value: string) {
+    return this.add("animation", `fade-in ${value}`);
+  }
+  /** Sets `animation: float value`. */
+  animateFloat(value: string) {
+    return this.add("animation", `float ${value}`);
   }
 
   get $(): T & { readonly __kind: S } {

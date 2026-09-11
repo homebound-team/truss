@@ -24,6 +24,8 @@ export interface StyleEntry {
   argResolved?: string;
   incremented?: boolean;
   appendPx?: boolean;
+  /** I.e. `"sweep "` for `Css.sweep(x)`, so the runtime animation value still names its keyframe. */
+  valuePrefix?: string;
 }
 
 // ── Marker class helpers ──────────────────────────────────────────────
@@ -104,6 +106,7 @@ function variableStyleEntries(
       argResolved: seg.argResolved,
       incremented: seg.incremented,
       appendPx: seg.appendPx,
+      valuePrefix: seg.valuePrefix,
     };
   });
 

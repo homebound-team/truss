@@ -10,7 +10,7 @@ export type Prop = keyof Properties;
 // reuse the existing section definitions without modifying any section files.
 
 export interface WebEntry {
-  kind: "static" | "param" | "increment-param" | "px-delegate" | "alias" | "cssvar";
+  kind: "static" | "param" | "increment-param" | "px-delegate" | "alias" | "cssvar" | "keyframe";
   abbr: string;
   /** For static: the CSS properties object, e.g. { display: "flex" } */
   defs?: Record<string, unknown>;
@@ -22,6 +22,8 @@ export interface WebEntry {
   extraDefs?: Record<string, unknown>;
   /** For aliases: the list of chained abbreviations */
   aliasTargets?: string[];
+  /** For keyframes: the `@keyframes` name the method puts in front of its value */
+  keyframeName?: string;
 }
 
 let _webCollector: WebEntry[] | null = null;
@@ -40,6 +42,11 @@ export function stopWebCollection(): WebEntry[] {
 
 function collect(entry: WebEntry): void {
   if (_webCollector) _webCollector.push(entry);
+}
+
+/** The abbreviations collected so far, for the sections that must not re-use an existing name. */
+export function collectedAbbreviations(): Set<string> {
+  return new Set((_webCollector ?? []).map((entry) => entry.abbr));
 }
 
 /**
@@ -115,6 +122,17 @@ export function newMethodsForProp<P extends Prop>(
     ...(baseName !== null ? [newParamMethod(baseName, prop, valueMethodExtraProperties)] : []),
     ...(baseName !== null && includePx ? [newPxMethod(baseName, prop)] : []),
   ];
+}
+
+/**
+ * Given a keyframe abbreviation (i.e. `sweep`) and its `@keyframes` name, returns the TypeScript
+ * code for a `sweep` utility method that puts the name in front of the animation shorthand.
+ *
+ * I.e. `Css.sweep("1.6s linear infinite").$` sets `animation: sweep 1.6s linear infinite`.
+ */
+export function newKeyframeMethod(abbr: UtilityName, name: string): UtilityMethod {
+  collect({ kind: "keyframe", abbr, keyframeName: name });
+  return `/** Sets \`animation: ${name} value\`. */\n ${abbr}(value: string) { return this.add("animation", \`${name} \${value}\`); }`;
 }
 
 /**

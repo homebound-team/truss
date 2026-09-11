@@ -44,6 +44,9 @@ export function resolveCallNode(
   if (entry.kind === "delegate") {
     return [resolveDelegateCall(node.name, entry, node, mapping, context)];
   }
+  if (entry.kind === "keyframe") {
+    return [resolveKeyframeCall(node.name, entry, node, mapping, context)];
+  }
   throw new UnsupportedPatternError(`Abbreviation "${node.name}" is ${entry.kind}, cannot be called as a function`);
 }
 
@@ -63,6 +66,36 @@ function resolveVariableCall(
     extraDefs: entry.extraDefs,
     argAst: arg,
     literalValue: tryEvaluatePropertyLiteral(arg, mapping, entry.incremented),
+    mapping,
+    context,
+  });
+}
+
+/**
+ * Resolve a keyframe call like `sweep("1.6s linear infinite")`.
+ *
+ * The method is sugar for `animation`, so the segment uses the `animation` abbreviation and only
+ * puts the keyframe name in front of the value. A literal value then resolves to exactly the CSS
+ * the spelled-out call makes, i.e. `Css.sweep("1.6s linear infinite")` and
+ * ``Css.animation(`${Keyframes.Sweep} 1.6s linear infinite`)`` share one atomic rule.
+ */
+function resolveKeyframeCall(
+  abbr: string,
+  entry: Extract<TrussMappingEntry, { kind: "keyframe" }>,
+  node: CallChainNode,
+  mapping: TrussMapping,
+  context: ResolvedConditionContext,
+): ResolvedSegment {
+  const arg = singleArg(node, abbr);
+  const literalValue = tryEvaluatePropertyLiteral(arg, mapping, false);
+  return resolveLiteralOrVariableSegment({
+    abbr: "animation",
+    props: ["animation"],
+    incremented: false,
+    // A runtime value keeps the name as a prefix, i.e. `Css.sweep(x)` sets `` `sweep ${x}` ``.
+    valuePrefix: `${entry.name} `,
+    argAst: arg,
+    literalValue: literalValue === null ? null : `${entry.name} ${literalValue}`,
     mapping,
     context,
   });
@@ -110,13 +143,26 @@ function resolveLiteralOrVariableSegment(params: {
   props: string[];
   incremented: boolean;
   appendPx?: boolean;
+  /** Text the runtime value keeps in front of it, i.e. `"sweep "` for a keyframe method. */
+  valuePrefix?: string;
   extraDefs?: Record<string, unknown>;
   argAst: t.Expression;
   literalValue: string | null;
   mapping: TrussMapping;
   context: ResolvedConditionContext;
 }): ResolvedSegment {
-  const { abbr, props, incremented, appendPx = false, extraDefs, argAst, literalValue, mapping, context } = params;
+  const {
+    abbr,
+    props,
+    incremented,
+    appendPx = false,
+    valuePrefix,
+    extraDefs,
+    argAst,
+    literalValue,
+    mapping,
+    context,
+  } = params;
 
   if (literalValue !== null) validateAnimationValue(props, literalValue, mapping);
 
@@ -131,6 +177,7 @@ function resolveLiteralOrVariableSegment(params: {
     props,
     incremented,
     appendPx,
+    valuePrefix,
     extraDefs,
     argNode: literalValue === null ? argAst : undefined,
     argResolved: literalValue ?? undefined,

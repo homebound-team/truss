@@ -4,7 +4,7 @@
   "typography": ["f24","f18","f16","f14","f12","f10"],
   "tokens": {"ThemeAccent":"--theme-accent","Angle":"--angle"},
   "properties": {"--angle":"@property --angle { syntax: \"<angle>\"; inherits: false; initial-value: 0deg; }"},
-  "keyframes": {"spin":"@keyframes spin { to { transform: rotate(360deg); } }","sweep":"@keyframes sweep { to { --angle: 360deg; } }","pulse":"@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }","aiStarLoader":""},
+  "keyframes": {"spin":"@keyframes spin { to { transform: rotate(360deg); } }","sweep":"@keyframes sweep { to { --angle: 360deg; } }","pulse":"@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }","aiStarLoader":"","fade-in":"@keyframes fade-in { from { opacity: 0; } }","float":"@keyframes float { to { transform: translateY(-4px); } }"},
   "abbreviations": {
     "animation": {"kind":"variable","props":["animation"],"incremented":false},
     "animationDelay": {"kind":"variable","props":["animationDelay"],"incremented":false},
@@ -564,6 +564,12 @@
     "zInitial": {"kind":"static","defs":{"zIndex":"initial"}},
     "zUnset": {"kind":"static","defs":{"zIndex":"unset"}},
     "z": {"kind":"variable","props":["zIndex"],"incremented":false},
-    "bodyText": {"kind":"alias","chain":["f14","black"]}
+    "bodyText": {"kind":"alias","chain":["f14","black"]},
+    "spin": {"kind":"keyframe","name":"spin"},
+    "sweep": {"kind":"keyframe","name":"sweep"},
+    "pulse": {"kind":"keyframe","name":"pulse"},
+    "aiStarLoader": {"kind":"keyframe","name":"aiStarLoader"},
+    "fadeIn": {"kind":"keyframe","name":"fade-in"},
+    "animateFloat": {"kind":"keyframe","name":"float"}
   }
 }

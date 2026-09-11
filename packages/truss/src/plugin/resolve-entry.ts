@@ -57,6 +57,7 @@ export function resolveEntry(
     }
     case "variable":
     case "delegate":
+    case "keyframe":
       throw new UnsupportedPatternError(`Abbreviation "${abbr}" requires arguments — use ${abbr}() not .${abbr}`);
     default:
       throw new UnsupportedPatternError(`Unhandled entry kind for "${abbr}"`);
