@@ -1,3 +1,9 @@
+## [2.29.9](https://github.com/homebound-team/truss/compare/v2.29.8...v2.29.9) (2026-09-11)
+
+### Bug Fixes
+
+* Fix test comments. ([1482035](https://github.com/homebound-team/truss/commit/14820350278fd1141b35de8857612638be364556))
+
 ## [2.29.8](https://github.com/homebound-team/truss/compare/v2.29.7...v2.29.8) (2026-09-11)
 
 ### Bug Fixes
