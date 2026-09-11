@@ -123,7 +123,7 @@ function variableStyleEntries(
  * I.e. `ba` → `bss`, `bw1` (not `ba_borderStyle`, etc.)
  * I.e. `lineClamp("3")` display:-webkit-box → `d_negwebkit_box`, not `d_3`
  *
- * For literal-folded variables (argResolved set), includes the value:
+ * For literal-evaluated variables (argResolved set), includes the value:
  * I.e. `mt(2)` → `mt_2` (web increment calc), `mt(-1)` → `mt_neg1`, `bc("red")` → `bc_red`.
  * A base name that is itself a CSS property name is abbreviated too, so the single-property path
  * names a declaration the same way the multi-property path does.

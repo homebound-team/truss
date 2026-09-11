@@ -725,7 +725,7 @@ describe("transform", () => {
     );
   });
 
-  test("delegate with negative literal folds like a positive one: Css.mtPx(-4).$", () => {
+  test("delegate with negative literal evaluates like a positive one: Css.mtPx(-4).$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mtPx(-4).$;
@@ -741,7 +741,7 @@ describe("transform", () => {
     );
   });
 
-  test("delegate shorthand with negative literal folds every longhand: Css.mPx(-1).$", () => {
+  test("delegate shorthand with negative literal evaluates every longhand: Css.mPx(-1).$", () => {
     expectTrussTransform(`
       import { Css } from "./Css";
       const s = Css.mPx(-1).$;
@@ -3924,7 +3924,7 @@ describe("transform", () => {
   test("add shares one class with a multi-property abbreviation for the same declaration", () => {
     // Given `Css.bb`, whose two properties take abbreviated names from the multi-property path
     // And an `add` of `borderBottomStyle: solid`, the same declaration `bb` already emits, but
-    // reached through the single-property path, which folds the literal and used to spell the
+    // reached through the single-property path, which evaluates the literal and used to spell the
     // property out
     const code = `
       import { Css } from "./Css";

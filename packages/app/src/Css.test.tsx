@@ -164,7 +164,7 @@ describe("Truss CssBuilder", () => {
   });
 
   describe("parameterized methods (variable styles via CSS variables)", () => {
-    // Ordinary literals (numbers, "red", "10px") fold to static classes.
+    // Ordinary literals (numbers, "red", "10px") evaluate to static classes.
     // Custom-property args (Tokens.*, "--token") use the shared _var class
     // plus inline --propName values; runtime variables use maybeCssVar on the arg.
 

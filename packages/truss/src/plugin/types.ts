@@ -64,7 +64,7 @@ interface CssSegmentBase {
 /**
  * Concrete CSS property/value pairs.
  *
- * I.e. `Css.df.$` → `defs: { display: "flex" }`. A folded `Css.mt(2).$` also carries
+ * I.e. `Css.df.$` → `defs: { display: "flex" }`. An evaluated `Css.mt(2).$` also carries
  * `argResolved: "calc(var(--t-spacing) * 2)"` so its class name can include the value.
  */
 export interface StaticSegment extends CssSegmentBase {

@@ -51,7 +51,7 @@ Css.mt(x).$ → { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(
 
 The tuple format is `[classNames: string, vars: Record<string, string>]`. At runtime, `trussProps` splits this into `className: "mt_var"` and `style: { "--marginTop": "16px" }`.
 
-When the argument is a literal, the value is folded at build time into a static class:
+When the argument is a literal, the value is evaluated at build time into a static class:
 
 ```ts
 Css.mt(2).$ → { marginTop: "mt_2" }        // .mt_2 { margin-top: calc(var(--t-spacing) * 2) }
@@ -190,7 +190,7 @@ Class names are deterministic and human-readable:
 | Raw media/container query | `media_min_width_600px_blue` | `@media (min-width: 600px) { .media_min_width_600px_blue.media_min_width_600px_blue { ... } }` |
 | Pseudo-element            | `placeholder_blue`           | `.placeholder_blue::placeholder { color: #526675 }`                                            |
 | Variable                  | `mt_var`                     | `.mt_var { margin-top: var(--marginTop) }`                                                     |
-| Literal-folded            | `mt_2`                       | `.mt_2 { margin-top: calc(var(--t-spacing) * 2) }`                                             |
+| Literal-evaluated         | `mt_2`                       | `.mt_2 { margin-top: calc(var(--t-spacing) * 2) }`                                             |
 | `add()` literal           | `tsn_all_240ms`              | `.tsn_all_240ms { transition: all 240ms }`                                                     |
 | `add()` variable          | `color_var`                  | `.color_var { color: var(--color) }`                                                           |
 | `when()` relationship     | `wh_anc_h_blue`              | `._mrk:hover .wh_anc_h_blue { color: #526675 }`                                                |

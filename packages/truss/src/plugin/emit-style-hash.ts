@@ -88,7 +88,7 @@ export function styleHashProperties(
 /**
  * The runtime value stored in a variable tuple's vars object.
  *
- * I.e. a folded `Tokens.gap` → `"var(--gap)"`; `mt(x)` → `maybeCssVar(__maybeInc(x))`; `mtPx(x)` → `` `${x}px` ``.
+ * I.e. an evaluated `Tokens.gap` → `"var(--gap)"`; `mt(x)` → `maybeCssVar(__maybeInc(x))`; `mtPx(x)` → `` `${x}px` ``.
  */
 function variableValueExpression(
   dyn: StyleEntry,
