@@ -1,3 +1,9 @@
+## [2.29.11](https://github.com/homebound-team/truss/compare/v2.29.10...v2.29.11) (2026-09-11)
+
+### Bug Fixes
+
+* Omit rule annotations from application CSS builds. ([7b91c48](https://github.com/homebound-team/truss/commit/7b91c482116aa148290f0409d3b322e7030a8458))
+
 ## [2.29.10](https://github.com/homebound-team/truss/compare/v2.29.9...v2.29.10) (2026-09-11)
 
 ### Bug Fixes

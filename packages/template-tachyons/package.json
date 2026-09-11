@@ -1,6 +1,6 @@
 {
   "name": "@homebound/truss-template-tachyons",
-  "version": "2.29.10",
+  "version": "2.29.11",
   "private": true,
   "type": "module",
   "scripts": {
