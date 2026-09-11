@@ -188,11 +188,6 @@ function whenPrefix(whenPseudo: WhenCondition): string {
   return `wh_${rel}_${pseudoPrefix}_${markerPart}`;
 }
 
-/** I.e. `"backgroundColor"` → `"background-color"`, `"WebkitTransform"` → `"-webkit-transform"`. */
-export function camelToKebab(s: string): string {
-  return s.replace(/^(Webkit|Moz|Ms|O)/, (m) => `-${m.toLowerCase()}`).replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
-}
-
 /** Collapse anything that is not a letter or digit into single underscores, i.e. `"0 0 0 1px blue"` → `"0_0_0_1px_blue"`. */
 export function sanitizeClassNameToken(value: string): string {
   return value

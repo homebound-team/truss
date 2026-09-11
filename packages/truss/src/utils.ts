@@ -6,3 +6,8 @@ export function lowerCaseFirst(s: string): string {
 export function quote(s: string): string {
   return JSON.stringify(s);
 }
+
+/** I.e. `"backgroundColor"` → `"background-color"`, `"WebkitTransform"` → `"-webkit-transform"`. */
+export function camelToKebab(s: string): string {
+  return s.replace(/^(Webkit|Moz|Ms|O)/, (m) => `-${m.toLowerCase()}`).replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+}

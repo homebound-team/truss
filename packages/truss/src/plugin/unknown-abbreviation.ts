@@ -3,18 +3,18 @@ import { UnsupportedPatternError } from "./chain-nodes";
 /** An entry name that is absent from the configured abbreviation mapping. */
 export class UnknownAbbreviationError extends UnsupportedPatternError {
   constructor(abbreviation: string, candidates: string[]) {
-    const suggestion = closestAbbreviation(abbreviation, candidates);
+    const suggestion = closestName(abbreviation, candidates);
     super(`Unknown abbreviation "${abbreviation}"${suggestion ? `. Did you mean "${suggestion}"?` : ""}`);
   }
 }
 
 /**
- * Find the nearest mapping key within two insertions, deletions, or substitutions.
+ * Find the nearest candidate within two insertions, deletions, or substitutions.
  * Each row stores exact Levenshtein distances for prefixes of one candidate.
- * I.e. abbreviation "acent" and candidate "accent" finish with distance 1.
- * Equal distances keep the first mapping key; unrelated names yield no suggestion.
+ * I.e. name "acent" and candidate "accent" finish with distance 1.
+ * Equal distances keep the first candidate; unrelated names yield no suggestion.
  */
-function closestAbbreviation(abbreviation: string, candidates: string[]): string | undefined {
+export function closestName(abbreviation: string, candidates: string[]): string | undefined {
   let closest: string | undefined;
   let bestDistance = 3;
   for (const candidate of candidates) {

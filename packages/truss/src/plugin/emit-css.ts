@@ -1,7 +1,8 @@
 import { chainSegments, type ResolvedChain } from "./resolve-chain";
 import { isCssSegment, type CssSegment, type ResolvedSegment, type TrussMapping, type WhenCondition } from "./types";
 import { sortRulesByPriority } from "./priority";
-import { camelToKebab, markerClassName, styleEntriesForSegment } from "./style-entries";
+import { markerClassName, styleEntriesForSegment } from "./style-entries";
+import { camelToKebab } from "../utils";
 import { WHEN_RELATIONSHIPS, type WhenRelationship } from "./when-relationships";
 import { variableValueNeedsMaybeCssVar } from "../css-custom-property";
 import type { ParsedTrussCss } from "../truss-css";

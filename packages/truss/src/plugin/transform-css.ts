@@ -3,7 +3,7 @@ import { type DiagnosticOptions, type TrussMapping } from "./types";
 import { resolveFullChain } from "./resolve-chain";
 import { extractDollarChain, findCssImportBinding, unwrapExpression } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
-import { camelToKebab } from "./style-entries";
+import { camelToKebab } from "../utils";
 import { parseModule } from "./babel-utils";
 import { Diagnostic } from "./diagnostic";
 
