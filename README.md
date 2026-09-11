@@ -331,6 +331,17 @@ Notes:
 - `mapping` is required and should point to the single `Css.json` you want to compile against.
 - `libraries` lists paths to pre-compiled `truss.css` files that will be merged with the app's own generated CSS. Rules are deduplicated by class name and sorted by priority to produce a correct unified stylesheet.
 
+### CSS Annotations
+
+Truss metadata comments in emitted CSS, such as `/* @truss p:3000 c:accent */`, let consuming applications sort and deduplicate rules from library stylesheets.
+
+- **Vite:** Dev stylesheets and library builds retain annotations. Use Vite's `build.lib` setting when building a library. Application builds omit annotations, regardless of `mode` or `build.cssMinify`.
+- **esbuild / tsup:** The plugin produces library CSS and always retains annotations.
+
+Application builds omit generated annotations after merging library CSS. User-authored comments are preserved.
+
+**Unannotated CSS cannot be used as library input through `libraries`.** Publish annotated `truss.css` for downstream merging, and omit annotations only from the final application stylesheet.
+
 ### Plugin Comparison
 
 Truss ships two build plugins. Both transform `Css.*.$` expressions into plain objects and emit a `truss.css` file, but they target different build tools and have different feature sets.

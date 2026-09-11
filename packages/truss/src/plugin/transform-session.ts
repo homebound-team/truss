@@ -91,7 +91,8 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     return result;
   }
 
-  function collectCss(): string {
+  /** Merge library and application CSS before optionally omitting build-time annotations. */
+  function collectCss(annotate = true): string {
     const mapping = ensureMapping();
     const appCss = generateCssData(cssRegistry);
     const allArbitrary = Array.from(arbitraryCssRegistry.entries())
@@ -100,7 +101,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
       .join("\n\n");
     if (allArbitrary.length > 0) appCss.arbitraryCssBlocks.push({ cssText: allArbitrary });
     const libs = loadLibraries();
-    const body = serializeTrussCss(libs.length === 0 ? appCss : mergeTrussCssData([...libs, appCss]));
+    const body = serializeTrussCss(libs.length === 0 ? appCss : mergeTrussCssData([...libs, appCss]), annotate);
     if (body.length === 0) return "";
     return `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
   }
@@ -132,7 +133,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
 }
 
 export interface TrussTransformSession {
-  collectCss: () => string;
+  collectCss: (annotate?: boolean) => string;
   collectTestCss: () => TestCssPayload;
   getArbitraryCss: (sourcePath: string) => string;
   ensureMapping: () => TrussMapping;

@@ -87,16 +87,18 @@ export function parseTrussCss(cssText: string): ParsedTrussCss {
 }
 
 /** Serialize structured CSS without changing rule order or removing duplicate declarations. */
-export function serializeTrussCss(css: ParsedTrussCss): string {
+export function serializeTrussCss(css: ParsedTrussCss, annotate = true): string {
   const lines: string[] = [];
   for (const rule of css.rules) {
-    lines.push(`/* @truss p:${rule.priority} c:${rule.className} */`, rule.cssText);
+    if (annotate) lines.push(`/* @truss p:${rule.priority} c:${rule.className} */`);
+    lines.push(rule.cssText);
   }
   for (const prop of css.properties) {
-    lines.push(`/* @truss @property */`, prop.cssText);
+    if (annotate) lines.push(`/* @truss @property */`);
+    lines.push(prop.cssText);
   }
   for (const block of css.arbitraryCssBlocks) {
-    lines.push(annotateArbitraryCssBlock(block.cssText));
+    lines.push(annotate ? annotateArbitraryCssBlock(block.cssText) : block.cssText.trim());
   }
   return lines.join("\n");
 }
