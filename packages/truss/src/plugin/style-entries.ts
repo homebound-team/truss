@@ -125,6 +125,9 @@ function variableStyleEntries(
  *
  * For literal-folded variables (argResolved set), includes the value:
  * I.e. `mt(2)` → `mt_2` (web increment calc), `mt(-1)` → `mt_neg1`, `bc("red")` → `bc_red`.
+ * A base name that is itself a CSS property name is abbreviated too, so the single-property path
+ * names a declaration the same way the multi-property path does.
+ * I.e. `letterSpacing("-0.022em")` → `ls_neg0_022em`, `add("borderBottomStyle", "solid")` → `bbs_solid`.
  */
 function computeStaticBaseName(
   seg: CssSegment,
@@ -138,7 +141,12 @@ function computeStaticBaseName(
     return canonical ?? `${getPropertyAbbreviation(cssProp)}_${classNameFragmentForResolvedValue(cssValue)}`;
   }
   if (seg.argResolved !== undefined) {
-    return `${seg.abbr}_${classNameFragmentForResolvedValue(seg.argResolved)}`;
+    // `seg.abbr` is the CSS property name when `add()` names a property directly, or when a param
+    // method keeps its default base name, i.e. `Css.letterSpacing(...)`; abbreviate those the same
+    // way the multi-property branch does. Names the table does not list keep their spelling: both
+    // the abbreviations that are already short, i.e. `mt`, and properties with no entry, i.e.
+    // `scrollbarGutter`.
+    return `${getPropertyAbbreviation(seg.abbr)}_${classNameFragmentForResolvedValue(seg.argResolved)}`;
   }
   return seg.abbr;
 }
