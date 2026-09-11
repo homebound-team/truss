@@ -508,7 +508,7 @@ describe("trussPlugin .css.ts integration", () => {
     expect(resolved).toBeNull();
   });
 
-  test("load stores CSS in the arbitrary registry and returns a placeholder", () => {
+  test("load stores CSS in the arbitrary registry and returns an empty module", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -520,10 +520,10 @@ describe("trussPlugin .css.ts integration", () => {
     invokeHook(plugin.configResolved, {} as any, { root });
     invokeHook(plugin.buildStart, {} as any);
 
-    const virtualId = "\0truss-css:" + cssTs.slice(0, -3);
+    const virtualId = "\0truss-css:" + cssTs;
     const result = invokeHook(plugin.load, {} as any, virtualId);
-    // The virtual module returns a placeholder comment — real CSS is in collectCss()
-    expect(result).toBe(`/* [truss] ${cssTs} — included via truss.css */`);
+    // The virtual module returns an empty module — real CSS is in collectCss()
+    expect(result).toBe(`/* [truss] ${cssTs} — included via truss.css */\nexport {};`);
 
     // The CSS should be available via the dev virtual endpoint instead
     const css = getVirtualCss(plugin);
@@ -666,30 +666,10 @@ function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
-/** Simulate the dev virtual CSS endpoint by invoking configureServer and calling the middleware. */
+/** Read the dev stylesheet the way an app's `import "virtual:truss.css"` does. */
 function getVirtualCss(plugin: ReturnType<typeof trussPlugin>): string {
-  let css = "";
-  const middlewares: Array<(req: unknown, res: unknown, next: unknown) => void> = [];
-  const fakeServer = {
-    middlewares: {
-      use(fn: (req: unknown, res: unknown, next: unknown) => void) {
-        middlewares.push(fn);
-      },
-    },
-    httpServer: { on() {} },
-  };
-  invokeHook(plugin.configureServer, {} as unknown, fakeServer);
-  const fakeReq = { url: "/virtual:truss.css" };
-  const fakeRes = {
-    setHeader() {},
-    end(content: string) {
-      css = content;
-    },
-  };
-  for (const mw of middlewares) {
-    mw(fakeReq, fakeRes, () => {});
-  }
-  return css;
+  const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "virtual:truss.css", undefined);
+  return invokeHook(plugin.load, {} as unknown, resolvedId) as string;
 }
 
 function invokeHook(hook: unknown, thisArg: unknown, ...args: unknown[]): unknown {

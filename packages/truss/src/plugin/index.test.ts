@@ -41,23 +41,16 @@ describe("trussPlugin", () => {
     // And an application module using the flex rule
     runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "App.tsx"));
 
-    // When the stylesheet is served or emitted
+    // When the stylesheet is served, bundled or emitted
     let css = "";
     let fileName = "";
     if (scenario.command === "serve") {
       css = getVirtualCss(plugin);
     } else {
-      invokeHook(
-        plugin.generateBundle,
-        {
-          emitFile(asset: { source: string; fileName: string }) {
-            css = asset.source;
-            fileName = asset.fileName;
-          },
-        },
-        {},
-        {},
-      );
+      // A library writes its own file; an application fills the stylesheet the bundler made.
+      const built = scenario.lib ? getEmittedCss(plugin) : getBuiltCss(plugin);
+      css = built.css;
+      fileName = built.fileName;
     }
 
     // Then only library and dev outputs carry merge annotations
@@ -68,7 +61,8 @@ describe("trussPlugin", () => {
     );
     if (scenario.command === "build") {
       // And the asset name hashes the exact final stylesheet
-      expect(fileName).toBe(`assets/truss-${createHash("sha256").update(css).digest("hex").slice(0, 8)}.css`);
+      const hash = createHash("sha256").update(css).digest("hex").slice(0, 8);
+      expect(fileName).toBe(scenario.lib ? `assets/truss-${hash}.css` : `assets/index-${hash}.css`);
     }
   });
 
@@ -85,34 +79,15 @@ describe("trussPlugin", () => {
     invokeHook(library.buildStart, {});
     runTransform(library, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "Lib.tsx"));
     runTransform(library, 'export const css = { body: "/* keep */ margin: 0;" };', join(root, "src", "Lib.css.ts"));
-    invokeHook(
-      library.generateBundle,
-      {
-        emitFile(asset: { source: string }) {
-          writeFileSync(join(root, "library.css"), asset.source);
-        },
-      },
-      {},
-      {},
-    );
+    writeFileSync(join(root, "library.css"), getEmittedCss(library).css);
     // And an application using the library stylesheet and an overlapping atomic rule
     const app = trussPlugin({ mapping: "./src/Css.json", libraries: ["./library.css"] });
     invokeHook(app.configResolved, {}, { root, command: "build", mode: "production" });
     invokeHook(app.buildStart, {});
     runTransform(app, 'import { Css } from "./Css"; const s = Css.df.black.$;', join(root, "src", "App.tsx"));
 
-    // When the application emits its final stylesheet
-    let css = "";
-    invokeHook(
-      app.generateBundle,
-      {
-        emitFile(asset: { source: string }) {
-          css = asset.source;
-        },
-      },
-      {},
-      {},
-    );
+    // When the application builds its final stylesheet
+    const { css } = getBuiltCss(app);
 
     // Then library rules survive, atomic rules are sorted and deduplicated, and user comments remain
     expect(css).toBe(
@@ -158,7 +133,7 @@ describe("trussPlugin", () => {
     invokeHook(plugin.configResolved, {}, { root, command: "build", mode: "production" });
     invokeHook(plugin.buildStart, {});
     const virtualId = invokeHook(plugin.resolveId, {}, "./Button.css.ts?truss-css", join(root, "src", "App.tsx"));
-    expect(virtualId).toBe("\0truss-css:" + id.slice(0, -3));
+    expect(virtualId).toBe("\0truss-css:" + id);
 
     // When Vite loads then transforms the CSS, then both hooks reject the spread
     expect(() => invokeHook(plugin.load, {}, virtualId)).toThrow("spread elements in css.ts export");
@@ -604,17 +579,7 @@ describe("trussPlugin", () => {
       join(root, "src", "Z.css.ts"),
     );
     // When the bundle is generated
-    let css = "";
-    invokeHook(
-      plugin.generateBundle,
-      {
-        emitFile(asset: { source: string }) {
-          css = asset.source;
-        },
-      },
-      {},
-      {},
-    );
+    const { css } = getBuiltCss(plugin);
     // Then the arbitrary block follows codepoint source order
     expect(css).toBe(
       [
@@ -634,22 +599,22 @@ describe("trussPlugin", () => {
     // Given a mapping with a flex rule
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
-    // And a dev server with controlled update timing and a captured CSS endpoint
+    // And a dev server with controlled update timing
     vi.useFakeTimers();
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "development" });
     invokeHook(plugin.buildStart, {});
-    const send = vi.fn();
-    const use = vi.fn();
-    const server = { middlewares: { use }, ws: { send }, httpServer: { on() {} } };
+    const { server, reloads } = fakeDevServer();
     invokeHook(plugin.configureServer, {}, server);
+    // And a browser that has already loaded the stylesheet
+    getVirtualCss(plugin);
 
     // When Vite reports a file change before transforming it
     invokeHook(plugin.handleHotUpdate, {}, { server });
     vi.runAllTimers();
 
-    // Then no stale stylesheet update is sent and no poller is running
-    expect(send.mock.calls).toEqual([]);
+    // Then no stale stylesheet reload is requested and no poller is running
+    expect(reloads.mock.calls).toEqual([]);
     expect(vi.getTimerCount()).toBe(0);
 
     // When an application module and a .css.ts module add CSS in the same turn
@@ -660,46 +625,43 @@ describe("trussPlugin", () => {
     runTransform(plugin, appCode, appId);
     runTransform(plugin, cssCode, cssId);
 
-    // Then notification is deferred and both changes share one timer
-    expect(send.mock.calls).toEqual([]);
+    // Then the reload is deferred and both changes share one timer
+    expect(reloads.mock.calls.length).toBe(0);
     expect(vi.getTimerCount()).toBe(1);
     vi.runAllTimers();
-    expect(send.mock.calls).toEqual([[{ type: "custom", event: "truss:css-update" }]]);
-    // And the endpoint already serves both completed transforms
-    const end = vi.fn();
-    use.mock.calls[0][0]({ url: "/virtual:truss.css" }, { setHeader() {}, end }, () => {});
-    expect(end.mock.calls).toEqual([
+    // And exactly one stylesheet reload covers both transforms
+    expect(reloads.mock.calls.length).toBe(1);
+    // And the stylesheet already carries both completed transforms
+    expect(getVirtualCss(plugin)).toBe(
       [
-        [
-          ":root { --t-spacing: 8px; }",
-          "/* @truss p:3000 c:df */",
-          ".df { display: flex; }",
-          "/* @truss arbitrary:start */",
-          "body {",
-          "  color: red;",
-          "}",
-          "/* @truss arbitrary:end */",
-        ].join("\n"),
-      ],
-    ]);
+        ":root { --t-spacing: 8px; }",
+        "/* @truss p:3000 c:df */",
+        ".df { display: flex; }",
+        "/* @truss arbitrary:start */",
+        "body {",
+        "  color: red;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
+    );
 
     // When Vite retransforms unchanged CSS or a module without styles
-    send.mockClear();
+    reloads.mockClear();
     runTransform(plugin, appCode, appId);
     runTransform(plugin, cssCode, cssId);
     runTransform(plugin, "export const value = 1;", join(root, "src", "other.ts"));
     vi.runAllTimers();
 
-    // Then no stylesheet is requested
-    expect(send.mock.calls).toEqual([]);
+    // Then no stylesheet reload is requested
+    expect(reloads.mock.calls).toEqual([]);
     expect(vi.getTimerCount()).toBe(0);
 
     // When a later .css.ts edit replaces its rules
     runTransform(plugin, 'export const css = { body: "color: blue;" };', cssId);
     vi.runAllTimers();
 
-    // Then the edit gets one new notification without an initial file-change event
-    expect(send.mock.calls).toEqual([[{ type: "custom", event: "truss:css-update" }]]);
+    // Then the edit gets one new reload without an initial file-change event
+    expect(reloads.mock.calls.length).toBe(1);
   });
 
   test.each(["close", "buildStart"])("dev cancels pending CSS updates on %s", (event) => {
@@ -711,127 +673,184 @@ describe("trussPlugin", () => {
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "development" });
     invokeHook(plugin.buildStart, {});
-    const send = vi.fn();
-    const on = vi.fn();
-    invokeHook(plugin.configureServer, {}, { middlewares: { use() {} }, ws: { send }, httpServer: { on } });
+    const { server, reloads, close } = fakeDevServer();
+    invokeHook(plugin.configureServer, {}, server);
+    getVirtualCss(plugin);
     runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "App.tsx"));
     expect(vi.getTimerCount()).toBe(1);
 
     // When the server closes or the build state resets before notification
     if (event === "close") {
-      expect(on.mock.calls[0][0]).toBe("close");
-      on.mock.calls[0][1]();
+      close();
     } else {
       invokeHook(plugin.buildStart, {});
     }
 
-    // Then the pending timer is removed and no update is sent
+    // Then the pending timer is removed and no reload is requested
     expect(vi.getTimerCount()).toBe(0);
     vi.runAllTimers();
-    expect(send.mock.calls).toEqual([]);
+    expect(reloads.mock.calls).toEqual([]);
   });
 
-  test("dev runtime fetches initially and only subscribes to CSS changes", async () => {
-    // Given the dev runtime and a browser with an existing Truss style element
-    const plugin = trussPlugin({ mapping: "./src/Css.json" });
-    const id = invokeHook(plugin.resolveId, {}, "virtual:truss:runtime", undefined);
-    const code = invokeHook(plugin.load, {}, id) as string;
-    const style = { textContent: "" };
-    const document = { getElementById: () => style };
-    const fetch = vi.fn().mockResolvedValue({ text: async () => ".df { display: flex; }" });
-    const on = vi.fn();
-
-    // When the browser evaluates the runtime
-    new Function("document", "fetch", "hot", code.replaceAll("import.meta.hot", "hot"))(document, fetch, { on });
-
-    // Then it fetches once on startup and does not subscribe to Vite JS updates
-    expect(fetch.mock.calls).toEqual([["/virtual:truss.css"]]);
-    expect(on.mock.calls.map((call) => call[0])).toEqual(["truss:css-update"]);
-    await vi.waitFor(() => expect(style.textContent).toBe(".df { display: flex; }"));
-
-    // When the server reports changed CSS
-    fetch.mockClear();
-    fetch.mockResolvedValue({ text: async () => ".df { display: grid; }" });
-    on.mock.calls[0][1]();
-
-    // Then the browser fetches and applies the stylesheet once
-    expect(fetch.mock.calls).toEqual([["/virtual:truss.css"]]);
-    await vi.waitFor(() => expect(style.textContent).toBe(".df { display: grid; }"));
-  });
-
-  test("dev html injects the runtime without a stylesheet link", () => {
+  test.each(["serve", "build"])("%s rejects an index.html that still links the stylesheet", (command) => {
+    // Given a mapping with a flex rule
     const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {
-      df: { kind: "static", defs: { display: "flex" } },
-    });
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command, mode: "development" } as any);
+    // And an index.html carrying the link Truss used to write for itself
+    const html = '<html><head>\n    <link rel="stylesheet" href="/virtual:truss.css" />\n  </head><body></body></html>';
 
+    // When the HTML is transformed, then the stale link is called out with the one-line fix
+    expect(() => invokeHook(plugin.transformIndexHtml, {} as any, html)).toThrow(
+      'index.html still links Truss\'s stylesheet. Delete that <link> tag and add `import "virtual:truss.css";`',
+    );
+  });
+
+  test.each([
+    '<link rel="stylesheet" href="__TRUSS_CSS_HASH__">',
+    '<link rel="stylesheet" href="/assets/truss-abcd1234.css">',
+  ])("rejects a build output that already carries %s", (link) => {
+    // Given a plugin building an application
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
+    // And HTML from a tool that reran an older build, i.e. Storybook keeping its patched output
+
+    // When the HTML is transformed, then the leftover link is rejected the same way
+    expect(() =>
+      invokeHook(plugin.transformIndexHtml, {} as any, `<html><head>${link}</head><body></body></html>`),
+    ).toThrow("index.html still links Truss's stylesheet");
+  });
+
+  test("leaves an index.html without a Truss link alone", () => {
+    // Given a plugin serving an app whose HTML links only its own stylesheet
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    const html = '<html><head><link rel="stylesheet" href="/reset.css"></head><body></body></html>';
 
-    const html = invokeHook(plugin.transformIndexHtml, {} as any, "<html><head></head><body></body></html>") as any;
-    expect(html).toBe(
-      '<html><head>    <script type="module" src="/virtual:truss:runtime"></script>\n  </head><body></body></html>',
-    );
+    // When the HTML is transformed, then nothing is added or removed
+    expect(invokeHook(plugin.transformIndexHtml, {} as any, html)).toBe(html);
   });
 
-  test("production html injects a placeholder stylesheet link for truss.css", () => {
+  test("an application build without the import warns instead of shipping unstyled", () => {
+    // Given a mapping with a flex rule
     const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {
-      df: { kind: "static", defs: { display: "flex" } },
-    });
-
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+    // And an application module using the flex rule, but no module importing the stylesheet
+    runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "App.tsx"));
 
-    const html = invokeHook(plugin.transformIndexHtml, {} as any, "<html><head></head><body></body></html>") as any;
-    // The placeholder is replaced with the content-hashed filename in writeBundle
-    expect(html).toBe(
-      '<html><head>    <link rel="stylesheet" href="__TRUSS_CSS_HASH__">\n  </head><body></body></html>',
-    );
+    // When the bundle is generated
+    const warn = vi.fn();
+    const emitFile = vi.fn();
+    invokeHook(plugin.generateBundle, { warn, emitFile }, {}, {});
+
+    // Then the missing import is reported
+    expect(warn.mock.calls).toEqual([
+      [
+        '[truss] No module imported "virtual:truss.css", so this build ships no Truss stylesheet. ' +
+          'Add `import "virtual:truss.css";` to your entry module.',
+      ],
+    ]);
+    // And no stylesheet is emitted for a document that would not link it
+    expect(emitFile.mock.calls).toEqual([]);
   });
 
-  test("production html strips dev-only virtual:truss.css link", () => {
+  test("dev serves the collected stylesheet through the virtual:truss.css import", () => {
+    // Given a mapping with a flex rule
     const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {
-      df: { kind: "static", defs: { display: "flex" } },
-    });
-
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
-    invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
+    invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+    // And an application module using the flex rule
+    runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "App.tsx"));
 
-    const html = invokeHook(
-      plugin.transformIndexHtml,
-      {} as any,
-      '<html><head>\n    <link rel="stylesheet" href="/virtual:truss.css" />\n  </head><body></body></html>',
-    ) as any;
-    expect(html).toBe(
-      '<html><head>\n      <link rel="stylesheet" href="__TRUSS_CSS_HASH__">\n  </head><body></body></html>',
-    );
+    // When a server-rendered root module imports the stylesheet
+    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "virtual:truss.css", join(root, "src", "root.tsx"));
+    const css = invokeHook(plugin.load, {} as unknown, resolvedId);
+
+    // Then the module is the real stylesheet, not a placeholder or a fetch script
+    expect(resolvedId).toBe("\0virtual:truss.css");
+    expect(css).toBe(":root { --t-spacing: 8px; }\n/* @truss p:3000 c:df */\n.df { display: flex; }");
   });
 
-  test("production html is idempotent across multiple builds (e.g. Storybook)", () => {
+  test("production fills the bundled stylesheet that imported virtual:truss.css", () => {
+    // Given a mapping with a flex rule
     const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {
-      df: { kind: "static", defs: { display: "flex" } },
-    });
-
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {} as any, { root, command: "build", mode: "production" } as any);
+    invokeHook(plugin.buildStart, {} as any);
+    // And a server-rendered root module that imports the stylesheet
+    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "virtual:truss.css", join(root, "src", "root.tsx"));
+    const placeholder = invokeHook(plugin.load, {} as unknown, resolvedId) as string;
+    // And an application module using the flex rule
+    runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "src", "App.tsx"));
+    // And a bundle where the framework hashed that placeholder into the root route's stylesheet,
+    // alongside an unrelated stylesheet that must stay untouched
+    // And a manifest naming the route stylesheet, the way React Router's client build does
+    const bundle: Record<string, any> = {
+      "assets/root-Ab12cd34.css": { type: "asset", fileName: "assets/root-Ab12cd34.css", source: placeholder },
+      "assets/reset-Ef56gh78.css": { type: "asset", fileName: "assets/reset-Ef56gh78.css", source: "* { margin: 0; }" },
+      ".vite/manifest.json": {
+        type: "asset",
+        fileName: ".vite/manifest.json",
+        source: '{ "css": ["assets/root-Ab12cd34.css"] }',
+      },
+    };
 
-    // Simulate a second build pass receiving HTML that already has a patched truss link
-    const alreadyPatched = [
-      "<html><head>",
-      '    <link rel="stylesheet" href="/assets/truss-abcd1234.css">',
-      "  </head><body></body></html>",
-    ].join("\n");
-    const html = invokeHook(plugin.transformIndexHtml, {} as any, alreadyPatched) as any;
-    // The old hashed link should be stripped and replaced with a single placeholder
-    expect(html).toBe(
-      '<html><head>\n      <link rel="stylesheet" href="__TRUSS_CSS_HASH__">\n  </head><body></body></html>',
+    // When the bundle is generated
+    const emitted: string[] = [];
+    invokeHook(plugin.generateBundle, { emitFile: (a: any) => emitted.push(a.fileName) }, {}, bundle);
+
+    // Then the route stylesheet carries every rule
+    const css = ":root { --t-spacing: 8px; }\n.df { display: flex; }";
+    const fileName = `assets/root-${createHash("sha256").update(css).digest("hex").slice(0, 8)}.css`;
+    expect(bundle["assets/root-Ab12cd34.css"].source).toBe(css);
+    // And it is written under a name whose hash tracks the rules, not the placeholder
+    expect(bundle["assets/root-Ab12cd34.css"].fileName).toBe(fileName);
+    // And the manifest points at the new name
+    expect(bundle[".vite/manifest.json"].source).toBe(`{ "css": ["${fileName}"] }`);
+    // And the unrelated stylesheet is unchanged
+    expect(bundle["assets/reset-Ef56gh78.css"].source).toBe("* { margin: 0; }");
+    // And no second stylesheet is emitted for the document to link
+    expect(emitted).toEqual([]);
+  });
+
+  test("a .css.ts side-effect import compiles to an empty module, not a stylesheet", () => {
+    // Given a .css.ts file with an arbitrary selector
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    const cssTsPath = join(root, "src", "App.css.ts");
+    mkdirSync(dirname(cssTsPath), { recursive: true });
+    writeFileSync(cssTsPath, 'import { Css } from "./Css";\nexport const css = { ".card": Css.df.$ };\n', "utf8");
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    runConfigHooks(plugin, root);
+
+    // When the `?truss-css` side effect is resolved and loaded
+    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", cssTsPath);
+    const moduleCode = invokeHook(plugin.load, {} as unknown, resolvedId);
+
+    // Then it is JavaScript, so Vite writes no per-route stylesheet for it
+    expect(moduleCode).toBe(`/* [truss] ${cssTsPath} — included via truss.css */\nexport {};`);
+    // And the rules still reach the collected stylesheet
+    expect(getVirtualCss(plugin)).toBe(
+      [
+        ":root { --t-spacing: 8px; }",
+        "/* @truss arbitrary:start */",
+        ".card {",
+        "  display: flex;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
     );
-    // Only one truss CSS link should exist (the placeholder)
-    const linkCount = (html.match(/<link[^>]*TRUSS_CSS_HASH/g) || []).length;
-    expect(linkCount).toBe(1);
   });
 
   test("dev virtual CSS orders static base rules before variable rules for the same property", () => {
@@ -1290,36 +1309,57 @@ function runTransform(
   return result as { code: string; map: any };
 }
 
-/** Simulate the dev virtual CSS endpoint by invoking configureServer and calling the middleware. */
+/** Read the dev stylesheet the way an app's `import "virtual:truss.css"` does. */
 function getVirtualCss(plugin: ReturnType<typeof trussPlugin>): string {
+  const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "virtual:truss.css", undefined);
+  expect(resolvedId).toBe("\0virtual:truss.css");
+  return invokeHook(plugin.load, {} as unknown, resolvedId) as string;
+}
+
+/**
+ * Run an application build the way a framework does: the entry imports `virtual:truss.css`, the
+ * bundler hashes that placeholder into a stylesheet, and generateBundle fills the rules in.
+ *
+ * Returns the asset as written, so `fileName` is the name the document ends up linking.
+ */
+function getBuiltCss(plugin: ReturnType<typeof trussPlugin>): { css: string; fileName: string } {
+  const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "virtual:truss.css", undefined);
+  const placeholder = invokeHook(plugin.load, {} as unknown, resolvedId) as string;
+  const asset = { type: "asset", fileName: "assets/index-Ab12cd34.css", source: placeholder };
+  invokeHook(plugin.generateBundle, { warn() {} }, {}, { "assets/index-Ab12cd34.css": asset });
+  return { css: String(asset.source), fileName: asset.fileName };
+}
+
+/** Run a library build, which emits a standalone stylesheet for consuming apps to merge. */
+function getEmittedCss(plugin: ReturnType<typeof trussPlugin>): { css: string; fileName: string } {
   let css = "";
-  const middlewares: Array<(req: unknown, res: unknown, next: unknown) => void> = [];
-  const fakeServer = {
-    middlewares: {
-      use(fn: (req: unknown, res: unknown, next: unknown) => void) {
-        middlewares.push(fn);
+  let fileName = "";
+  invokeHook(
+    plugin.generateBundle,
+    {
+      warn() {},
+      emitFile(asset: { source: string; fileName: string }) {
+        css = asset.source;
+        fileName = asset.fileName;
       },
     },
-    httpServer: { on() {} },
+    {},
+    {},
+  );
+  return { css, fileName };
+}
+
+/** A dev server that records the stylesheet reloads the plugin asks Vite for. */
+function fakeDevServer(): { server: any; reloads: ReturnType<typeof vi.fn>; close: () => void } {
+  const reloads = vi.fn();
+  const on = vi.fn();
+  const stylesheet = { id: "\0virtual:truss.css" };
+  const client = {
+    moduleGraph: { getModuleById: (id: string) => (id === stylesheet.id ? stylesheet : undefined) },
+    reloadModule: reloads,
   };
-
-  // Register the middleware
-  invokeHook(plugin.configureServer, {} as unknown, fakeServer);
-
-  // Call each middleware with a matching request
-  const fakeReq = { url: "/virtual:truss.css" };
-  const fakeRes = {
-    setHeader() {},
-    end(content: string) {
-      css = content;
-    },
-  };
-
-  for (const mw of middlewares) {
-    mw(fakeReq, fakeRes, () => {});
-  }
-
-  return css;
+  const server = { environments: { client }, ws: { send() {} }, httpServer: { on } };
+  return { server, reloads, close: () => on.mock.calls[0][1]() };
 }
 
 function getTestCssModule(plugin: ReturnType<typeof trussPlugin>): string {

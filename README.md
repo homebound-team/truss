@@ -198,7 +198,7 @@ For web usage, use the `truss` command to generate the `Css.ts` (and `Css.json` 
   - `wget https://raw.githubusercontent.com/homebound-team/truss/main/packages/template-tachyons/truss-config.ts`
 - Run `npm run truss`
   - Re-run `npm run truss` anytime you change `truss-config.ts`
-- Start using `Css.mt1.etc.$` in your project and wire `trussPlugin(...)` in Vite (see setup below)
+- Start using `Css.mt1.etc.$` in your project, wire `trussPlugin(...)` in Vite, and add `import "virtual:truss.css";` to your entry module (see setup below)
 
 We recommend checking the `src/Css.ts` file into your repository, with the rationale:
 
@@ -330,6 +330,37 @@ Notes:
 - `mapping` is required and should point to the single `Css.json` you want to compile against.
 - `libraries` lists paths to pre-compiled `truss.css` files that will be merged with the app's own generated CSS. Rules are deduplicated by class name and sorted by priority to produce a correct unified stylesheet.
 
+### Linking the Stylesheet
+
+Import Truss's stylesheet once, in your entry module:
+
+```tsx
+// src/main.tsx, or app/root.tsx for a server-rendered app
+import "virtual:truss.css";
+```
+
+Vite then treats Truss's CSS like any other stylesheet: it serves it in dev, bundles and hashes it in production, and a framework such as React Router lists it in the route manifest. This is the same one line for a Vite SPA and for an app that renders its own document (React Router, Remix, TanStack Start) -- there is no `<link>` tag to write and no dev-only script.
+
+- In dev the import serves the rules collected so far, and Truss pushes later ones over Vite's own CSS HMR.
+- In production the import is filled in after the last module is transformed, and the stylesheet is renamed so its hash covers the rules it ends up with.
+- A library build (Vite's `build.lib`) has no entry module of its own, so it keeps emitting a standalone `assets/truss-<hash>.css` for consuming apps to merge through `libraries`.
+
+#### Upgrading from the `index.html` link
+
+Truss used to write the `<link>` tag into `index.html` itself. If your `index.html` still has that tag, delete it and add the import above -- the plugin fails the build while the stale tag is there, since it now points at nothing:
+
+```
+[truss] index.html still links Truss's stylesheet. Delete that <link> tag and add
+`import "virtual:truss.css";` to your entry module instead.
+```
+
+If you delete the tag but forget the import, the build warns rather than silently shipping an unstyled app:
+
+```
+[truss] No module imported "virtual:truss.css", so this build ships no Truss stylesheet.
+Add `import "virtual:truss.css";` to your entry module.
+```
+
 ### CSS Annotations
 
 Truss metadata comments in emitted CSS, such as `/* @truss p:3000 c:accent */`, let consuming applications sort and deduplicate rules from library stylesheets.
@@ -349,11 +380,11 @@ Truss ships two build plugins. Both transform `Css.*.$` expressions into plain o
 | ------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | **Build tool**            | Vite                                                                              | esbuild / tsup                                                |
 | **Use case**              | Applications and Vitest test suites                                               | Library packages compiled with tsup or plain esbuild          |
-| **Dev server HMR**        | Yes -- serves CSS via a virtual endpoint and pushes updates over WebSocket        | No -- esbuild has no dev server                               |
-| **Content-hashed output** | Yes -- production builds emit `assets/truss-<hash>.css` for long-term caching     | No -- writes a fixed `truss.css` to the output directory      |
+| **Dev server HMR**        | Yes -- serves CSS through `virtual:truss.css` and updates it over Vite's CSS HMR  | No -- esbuild has no dev server                               |
+| **Content-hashed output** | Yes -- the bundled stylesheet is renamed to hash the rules it carries             | No -- writes a fixed `truss.css` to the output directory      |
 | **Library CSS merging**   | Yes -- `libraries` option merges pre-compiled library CSS into the app stylesheet | No -- libraries are merged by the consuming app's Vite plugin |
 | **Test CSS injection**    | Yes -- auto-injects CSS into jsdom for Vitest                                     | No                                                            |
-| **HTML injection**        | Yes -- injects `<link>` / `<script>` tags into `index.html`                       | No -- not applicable for library builds                       |
+| **Stylesheet linking**    | Yes -- `import "virtual:truss.css"` in the entry module, for SPAs and SSR alike   | No -- not applicable for library builds                       |
 
 **When to use which:**
 
