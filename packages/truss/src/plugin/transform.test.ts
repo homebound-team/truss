@@ -1060,7 +1060,7 @@ describe("transform", () => {
 
     expectTrussTransform(code).toHaveTrussOutput(
       `
-      import { type Typography } from "./Css";
+      import type { Typography } from "./Css";
       const __typography = {
         f24: { fontSize: "f24" },
         f18: { fontSize: "f18" },
@@ -1108,7 +1108,7 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      import { type Typography } from "./Css";
+      import type { Typography } from "./Css";
       const __typography = {
         f24: { fontSize: "f24" },
         f18: { fontSize: "f18" },
@@ -1197,6 +1197,52 @@ describe("transform", () => {
     `).toHaveTrussOutput(
       `
       const s = { display: "df" };
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
+  });
+
+  test("type-only remainder becomes a type-only import", () => {
+    // Given a file that imports Css alongside a type from the same module
+    // And the type is still referenced in an annotation, so its binding must survive
+    expectTrussTransform(`
+      import { Css, type Properties } from "./Css";
+      export function Foo(p: Properties) {
+        return Css.df.$;
+      }
+    `).toHaveTrussOutput(
+      `
+      import type { Properties } from "./Css";
+      export function Foo(p: Properties) {
+        return { display: "df" };
+      }
+    `,
+      `
+      .df {
+        display: flex;
+      }
+    `,
+    );
+  });
+
+  test("value remainder keeps the import runnable", () => {
+    // Given a file that imports Css alongside both a value and a type from the same module
+    // And the value keeps the declaration a real import, so it must not become type-only
+    expectTrussTransform(`
+      import { Css, Palette, type Properties } from "./Css";
+      export function Foo(p: Properties) {
+        return [Css.df.$, Palette.Black];
+      }
+    `).toHaveTrussOutput(
+      `
+      import { Palette, type Properties } from "./Css";
+      export function Foo(p: Properties) {
+        return [{ display: "df" }, Palette.Black];
+      }
     `,
       `
       .df {

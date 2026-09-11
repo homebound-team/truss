@@ -77,6 +77,11 @@ export function isCssMethodCall(node: t.CallExpression, binding: string, method:
 
 /**
  * Remove the Css import specifier. If it was the only specifier, remove the whole import.
+ *
+ * When only type specifiers remain, the declaration is marked type-only so the bundler
+ * erases it. I.e. `import { Css, type Properties } from "~/Css"` becomes
+ * `import type { Properties } from "~/Css"`, because verbatimModuleSyntax keeps a
+ * `import { type Properties }` declaration as a side-effect import of the Css module.
  */
 export function removeCssImport(ast: t.File, cssBinding: string): void {
   for (let i = 0; i < ast.program.body.length; i++) {
@@ -90,6 +95,7 @@ export function removeCssImport(ast: t.File, cssBinding: string): void {
       ast.program.body.splice(i, 1);
     } else {
       node.specifiers.splice(cssSpecIndex, 1);
+      hoistTypeOnlyImportKind(node);
     }
     return;
   }
@@ -306,6 +312,22 @@ export function memberPropertyName(node: t.MemberExpression): string | null {
   if (!node.computed && t.isIdentifier(node.property)) return node.property.name;
   if (node.computed && t.isStringLiteral(node.property)) return node.property.value;
   return null;
+}
+
+/**
+ * Mark a declaration type-only when every remaining specifier is type-only.
+ *
+ * I.e. `import { type Properties } from "~/Css"` becomes `import type { Properties } from "~/Css"`.
+ * The per-specifier `type` markers are cleared, since `import type { type Properties }` is invalid.
+ */
+function hoistTypeOnlyImportKind(node: t.ImportDeclaration): void {
+  if (node.importKind === "type") return;
+  const typeOnly = node.specifiers.every((spec) => t.isImportSpecifier(spec) && spec.importKind === "type");
+  if (!typeOnly) return;
+  node.importKind = "type";
+  for (const spec of node.specifiers) {
+    if (t.isImportSpecifier(spec)) spec.importKind = null;
+  }
 }
 
 function toImportSpecifier(entry: NamedImport): t.ImportSpecifier {
