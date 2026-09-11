@@ -13,6 +13,7 @@ export function createTestCssPayload(css: ParsedTrussCss): TestCssPayload {
     });
   }
   if (css.properties.length > 0) payload.properties = css.properties;
+  if (css.keyframes.length > 0) payload.keyframes = css.keyframes;
   const arbitraryRules = css.arbitraryCssBlocks.flatMap((block) => splitArbitraryCss(block.cssText));
   if (arbitraryRules.length > 0) payload.arbitraryRules = arbitraryRules;
   return payload;

@@ -4,7 +4,7 @@ import type { TestCssPayload } from "./test-css";
 interface InstalledRule {
   id: string;
   cssText: string;
-  /** Prelude, atomic rules, property declarations, then arbitrary CSS. */
+  /** Prelude, atomic rules, at-rule definitions (@property / @keyframes), then arbitrary CSS. */
   section: 0 | 1 | 2 | 3;
   key: RuleSortKey | null;
   order: number;
@@ -42,7 +42,11 @@ let trussStyleElement: TrussStyleElement | null = null;
 export function __injectTrussCSS(payload: TestCssPayload): void {
   if (
     typeof document === "undefined" ||
-    (!payload.rules?.length && !payload.properties?.length && !payload.arbitraryRules?.length && !payload.prelude)
+    (!payload.rules?.length &&
+      !payload.properties?.length &&
+      !payload.keyframes?.length &&
+      !payload.arbitraryRules?.length &&
+      !payload.prelude)
   )
     return;
   if (payload.arbitraryRules?.length && !payload.source) {
@@ -81,6 +85,10 @@ export function __injectTrussCSS(payload: TestCssPayload): void {
       changed =
         installRule(state, { ...base, id: `property:${property.varName}`, section: 2, cssText: property.cssText }) ||
         changed;
+    }
+    for (const block of payload.keyframes ?? []) {
+      changed =
+        installRule(state, { ...base, id: `keyframes:${block.name}`, section: 2, cssText: block.cssText }) || changed;
     }
     for (const [position, cssText] of (payload.arbitraryRules ?? []).entries()) {
       changed =

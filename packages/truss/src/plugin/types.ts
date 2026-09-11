@@ -19,6 +19,10 @@ export interface TrussMapping {
   typography?: string[];
   /** Token member name → CSS variable (from `config.tokens`), for `setVar` key resolution. */
   tokens?: Record<string, string>;
+  /** CSS variable → its `@property` block, for the tokens `config.tokens` registers with a `syntax`. */
+  properties?: Record<string, string>;
+  /** Keyframe name → its `@keyframes` block (from `config.keyframes`). */
+  keyframes?: Record<string, string>;
   abbreviations: Record<string, TrussMappingEntry>;
 }
 

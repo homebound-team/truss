@@ -373,6 +373,7 @@ function parsedTrussCss(input: Partial<ParsedTrussCss>): ParsedTrussCss {
   return {
     rules: input.rules ?? [],
     properties: input.properties ?? [],
+    keyframes: input.keyframes ?? [],
     arbitraryCssBlocks: input.arbitraryCssBlocks ?? [],
   };
 }

@@ -11,8 +11,59 @@ export type FontConfig = Record<string, string | Properties>;
 /**
  * Maps a design token name (enum member / key) to a CSS custom property name.
  * Values must be valid custom property identifiers (`--…`).
+ *
+ * The object form additionally registers the property with `@property`, i.e. so the browser
+ * types the value and can animate it. See `TokenDefinition`.
  */
-export type TokenRegistry = Record<string, `--${string}`>;
+export type TokenRegistry = Record<string, `--${string}` | TokenDefinition>;
+
+/**
+ * A token that is also registered with `@property`.
+ *
+ * Naming a token and registering it are two different things. The string form of `tokens` only
+ * gives the variable a TypeScript name and emits no CSS. Registering it tells the browser about
+ * the variable: to parse and type-check its value, to fall back to `initialValue` instead of
+ * inheriting an unparsed token stream, and — the reason most design systems want it — to
+ * *interpolate* it, since an unregistered custom property is an opaque token stream that no
+ * transition or keyframe can animate.
+ *
+ * I.e. `{ var: "--angle", syntax: "<angle>", inherits: false, initialValue: "0deg" }` emits
+ * `@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }`.
+ */
+export interface TokenDefinition {
+  /** The CSS custom property name, i.e. `--angle`. */
+  var: `--${string}`;
+  /** The `@property` syntax descriptor, i.e. `"<angle>"`, or `"*"` to register without typing. */
+  syntax: string;
+  /** The `@property` inherits descriptor. Defaults to `false`. */
+  inherits?: boolean;
+  /** The `@property` initial-value descriptor, i.e. `"0deg"`. Required unless `syntax` is `"*"`. */
+  initialValue?: string;
+}
+
+/**
+ * A map from `@keyframes` name to its animation timeline.
+ *
+ * The object form is keyframe selector (`from`, `to`, `50%`, `0%, 100%`) to declarations, which
+ * csstype validates like any other declaration. The string form is a raw body, for a timeline the
+ * typed form cannot express. Either way Truss owns the name, so it can check the animations that
+ * use it and write the block only when one still does.
+ *
+ * `null` declares a name that some other stylesheet defines — a global CSS file, a third-party
+ * package. Truss accepts the name and writes nothing. Without it, adopting `keyframes` at all would
+ * make every animation Truss did not declare fail the build.
+ *
+ * I.e. `{ spin: { to: { transform: "rotate(360deg)" } }, aiStarLoader: null }`.
+ */
+export type KeyframesConfig = Record<string, Record<string, KeyframeDeclarations> | string | null>;
+
+/**
+ * The declarations in one keyframe selector.
+ *
+ * Custom properties are allowed alongside real CSS properties, because animating a registered
+ * property is written as a keyframe that sets it, i.e. `{ to: { "--angle": "360deg" } }`.
+ */
+export type KeyframeDeclarations = Properties & { [customProperty: `--${string}`]: string | number };
 
 /**
  * Provides users with an easy way to configure the major/most-often configurable
@@ -65,6 +116,12 @@ export interface Config {
    * `Css.setVar({ [Tokens.X]: … })` at build time (web target).
    */
   tokens?: TokenRegistry;
+
+  /**
+   * Optional `@keyframes` animations: emitted as a `Keyframes` enum in generated `Css.ts` (web
+   * target), and written to the stylesheet only while some rule still names them.
+   */
+  keyframes?: KeyframesConfig;
 
   /**
    * Which default methods to include.

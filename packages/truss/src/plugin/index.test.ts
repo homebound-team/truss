@@ -1137,6 +1137,110 @@ describe("trussPlugin", () => {
       ].join("\n"),
     );
   });
+
+  test("writes a configured @keyframes block only while a rule still animates it", () => {
+    // Given a mapping with two configured keyframes and a registered token
+    const root = createTempRoot();
+    writeMapping(
+      join(root, "src", "Css.json"),
+      { anim: { kind: "variable", props: ["animation"], incremented: false } },
+      {
+        properties: { "--angle": '@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }' },
+        keyframes: {
+          spin: "@keyframes spin { to { transform: rotate(360deg); } }",
+          pulse: "@keyframes pulse { 50% { opacity: 0.45; } }",
+        },
+      },
+    );
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    runConfigHooks(plugin, root);
+
+    // And an application module that animates `spin` and never mentions `pulse`
+    runTransform(
+      plugin,
+      `import { Css } from "./Css"; const s = Css.anim("spin 1s linear infinite").$;`,
+      join(root, "src", "App.tsx"),
+    );
+
+    // When the stylesheet is served
+    const css = getVirtualCss(plugin);
+
+    // Then the animated keyframe is written, the unused one is not, and the token stays registered
+    expect(css).toBe(
+      [
+        ":root { --t-spacing: 8px; }",
+        "/* @truss p:1000 c:anim_spin_1s_linear_infinite */",
+        ".anim_spin_1s_linear_infinite { animation: spin 1s linear infinite; }",
+        "/* @truss @property */",
+        '@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }',
+        "/* @truss @keyframes */",
+        "@keyframes spin { to { transform: rotate(360deg); } }",
+      ].join("\n"),
+    );
+  });
+
+  test("drops a configured @keyframes block once the module that animated it is gone", () => {
+    // Given the same mapping, with `spin` configured
+    const root = createTempRoot();
+    writeMapping(
+      join(root, "src", "Css.json"),
+      {
+        anim: { kind: "variable", props: ["animation"], incremented: false },
+        df: { kind: "static", defs: { display: "flex" } },
+      },
+      { keyframes: { spin: "@keyframes spin { to { transform: rotate(360deg); } }" } },
+    );
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    runConfigHooks(plugin, root);
+
+    // And a build whose only animating module has been deleted, so just the flex module is transformed
+    runTransform(plugin, `import { Css } from "./Css"; const s = Css.df.$;`, join(root, "src", "App.tsx"));
+
+    // When the stylesheet is served
+    const css = getVirtualCss(plugin);
+
+    // Then nothing names `spin`, so its block is not written at all
+    expect(css).toBe([":root { --t-spacing: 8px; }", "/* @truss p:3000 c:df */", ".df { display: flex; }"].join("\n"));
+  });
+
+  test("keeps a keyframe a .css.ts raw block animates", () => {
+    // Given a mapping with a configured keyframe
+    const root = createTempRoot();
+    writeMapping(
+      join(root, "src", "Css.json"),
+      { df: { kind: "static", defs: { display: "flex" } } },
+      { keyframes: { spin: "@keyframes spin { to { transform: rotate(360deg); } }" } },
+    );
+    // And a .css.ts whose raw body names it, rather than a Css chain
+    const cssTsPath = join(root, "src", "App.css.ts");
+    mkdirSync(dirname(cssTsPath), { recursive: true });
+    writeFileSync(
+      cssTsPath,
+      'import { Css } from "./Css";\nexport const css = { ".loader": Css.raw`animation: spin 1s linear infinite;` };\n',
+      "utf8",
+    );
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    runConfigHooks(plugin, root);
+    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", cssTsPath);
+    invokeHook(plugin.load, {} as unknown, resolvedId);
+
+    // When the stylesheet is served
+    const css = getVirtualCss(plugin);
+
+    // Then the raw block counts as a reference, the same as a Css.anim chain would
+    expect(css).toBe(
+      [
+        ":root { --t-spacing: 8px; }",
+        "/* @truss @keyframes */",
+        "@keyframes spin { to { transform: rotate(360deg); } }",
+        "/* @truss arbitrary:start */",
+        ".loader {",
+        "  animation: spin 1s linear infinite;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
+    );
+  });
 });
 
 function n(s: string): string {
@@ -1149,10 +1253,15 @@ function createTempRoot(): string {
   return root;
 }
 
-function writeMapping(path: string, abbreviations: Record<string, Record<string, unknown>>): void {
+function writeMapping(
+  path: string,
+  abbreviations: Record<string, Record<string, unknown>>,
+  extra: Record<string, unknown> = {},
+): void {
   mkdirSync(dirname(path), { recursive: true });
   const mapping = {
     increment: 8,
+    ...extra,
     abbreviations,
   };
   writeFileSync(path, `${JSON.stringify(mapping, null, 2)}\n`, "utf8");

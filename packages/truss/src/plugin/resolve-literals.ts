@@ -2,7 +2,9 @@ import * as t from "@babel/types";
 import type { TrussMapping } from "./types";
 import { memberPropertyName, staticPropertyName, unwrapExpression } from "./ast-utils";
 import { type CallChainNode, UnsupportedPatternError } from "./chain-nodes";
+import { pascalCase } from "change-case";
 import { isCustomPropertyName, maybeCssVar } from "../css-custom-property";
+import { UnknownKeyframesError } from "./keyframe-names";
 import { incrementCssValue } from "../spacing-css-var";
 
 // ── Literal evaluation ────────────────────────────────────────────────
@@ -36,12 +38,38 @@ export function tryResolveValueLiteral(node: t.Expression, mapping?: TrussMappin
   if (mapping) {
     const token = tryResolveTokensMember(node, mapping);
     if (token !== null) return token;
+    const keyframes = tryResolveKeyframesMember(node, mapping);
+    if (keyframes !== null) return keyframes;
+    const template = tryResolveTemplateLiteral(node, mapping);
+    if (template !== null) return template;
   }
   if (t.isStringLiteral(node)) {
     return node.value;
   }
   const numeric = tryNumericLiteral(node);
   return numeric === null ? null : String(numeric);
+}
+
+/**
+ * Resolve a template literal whose every interpolation is itself a literal.
+ *
+ * Interpolated custom property names are wrapped, because a token inside a larger value has to read
+ * as `var(--angle)`, i.e. `` `conic-gradient(from ${Tokens.Angle}, red)` `` →
+ * `conic-gradient(from var(--angle), red)`. A template with a runtime expression stays unresolved and
+ * becomes a `_var` tuple like any other runtime value.
+ */
+function tryResolveTemplateLiteral(node: t.Expression, mapping: TrussMapping): string | null {
+  if (!t.isTemplateLiteral(node)) return null;
+  let result = node.quasis[0].value.cooked ?? node.quasis[0].value.raw;
+  for (let i = 0; i < node.expressions.length; i++) {
+    const expression = node.expressions[i];
+    if (!t.isExpression(expression)) return null;
+    const resolved = tryResolveValueLiteral(expression, mapping);
+    if (resolved === null) return null;
+    const quasi = node.quasis[i + 1];
+    result += maybeCssVar(resolved) + (quasi.value.cooked ?? quasi.value.raw);
+  }
+  return result;
 }
 
 /** I.e. `12` → 12 and `-12` → -12; null for anything but a (negated) numeric literal. */
@@ -69,6 +97,27 @@ function tryResolveTokensMember(node: t.Expression, mapping: TrussMapping): stri
     throw new UnsupportedPatternError(`Unknown token "${memberName}" - add it to config.tokens`);
   }
   return tokenMap[memberName];
+}
+
+/** Resolve `Keyframes.Member` / `Keyframes["Member"]` to an animation name, i.e. `Keyframes.Spin` → `spin`. */
+function tryResolveKeyframesMember(node: t.Expression, mapping: TrussMapping): string | null {
+  if (!t.isMemberExpression(node) || !t.isIdentifier(node.object, { name: "Keyframes" })) return null;
+  const memberName = memberPropertyName(node);
+  if (memberName === null) return null;
+
+  const keyframesMap = mapping.keyframes;
+  if (!keyframesMap) {
+    throw new UnsupportedPatternError(`Keyframes.* requires config.keyframes`);
+  }
+  // The enum member is PascalCase, i.e. `Keyframes.Spin`, while the configured name is the CSS one.
+  const name = Object.keys(keyframesMap).find((configured) => pascalCase(configured) === memberName);
+  if (name === undefined) {
+    throw new UnknownKeyframesError(
+      memberName,
+      Object.keys(keyframesMap).map((configured) => pascalCase(configured)),
+    );
+  }
+  return name;
 }
 
 // ── Argument and object-literal validation ────────────────────────────

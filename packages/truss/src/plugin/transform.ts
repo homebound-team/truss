@@ -20,6 +20,7 @@ import {
   upsertNamedImports,
   type NamedImport,
 } from "./ast-utils";
+import { applyReferencedKeyframes } from "./at-rule-refs";
 import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css";
 import { serializeTrussCss } from "./truss-css";
 import { createTestCssPayload } from "./test-css";
@@ -138,6 +139,8 @@ export function transformTruss(
   const chains = sites.map((s) => s.resolvedChain);
   const { rules, needsMaybeInc, needsMaybeCssVar } = collectAtomicRules(chains, mapping);
   const cssData = generateCssData(rules);
+  // Each test module carries the keyframes its own rules name; production merges them once.
+  applyReferencedKeyframes(cssData, mapping);
   const cssText = serializeTrussCss(cssData);
 
   // Step 4: Reserve local names for injected helpers

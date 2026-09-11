@@ -1,10 +1,19 @@
-import type { ParsedArbitraryCssBlock, ParsedCssRule, ParsedPropertyDeclaration, ParsedTrussCss } from "../truss-css";
+import type {
+  ParsedArbitraryCssBlock,
+  ParsedCssRule,
+  ParsedKeyframesBlock,
+  ParsedPropertyDeclaration,
+  ParsedTrussCss,
+} from "../truss-css";
 
 /** Regex matching `/* @truss p:<priority> c:<className> *\/` annotations. */
 const RULE_ANNOTATION_RE = /^\/\* @truss p:([\d.]+) c:(\S+) \*\/$/;
 
 /** Regex matching `/* @truss @property *\/` annotations. */
 const PROPERTY_ANNOTATION_RE = /^\/\* @truss @property \*\/$/;
+
+/** Regex matching `/* @truss @keyframes *\/` annotations. */
+const KEYFRAMES_ANNOTATION_RE = /^\/\* @truss @keyframes \*\/$/;
 
 /** Regex matching the start of an annotated arbitrary CSS block. */
 const ARBITRARY_START_RE = /^\/\* @truss arbitrary:start \*\/$/;
@@ -15,18 +24,22 @@ const ARBITRARY_END_RE = /^\/\* @truss arbitrary:end \*\/$/;
 /** Regex to extract the variable name from `@property --foo { ... }`. */
 const PROPERTY_VAR_RE = /^@property\s+(--\S+)/;
 
+/** Regex to extract the animation name from `@keyframes spin { ... }`. */
+const KEYFRAMES_NAME_RE = /^@keyframes\s+([^\s{]+)/;
+
 /**
- * Parse an annotated truss.css file into rules, @property declarations,
+ * Parse an annotated truss.css file into rules, @property declarations, @keyframes blocks,
  * and arbitrary CSS blocks.
  *
  * The file must contain `/* @truss p:<priority> c:<className> *\/` comments
- * before each CSS rule, and `/* @truss @property *\/` before each @property declaration.
- * Unannotated lines are ignored.
+ * before each CSS rule, `/* @truss @property *\/` before each @property declaration, and
+ * `/* @truss @keyframes *\/` before each @keyframes block. Unannotated lines are ignored.
  */
 export function parseTrussCss(cssText: string): ParsedTrussCss {
   const lines = cssText.split("\n");
   const rules: ParsedCssRule[] = [];
   const properties: ParsedPropertyDeclaration[] = [];
+  const keyframes: ParsedKeyframesBlock[] = [];
   const arbitraryCssBlocks: ParsedArbitraryCssBlock[] = [];
 
   let i = 0;
@@ -63,6 +76,17 @@ export function parseTrussCss(cssText: string): ParsedTrussCss {
       continue;
     }
 
+    // Check for @keyframes annotation
+    if (KEYFRAMES_ANNOTATION_RE.test(line)) {
+      const keyframesLine = takeAnnotatedLine();
+      const nameMatch = keyframesLine === null ? null : KEYFRAMES_NAME_RE.exec(keyframesLine);
+      if (keyframesLine !== null && nameMatch) {
+        keyframes.push({ cssText: keyframesLine, name: nameMatch[1] });
+      }
+      i++;
+      continue;
+    }
+
     if (ARBITRARY_START_RE.test(line)) {
       i++;
       const blockLines: string[] = [];
@@ -83,7 +107,7 @@ export function parseTrussCss(cssText: string): ParsedTrussCss {
     i++;
   }
 
-  return { rules, properties, arbitraryCssBlocks };
+  return { rules, properties, keyframes, arbitraryCssBlocks };
 }
 
 /** Serialize structured CSS without changing rule order or removing duplicate declarations. */
@@ -96,6 +120,10 @@ export function serializeTrussCss(css: ParsedTrussCss, annotate = true): string 
   for (const prop of css.properties) {
     if (annotate) lines.push(`/* @truss @property */`);
     lines.push(prop.cssText);
+  }
+  for (const block of css.keyframes) {
+    if (annotate) lines.push(`/* @truss @keyframes */`);
+    lines.push(block.cssText);
   }
   for (const block of css.arbitraryCssBlocks) {
     lines.push(annotate ? annotateArbitraryCssBlock(block.cssText) : block.cssText.trim());

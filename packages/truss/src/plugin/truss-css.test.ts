@@ -18,6 +18,7 @@ test("serialization omits only generated annotations when requested", () => {
         cssText: '@property --color { syntax: "<color>"; inherits: false; initial-value: red; }',
       },
     ],
+    keyframes: [{ name: "spin", cssText: "@keyframes spin { to { transform: rotate(360deg); } }" }],
     arbitraryCssBlocks: [{ cssText: '/* user comment */\n.label::after { content: "/* @truss literal */"; }' }],
   };
 
@@ -28,6 +29,8 @@ test("serialization omits only generated annotations when requested", () => {
       css.rules[0].cssText,
       "/* @truss @property */",
       css.properties[0].cssText,
+      "/* @truss @keyframes */",
+      css.keyframes[0].cssText,
       "/* @truss arbitrary:start */",
       css.arbitraryCssBlocks[0].cssText,
       "/* @truss arbitrary:end */",
@@ -37,10 +40,12 @@ test("serialization omits only generated annotations when requested", () => {
 
   // When serialized for an application, then CSS bodies and user comments remain unchanged
   expect(serializeTrussCss(css, false)).toBe(
-    [css.rules[0].cssText, css.properties[0].cssText, css.arbitraryCssBlocks[0].cssText].join("\n"),
+    [css.rules[0].cssText, css.properties[0].cssText, css.keyframes[0].cssText, css.arbitraryCssBlocks[0].cssText].join(
+      "\n",
+    ),
   );
 });
 
 test.each([true, false])("empty CSS stays empty with annotate=%s", (annotate) => {
-  expect(serializeTrussCss({ rules: [], properties: [], arbitraryCssBlocks: [] }, annotate)).toBe("");
+  expect(serializeTrussCss({ rules: [], properties: [], keyframes: [], arbitraryCssBlocks: [] }, annotate)).toBe("");
 });

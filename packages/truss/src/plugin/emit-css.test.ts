@@ -28,6 +28,7 @@ test("structured emission retains duplicate property declarations and exact prod
       { varName: "--width", cssText: '@property --width { syntax: "*"; inherits: false; }' },
       { varName: "--width", cssText: '@property --width { syntax: "*"; inherits: false; }' },
     ],
+    keyframes: [],
     arbitraryCssBlocks: [],
   });
   expect(generateCssText(rules)).toEqual(

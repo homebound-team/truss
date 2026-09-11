@@ -284,7 +284,170 @@ describe("transform", () => {
       .anim_pulse_2s_ease_in_out_infinite {
         animation: pulse 2s ease-in-out infinite;
       }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
     `,
+    );
+  });
+
+  test("names a configured keyframe through the Keyframes enum", () => {
+    // Given an animation whose name comes from the generated Keyframes enum
+    const source = `
+      import { Css, Keyframes } from "./Css";
+      const s = Css.animationName(Keyframes.Spin).$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the member resolves to the configured name, and its block travels with the rule
+    transform.toHaveTrussOutput(
+      `
+      import { Keyframes } from "./Css";
+      const s = { animationName: "animn_spin" };
+      `,
+      `
+      .animn_spin { animation-name: spin; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      `,
+    );
+  });
+
+  test("interpolates a Keyframes member into an animation shorthand", () => {
+    // Given the shorthand built as a template literal around the enum member
+    const source = `
+      import { Css, Keyframes } from "./Css";
+      const s = Css.animation(\`\${Keyframes.Spin} 0.8s linear infinite\`).$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the whole value resolves at build time, so it is a static class rather than a runtime var
+    transform.toHaveTrussOutput(
+      `
+      import { Keyframes } from "./Css";
+      const s = { animation: "anim_spin_0_8s_linear_infinite" };
+      `,
+      `
+      .anim_spin_0_8s_linear_infinite { animation: spin 0.8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      `,
+    );
+  });
+
+  test("interpolates a token into a larger value as var()", () => {
+    // Given a token used inside a function rather than as the whole value
+    const source = `
+      import { Css, Tokens } from "./Css";
+      const s = Css.add("backgroundImage", \`conic-gradient(from \${Tokens.Angle}, red, blue)\`).$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the interpolation is wrapped, since a bare `--angle` is not a value
+    transform.toHaveTrussOutput(
+      `
+      import { Tokens } from "./Css";
+      const s = { backgroundImage: "bgi_conic_gradient_from_var_angle_red_blue" };
+      `,
+      `
+      .bgi_conic_gradient_from_var_angle_red_blue { background-image: conic-gradient(from var(--angle), red, blue); }
+      `,
+    );
+  });
+
+  test("rejects an animation name that config.keyframes does not declare", () => {
+    // Given a misspelling of the configured `spin` keyframe
+    const source = `
+      import { Css } from "./Css";
+      const s = Css.animation("spinn 1s linear infinite").$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the build reports the unknown name with the nearest configured one
+    transform.toHaveTrussOutput(
+      `
+      console.error("[truss] Unsupported pattern: Unknown keyframes \\"spinn\\" - add it to config.keyframes. Did you mean \\"spin\\"? (test.tsx:2)");
+      const s = {};
+      `,
+      ``,
+    );
+  });
+
+  test("rejects a Keyframes member that config.keyframes does not declare", () => {
+    // Given a misspelling of the `Spin` enum member
+    const source = `
+      import { Css, Keyframes } from "./Css";
+      const s = Css.animationName(Keyframes.Spinn).$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the member is reported the same way a mistyped token is
+    transform.toHaveTrussOutput(
+      `
+      import { Keyframes } from "./Css";
+      console.error("[truss] Unsupported pattern: Unknown keyframes \\"Spinn\\" - add it to config.keyframes. Did you mean \\"Spin\\"? (test.tsx:2)");
+      const s = {};
+      `,
+      ``,
+    );
+  });
+
+  test("accepts a keyframe name another stylesheet defines and writes no block", () => {
+    // Given `aiStarLoader`, which truss-config declares as null because a global stylesheet owns it
+    const source = `
+      import { Css } from "./Css";
+      const s = Css.animationName("aiStarLoader").$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the name passes the check, and Truss emits only the rule
+    transform.toHaveTrussOutput(
+      `
+      const s = { animationName: "animn_aiStarLoader" };
+      `,
+      `
+      .animn_aiStarLoader { animation-name: aiStarLoader; }
+      `,
+    );
+  });
+
+  test("keeps every keyframe when an animation value is only known at runtime", () => {
+    // Given an animation whose value is a runtime expression, so no name is visible to the build
+    const source = `
+      import { Css } from "./Css";
+      function f(motion: string) { return Css.animation(motion).$; }
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then no block is pruned, since the browser may ask for any of them
+    transform.toHaveTrussOutput(
+      `
+      import { maybeCssVar } from "@homebound/truss/runtime";
+      function f(motion: string) { return { animation: ["animation_var", { "--animation": maybeCssVar(motion) }] }; }
+      `,
+      `
+      .animation_var { animation: var(--animation); }
+      @property --animation { syntax: "*"; inherits: false; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes sweep { to { --angle: 360deg; } }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+      `,
+    );
+  });
+
+  test("animating a registered property emits the keyframe that sets it", () => {
+    // Given the `sweep` keyframe, whose only declaration is the registered `--angle` token
+    const source = `
+      import { Css } from "./Css";
+      const s = Css.animation("sweep 2s linear infinite").$;
+      `;
+    // When we transform the file
+    const transform = expectTrussTransform(source);
+    // Then the keyframe body carries the custom property the browser interpolates
+    transform.toHaveTrussOutput(
+      `
+      const s = { animation: "anim_sweep_2s_linear_infinite" };
+      `,
+      `
+      .anim_sweep_2s_linear_infinite { animation: sweep 2s linear infinite; }
+      @keyframes sweep { to { --angle: 360deg; } }
+      `,
     );
   });
 

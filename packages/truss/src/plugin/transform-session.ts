@@ -1,4 +1,5 @@
 import { resolve } from "path";
+import { applyReferencedKeyframes, applyRegisteredProperties } from "./at-rule-refs";
 import { generateCssData, type AtomicRule } from "./emit-css";
 import { transformCssTs } from "./transform-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
@@ -101,7 +102,11 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
       .join("\n\n");
     if (allArbitrary.length > 0) appCss.arbitraryCssBlocks.push({ cssText: allArbitrary });
     const libs = loadLibraries();
-    const body = serializeTrussCss(libs.length === 0 ? appCss : mergeTrussCssData([...libs, appCss]), annotate);
+    const merged = libs.length === 0 ? appCss : mergeTrussCssData([...libs, appCss]);
+    // After the merge, so a keyframe sees every animation in the stylesheet, libraries included.
+    applyReferencedKeyframes(merged, mapping);
+    applyRegisteredProperties(merged, mapping);
+    const body = serializeTrussCss(merged, annotate);
     if (body.length === 0) return "";
     return `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
   }
@@ -110,9 +115,16 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     return cssRegistry.size > 0 || arbitraryCssRegistry.size > 0 || libraryPaths.length > 0;
   }
 
-  /** Collect only libraries; application modules deliver their own CSS in tests. */
+  /**
+   * Collect only libraries; application modules deliver their own CSS in tests.
+   *
+   * Registered `@property` blocks ride along here rather than in each module, because registration
+   * is stylesheet-wide state that does not prune with any one rule.
+   */
   function collectTestCss(): TestCssPayload {
-    return createTestCssPayload(mergeTrussCssData(loadLibraries()));
+    const css = mergeTrussCssData(loadLibraries());
+    applyRegisteredProperties(css, ensureMapping());
+    return createTestCssPayload(css);
   }
 
   /** Read the transformed arbitrary CSS for one canonical source file. */

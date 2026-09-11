@@ -108,6 +108,7 @@ And a static, build-time generated CSS file:
   - [See example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below
 
 - Optional **design tokens** (`config.tokens`) and **`Css.setVar`** for scoped CSS variables on **web** (build-time atomic classes). React Native does not support `setVar`. See [Design tokens and Css.setVar](#design-tokens-and-csssetvar).
+- Optional **`@property` registration** (the object form of `config.tokens`) and **`@keyframes`** (`config.keyframes`), so animation names are checked at build time and unused keyframes are pruned. See [Registering a token with `@property`](#registering-a-token-with-property) and [Keyframes](#keyframes).
 
 - Escape hatch to arbitrary/runtime selectors
   - `useRuntimeStyle({ body: RuntimeCss.blue.$ })`
@@ -245,9 +246,7 @@ npm install --save-dev @homebound/truss
    export default defineConfig({
      plugins: [trussPlugin({ mapping: "./src/Css.json" })],
      build: {
-       lib: {
-         /* your library entry */
-       },
+       lib: {/* your library entry */},
      },
    });
    ```
@@ -908,6 +907,68 @@ React Native: **`setVar`** is not supported (no web atomic pipeline).
   }
 />
 ```
+
+#### Registering a token with `@property`
+
+Naming a token and registering it are two different things in `truss-config.ts`:
+
+- Defining a token as just a `string` value only gives the variable a TypeScript name; it emits no CSS at all.
+- Defining a token as an `object` also emits an **`@property`** block.
+
+  This tells the _browser_ about the variable: how to parse and type-check its value, to fall back to **`initialValue`**, and to **interpolate** it when used in animations.
+
+```typescript
+tokens: {
+  ThemePrimary: "--theme-primary",                                       // named only
+  Angle: { var: "--angle", syntax: "<angle>", inherits: false, initialValue: "0deg" },
+},
+```
+
+Whether you define a token as a `string` or `object` does not change how you use the token:
+
+- **`Css.setVar({ [Tokens.Angle]: "45deg" })`** to write it,
+- **`Tokens.Angle`** as a whole value to read it (Truss wraps it as `var(--angle)`), or
+  interpolated into a larger value, i.e. ``Css.add("backgroundImage", `conic-gradient(from ${Tokens.Angle}, red, blue)`)``
+
+When using the `object` form:
+
+- **`inherits`** defaults to `false`,
+- **`initialValue`** is required for every **`syntax`** except `"*"`
+
+**`@property`** blocks are emitted unconditionally rather than pruned based on usage. Static usage like `Css.bc(Tokens.Angle)` is knowable at build time, but dynamic usage like `const token = ...; Css.bc(token)` is not, and would force keeping everything anyway, so pruning is likely not really worth it.
+
+(Unlike keyframes, below, which we do prune based on usage, b/c they are sufficiently larger than tokens, and also easier to detect in terms of dynamic usage b/c their names must always be used in an `animation` property.)
+
+#### Keyframes
+
+Truss supports declaring **`keyframes`** for animation in `truss-config.ts`, in addition to just raw CSS blocks in a `.css.ts`.
+
+Using `truss-config.ts` declarations is preferable as then Truss knows about the name: it can check the animations that use it, and write the declaration only while some rule still does.
+
+```typescript
+keyframes: {
+  spin: { to: { transform: "rotate(360deg)" } },
+  pulse: { "0%, 100%": { opacity: 1 }, "50%": { opacity: 0.45 } },
+  sweep: { to: { "--angle": "360deg" } },                // animating a registered property
+  shimmer: "from { background-position: 200% 0; }",      // raw body escape hatch
+  aiStarLoader: null,                                    // defined by another stylesheet
+},
+```
+
+Each entry is a keyframe selector (`from`, `to`, `50%`, `0%, 100%`), which csstype validates like any other declaration — plus custom properties, since animating a registered property is written as a keyframe that sets it. A **string** is a raw body, for a timeline the typed form cannot express. **`null`** declares a name some other stylesheet owns (a global CSS file, a third-party package): Truss accepts the name and writes nothing.
+
+The generated `Css.ts` file will have an **`export enum Keyframes { … }`** with a PascalCase member per name:
+
+```tsx
+<div css={Css.animationName(Keyframes.Spin).animationDuration("0.8s").$} />
+<div css={Css.animation(`${Keyframes.Spin} 0.8s linear infinite`).$} />
+```
+
+Once keyframes are configured, Truss checks every `animation` / `animation-name` usage at build-time and fails the build on a name you have not declared, the same way a mistyped abbreviation does — `Unknown keyframes "spinn" - add it to config.keyframes. Did you mean "spin"?`.
+
+A keyframe declaration is written only when used, so unused animations are pruned — the same effect as declaring them in a `.css.ts` file that is never actually imported.
+
+The disclaimer is that values built at runtime, i.e. `Css.animation(motion)`, leave no name in the CSS, so a) they are not checked, and b) they trigger every configured keyframe to emit, just in case the browser ends up asking for one.
 
 ### Per-Project Utility Methods
 
