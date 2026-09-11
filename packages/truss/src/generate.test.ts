@@ -83,6 +83,30 @@ describe("generate", () => {
     }
   });
 
+  it("throws for a keyframe whose method name is taken twice over", async () => {
+    // Given a keyframe named `float`, which the tachyons `float` method already owns
+    const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));
+    const config: Config = {
+      outputPath: join(dir, "Css.ts"),
+      palette: {},
+      fonts: {},
+      increment: 8,
+      numberOfIncrements: 1,
+      // And an alias that owns the `animateFloat` name the keyframe would fall back to
+      aliases: { animateFloat: ["df"] },
+      keyframes: { float: { to: { transform: "translateY(-4px)" } } },
+    };
+
+    try {
+      await expect(generate(config)).rejects.toThrow(
+        'Keyframes "float" cannot have a Css method: "float" and "animateFloat" are both already taken. ' +
+          "Rename the keyframe.",
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("throws for a registered token whose syntax has no initial value", async () => {
     // Given a token registered with a real syntax but no initialValue, which the browser would reject
     const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));

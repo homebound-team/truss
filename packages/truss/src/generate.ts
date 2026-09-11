@@ -3,7 +3,14 @@ import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
 import { makeBreakpoints } from "src/breakpoints";
 import { Config, SectionName, Sections, UtilityMethod } from "src/config";
-import { newAliasesMethods, startWebCollection, stopWebCollection, WebEntry } from "src/methods";
+import {
+  collectedAbbreviations,
+  newAliasesMethods,
+  startWebCollection,
+  stopWebCollection,
+  WebEntry,
+} from "src/methods";
+import { newKeyframesMethods } from "src/keyframe-methods";
 import { defaultSections } from "src/sections/tachyons";
 import { quote } from "src/utils";
 import { pascalCase } from "change-case";
@@ -59,7 +66,7 @@ export async function generate(config: Config): Promise<void> {
   const { outputPath } = config;
   const target: string = config.target ?? "web";
   if (target === "web") {
-    const { sections, entries } = collectWebGenerationData(config);
+    const { sections, entries } = generateSections(config);
     // For web target: generate a web-friendly CssBuilder (for types/IDE) + a mapping JSON
     const cssOutput = generateWebCssBuilder(config, sections).toString();
     await fs.writeFile(outputPath, cssOutput);
@@ -80,7 +87,7 @@ export async function generate(config: Config): Promise<void> {
 
 function generateReactNativeBuilder(config: Config): Code {
   const { fonts, increment, extras, typeAliases, breakpoints = {}, palette, tokens } = config;
-  const sections = generateSections(config);
+  const { sections } = generateSections(config);
 
   const lines = Object.entries(sections)
     .map(([name, value]) => [`// ${name}`, ...value, ""])
@@ -370,30 +377,32 @@ function generateMethods(config: Config, methodFns: Sections): Record<SectionNam
   return Object.fromEntries(Object.entries(methodFns).map(([name, fn]) => [name, fn(config)]));
 }
 
-/** Returns all utility sections configured for this project. */
-function generateSections(config: Config): Record<string, UtilityMethod[]> {
+/**
+ * Returns all utility sections configured for this project, with the `WebEntry` metadata the web
+ * mapping is built from.
+ *
+ * Keyframe methods come last, so a keyframe only falls back to its `animate<Name>` spelling when a
+ * utility method, a custom section, or an alias already owns the plain name.
+ */
+function generateSections(config: Config): { sections: Record<string, UtilityMethod[]>; entries: WebEntry[] } {
   const { aliases, defaultMethods = "tachyons", sections: customSections } = config;
-  return {
-    ...(defaultMethods === "tachyons"
-      ? generateMethods(config, defaultSections)
-      : defaultMethods === "tachyons-rn"
-        ? generateMethods(config, reactNativeSections)
-        : {}),
-    ...(customSections ? generateMethods(config, customSections) : {}),
-    ...(aliases && { aliases: newAliasesMethods(aliases) }),
-  };
-}
-
-/** Runs section generation once with collection enabled for web outputs. */
-function collectWebGenerationData(config: Config): {
-  sections: Record<string, UtilityMethod[]>;
-  entries: WebEntry[];
-} {
   startWebCollection();
   try {
-    const sections = generateSections(config);
-    const entries = stopWebCollection();
-    return { sections, entries };
+    const sections: Record<string, UtilityMethod[]> = {
+      ...(defaultMethods === "tachyons"
+        ? generateMethods(config, defaultSections)
+        : defaultMethods === "tachyons-rn"
+          ? generateMethods(config, reactNativeSections)
+          : {}),
+      ...(customSections ? generateMethods(config, customSections) : {}),
+      ...(aliases && { aliases: newAliasesMethods(aliases) }),
+    };
+    // `@keyframes` are a web-only feature, like the `Keyframes` enum itself.
+    if (config.target !== "react-native") {
+      const keyframes = newKeyframesMethods(config, collectedAbbreviations());
+      if (keyframes.length > 0) sections.keyframes = keyframes;
+    }
+    return { sections, entries: stopWebCollection() };
   } catch (error) {
     stopWebCollection();
     throw error;
@@ -798,7 +807,8 @@ export type TrussMappingEntry =
   | { kind: "static"; defs: Record<string, unknown> }
   | { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
   | { kind: "delegate"; target: string }
-  | { kind: "alias"; chain: string[] };
+  | { kind: "alias"; chain: string[] }
+  | { kind: "keyframe"; name: string };
 
 /**
  * Generates the truss mapping JSON that the Vite plugin uses to resolve
@@ -842,6 +852,12 @@ function generateTrussMapping(config: Config, entries: WebEntry[]): TrussMapping
         abbreviations[entry.abbr] = {
           kind: "alias",
           chain: entry.aliasTargets || [],
+        };
+        break;
+      case "keyframe":
+        abbreviations[entry.abbr] = {
+          kind: "keyframe",
+          name: entry.keyframeName || entry.abbr,
         };
         break;
     }

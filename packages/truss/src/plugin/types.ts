@@ -55,7 +55,9 @@ export type TrussMappingEntry =
   /** I.e. `{ "kind": "delegate", "target": "mt" }` for `Css.mtPx(v).$`. */
   | { kind: "delegate"; target: string }
   /** I.e. `{ "kind": "alias", "chain": ["f14", "black"] }` for `Css.bodyText.$`. */
-  | { kind: "alias"; chain: string[] };
+  | { kind: "alias"; chain: string[] }
+  /** I.e. `{ "kind": "keyframe", "name": "sweep" }` for `Css.sweep("1.6s linear infinite").$`. */
+  | { kind: "keyframe"; name: string };
 
 /** Fields shared by the segments that resolve to atomic CSS declarations. */
 interface CssSegmentBase {
@@ -91,6 +93,8 @@ export interface VariableSegment extends CssSegmentBase {
   incremented: boolean;
   /** For Px delegates: whether the runtime value must append `px`. */
   appendPx: boolean;
+  /** For keyframe methods: the animation name put in front of the runtime value, i.e. `"sweep "`. */
+  valuePrefix?: string;
   /** Additional static defs applied alongside the variable value. */
   extraDefs?: Record<string, unknown>;
   argNode?: t.Expression;
