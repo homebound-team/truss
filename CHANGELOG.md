@@ -1,3 +1,9 @@
+## [2.29.13](https://github.com/homebound-team/truss/compare/v2.29.12...v2.29.13) (2026-09-11)
+
+### Bug Fixes
+
+* Abbreviate the property prefix on value-folded class names. ([952d834](https://github.com/homebound-team/truss/commit/952d834acd805b74c61231a015ce062054f98298))
+
 ## [2.29.12](https://github.com/homebound-team/truss/compare/v2.29.11...v2.29.12) (2026-09-11)
 
 ### Bug Fixes
