@@ -4690,6 +4690,60 @@ test("setVar: unknown token member errors and skips defs", () => {
   );
 });
 
+test("pointer events: Css.pen.$", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.pen.$;
+    `).toHaveTrussOutput(
+    `
+      const s = { pointerEvents: "pen" };
+    `,
+    `
+      .pen {
+        pointer-events: none;
+      }
+    `,
+  );
+});
+
+test("background clip sets the prefixed property too: Css.bgClipText.$", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.bgClipText.$;
+    `).toHaveTrussOutput(
+    `
+      const s = { backgroundClip: "bgcl_text", WebkitBackgroundClip: "WebkitBackgroundClip_text" };
+    `,
+    `
+      .WebkitBackgroundClip_text {
+        -webkit-background-clip: text;
+      }
+      .bgcl_text {
+        background-clip: text;
+      }
+    `,
+  );
+});
+
+test("scroll margin and inset use increments: Css.smt2.inset0.$", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.smt2.inset0.$;
+    `).toHaveTrussOutput(
+    `
+      const s = { scrollMarginTop: "smt2", inset: "inset0" };
+    `,
+    `
+      .inset0 {
+        inset: calc(var(--t-spacing) * 0);
+      }
+      .smt2 {
+        scroll-margin-top: calc(var(--t-spacing) * 2);
+      }
+    `,
+  );
+});
+
 /** Expect helper around transform code and css outputs. */
 function expectTrussTransform(code: string, options?: TransformTrussOptions) {
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);

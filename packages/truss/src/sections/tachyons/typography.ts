@@ -22,4 +22,9 @@ export const typography: CreateMethodsFn = () => [
   // `fs0` and `fs1` for `flexShrink`, but this seems fine.
   ...newMethodsForProp("fontSize", {}, "fs", true),
   ...newMethodsForProp("lineHeight", {}, "lh", true),
+  ...newMethodsForProp("letterSpacing", {}, "ls", true),
+  ...newMethodsForProp("textWrap", { textBalance: "balance", textPretty: "pretty" }),
+  ...newMethodsForProp("fontVariantNumeric", { tabularNums: "tabular-nums" }),
+  // For the `content` of a `:before`/`:after`, i.e. `Css.before(Css.content('"*"').$).$`.
+  ...newMethodsForProp("content", {}),
 ];

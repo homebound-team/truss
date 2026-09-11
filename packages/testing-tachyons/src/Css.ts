@@ -118,6 +118,64 @@ class CssBuilder<T extends Properties> {
     return this.add("animationTimingFunction", value);
   }
 
+  // appearance
+  /** Sets `appearance: "none"`. */
+  get appearanceNone() {
+    return this.add("appearance", "none");
+  }
+  /** Sets `appearance: value`. */
+  appearance(value: Properties["appearance"]) {
+    return this.add("appearance", value);
+  }
+
+  // aspectRatio
+  /** Sets `aspectRatio: "1 / 1"`. */
+  get arSquare() {
+    return this.add("aspectRatio", "1 / 1");
+  }
+  /** Sets `aspectRatio: "16 / 9"`. */
+  get arVideo() {
+    return this.add("aspectRatio", "16 / 9");
+  }
+  /** Sets `aspectRatio: value`. */
+  ar(value: Properties["aspectRatio"]) {
+    return this.add("aspectRatio", value);
+  }
+
+  // background
+  /** Sets `background: value`. */
+  background(value: Properties["background"]) {
+    return this.add("background", value);
+  }
+  /** Sets `backgroundImage: value`. */
+  bgImage(value: Properties["backgroundImage"]) {
+    return this.add("backgroundImage", value);
+  }
+  /** Sets `backgroundSize: value`. */
+  bgSize(value: Properties["backgroundSize"]) {
+    return this.add("backgroundSize", value);
+  }
+  /** Sets `backgroundPosition: value`. */
+  bgPosition(value: Properties["backgroundPosition"]) {
+    return this.add("backgroundPosition", value);
+  }
+  /** Sets `backgroundRepeat: "no-repeat"`. */
+  get bgNoRepeat() {
+    return this.add("backgroundRepeat", "no-repeat");
+  }
+  /** Sets `backgroundRepeat: value`. */
+  bgRepeat(value: Properties["backgroundRepeat"]) {
+    return this.add("backgroundRepeat", value);
+  }
+  /** Sets `backgroundClip: "text"; WebkitBackgroundClip: "text"`. */
+  get bgClipText() {
+    return this.add("backgroundClip", "text").add("WebkitBackgroundClip", "text");
+  }
+  /** Sets `backgroundClip: value`. */
+  bgClip(value: Properties["backgroundClip"]) {
+    return this.add("backgroundClip", value);
+  }
+
   // border
   /** Sets `borderStyle: "solid"; borderWidth: "1px"`. */
   get ba() {
@@ -172,6 +230,22 @@ class CssBuilder<T extends Properties> {
   /** Sets `borderColor: value`. */
   bc(value: Properties["borderColor"]) {
     return this.add("borderColor", value);
+  }
+  /** Sets `borderTopColor: value`. */
+  btc(value: Properties["borderTopColor"]) {
+    return this.add("borderTopColor", value);
+  }
+  /** Sets `borderRightColor: value`. */
+  brc(value: Properties["borderRightColor"]) {
+    return this.add("borderRightColor", value);
+  }
+  /** Sets `borderBottomColor: value`. */
+  bbc(value: Properties["borderBottomColor"]) {
+    return this.add("borderBottomColor", value);
+  }
+  /** Sets `borderLeftColor: value`. */
+  blc(value: Properties["borderLeftColor"]) {
+    return this.add("borderLeftColor", value);
   }
 
   // borderRadius
@@ -248,6 +322,26 @@ class CssBuilder<T extends Properties> {
   /** Sets `boxShadow: "none"`. */
   get shadowNone() {
     return this.add("boxShadow", "none");
+  }
+
+  // breaks
+  /** Sets `breakInside: "avoid"`. */
+  get breakAvoid() {
+    return this.add("breakInside", "avoid");
+  }
+  /** Sets `breakInside: value`. */
+  breakInside(value: Properties["breakInside"]) {
+    return this.add("breakInside", value);
+  }
+  /** Sets `breakAfter: value`. */
+  breakAfter(value: Properties["breakAfter"]) {
+    return this.add("breakAfter", value);
+  }
+
+  // clipPath
+  /** Sets `clipPath: value`. */
+  clipPath(value: Properties["clipPath"]) {
+    return this.add("clipPath", value);
   }
 
   // container
@@ -385,6 +479,34 @@ class CssBuilder<T extends Properties> {
   leftPx(px: number) {
     return this.add("left", `${px}px`);
   }
+  /** Sets `inset: "0px"`. */
+  get inset0() {
+    return this.add("inset", "0px");
+  }
+  /** Sets `inset: "8px"`. */
+  get inset1() {
+    return this.add("inset", "8px");
+  }
+  /** Sets `inset: "16px"`. */
+  get inset2() {
+    return this.add("inset", "16px");
+  }
+  /** Sets `inset: "24px"`. */
+  get inset3() {
+    return this.add("inset", "24px");
+  }
+  /** Sets `inset: "32px"`. */
+  get inset4() {
+    return this.add("inset", "32px");
+  }
+  /** Sets `inset: "v"`. */
+  inset(v: number | string) {
+    return this.add("inset", maybeInc(v));
+  }
+  /** Sets `inset: px`. */
+  insetPx(px: number) {
+    return this.add("inset", `${px}px`);
+  }
 
   // cursor
   /** Sets `cursor: "pointer"`. */
@@ -456,6 +578,16 @@ class CssBuilder<T extends Properties> {
   /** Sets `display: value`. */
   display(value: Properties["display"]) {
     return this.add("display", value);
+  }
+
+  // filter
+  /** Sets `filter: value`. */
+  filter(value: Properties["filter"]) {
+    return this.add("filter", value);
+  }
+  /** Sets `backdropFilter: value`. */
+  backdropFilter(value: Properties["backdropFilter"]) {
+    return this.add("backdropFilter", value);
   }
 
   // flexbox
@@ -927,6 +1059,10 @@ class CssBuilder<T extends Properties> {
   gc(value: Properties["gridColumn"]) {
     return this.add("gridColumn", value);
   }
+  /** Sets `gridArea: value`. */
+  ga(value: Properties["gridArea"]) {
+    return this.add("gridArea", value);
+  }
   /** Sets `gridAutoRows: value`. */
   gar(value: Properties["gridAutoRows"]) {
     return this.add("gridAutoRows", value);
@@ -1217,6 +1353,22 @@ class CssBuilder<T extends Properties> {
     ).add("textOverflow", "ellipsis");
   }
 
+  // listStyle
+  /** Sets `listStyle: "none"`. */
+  get listNone() {
+    return this.add("listStyle", "none");
+  }
+  /** Sets `listStyle: value`. */
+  listStyle(value: Properties["listStyle"]) {
+    return this.add("listStyle", value);
+  }
+
+  // mask
+  /** Sets `maskImage: value`. */
+  maskImage(value: Properties["maskImage"]) {
+    return this.add("maskImage", value);
+  }
+
   // objectFit
   /** Sets `objectFit: "contain"`. */
   get objectContain() {
@@ -1241,6 +1393,10 @@ class CssBuilder<T extends Properties> {
   /** Sets `objectFit: value`. */
   objectFit(value: Properties["objectFit"]) {
     return this.add("objectFit", value);
+  }
+  /** Sets `objectPosition: value`. */
+  objectPosition(value: Properties["objectPosition"]) {
+    return this.add("objectPosition", value);
   }
 
   // opacity
@@ -1285,6 +1441,22 @@ class CssBuilder<T extends Properties> {
   /** Sets `outline: value`. */
   outline(value: Properties["outline"]) {
     return this.add("outline", value);
+  }
+  /** Sets `outlineColor: value`. */
+  outlineColor(value: Properties["outlineColor"]) {
+    return this.add("outlineColor", value);
+  }
+  /** Sets `outlineOffset: value`. */
+  outlineOffset(value: Properties["outlineOffset"]) {
+    return this.add("outlineOffset", value);
+  }
+  /** Sets `outlineStyle: value`. */
+  outlineStyle(value: Properties["outlineStyle"]) {
+    return this.add("outlineStyle", value);
+  }
+  /** Sets `outlineWidth: value`. */
+  outlineWidth(value: Properties["outlineWidth"]) {
+    return this.add("outlineWidth", value);
   }
 
   // overflow
@@ -1349,6 +1521,20 @@ class CssBuilder<T extends Properties> {
     return this.add("overflowX", value);
   }
 
+  // pointerEvents
+  /** Sets `pointerEvents: "none"`. */
+  get pen() {
+    return this.add("pointerEvents", "none");
+  }
+  /** Sets `pointerEvents: "auto"`. */
+  get pea() {
+    return this.add("pointerEvents", "auto");
+  }
+  /** Sets `pointerEvents: value`. */
+  pointerEvents(value: Properties["pointerEvents"]) {
+    return this.add("pointerEvents", value);
+  }
+
   // position
   /** Sets `position: "absolute"`. */
   get absolute() {
@@ -1373,6 +1559,158 @@ class CssBuilder<T extends Properties> {
   /** Sets `position: value`. */
   position(value: Properties["position"]) {
     return this.add("position", value);
+  }
+
+  // resize
+  /** Sets `resize: "none"`. */
+  get resizeNone() {
+    return this.add("resize", "none");
+  }
+  /** Sets `resize: value`. */
+  resize(value: Properties["resize"]) {
+    return this.add("resize", value);
+  }
+
+  // scroll
+  /** Sets `scrollMarginTop: "0px"`. */
+  get smt0() {
+    return this.add("scrollMarginTop", "0px");
+  }
+  /** Sets `scrollMarginTop: "8px"`. */
+  get smt1() {
+    return this.add("scrollMarginTop", "8px");
+  }
+  /** Sets `scrollMarginTop: "16px"`. */
+  get smt2() {
+    return this.add("scrollMarginTop", "16px");
+  }
+  /** Sets `scrollMarginTop: "24px"`. */
+  get smt3() {
+    return this.add("scrollMarginTop", "24px");
+  }
+  /** Sets `scrollMarginTop: "32px"`. */
+  get smt4() {
+    return this.add("scrollMarginTop", "32px");
+  }
+  /** Sets `scrollMarginTop: "v"`. */
+  smt(v: number | string) {
+    return this.add("scrollMarginTop", maybeInc(v));
+  }
+  /** Sets `scrollMarginTop: px`. */
+  smtPx(px: number) {
+    return this.add("scrollMarginTop", `${px}px`);
+  }
+  /** Sets `scrollMarginRight: "0px"`. */
+  get smr0() {
+    return this.add("scrollMarginRight", "0px");
+  }
+  /** Sets `scrollMarginRight: "8px"`. */
+  get smr1() {
+    return this.add("scrollMarginRight", "8px");
+  }
+  /** Sets `scrollMarginRight: "16px"`. */
+  get smr2() {
+    return this.add("scrollMarginRight", "16px");
+  }
+  /** Sets `scrollMarginRight: "24px"`. */
+  get smr3() {
+    return this.add("scrollMarginRight", "24px");
+  }
+  /** Sets `scrollMarginRight: "32px"`. */
+  get smr4() {
+    return this.add("scrollMarginRight", "32px");
+  }
+  /** Sets `scrollMarginRight: "v"`. */
+  smr(v: number | string) {
+    return this.add("scrollMarginRight", maybeInc(v));
+  }
+  /** Sets `scrollMarginRight: px`. */
+  smrPx(px: number) {
+    return this.add("scrollMarginRight", `${px}px`);
+  }
+  /** Sets `scrollMarginBottom: "0px"`. */
+  get smb0() {
+    return this.add("scrollMarginBottom", "0px");
+  }
+  /** Sets `scrollMarginBottom: "8px"`. */
+  get smb1() {
+    return this.add("scrollMarginBottom", "8px");
+  }
+  /** Sets `scrollMarginBottom: "16px"`. */
+  get smb2() {
+    return this.add("scrollMarginBottom", "16px");
+  }
+  /** Sets `scrollMarginBottom: "24px"`. */
+  get smb3() {
+    return this.add("scrollMarginBottom", "24px");
+  }
+  /** Sets `scrollMarginBottom: "32px"`. */
+  get smb4() {
+    return this.add("scrollMarginBottom", "32px");
+  }
+  /** Sets `scrollMarginBottom: "v"`. */
+  smb(v: number | string) {
+    return this.add("scrollMarginBottom", maybeInc(v));
+  }
+  /** Sets `scrollMarginBottom: px`. */
+  smbPx(px: number) {
+    return this.add("scrollMarginBottom", `${px}px`);
+  }
+  /** Sets `scrollMarginLeft: "0px"`. */
+  get sml0() {
+    return this.add("scrollMarginLeft", "0px");
+  }
+  /** Sets `scrollMarginLeft: "8px"`. */
+  get sml1() {
+    return this.add("scrollMarginLeft", "8px");
+  }
+  /** Sets `scrollMarginLeft: "16px"`. */
+  get sml2() {
+    return this.add("scrollMarginLeft", "16px");
+  }
+  /** Sets `scrollMarginLeft: "24px"`. */
+  get sml3() {
+    return this.add("scrollMarginLeft", "24px");
+  }
+  /** Sets `scrollMarginLeft: "32px"`. */
+  get sml4() {
+    return this.add("scrollMarginLeft", "32px");
+  }
+  /** Sets `scrollMarginLeft: "v"`. */
+  sml(v: number | string) {
+    return this.add("scrollMarginLeft", maybeInc(v));
+  }
+  /** Sets `scrollMarginLeft: px`. */
+  smlPx(px: number) {
+    return this.add("scrollMarginLeft", `${px}px`);
+  }
+  /** Sets `scrollPadding: value`. */
+  scrollPadding(value: Properties["scrollPadding"]) {
+    return this.add("scrollPadding", value);
+  }
+  /** Sets `scrollPaddingInline: value`. */
+  scrollPaddingInline(value: Properties["scrollPaddingInline"]) {
+    return this.add("scrollPaddingInline", value);
+  }
+  /** Sets `scrollPaddingBlock: value`. */
+  scrollPaddingBlock(value: Properties["scrollPaddingBlock"]) {
+    return this.add("scrollPaddingBlock", value);
+  }
+  /** Sets `scrollBehavior: "smooth"`. */
+  get scrollSmooth() {
+    return this.add("scrollBehavior", "smooth");
+  }
+  /** Sets `scrollBehavior: value`. */
+  scrollBehavior(value: Properties["scrollBehavior"]) {
+    return this.add("scrollBehavior", value);
+  }
+  /** Sets `overscrollBehavior: "contain"`. */
+  get overscrollContain() {
+    return this.add("overscrollBehavior", "contain");
+  }
+  /** Sets `overscrollBehavior: value`. */
+  overscrollBehavior(value: Properties["overscrollBehavior"]) {
+    return this.add("overscrollBehavior", value);
   }
 
   // scrollSnap
@@ -1487,6 +1825,14 @@ class CssBuilder<T extends Properties> {
   /** Sets `fill: value`. */
   fill(value: Properties["fill"]) {
     return this.add("fill", value);
+  }
+  /** Sets `accentColor: value`. */
+  accentColor(value: Properties["accentColor"]) {
+    return this.add("accentColor", value);
+  }
+  /** Sets `caretColor: value`. */
+  caretColor(value: Properties["caretColor"]) {
+    return this.add("caretColor", value);
   }
 
   // spacing
@@ -1950,6 +2296,20 @@ class CssBuilder<T extends Properties> {
     );
   }
 
+  // table
+  /** Sets `borderCollapse: value`. */
+  borderCollapse(value: Properties["borderCollapse"]) {
+    return this.add("borderCollapse", value);
+  }
+  /** Sets `borderSpacing: value`. */
+  borderSpacing(value: Properties["borderSpacing"]) {
+    return this.add("borderSpacing", value);
+  }
+  /** Sets `tableLayout: value`. */
+  tableLayout(value: Properties["tableLayout"]) {
+    return this.add("tableLayout", value);
+  }
+
   // textAlign
   /** Sets `textAlign: "left"`. */
   get tal() {
@@ -2012,6 +2372,20 @@ class CssBuilder<T extends Properties> {
     return this.add("textTransform", value);
   }
 
+  // touchAction
+  /** Sets `touchAction: "none"`. */
+  get touchNone() {
+    return this.add("touchAction", "none");
+  }
+  /** Sets `touchAction: "pan-y"`. */
+  get touchPanY() {
+    return this.add("touchAction", "pan-y");
+  }
+  /** Sets `touchAction: value`. */
+  touchAction(value: Properties["touchAction"]) {
+    return this.add("touchAction", value);
+  }
+
   // transform
   /** Sets `backfaceVisibility: value`. */
   backfaceVisibility(value: Properties["backfaceVisibility"]) {
@@ -2052,6 +2426,10 @@ class CssBuilder<T extends Properties> {
   /** Sets `translate: value`. */
   translate(value: Properties["translate"]) {
     return this.add("translate", value);
+  }
+  /** Sets `willChange: value`. */
+  willChange(value: Properties["willChange"]) {
+    return this.add("willChange", value);
   }
 
   // transition
@@ -2146,6 +2524,38 @@ class CssBuilder<T extends Properties> {
   /** Sets `lineHeight: px`. */
   lhPx(px: number) {
     return this.lh(`${px}px`);
+  }
+  /** Sets `letterSpacing: value`. */
+  ls(value: Properties["letterSpacing"]) {
+    return this.add("letterSpacing", value);
+  }
+  /** Sets `letterSpacing: px`. */
+  lsPx(px: number) {
+    return this.ls(`${px}px`);
+  }
+  /** Sets `textWrap: "balance"`. */
+  get textBalance() {
+    return this.add("textWrap", "balance");
+  }
+  /** Sets `textWrap: "pretty"`. */
+  get textPretty() {
+    return this.add("textWrap", "pretty");
+  }
+  /** Sets `textWrap: value`. */
+  textWrap(value: Properties["textWrap"]) {
+    return this.add("textWrap", value);
+  }
+  /** Sets `fontVariantNumeric: "tabular-nums"`. */
+  get tabularNums() {
+    return this.add("fontVariantNumeric", "tabular-nums");
+  }
+  /** Sets `fontVariantNumeric: value`. */
+  fontVariantNumeric(value: Properties["fontVariantNumeric"]) {
+    return this.add("fontVariantNumeric", value);
+  }
+  /** Sets `content: value`. */
+  content(value: Properties["content"]) {
+    return this.add("content", value);
   }
 
   // userSelect

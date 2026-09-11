@@ -6,6 +6,7 @@ export const grid: CreateMethodsFn = (config) => [
   newParamMethod("gtr", "gridTemplateRows"),
   newParamMethod("gr", "gridRow"),
   newParamMethod("gc", "gridColumn"),
+  newParamMethod("ga", "gridArea"),
   newParamMethod("gar", "gridAutoRows"),
   newParamMethod("gac", "gridAutoColumns"),
   ...newIncrementMethods(config, "gap", "gap"),
