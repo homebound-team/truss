@@ -1,3 +1,9 @@
+## [2.32.0](https://github.com/homebound-team/truss/compare/v2.31.0...v2.32.0) (2026-09-12)
+
+### Features
+
+* Link the stylesheet with `import "virtual:truss.css"`. ([cc2d1d4](https://github.com/homebound-team/truss/commit/cc2d1d426e8f83d52588d0a2e460102d8baf17cd))
+
 ## [2.31.0](https://github.com/homebound-team/truss/compare/v2.30.0...v2.31.0) (2026-09-12)
 
 ### Features
