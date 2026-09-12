@@ -1,3 +1,9 @@
+## [2.31.0](https://github.com/homebound-team/truss/compare/v2.30.0...v2.31.0) (2026-09-12)
+
+### Features
+
+* Add a Css method for each keyframe. ([34ac025](https://github.com/homebound-team/truss/commit/34ac025ed04684f7b9d2ec68ae7e30ba0ac481ea))
+
 ## [2.30.0](https://github.com/homebound-team/truss/compare/v2.29.13...v2.30.0) (2026-09-12)
 
 ### Features
