@@ -1,3 +1,9 @@
+## [2.30.0](https://github.com/homebound-team/truss/compare/v2.29.13...v2.30.0) (2026-09-12)
+
+### Features
+
+* Add config support for [@property](https://github.com/property) registration and [@keyframes](https://github.com/keyframes). ([01512a9](https://github.com/homebound-team/truss/commit/01512a91dbd79d3f9547486218807a8ab6cfea8b))
+
 ## [2.29.13](https://github.com/homebound-team/truss/compare/v2.29.12...v2.29.13) (2026-09-11)
 
 ### Bug Fixes
