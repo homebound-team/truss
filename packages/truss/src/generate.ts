@@ -5,6 +5,7 @@ import { makeBreakpoints } from "src/breakpoints";
 import { Config, SectionName, Sections, UtilityMethod } from "src/config";
 import {
   collectedAbbreviations,
+  inSection,
   newAliasesMethods,
   startWebCollection,
   stopWebCollection,
@@ -18,6 +19,7 @@ import { reactNativeSections } from "src/sections/tachyons-rn";
 import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
 import { SPACING_CUSTOM_PROPERTY } from "src/spacing-css-var";
 import { keyframesBlocks, tokenPropertyBlocks, tokenVarNames } from "src/at-rules";
+import { checkForDuplicateMethods } from "src/duplicate-methods";
 
 // A type-only import, so generated files also compile under `verbatimModuleSyntax`
 const CssProperties = imp("t:Properties@csstype");
@@ -373,8 +375,10 @@ ${extras || ""}
 }
 
 /** Invokes all of the `MethodFns` to create actual `UtilityMethod`s. */
-function generateMethods(config: Config, methodFns: Sections): Record<SectionName, UtilityMethod[]> {
-  return Object.fromEntries(Object.entries(methodFns).map(([name, fn]) => [name, fn(config)]));
+function generateMethods(config: Config, methodFns: Sections, custom: boolean): Record<SectionName, UtilityMethod[]> {
+  return Object.fromEntries(
+    Object.entries(methodFns).map(([name, fn]) => [name, inSection({ name, custom }, () => fn(config))]),
+  );
 }
 
 /**
@@ -386,27 +390,41 @@ function generateMethods(config: Config, methodFns: Sections): Record<SectionNam
  */
 function generateSections(config: Config): { sections: Record<string, UtilityMethod[]>; entries: WebEntry[] } {
   const { aliases, defaultMethods = "tachyons", sections: customSections } = config;
+  const builtIn =
+    defaultMethods === "tachyons" ? defaultSections : defaultMethods === "tachyons-rn" ? reactNativeSections : {};
   startWebCollection();
   try {
     const sections: Record<string, UtilityMethod[]> = {
-      ...(defaultMethods === "tachyons"
-        ? generateMethods(config, defaultSections)
-        : defaultMethods === "tachyons-rn"
-          ? generateMethods(config, reactNativeSections)
-          : {}),
-      ...(customSections ? generateMethods(config, customSections) : {}),
-      ...(aliases && { aliases: newAliasesMethods(aliases) }),
+      ...generateMethods(config, notOverridden(builtIn, customSections), false),
+      ...(customSections ? generateMethods(config, customSections, true) : {}),
+      ...(aliases && { aliases: inSection({ name: "aliases", custom: true }, () => newAliasesMethods(aliases)) }),
     };
     // `@keyframes` are a web-only feature, like the `Keyframes` enum itself.
     if (config.target !== "react-native") {
-      const keyframes = newKeyframesMethods(config, collectedAbbreviations());
+      const keyframes = inSection({ name: "keyframes", custom: true }, () =>
+        newKeyframesMethods(config, collectedAbbreviations()),
+      );
       if (keyframes.length > 0) sections.keyframes = keyframes;
     }
-    return { sections, entries: stopWebCollection() };
+    const entries = stopWebCollection();
+    checkForDuplicateMethods(entries);
+    return { sections, entries };
   } catch (error) {
     stopWebCollection();
     throw error;
   }
+}
+
+/**
+ * Drops the built-in sections that a custom section of the same name replaces.
+ *
+ * A replaced section is not generated at all, so its methods never reach the output and its
+ * abbreviations never reach the mapping, which is what makes overriding a section a real fix for
+ * a duplicate method name.
+ */
+function notOverridden(builtIn: Sections, customSections: Sections | undefined): Sections {
+  if (!customSections) return builtIn;
+  return Object.fromEntries(Object.entries(builtIn).filter(([name]) => !(name in customSections)));
 }
 
 // ── Web Code Generator ────────────────────────────────────────────────

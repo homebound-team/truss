@@ -9,6 +9,23 @@ export type Prop = keyof Properties;
 // metadata into this array as a side-effect. This lets the web code generator
 // reuse the existing section definitions without modifying any section files.
 
+/**
+ * An entry in the user's config that a method can be named after, i.e. a palette key.
+ *
+ * I.e. `palette: { Bg: ... }` spells the `bg` method, so an error about `bg` can say "palette
+ * entry `Bg`" instead of naming the `skins` section, which the user never wrote.
+ */
+export interface ConfigEntry {
+  kind: "palette" | "alias" | "keyframe";
+  name: string;
+}
+
+/** The section a method is generated in, and whether the user's config defines that section. */
+export interface MethodSection {
+  name: string;
+  custom: boolean;
+}
+
 export interface WebEntry {
   kind: "static" | "param" | "increment-param" | "px-delegate" | "alias" | "cssvar" | "keyframe";
   abbr: string;
@@ -24,24 +41,53 @@ export interface WebEntry {
   aliasTargets?: string[];
   /** For keyframes: the `@keyframes` name the method puts in front of its value */
   keyframeName?: string;
+  /** The section the entry was collected in, i.e. `skins`. Every method is generated in one. */
+  section: MethodSection;
+  /** The config entry `abbr` is named after. Absent for the names truss picks itself, i.e. `mt0`. */
+  namedAfter?: ConfigEntry;
+  /** True when the entry only backs a mapping delegate, i.e. no method is generated for it. */
+  mappingOnly?: boolean;
 }
 
+/** What a method helper passes to `collect`; the collector itself adds the section. */
+type CollectedEntry = Omit<WebEntry, "section">;
+
 let _webCollector: WebEntry[] | null = null;
+let _section: MethodSection | null = null;
 
 /** Start collecting WebEntry metadata from method helpers. */
 export function startWebCollection(): void {
   _webCollector = [];
 }
 
-/** Stop collecting and return all accumulated entries. */
+/** Stop collecting and return all accumulated entries. Safe to call when already stopped. */
 export function stopWebCollection(): WebEntry[] {
-  const result = _webCollector!;
+  const result = _webCollector ?? [];
   _webCollector = null;
+  _section = null;
   return result;
 }
 
-function collect(entry: WebEntry): void {
-  if (_webCollector) _webCollector.push(entry);
+/**
+ * Runs `fn` with every entry it collects tagged as part of `section`.
+ *
+ * The tag is what lets us tell two sections that generate the same method name apart, without
+ * reading the generated code back to find out what is in it.
+ */
+export function inSection<T>(section: MethodSection, fn: () => T): T {
+  _section = section;
+  try {
+    return fn();
+  } finally {
+    _section = null;
+  }
+}
+
+function collect(entry: CollectedEntry): void {
+  if (!_webCollector) return;
+  // Every section runs inside `inSection`, so this only trips if a new caller forgets to.
+  if (!_section) throw new Error(`Cannot collect "${entry.abbr}" outside of a section.`);
+  _webCollector.push({ ...entry, section: _section });
 }
 
 /** The abbreviations collected so far, for the sections that must not re-use an existing name. */
@@ -52,9 +98,12 @@ export function collectedAbbreviations(): Set<string> {
 /**
  * Given a single abbreviation (i.e. `mt0`) and multiple `{ prop: value }` CSS values, returns
  * the TypeScript code for a `mt0` utility method that sets those values.
+ *
+ * Pass `namedAfter` when a config entry the user wrote is what names the method, i.e. a palette
+ * key, so an error about the method can name that entry instead of the section it comes from.
  */
-export function newMethod(abbr: UtilityName, defs: Properties): UtilityMethod {
-  collect({ kind: "static", abbr, defs: { ...defs } });
+export function newMethod(abbr: UtilityName, defs: Properties, namedAfter?: ConfigEntry): UtilityMethod {
+  collect({ kind: "static", abbr, defs: { ...defs }, namedAfter });
   return `${comment(defs)} get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
     .join("")}; }`;
@@ -131,7 +180,7 @@ export function newMethodsForProp<P extends Prop>(
  * I.e. `Css.sweep("1.6s linear infinite").$` sets `animation: sweep 1.6s linear infinite`.
  */
 export function newKeyframeMethod(abbr: UtilityName, name: string): UtilityMethod {
-  collect({ kind: "keyframe", abbr, keyframeName: name });
+  collect({ kind: "keyframe", abbr, keyframeName: name, namedAfter: { kind: "keyframe", name } });
   return `/** Sets \`animation: ${name} value\`. */\n ${abbr}(value: string) { return this.add("animation", \`${name} \${value}\`); }`;
 }
 
@@ -141,7 +190,7 @@ export function newKeyframeMethod(abbr: UtilityName, name: string): UtilityMetho
  */
 export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
   return Object.entries(aliases).map(([abbr, values]) => {
-    collect({ kind: "alias", abbr, aliasTargets: values });
+    collect({ kind: "alias", abbr, aliasTargets: values, namedAfter: { kind: "alias", name: abbr } });
     return `get ${abbr}() { return this${values.map((v) => `.${v}`).join("")}; }`;
   });
 }
@@ -245,7 +294,9 @@ export function newPxMethod(abbr: UtilityName, prop: Prop): UtilityMethod {
 
 export function newPxMethods(abbr: UtilityName, props: Prop[]): UtilityMethod[] {
   const defs = Object.fromEntries(props.map((prop) => [prop, "px"]));
-  collect({ kind: "param", abbr, props });
+  // Only the `${abbr}Px` method is generated, so the `${abbr}` entry exists just to give the
+  // mapping's `${abbr}Px` delegate a target to resolve the props through.
+  collect({ kind: "param", abbr, props, mappingOnly: true });
   collect({ kind: "px-delegate", abbr: `${abbr}Px`, props });
   return [
     `${comment(defs)} ${abbr}Px(px: number) { return this.${props.map((prop) => `add("${prop}", \`\${px}px\`)`).join(".")}; }`,
