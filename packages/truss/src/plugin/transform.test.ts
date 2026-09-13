@@ -2268,9 +2268,9 @@ describe("transform", () => {
       function getTabStyles() {
         const borderBottomStyles = maybeBorderStyles();
         return {
-          baseStyles: { display: "df", alignItems: "aic", height: "h_32px", paddingLeft: "pl1", paddingRight: "pr1", outline: "outline0", color: "black", cursor: "cursorPointer" },
+          baseStyles: { display: "df", alignItems: "aic", height: "h_32px", paddingLeft: "pl1", paddingRight: "pr1", outline: "ol_0", color: "black", cursor: "cur_pointer" },
           activeStyles: { ...{ color: "black", borderRadius: "br4" }, ...borderBottomStyles },
-          disabledStyles: { color: "blue", cursor: "cursorNotAllowed" },
+          disabledStyles: { color: "blue", cursor: "cur_not_allowed" },
           focusRingStyles: { borderStyle: "bss", borderWidth: "bw1" },
           hoverStyles: { ...{ color: "blue" }, ...borderBottomStyles },
           activeHoverStyles: { ...{ borderStyle: "bss", borderWidth: "bw1", color: "black" }, ...borderBottomStyles }
@@ -2287,7 +2287,7 @@ describe("transform", () => {
       .bw1 {
         border-width: 1px;
       }
-      .outline0 {
+      .ol_0 {
         outline: 0;
       }
       .aic {
@@ -2299,10 +2299,10 @@ describe("transform", () => {
       .blue {
         color: #526675;
       }
-      .cursorNotAllowed {
+      .cur_not_allowed {
         cursor: not-allowed;
       }
-      .cursorPointer {
+      .cur_pointer {
         cursor: pointer;
       }
       .df {
@@ -4731,10 +4731,10 @@ test("scroll margin and inset use increments: Css.smt2.inset0.$", () => {
       const s = Css.smt2.inset0.$;
     `).toHaveTrussOutput(
     `
-      const s = { scrollMarginTop: "smt2", inset: "inset0" };
+      const s = { scrollMarginTop: "smt2", inset: "ins_0" };
     `,
     `
-      .inset0 {
+      .ins_0 {
         inset: calc(var(--t-spacing) * 0);
       }
       .smt2 {
@@ -4763,6 +4763,25 @@ test("value methods share their property's class prefix: Css.tw(value).$", () =>
       @property --textWrap {
         syntax: "*";
         inherits: false;
+      }
+    `,
+  );
+});
+
+test("a static takes the shorter of its own name and its declaration's: Css.appearanceNone.listNone.$", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.appearanceNone.listNone.$;
+    `).toHaveTrussOutput(
+    `
+      const s = { appearance: "app_none", listStyle: "listNone" };
+    `,
+    `
+      .listNone {
+        list-style: none;
+      }
+      .app_none {
+        appearance: none;
       }
     `,
   );

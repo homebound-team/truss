@@ -151,7 +151,13 @@ function computeStaticBaseName(
     // `scrollbarGutter`.
     return `${getPropertyAbbreviation(seg.abbr)}_${classNameFragmentForResolvedValue(seg.argResolved)}`;
   }
-  return seg.abbr;
+  // A static method names its own class, i.e. `mt2` → `.mt2`, because that is usually the shortest
+  // name the declaration has. Where the method reads for the caller instead of for the stylesheet,
+  // i.e. `appearanceNone`, the declaration's own name is shorter, so use that and let every spelling
+  // of the declaration share one class. A tie keeps the method name, so the common short
+  // abbreviations stay as they are and devtools still echo what the caller typed.
+  const folded = `${getPropertyAbbreviation(cssProp)}_${classNameFragmentForResolvedValue(cssValue)}`;
+  return folded.length < seg.abbr.length ? folded : seg.abbr;
 }
 
 // ── Class-name building blocks ────────────────────────────────────────
