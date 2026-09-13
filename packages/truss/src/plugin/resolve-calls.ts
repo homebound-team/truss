@@ -167,6 +167,18 @@ function resolveLiteralOrVariableSegment(params: {
   if (literalValue !== null) validateAnimationValue(props, literalValue, mapping);
 
   if (literalValue !== null && !isCustomPropertyLiteral(argAst, mapping)) {
+    // A literal that a static method already spells shares that method's class, the same way
+    // `add()` does, i.e. `pe("none")` joins `.pen` instead of making a second `.pe_none` rule for
+    // the declaration. Only a lone property can match, since a static that sets more than this
+    // one declaration is a different rule.
+    const canonicalAbbr =
+      props.length === 1 && !extraDefs && !valuePrefix
+        ? findCanonicalAbbreviation(mapping, props[0], literalValue)
+        : undefined;
+    if (canonicalAbbr) {
+      const entry = mapping.abbreviations[canonicalAbbr] as Extract<TrussMappingEntry, { kind: "static" }>;
+      return staticSegment(canonicalAbbr, entry.defs, context);
+    }
     const defs: Record<string, unknown> = Object.fromEntries(props.map((prop) => [prop, literalValue]));
     return staticSegment(abbr, { ...defs, ...extraDefs }, context, literalValue);
   }

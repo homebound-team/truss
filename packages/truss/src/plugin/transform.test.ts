@@ -131,10 +131,10 @@ describe("transform", () => {
       const s = Css.sbw("thin").$;
     `).toHaveTrussOutput(
       `
-      const s = { scrollbarWidth: "sbw_thin" };
+      const s = { scrollbarWidth: "sbwt" };
     `,
       `
-      .sbw_thin {
+      .sbwt {
         scrollbar-width: thin;
       }
     `,
@@ -352,12 +352,12 @@ describe("transform", () => {
       `
       const a = { animation: "anim_fade_in_1s_ease" };
       const b = { animation: "anim_float_2s_ease_in_out_infinite" };
-      const c = { float: "fl_left" };
+      const c = { float: "fl" };
       `,
       `
       .anim_fade_in_1s_ease { animation: fade-in 1s ease; }
       .anim_float_2s_ease_in_out_infinite { animation: float 2s ease-in-out infinite; }
-      .fl_left { float: left; }
+      .fl { float: left; }
       @keyframes fade-in { from { opacity: 0; } }
       @keyframes float { to { transform: translateY(-4px); } }
       `,
@@ -832,10 +832,10 @@ describe("transform", () => {
       const s = Css.mt(2).$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "mt_2" };
+      const s = { marginTop: "mt2" };
     `,
       `
-      .mt_2 {
+      .mt2 {
         margin-top: calc(var(--t-spacing) * 2);
       }
     `,
@@ -1547,7 +1547,7 @@ describe("transform", () => {
       const s = Css.df.mt(2).black.$;
     `).toHaveTrussOutput(
       `
-      const s = { display: "df", marginTop: "mt_2", color: "black" };
+      const s = { display: "df", marginTop: "mt2", color: "black" };
     `,
       `
       .black {
@@ -1556,7 +1556,7 @@ describe("transform", () => {
       .df {
         display: flex;
       }
-      .mt_2 {
+      .mt2 {
         margin-top: calc(var(--t-spacing) * 2);
       }
     `,
@@ -2656,10 +2656,10 @@ describe("transform", () => {
       const s = Css.mt(0).$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "mt_0" };
+      const s = { marginTop: "mt0" };
     `,
       `
-      .mt_0 {
+      .mt0 {
         margin-top: calc(var(--t-spacing) * 0);
       }
     `,
@@ -3941,11 +3941,11 @@ describe("transform", () => {
       const s = Css.ifSm.mt(2).$;
     `).toHaveTrussOutput(
       `
-      const s = { marginTop: "sm_mt_2" };
+      const s = { marginTop: "sm_mt2" };
     `,
       `
       @media screen and (max-width: 599px) {
-        .sm_mt_2.sm_mt_2 {
+        .sm_mt2.sm_mt2 {
           margin-top: calc(var(--t-spacing) * 2);
         }
       }
@@ -4342,7 +4342,7 @@ describe("transform", () => {
       import { trussProps } from "@homebound/truss/runtime";
       function Panel(props) {
         const { height } = props.xss;
-        return <div {...trussProps({ height: "h_1", display: "df", backgroundColor: "bgBlue", ...(height === undefined ? {} : { height: height }), color: "black" })} />;
+        return <div {...trussProps({ height: "h1", display: "df", backgroundColor: "bgBlue", ...(height === undefined ? {} : { height: height }), color: "black" })} />;
       }
     `,
       `
@@ -4355,7 +4355,7 @@ describe("transform", () => {
       .df {
         display: flex;
       }
-      .h_1 {
+      .h1 {
         height: calc(var(--t-spacing) * 1);
       }
     `,
@@ -4368,10 +4368,10 @@ describe("transform", () => {
        const s = Css.h(1).with({ height }).$;
     `).toHaveTrussOutput(
       `
-      const s = { height: "h_1", ...(height === undefined ? {} : { height: height }) };
+      const s = { height: "h1", ...(height === undefined ? {} : { height: height }) };
     `,
       `
-      .h_1 {
+      .h1 {
         height: calc(var(--t-spacing) * 1);
       }
     `,
@@ -4782,6 +4782,26 @@ test("a static takes the shorter of its own name and its declaration's: Css.appe
       }
       .app_none {
         appearance: none;
+      }
+    `,
+  );
+});
+
+test("every spelling of one declaration shares a class: Css.pen, Css.pe('none'), Css.add('pointerEvents', 'none')", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const a = Css.pen.$;
+      const b = Css.pe("none").$;
+      const c = Css.add("pointerEvents", "none").$;
+    `).toHaveTrussOutput(
+    `
+      const a = { pointerEvents: "pen" };
+      const b = { pointerEvents: "pen" };
+      const c = { pointerEvents: "pen" };
+    `,
+    `
+      .pen {
+        pointer-events: none;
       }
     `,
   );
