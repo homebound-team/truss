@@ -1,7 +1,7 @@
 export * from "src/config";
 export { defaultSections } from "src/sections/tachyons";
 export { generate } from "src/generate";
-export type { IncConfig, WebEntry } from "src/methods";
+export type { ConfigEntry, IncConfig, MethodSection, WebEntry } from "src/methods";
 export { maybeCssVar } from "src/css-custom-property";
 export {
   SPACING_CUSTOM_PROPERTY,

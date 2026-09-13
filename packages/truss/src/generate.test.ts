@@ -3,6 +3,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { type Config } from "src/config";
 import { generate } from "src/generate";
+import { newMethodsForProp } from "src/methods";
 import { describe, expect, it } from "vitest";
 
 describe("generate", () => {
@@ -123,6 +124,75 @@ describe("generate", () => {
       await expect(generate(config)).rejects.toThrow(
         'Token "Angle" has syntax "<angle>" but no initialValue. ' +
           '@property requires an initial value for every syntax except "*".',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("throws when a palette entry and a built-in section both generate `bg`", async () => {
+    // Given a palette entry named `Bg`, whose color form the `skins` section spells `get bg()`
+    const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));
+    const config: Config = {
+      outputPath: join(dir, "Css.ts"),
+      palette: { Bg: "var(--bg)" },
+      fonts: {},
+      increment: 8,
+      numberOfIncrements: 1,
+    };
+
+    try {
+      // When we generate the Css.ts file, which the built-in `background` section gives a `bg(value)`
+      await expect(generate(config)).rejects.toThrow(
+        "[truss] duplicate method `bg`: palette entry `Bg` and the `background` section both generate it. " +
+          "Rename the palette entry, or override the `background` section.",
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("throws when a custom section repeats a value method the built-in sections already generate", async () => {
+    // Given a custom section that asks `newMethodsForProp` for the default `outlineColor(value)` method
+    const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));
+    const config: Config = {
+      outputPath: join(dir, "Css.ts"),
+      palette: {},
+      fonts: {},
+      increment: 8,
+      numberOfIncrements: 1,
+      // And a section name that does not override the built-in `outline` section, which spells it too
+      sections: { outlineColor: () => newMethodsForProp("outlineColor", { ocAccent: "var(--accent)" }) },
+    };
+
+    try {
+      // When we generate the Css.ts file
+      await expect(generate(config)).rejects.toThrow(
+        "[truss] duplicate method `outlineColor`: the `outlineColor` section and the `outline` section " +
+          "both generate it. Rename the method in your `outlineColor` section, or override the `outline` section.",
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("throws when an alias takes the name of a section's method", async () => {
+    // Given an alias named `db`, which the built-in `display` section already spells `get db()`
+    const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));
+    const config: Config = {
+      outputPath: join(dir, "Css.ts"),
+      palette: {},
+      fonts: {},
+      increment: 8,
+      numberOfIncrements: 1,
+      aliases: { db: ["df"] },
+    };
+
+    try {
+      // When we generate the Css.ts file
+      await expect(generate(config)).rejects.toThrow(
+        "[truss] duplicate method `db`: the alias `db` and the `display` section both generate it. " +
+          "Rename the alias, or override the `display` section.",
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });
