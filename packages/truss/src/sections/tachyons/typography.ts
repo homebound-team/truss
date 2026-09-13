@@ -23,7 +23,7 @@ export const typography: CreateMethodsFn = () => [
   ...newMethodsForProp("fontSize", {}, "fs", true),
   ...newMethodsForProp("lineHeight", {}, "lh", true),
   ...newMethodsForProp("letterSpacing", {}, "ls", true),
-  ...newMethodsForProp("textWrap", { textBalance: "balance", textPretty: "pretty" }, "tw"),
+  ...newMethodsForProp("textWrap", { twb: "balance", twp: "pretty" }, "tw"),
   ...newMethodsForProp("fontVariantNumeric", { tabularNums: "tabular-nums" }),
   // For the `content` of a `:before`/`:after`, i.e. `Css.before(Css.content('"*"').$).$`.
   ...newMethodsForProp("content", {}),

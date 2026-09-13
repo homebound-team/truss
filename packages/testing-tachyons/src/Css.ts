@@ -2534,11 +2534,11 @@ class CssBuilder<T extends Properties> {
     return this.ls(`${px}px`);
   }
   /** Sets `textWrap: "balance"`. */
-  get textBalance() {
+  get twb() {
     return this.add("textWrap", "balance");
   }
   /** Sets `textWrap: "pretty"`. */
-  get textPretty() {
+  get twp() {
     return this.add("textWrap", "pretty");
   }
   /** Sets `textWrap: value`. */
