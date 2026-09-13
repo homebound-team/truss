@@ -1,3 +1,9 @@
+## [2.33.2](https://github.com/homebound-team/truss/compare/v2.33.1...v2.33.2) (2026-09-13)
+
+### Bug Fixes
+
+* Fail codegen when two sections generate the same method name ([#302](https://github.com/homebound-team/truss/issues/302)) ([63b644d](https://github.com/homebound-team/truss/commit/63b644defe2e8523b1b0f033d843365b4379ae42)), closes [#300](https://github.com/homebound-team/truss/issues/300)
+
 ## [2.33.1](https://github.com/homebound-team/truss/compare/v2.33.0...v2.33.1) (2026-09-13)
 
 ### Bug Fixes
