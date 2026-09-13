@@ -366,7 +366,13 @@ export const cssPropertyAbbreviations: Record<string, string> = {
   // Scroll
   scrollBehavior: "scb",
   scrollMargin: "scm",
+  scrollMarginBottom: "smb",
+  scrollMarginLeft: "sml",
+  scrollMarginRight: "smr",
+  scrollMarginTop: "smt",
   scrollPadding: "scp",
+  scrollPaddingBlock: "scpb",
+  scrollPaddingInline: "scpi",
   scrollSnapAlign: "ssa",
   scrollSnapStop: "sss",
   scrollSnapType: "sst",
@@ -410,7 +416,7 @@ export const cssPropertyAbbreviations: Record<string, string> = {
   textTransform: "tt",
   textUnderlineOffset: "tuo",
   textUnderlinePosition: "tup",
-  textWrap: "twp",
+  textWrap: "tw",
 
   // Top
   top: "tp",
