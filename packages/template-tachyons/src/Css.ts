@@ -143,7 +143,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
 
   // background
   /** Sets `background: value`. */
-  background(value: Properties["background"]) {
+  bg(value: Properties["background"]) {
     return this.add("background", value);
   }
   /** Sets `backgroundImage: value`. */
