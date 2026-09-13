@@ -20,7 +20,7 @@
     "arSquare": {"kind":"static","defs":{"aspectRatio":"1 / 1"}},
     "arVideo": {"kind":"static","defs":{"aspectRatio":"16 / 9"}},
     "ar": {"kind":"variable","props":["aspectRatio"],"incremented":false},
-    "background": {"kind":"variable","props":["background"],"incremented":false},
+    "bg": {"kind":"variable","props":["background"],"incremented":false},
     "bgImage": {"kind":"variable","props":["backgroundImage"],"incremented":false},
     "bgSize": {"kind":"variable","props":["backgroundSize"],"incremented":false},
     "bgPosition": {"kind":"variable","props":["backgroundPosition"],"incremented":false},

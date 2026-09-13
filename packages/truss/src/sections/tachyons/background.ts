@@ -4,7 +4,9 @@ import { newMethodsForProp } from "src/methods";
 // `backgroundColor` is in skins.ts, because it is driven by the palette.
 // https://developer.mozilla.org/en-US/docs/Web/CSS/background
 export const background: CreateMethodsFn = () => [
-  ...newMethodsForProp("background", {}),
+  // The shorthand, which resets the longhands below that it does not set, i.e. `bg("red")`
+  // clears any `bgImage`. Use `bgColor` to set only the color.
+  ...newMethodsForProp("background", {}, "bg"),
   ...newMethodsForProp("backgroundImage", {}, "bgImage"),
   ...newMethodsForProp("backgroundSize", {}, "bgSize"),
   ...newMethodsForProp("backgroundPosition", {}, "bgPosition"),
