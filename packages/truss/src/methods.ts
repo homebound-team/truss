@@ -10,17 +10,27 @@ export type Prop = keyof Properties;
 // reuse the existing section definitions without modifying any section files.
 
 /**
- * An entry in the user's config that a method can be named after, i.e. a palette key.
+ * A key in one of the user's config maps that a method takes its name from.
  *
- * I.e. `palette: { Bg: ... }` spells the `bg` method, so an error about `bg` can say "palette
- * entry `Bg`" instead of naming the `skins` section, which the user never wrote.
+ * I.e. `palette: { Bg: ... }` spells `bg`, `aliases: { bodyText: ... }` spells `bodyText`, and
+ * `keyframes: { spin: ... }` spells `spin`. Renaming one of these methods means editing that key,
+ * so an error about `bg` can say "palette entry `Bg`" instead of naming the `skins` section, which
+ * the user never wrote.
+ *
+ * A method that a `newMethod` call spells has no `ConfigKey`, whether the call is in a built-in
+ * section or in a section of the user's own. `MethodSection.custom` is what tells those apart.
  */
-export interface ConfigEntry {
+export interface ConfigKey {
   kind: "palette" | "alias" | "keyframe";
   name: string;
 }
 
-/** The section a method is generated in, and whether the user's config defines that section. */
+/**
+ * The section a method is generated in, and whether the user's config defines that section.
+ *
+ * `custom` is how we tell a method the user wrote in their own section from a built-in one, for
+ * the methods that no `ConfigKey` spells.
+ */
 export interface MethodSection {
   name: string;
   custom: boolean;
@@ -43,8 +53,8 @@ export interface WebEntry {
   keyframeName?: string;
   /** The section the entry was collected in, i.e. `skins`. Every method is generated in one. */
   section: MethodSection;
-  /** The config entry `abbr` is named after. Absent for the names truss picks itself, i.e. `mt0`. */
-  namedAfter?: ConfigEntry;
+  /** The config key `abbr` is named after; absent when a `newMethod` call spells the name. */
+  namedAfter?: ConfigKey;
   /** True when the entry only backs a mapping delegate, i.e. no method is generated for it. */
   mappingOnly?: boolean;
 }
@@ -99,10 +109,10 @@ export function collectedAbbreviations(): Set<string> {
  * Given a single abbreviation (i.e. `mt0`) and multiple `{ prop: value }` CSS values, returns
  * the TypeScript code for a `mt0` utility method that sets those values.
  *
- * Pass `namedAfter` when a config entry the user wrote is what names the method, i.e. a palette
- * key, so an error about the method can name that entry instead of the section it comes from.
+ * Pass `namedAfter` when a key the user wrote in their config is what spells the method's name,
+ * i.e. a palette key, so an error can name that key instead of the section the method comes from.
  */
-export function newMethod(abbr: UtilityName, defs: Properties, namedAfter?: ConfigEntry): UtilityMethod {
+export function newMethod(abbr: UtilityName, defs: Properties, namedAfter?: ConfigKey): UtilityMethod {
   collect({ kind: "static", abbr, defs: { ...defs }, namedAfter });
   return `${comment(defs)} get ${abbr}() { return this${Object.entries(defs)
     .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
