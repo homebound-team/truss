@@ -4744,6 +4744,30 @@ test("scroll margin and inset use increments: Css.smt2.inset0.$", () => {
   );
 });
 
+test("value methods share their property's class prefix: Css.tw(value).$", () => {
+  expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.tw(wrap).add("scrollMarginTop", "3px").$;
+    `).toHaveTrussOutput(
+    `
+      import { maybeCssVar } from "@homebound/truss/runtime";
+      const s = { textWrap: ["tw_var", { "--textWrap": maybeCssVar(wrap) }], scrollMarginTop: "smt_3px" };
+    `,
+    `
+      .tw_var {
+        text-wrap: var(--textWrap);
+      }
+      .smt_3px {
+        scroll-margin-top: 3px;
+      }
+      @property --textWrap {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+  );
+});
+
 /** Expect helper around transform code and css outputs. */
 function expectTrussTransform(code: string, options?: TransformTrussOptions) {
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);

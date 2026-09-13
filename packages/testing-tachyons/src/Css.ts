@@ -2542,7 +2542,7 @@ class CssBuilder<T extends Properties> {
     return this.add("textWrap", "pretty");
   }
   /** Sets `textWrap: value`. */
-  textWrap(value: Properties["textWrap"]) {
+  tw(value: Properties["textWrap"]) {
     return this.add("textWrap", value);
   }
   /** Sets `fontVariantNumeric: "tabular-nums"`. */

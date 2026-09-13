@@ -584,7 +584,7 @@
     "lsPx": {"kind":"delegate","target":"ls"},
     "textBalance": {"kind":"static","defs":{"textWrap":"balance"}},
     "textPretty": {"kind":"static","defs":{"textWrap":"pretty"}},
-    "textWrap": {"kind":"variable","props":["textWrap"],"incremented":false},
+    "tw": {"kind":"variable","props":["textWrap"],"incremented":false},
     "tabularNums": {"kind":"static","defs":{"fontVariantNumeric":"tabular-nums"}},
     "fontVariantNumeric": {"kind":"variable","props":["fontVariantNumeric"],"incremented":false},
     "content": {"kind":"variable","props":["content"],"incremented":false},
