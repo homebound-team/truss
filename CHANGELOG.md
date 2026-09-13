@@ -1,3 +1,9 @@
+## [2.33.0](https://github.com/homebound-team/truss/compare/v2.32.0...v2.33.0) (2026-09-13)
+
+### Features
+
+* Add abbreviations for the CSS properties that beam sets with `add()`. ([56b9b3c](https://github.com/homebound-team/truss/commit/56b9b3c5e2a676e3d6d7e0b38b7027476f7c6fd1))
+
 ## [2.32.0](https://github.com/homebound-team/truss/compare/v2.31.0...v2.32.0) (2026-09-12)
 
 ### Features
