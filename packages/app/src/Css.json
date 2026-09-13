@@ -349,7 +349,7 @@
     "overflowX": {"kind":"variable","props":["overflowX"],"incremented":false},
     "pen": {"kind":"static","defs":{"pointerEvents":"none"}},
     "pea": {"kind":"static","defs":{"pointerEvents":"auto"}},
-    "pointerEvents": {"kind":"variable","props":["pointerEvents"],"incremented":false},
+    "pe": {"kind":"variable","props":["pointerEvents"],"incremented":false},
     "absolute": {"kind":"static","defs":{"position":"absolute"}},
     "fixed": {"kind":"static","defs":{"position":"fixed"}},
     "static": {"kind":"static","defs":{"position":"static"}},

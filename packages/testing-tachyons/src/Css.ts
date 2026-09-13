@@ -1531,7 +1531,7 @@ class CssBuilder<T extends Properties> {
     return this.add("pointerEvents", "auto");
   }
   /** Sets `pointerEvents: value`. */
-  pointerEvents(value: Properties["pointerEvents"]) {
+  pe(value: Properties["pointerEvents"]) {
     return this.add("pointerEvents", value);
   }
 
