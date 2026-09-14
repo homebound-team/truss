@@ -4082,6 +4082,88 @@ describe("transform", () => {
     );
   });
 
+  test("value that nests var() inside var() emits error", () => {
+    // Given a box-shadow value where the author wrapped a token in their own var()
+    expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const s = Css.add("boxShadow", \`inset 3px 0px 0 0px var(\${Tokens.ThemeAccent})\`).$;
+    `).toHaveTrussOutput(
+      `
+      import { Tokens } from "./Css";
+      console.error("[truss] Unsupported pattern: box-shadow value nests var() inside var():\\n  inset 3px 0px 0 0px var(var(--theme-accent))\\nA Tokens member is wrapped in var() automatically. Drop your own var() around it:\\n  \`inset 3px 0px 0 0px \${Tokens.ThemeAccent}\` (test.tsx:2)");
+      const s = {};
+    `,
+      ``,
+    );
+  });
+
+  test("whitespace does not hide a nested var()", () => {
+    // Given the same nesting, but with spaces inside the outer var()
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.add("boxShadow", "var( var(--theme-accent) )").$;
+    `).toHaveTrussOutput(
+      `
+      console.error("[truss] Unsupported pattern: box-shadow value nests var() inside var():\\n  var( var(--theme-accent) )\\nA Tokens member is wrapped in var() automatically. Drop your own var() around it:\\n  \`\${Tokens.ThemeAccent}\` (test.tsx:2)");
+      const s = {};
+    `,
+      ``,
+    );
+  });
+
+  test("nested var() is not box-shadow specific: Css.bs(...)", () => {
+    // Given a variable-kind abbreviation, border-style, with the same double-wrapped value
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.bs("var(var(--theme-accent))").$;
+    `).toHaveTrussOutput(
+      `
+      console.error("[truss] Unsupported pattern: border-style value nests var() inside var():\\n  var(var(--theme-accent))\\nA Tokens member is wrapped in var() automatically. Drop your own var() around it:\\n  \`\${Tokens.ThemeAccent}\` (test.tsx:2)");
+      const s = {};
+    `,
+      ``,
+    );
+  });
+
+  test("var() fallback still compiles: var(--a, var(--b))", () => {
+    // Given a nested var() that is the fallback argument, which CSS allows
+    expectTrussTransform(`
+      import { Css } from "./Css";
+      const s = Css.add("boxShadow", "var(--a, var(--b))").$;
+    `).toHaveTrussOutput(
+      `
+      const s = { boxShadow: "bxs_var_a_var_b" };
+    `,
+      `
+      .bxs_var_a_var_b {
+        box-shadow: var(--a, var(--b));
+      }
+    `,
+    );
+  });
+
+  test("a bare Tokens member still compiles to a single var()", () => {
+    // Given a token passed on its own, which truss wraps in var() itself
+    expectTrussTransform(`
+      import { Css, Tokens } from "./Css";
+      const s = Css.bs(Tokens.ThemeAccent).$;
+    `).toHaveTrussOutput(
+      `
+      import { Tokens } from "./Css";
+      const s = { borderStyle: ["bs_var", { "--borderStyle": "var(--theme-accent)" }] };
+    `,
+      `
+      .bs_var {
+        border-style: var(--borderStyle);
+      }
+      @property --borderStyle {
+        syntax: "*";
+        inherits: false;
+      }
+    `,
+    );
+  });
+
   test("unsupported patterns emit console.error and produce empty object", () => {
     expectTrussTransform(`
       import { Css } from "./Css";

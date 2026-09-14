@@ -11,7 +11,13 @@ import { staticPropertyName } from "./ast-utils";
 import { type CallChainNode, UnsupportedPatternError } from "./chain-nodes";
 import { cloneConditionContext } from "./condition-context";
 import { requireEntry, staticSegment } from "./resolve-entry";
-import { isCustomPropertyLiteral, singleArg, tryEvaluatePropertyLiteral, tryNumericLiteral } from "./resolve-literals";
+import {
+  isCustomPropertyLiteral,
+  singleArg,
+  tryEvaluatePropertyLiteral,
+  tryNumericLiteral,
+  validateCssVarValue,
+} from "./resolve-literals";
 import { validateAnimationValue } from "./keyframe-names";
 import { resolveSetVarCall } from "./resolve-setvar";
 import { resolveTypographyCall } from "./resolve-typography";
@@ -164,7 +170,12 @@ function resolveLiteralOrVariableSegment(params: {
     context,
   } = params;
 
-  if (literalValue !== null) validateAnimationValue(props, literalValue, mapping);
+  if (literalValue !== null) {
+    validateAnimationValue(props, literalValue, mapping);
+    // A resolved value reaches the stylesheet either as the static class below or as the `argResolved`
+    // of the `_var` segment, so both paths need the value to be valid CSS.
+    validateCssVarValue(props, literalValue, mapping);
+  }
 
   if (literalValue !== null && !isCustomPropertyLiteral(argAst, mapping)) {
     // A literal that a static method already spells shares that method's class, the same way

@@ -6,6 +6,7 @@ import { pascalCase } from "change-case";
 import { isCustomPropertyName, maybeCssVar } from "../css-custom-property";
 import { UnknownKeyframesError } from "./keyframe-names";
 import { incrementCssValue } from "../spacing-css-var";
+import { camelToKebab } from "../utils";
 
 // ── Literal evaluation ────────────────────────────────────────────────
 
@@ -120,6 +121,41 @@ function tryResolveKeyframesMember(node: t.Expression, mapping: TrussMapping): s
   return name;
 }
 
+// ── Resolved value validation ─────────────────────────────────────────
+
+const VAR_CALL = "var(";
+
+/**
+ * Throw when a resolved value uses `var()` with a first argument that is not a custom property name.
+ *
+ * CSS requires the first argument of `var()` to be a `--` name, so `var(var(--b-primary))` is invalid
+ * at computed-value time and the browser drops the whole declaration. A `Tokens` member is already
+ * wrapped in `var()`, so an author who writes the `var()` around it gets the nested form and, without
+ * this check, no warning at all -- only a missing style.
+ *
+ * The scan is exact, not conservative: at every `var(` it skips whitespace and requires `--`. A fallback
+ * like `var(--a, var(--b))` stays valid, because there the nested `var()` is the second argument.
+ *
+ * I.e. `props` of `["boxShadow"]` and a `value` of `inset 3px 0px 0 0px var(var(--b-primary))` throws and
+ * suggests `` `inset 3px 0px 0 0px ${Tokens.Primary}` ``; `var(--a, var(--b))` returns.
+ */
+export function validateCssVarValue(props: string[], value: string, mapping: TrussMapping): void {
+  const offender = findBadCssVarArgument(value);
+  if (offender === null) return;
+
+  const cssProps = props.map((prop) => camelToKebab(prop)).join(", ");
+  if (!/^var\(/i.test(offender)) {
+    throw new UnsupportedPatternError(
+      `${cssProps} value passes "${offender}" to var(), which is not a custom property name:\n  ${value}`,
+    );
+  }
+  throw new UnsupportedPatternError(
+    `${cssProps} value nests var() inside var():\n  ${value}\n` +
+      `A Tokens member is wrapped in var() automatically. Drop your own var() around it:\n` +
+      `  ${suggestUnnestedValue(value, mapping)}`,
+  );
+}
+
 // ── Argument and object-literal validation ────────────────────────────
 
 /** The single argument of `label()`, rejecting missing, extra, and spread arguments. */
@@ -181,4 +217,50 @@ export function requireValueLiteral(node: t.Expression, errorMessage: string): s
     throw new UnsupportedPatternError(errorMessage);
   }
   return value;
+}
+
+/**
+ * The first `var()` argument in `value` that is not a custom property name, or null when every `var()`
+ * is well-formed. The argument stops at the fallback comma or the closing paren, so a nested call comes
+ * back without its own closing paren.
+ *
+ * I.e. `var(var(--b-primary))` → `"var(--b-primary"`; `var(--a, var(--b))` → null.
+ */
+function findBadCssVarArgument(value: string): string | null {
+  // CSS function names are case-insensitive, so search a lowercased copy but report the original text
+  const lowered = value.toLowerCase();
+  for (let index = lowered.indexOf(VAR_CALL); index !== -1; index = lowered.indexOf(VAR_CALL, index + 1)) {
+    // I.e. only "var(" itself, never the tail of a longer function name like "myvar("
+    if (index > 0 && /[\w-]/.test(lowered[index - 1])) continue;
+    const argument = value.slice(index + VAR_CALL.length).trimStart();
+    if (!argument.startsWith("--")) {
+      return argument.split(/[,)]/)[0].trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Rewrite `value` the way the author should have written it: drop each `var()` that only wraps another
+ * `var()`, then name the `Tokens` member behind each custom property.
+ *
+ * I.e. with `tokens` of `{ Primary: "--b-primary" }`, `inset 3px 0px 0 0px var(var(--b-primary))` becomes
+ * the template literal `` `inset 3px 0px 0 0px ${Tokens.Primary}` ``. This is only a suggestion for the
+ * error message, so it keeps the value as-is wherever nothing is recognized.
+ */
+function suggestUnnestedValue(value: string, mapping: TrussMapping): string {
+  let unnested = value;
+  let previous: string;
+  do {
+    previous = unnested;
+    // I.e. "var(var(--b-primary))" → "var(--b-primary)"
+    unnested = unnested.replace(/var\(\s*(var\(\s*--[^()]*\))\s*\)/gi, "$1");
+  } while (unnested !== previous);
+
+  const tokenNames = new Map(Object.entries(mapping.tokens ?? {}).map(([name, property]) => [property, name]));
+  const suggestion = unnested.replace(/var\(\s*(--[\w-]+)\s*\)/gi, (call, property) => {
+    const tokenName = tokenNames.get(property);
+    return tokenName ? `\${Tokens.${tokenName}}` : call;
+  });
+  return suggestion.includes("${") ? `\`${suggestion}\`` : `"${suggestion}"`;
 }
