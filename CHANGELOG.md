@@ -1,3 +1,9 @@
+## [2.33.3](https://github.com/homebound-team/truss/compare/v2.33.2...v2.33.3) (2026-09-14)
+
+### Bug Fixes
+
+* Fail the build on a var() nested inside a var(). ([#304](https://github.com/homebound-team/truss/issues/304)) ([3d91820](https://github.com/homebound-team/truss/commit/3d91820a110c55d52b682c687d5465eb475e08d1))
+
 ## [2.33.2](https://github.com/homebound-team/truss/compare/v2.33.1...v2.33.2) (2026-09-13)
 
 ### Bug Fixes
