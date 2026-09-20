@@ -1,0 +1,463 @@
+{
+  "description": "Raw samples. Truss package version fields describe the installed dependency shell; baseline/candidate compiled artifacts were overlaid into it. See RESULTS.md for revision and methodology.",
+  "reports": [
+    {
+      "source": "benchmarks/results/latest.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "200030038b3c656dfbd390496130fb9f1d0e88a8fc69d6eb1e79125d1e6e8c3f",
+        "baselineCompilerHash": "ab57f4010ce54006fe63e41557c091f3e0a364012bbf2417479f41087d00133f",
+        "baselineRevision": "9420ec12",
+        "candidateRevision": "pass2-retained",
+        "versions": {
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "files",
+        "orphaned": false,
+        "runs": 5,
+        "counts": [0, 1600],
+        "results": [
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 855.481781,
+            "warm": 820.2083569999999,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 953.7651629999998
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 802.4257549999998,
+            "warm": 811.3878119999999,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1325.4418520000008
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 688.6288809999996,
+            "warm": 696.8810369999992,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 785.7589579999994
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 693.7106240000012,
+            "warm": 668.7716799999998,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 797.4097010000005
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 807.8693870000006,
+            "warm": 842.7788799999998,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 948.5799380000008
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 814.3483029999989,
+            "warm": 844.2309910000022,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 941.3507739999986
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 821.0370360000015,
+            "warm": 845.231581,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1137.1965979999986
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 835.9168620000019,
+            "warm": 832.3688769999972,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 972.6422259999999
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 701.1522710000027,
+            "warm": 680.4622339999987,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 795.2562509999989
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 664.9392750000006,
+            "warm": 689.6531939999986,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 826.8114669999995
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 841.3871009999966,
+            "warm": 813.9766610000006,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 971.9543550000017
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 840.1558889999942,
+            "warm": 924.6521920000014,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1140.4600560000035
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 832.8735119999983,
+            "warm": 850.0513920000012,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 957.9848910000001
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 805.4287440000044,
+            "warm": 803.1048809999993,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 963.0109430000011
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 668.6293159999987,
+            "warm": 676.1162170000025,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 801.6689069999993
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1542.0216740000033,
+            "warm": 1517.2186860000002,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 3814.5570090000037
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1654.429578999996,
+            "warm": 1458.6416270000045,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2653.551470999999
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1203.6243699999977,
+            "warm": 1216.1783649999998,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1787.1923480000041
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1412.0429610000065,
+            "warm": 1312.17575699999,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1723.682845999996
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1518.5892060000042,
+            "warm": 1512.2159850000025,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2668.807633999997
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1551.6798560000025,
+            "warm": 1573.3101550000138,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 3100.387659
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1573.9431659999973,
+            "warm": 1582.4226270000072,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2679.5843400000012
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1506.6473019999976,
+            "warm": 1541.686572000006,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2709.113241999992
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1459.9766610000079,
+            "warm": 1287.5960059999925,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1774.0538629999937
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1215.5845850000042,
+            "warm": 1152.8349540000054,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1727.9237909999938
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1459.6599529999949,
+            "warm": 1488.1314129999955,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2781.2855370000034
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1613.2929730000033,
+            "warm": 1571.7926810000063,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2678.014900000009
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1541.9163799999951,
+            "warm": 1573.5118720000028,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2666.111560999998
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1458.9808230000053,
+            "warm": 1744.9398030000011,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2640.0816350000096
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1202.0244679999887,
+            "warm": 1190.5638329999929,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1722.7338909999817
+          }
+        ]
+      }
+    }
+  ]
+}

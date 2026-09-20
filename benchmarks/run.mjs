@@ -11,6 +11,7 @@ import { precompile } from "./precompiled.mjs";
 const root = new URL("../", import.meta.url).pathname;
 const work = resolve(root, "benchmarks/.work");
 const baselineBuild = resolve(root, process.env.BASELINE_BUILD ?? "benchmarks/.work/baseline");
+const candidateBuild = resolve(root, process.env.CANDIDATE_BUILD ?? "packages/truss/build");
 const runs = Number(process.env.RUNS ?? 5);
 const axis = process.env.AXIS ?? "files";
 const counts = (process.env.COUNTS ?? (axis === "styles" ? "0,50,200,800" : "0,400,1600")).split(",").map(Number);
@@ -66,7 +67,7 @@ for (const count of counts) {
               platform: process.platform,
               cpu: cpus()[0].model,
               compilerHash: createHash("sha256")
-                .update(readFileSync(resolve(root, "packages/truss/build/plugin/index.js")))
+                .update(readFileSync(resolve(candidateBuild, "plugin/index.js")))
                 .digest("hex"),
               baselineCompilerHash: existsSync(resolve(baselineBuild, "plugin/index.js"))
                 ? createHash("sha256")
@@ -124,7 +125,7 @@ function prepare(engine) {
       css.replace('@import "tailwindcss";', '@import "tailwindcss" source(none);\n@source "./";'),
     );
   }
-  const build = engine === "baseline" ? baselineBuild : resolve(root, "packages/truss/build");
+  const build = engine === "baseline" ? baselineBuild : candidateBuild;
   if (engine !== "tailwind") {
     // Exercise normal package resolution, including React and Vite dependency optimization.
     // An absolute alias outside this app would introduce a second copy of React.
