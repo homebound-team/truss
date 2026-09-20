@@ -60,9 +60,11 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
   // Expressions with runtime values are copied into these objects as AST nodes during compilation.
   // I.e. in Css.className(Css.props(styles).className).$, the argument is Css.props(styles).className.
   // Its AST is cloned into { className_Css_props_styles_className: Css.props(styles).className };
-  // the runtime value itself is not cloned. The copied Css.props() node has a new path, so we
-  // revisit it to produce trussProps(styles).className. Nested JSX css attributes also need this
-  // revisit: paths collected before cloning still point at the original nodes, not the copies.
+  // the runtime value itself is not cloned. The copied Css.props() call is a different AST node.
+  // Previously collected Babel NodePaths still point to the original nodes, so we traverse the
+  // generated tree to find and rewrite the copies, producing trussProps(styles).className.
+  // Nested JSX css attributes also need this revisit. A NodePath describes a node's position
+  // and parent in the syntax tree, not a file path.
   let revisit = options.hasCssPropsCall;
   if (!revisit) {
     for (const site of options.sites) {
