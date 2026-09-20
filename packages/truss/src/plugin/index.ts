@@ -289,13 +289,32 @@ __injectTrussCSS(${JSON.stringify(payload)});
       const fileId = stripQueryAndHash(id);
       if (isNodeModulesFile(fileId)) return null;
 
-      // Ordinary DSL modules need only one AST, including their .css.ts import rewrites.
-      // Test bootstrapping and arbitrary CSS modules retain their separate side-effect path.
+      // Compile DSL expressions and rewrite .css.ts imports in the same AST for JS/TS/JSX/TSX
+      // modules outside test mode. The remaining path below handles these other cases:
+      // - .css.ts files: compile selector-based CSS through updateArbitraryCssRegistry, while
+      //   keeping the TypeScript module available for named exports used at runtime.
+      // - Application modules loaded in test mode: bootstrap library CSS and spacing, and
+      //   inject per-module CSS because the test environment does not load the app's HTML
+      //   stylesheet entry. This includes components/helpers, not just test files.
+      // - Modules with only CSS imports: rewrite those imports without running the DSL compiler.
+      //
+      // "Test mode" here means Vite's config.mode === "test", normally set by Vitest when
+      // an application uses this plugin in its tests. It is not a check for NODE_ENV or Jest;
+      // Jest does not automatically run this Vite plugin.
       if (!isTest && !fileId.endsWith(".css.ts") && (code.includes("Css") || code.includes("css="))) {
         const result = session.transformCode(code, fileId, { debug, rewriteCssImports: true, ...diagnostics(this) });
         return result ? { code: result.code, map: result.map } : null;
       }
 
+      // This path currently passes source text between stages rather than sharing an AST:
+      // 1. rewriteCssTsImports parses when the source contains ".css", then prints the AST
+      //    back to source if it changes an import. Test bootstrapping appends another import.
+      // 2. For a DSL module, session.transformCode parses that source into a second AST on
+      //    a cache miss. For a .css.ts module, updateArbitraryCssRegistry instead invokes
+      //    transformCssTs, which separately parses the original source on a cache miss.
+      // A second parse is not universal: the import stage can skip parsing, a compiler cache
+      // can hit, or an import-only module can skip compilation. Nor is it required by tests;
+      // the shared-AST optimization above simply does not cover this path yet.
       const rewrittenImports = rewriteCssTsImports(code, id);
 
       // In tests, we do not boot through index.html and the dev runtime fetch path
