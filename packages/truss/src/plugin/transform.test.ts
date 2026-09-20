@@ -4889,6 +4889,163 @@ test("every spelling of one declaration shares a class: Css.pen, Css.pe('none'),
   );
 });
 
+describe("transform", () => {
+  test("module-level block var bindings still reserve runtime helper names without scope crawling", () => {
+    // Given a var declaration hoisted from a module-level block
+    const source = `
+    if (ready) { var trussProps = 1; }
+    const element = <div css={styles} />;
+  `;
+
+    // When a JSX-only module needs the runtime helper
+    const transform = expectTrussTransform(source);
+
+    // Then the injected import cannot collide with the hoisted binding
+    transform.toHaveTrussOutput(
+      `
+    import { trussProps as trussProps_1 } from "@homebound/truss/runtime";
+    if (ready) { var trussProps = 1; }
+    const element = <div {...trussProps_1(styles)} />;
+    `,
+      "",
+    );
+  });
+
+  test("compiles CSS imports and chains without changing debug source lines", () => {
+    // Given a named arbitrary-CSS import before a source-located style chain
+    const source = `import { label } from "./theme.css.ts";
+import { Css } from "./Css";
+const s = Css.df.$;`;
+
+    // When the import rewrite shares the DSL's original AST
+    const transform = expectTrussTransform(source, { debug: true, rewriteCssImports: true });
+
+    // Then the inserted side-effect import does not move the original style's debug location
+    transform.toHaveTrussOutput(
+      `
+    import { label } from "./theme.css.ts";
+    import { TrussDebugInfo } from "@homebound/truss/runtime";
+    import "./theme.css.ts?truss-css";
+    const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
+    `,
+      ".df { display: flex; }",
+    );
+  });
+
+  test("props calls preserve sibling spread order", () => {
+    // Given two props spreads sharing an explicit className property
+    const source = `import { Css } from "./Css";
+    const props = { className: "custom", ...Css.props(first), ...Css.props(second) };`;
+
+    // When the props calls are rewritten
+    const transform = expectTrussTransform(source);
+
+    // Then the first spread still consumes the sibling className, matching traversal order
+    transform.toHaveTrussOutput(
+      `import { trussProps, mergeProps } from "@homebound/truss/runtime";
+    const props = { ...mergeProps("custom", undefined, first), ...trussProps(second) };`,
+      "",
+    );
+  });
+
+  test("nested props calls are fully compiled", () => {
+    // Given nested props calls whose argument containers will be replaced
+    const source = 'import { Css } from "./Css"; const props = Css.props(Css.props(styles));';
+
+    // When the parent and nested calls are rewritten
+    const transform = expectTrussTransform(source);
+
+    // Then both levels are compiled rather than leaving a detached child unchanged
+    transform.toHaveTrussOutput(
+      `import { trussProps } from "@homebound/truss/runtime";
+    const props = trussProps(trussProps(styles));`,
+      "",
+    );
+  });
+
+  test("rewrites props calls cloned into a chain's runtime metadata", () => {
+    // Given a runtime className argument containing a props call
+    const source = 'import { Css } from "./Css"; const s = Css.className(Css.props(styles).className).$;';
+
+    // When the chain is compiled and its runtime argument is cloned
+    const transform = expectTrussTransform(source);
+
+    // Then the cloned call is compiled too, before the Css import is removed
+    transform.toHaveTrussOutput(
+      `import { trussProps } from "@homebound/truss/runtime";
+    const s = { className_Css_props_styles_className: trussProps(styles).className };`,
+      "",
+    );
+  });
+
+  test("rewrites CSS imports in a file without Truss expressions", () => {
+    // Given a file with only a stylesheet import and an unrelated export
+    const source = 'import "./theme.css.ts"; export const value = 1;';
+
+    // When the same transformation flow processes its imports
+    const transform = expectTrussTransform(source, { rewriteCssImports: true });
+
+    // Then the import is rewritten without adding expression helpers
+    transform.toHaveTrussOutput('import "./theme.css.ts?truss-css"; export const value = 1;', "");
+  });
+
+  test("test bootstrap and CSS import rewrites keep original expression source locations", () => {
+    // Given a named stylesheet import before a Truss expression on line three
+    const source = `import { label } from "./theme.css.ts";
+import { Css } from "./Css";
+export const s = Css.df.$;`;
+
+    // When test-mode bootstrap, injection, and expression compilation share the original AST
+    const transform = expectTrussTransform(source, {
+      rewriteCssImports: true,
+      debug: true,
+      injectCss: true,
+      bootstrapImport: "virtual:truss:test-css",
+    });
+
+    // Then the new imports do not shift the debug location and both test CSS steps are emitted
+    transform.toHaveTrussOutput(
+      `import { label } from "./theme.css.ts";
+    import { TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
+    import "./theme.css.ts?truss-css";
+    __injectTrussCSS({ rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }] });
+    export const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
+    import "virtual:truss:test-css";`,
+      ".df { display: flex; }",
+    );
+  });
+
+  test("nested JSX attributes still compile after the enclosing attribute is replaced", () => {
+    // Given a Truss attribute whose runtime expression contains another styled element
+    const source = 'const el = <div css={getStyles(<span css={inner} />)} className="custom" />;';
+
+    // When attributes are collected and rewritten in normal parent-first traversal order
+    const transform = expectTrussTransform(source);
+
+    // Then replacing the outer attribute keeps the nested attribute reachable for compilation
+    transform.toHaveTrussOutput(
+      `import { trussProps, mergeProps } from "@homebound/truss/runtime";
+    const el = <div {...mergeProps("custom", undefined, getStyles(<span {...trussProps(inner)} />))} />;`,
+      "",
+    );
+  });
+
+  test("cloned JSX attributes are compiled by the follow-up traversal", () => {
+    // Given a runtime className argument that contains a styled element
+    const source = 'import { Css } from "./Css"; const s = Css.className(getClassName(<span css={inner} />)).$;';
+
+    // When compiling the chain clones that argument into the generated style object
+    const transform = expectTrussTransform(source);
+
+    // Then the follow-up traversal rewrites the copy rather than the original collected node
+    transform.toHaveTrussOutput(
+      `import { trussProps } from "@homebound/truss/runtime";
+    const s = { className_getClassName_span_css_inner: getClassName(<span {...trussProps(inner)} />) };`,
+      "",
+    );
+  });
+});
+
 /** Expect helper around transform code and css outputs. */
 function expectTrussTransform(code: string, options?: TransformTrussOptions) {
   const result = transformTruss(snippet(code), "test.tsx", mapping, options);
@@ -4915,158 +5072,3 @@ function snippet(code: string): string {
 function lineOf(source: string, search: string): number {
   return source.split("\n").findIndex((line) => line.includes(search)) + 1;
 }
-
-test("module-level block var bindings still reserve runtime helper names without scope crawling", () => {
-  // Given a var declaration hoisted from a module-level block
-  const source = `
-    if (ready) { var trussProps = 1; }
-    const element = <div css={styles} />;
-  `;
-
-  // When a JSX-only module needs the runtime helper
-  const transform = expectTrussTransform(source);
-
-  // Then the injected import cannot collide with the hoisted binding
-  transform.toHaveTrussOutput(
-    `
-    import { trussProps as trussProps_1 } from "@homebound/truss/runtime";
-    if (ready) { var trussProps = 1; }
-    const element = <div {...trussProps_1(styles)} />;
-    `,
-    "",
-  );
-});
-
-test("compiles CSS imports and chains without changing debug source lines", () => {
-  // Given a named arbitrary-CSS import before a source-located style chain
-  const source = `import { label } from "./theme.css.ts";
-import { Css } from "./Css";
-const s = Css.df.$;`;
-
-  // When the import rewrite shares the DSL's original AST
-  const transform = expectTrussTransform(source, { debug: true, rewriteCssImports: true });
-
-  // Then the inserted side-effect import does not move the original style's debug location
-  transform.toHaveTrussOutput(
-    `
-    import { label } from "./theme.css.ts";
-    import { TrussDebugInfo } from "@homebound/truss/runtime";
-    import "./theme.css.ts?truss-css";
-    const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
-    `,
-    ".df { display: flex; }",
-  );
-});
-
-test("props calls preserve sibling spread order", () => {
-  // Given two props spreads sharing an explicit className property
-  const source = `import { Css } from "./Css";
-    const props = { className: "custom", ...Css.props(first), ...Css.props(second) };`;
-
-  // When the props calls are rewritten
-  const transform = expectTrussTransform(source);
-
-  // Then the first spread still consumes the sibling className, matching traversal order
-  transform.toHaveTrussOutput(
-    `import { trussProps, mergeProps } from "@homebound/truss/runtime";
-    const props = { ...mergeProps("custom", undefined, first), ...trussProps(second) };`,
-    "",
-  );
-});
-
-test("nested props calls are fully compiled", () => {
-  // Given nested props calls whose argument containers will be replaced
-  const source = 'import { Css } from "./Css"; const props = Css.props(Css.props(styles));';
-
-  // When the parent and nested calls are rewritten
-  const transform = expectTrussTransform(source);
-
-  // Then both levels are compiled rather than leaving a detached child unchanged
-  transform.toHaveTrussOutput(
-    `import { trussProps } from "@homebound/truss/runtime";
-    const props = trussProps(trussProps(styles));`,
-    "",
-  );
-});
-
-test("rewrites props calls cloned into a chain's runtime metadata", () => {
-  // Given a runtime className argument containing a props call
-  const source = 'import { Css } from "./Css"; const s = Css.className(Css.props(styles).className).$;';
-
-  // When the chain is compiled and its runtime argument is cloned
-  const transform = expectTrussTransform(source);
-
-  // Then the cloned call is compiled too, before the Css import is removed
-  transform.toHaveTrussOutput(
-    `import { trussProps } from "@homebound/truss/runtime";
-    const s = { className_Css_props_styles_className: trussProps(styles).className };`,
-    "",
-  );
-});
-
-test("rewrites CSS imports in a file without Truss expressions", () => {
-  // Given a file with only a stylesheet import and an unrelated export
-  const source = 'import "./theme.css.ts"; export const value = 1;';
-
-  // When the same transformation flow processes its imports
-  const transform = expectTrussTransform(source, { rewriteCssImports: true });
-
-  // Then the import is rewritten without adding expression helpers
-  transform.toHaveTrussOutput('import "./theme.css.ts?truss-css"; export const value = 1;', "");
-});
-
-test("test bootstrap and CSS import rewrites keep original expression source locations", () => {
-  // Given a named stylesheet import before a Truss expression on line three
-  const source = `import { label } from "./theme.css.ts";
-import { Css } from "./Css";
-export const s = Css.df.$;`;
-
-  // When test-mode bootstrap, injection, and expression compilation share the original AST
-  const transform = expectTrussTransform(source, {
-    rewriteCssImports: true,
-    debug: true,
-    injectCss: true,
-    bootstrapImport: "virtual:truss:test-css",
-  });
-
-  // Then the new imports do not shift the debug location and both test CSS steps are emitted
-  transform.toHaveTrussOutput(
-    `import { label } from "./theme.css.ts";
-    import { TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
-    import "./theme.css.ts?truss-css";
-    __injectTrussCSS({ rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }] });
-    export const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
-    import "virtual:truss:test-css";`,
-    ".df { display: flex; }",
-  );
-});
-
-test("nested JSX attributes still compile after the enclosing attribute is replaced", () => {
-  // Given a Truss attribute whose runtime expression contains another styled element
-  const source = 'const el = <div css={getStyles(<span css={inner} />)} className="custom" />;';
-
-  // When attributes are collected and rewritten in normal parent-first traversal order
-  const transform = expectTrussTransform(source);
-
-  // Then replacing the outer attribute keeps the nested attribute reachable for compilation
-  transform.toHaveTrussOutput(
-    `import { trussProps, mergeProps } from "@homebound/truss/runtime";
-    const el = <div {...mergeProps("custom", undefined, getStyles(<span {...trussProps(inner)} />))} />;`,
-    "",
-  );
-});
-
-test("cloned JSX attributes are compiled by the follow-up traversal", () => {
-  // Given a runtime className argument that contains a styled element
-  const source = 'import { Css } from "./Css"; const s = Css.className(getClassName(<span css={inner} />)).$;';
-
-  // When compiling the chain clones that argument into the generated style object
-  const transform = expectTrussTransform(source);
-
-  // Then the follow-up traversal rewrites the copy rather than the original collected node
-  transform.toHaveTrussOutput(
-    `import { trussProps } from "@homebound/truss/runtime";
-    const s = { className_getClassName_span_css_inner: getClassName(<span {...trussProps(inner)} />) };`,
-    "",
-  );
-});
