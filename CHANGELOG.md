@@ -1,3 +1,9 @@
+## [2.33.5](https://github.com/homebound-team/truss/compare/v2.33.4...v2.33.5) (2026-09-20)
+
+### Performance Improvements
+
+* Skip unused source maps and reuse spacing regex ([#306](https://github.com/homebound-team/truss/issues/306)) ([3489179](https://github.com/homebound-team/truss/commit/34891799546c73ad274b4c9d5610c910cadc771a)), closes [#305](https://github.com/homebound-team/truss/issues/305) [#305](https://github.com/homebound-team/truss/issues/305)
+
 ## [2.33.4](https://github.com/homebound-team/truss/compare/v2.33.3...v2.33.4) (2026-09-20)
 
 ### Performance Improvements
