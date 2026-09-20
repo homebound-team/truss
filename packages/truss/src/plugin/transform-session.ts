@@ -1,4 +1,5 @@
 import { resolve } from "path";
+import { existsSync } from "fs";
 import { applyReferencedKeyframes, applyRegisteredProperties } from "./at-rule-refs";
 import { generateCssData, type AtomicRule } from "./emit-css";
 import { transformCssTs } from "./transform-css";
@@ -27,6 +28,11 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   const cssRegistry = new Map<string, AtomicRule>();
   const arbitraryCssRegistry = new Map<string, string>();
   const libraryPaths = options.libraries ?? [];
+  // React Router builds the client and server with the same plugin. Keep the latest
+  // source per transform mode across registry resets, then replay rules on cache hits.
+  const transformCache = new Map<string, { code: string; result: TransformResult | null }>();
+  const arbitraryCache = new Map<string, { code: string; css: string }>();
+  const stylesheetCache = new Map<boolean, string>();
 
   function ensureMapping(): TrussMapping {
     if (!mapping) {
@@ -49,6 +55,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     cssRegistry.clear();
     arbitraryCssRegistry.clear();
     libraryCache = null;
+    stylesheetCache.clear();
   }
 
   function updateArbitraryCssRegistry(
@@ -57,15 +64,32 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     diagnostics: DiagnosticOptions = {},
   ): void {
     sourcePath = resolve(sourcePath).replace(/\\/g, "/");
-    const css = transformCssTs(sourceCode, sourcePath, ensureMapping(), diagnostics).trim();
+    const cached = arbitraryCache.get(sourcePath);
+    let css: string;
+    if (cached?.code === sourceCode) {
+      css = cached.css;
+    } else {
+      let hadDiagnostic = false;
+      css = transformCssTs(sourceCode, sourcePath, ensureMapping(), {
+        onDiagnostic(error) {
+          hadDiagnostic = true;
+          diagnostics.onDiagnostic?.(error);
+        },
+      }).trim();
+      if (!hadDiagnostic) arbitraryCache.set(sourcePath, { code: sourceCode, css });
+    }
     if (css.length > 0) {
       const prev = arbitraryCssRegistry.get(sourcePath);
       arbitraryCssRegistry.set(sourcePath, css);
-      if (prev !== css) options.onCssChanged?.();
+      if (prev !== css) {
+        stylesheetCache.clear();
+        options.onCssChanged?.();
+      }
       return;
     }
 
     if (arbitraryCssRegistry.delete(sourcePath)) {
+      stylesheetCache.clear();
       options.onCssChanged?.();
     }
   }
@@ -75,7 +99,25 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     fileId: string,
     transformOptions: TransformTrussOptions = {},
   ): TransformResult | null {
-    const result = transformTruss(code, fileId, ensureMapping(), transformOptions);
+    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${Boolean(transformOptions.rewriteCssImports)}`;
+    const cached = transformCache.get(key);
+    let result: TransformResult | null;
+    if (cached?.code === code && importDependenciesUnchanged(cached.result)) {
+      result = cached.result;
+    } else {
+      let hadDiagnostic = false;
+      result = transformTruss(code, fileId, ensureMapping(), {
+        ...transformOptions,
+        onDiagnostic(error) {
+          hadDiagnostic = true;
+          transformOptions.onDiagnostic?.(error);
+        },
+      });
+      // Re-run diagnostics each time instead of suppressing warnings on another environment.
+      // A null result has no dependency metadata; a newly created .css.ts could make an
+      // unchanged bare .css import start needing a rewrite on the next request.
+      if (!hadDiagnostic && (result || !transformOptions.rewriteCssImports)) transformCache.set(key, { code, result });
+    }
     if (!result) return null;
 
     let hasNewRules = false;
@@ -86,6 +128,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
       }
     }
     if (hasNewRules) {
+      stylesheetCache.clear();
       options.onCssChanged?.();
     }
 
@@ -94,6 +137,8 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
 
   /** Merge library and application CSS before optionally omitting build-time annotations. */
   function collectCss(annotate = true): string {
+    const cached = stylesheetCache.get(annotate);
+    if (cached !== undefined) return cached;
     const mapping = ensureMapping();
     const appCss = generateCssData(cssRegistry);
     const allArbitrary = Array.from(arbitraryCssRegistry.entries())
@@ -107,8 +152,9 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     applyReferencedKeyframes(merged, mapping);
     applyRegisteredProperties(merged, mapping);
     const body = serializeTrussCss(merged, annotate);
-    if (body.length === 0) return "";
-    return `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
+    const css = body.length === 0 ? "" : `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
+    stylesheetCache.set(annotate, css);
+    return css;
   }
 
   function hasCss(): boolean {
@@ -153,4 +199,12 @@ export interface TrussTransformSession {
   reset: () => void;
   transformCode: (code: string, fileId: string, options?: TransformTrussOptions) => TransformResult | null;
   updateArbitraryCssRegistry: (sourcePath: string, sourceCode: string, options?: DiagnosticOptions) => void;
+}
+
+/** Invalidate import rewrites when a bare .css target gains or loses its .css.ts companion. */
+function importDependenciesUnchanged(result: TransformResult | null): boolean {
+  for (const [path, existed] of result?.cssImportDependencies ?? []) {
+    if (existsSync(path) !== existed) return false;
+  }
+  return true;
 }

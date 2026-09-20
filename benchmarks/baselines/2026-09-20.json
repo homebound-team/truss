@@ -1,0 +1,3119 @@
+{
+  "description": "Raw samples. Truss package version fields describe the installed dependency shell; baseline/candidate compiled artifacts were overlaid into it. See RESULTS.md for revision and methodology.",
+  "reports": [
+    {
+      "source": "benchmarks/results/2026-09-20T03-59-09.620Z-files-imported.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineCompilerHash": "d8bfa5fb511af38d02b9309099bb0fcfdfc8ca58b3ee9dfac4f8322119b09759",
+        "versions": {
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "files",
+        "orphaned": false,
+        "runs": 5,
+        "counts": [
+          0,
+          400,
+          1600
+        ],
+        "results": [
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 993.1089180000001,
+            "warm": 1016.702691,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 975.4001509999998
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 820.0652080000004,
+            "warm": 829.6318949999995,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 940.5594579999997
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 683.9344259999998,
+            "warm": 682.285449,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 797.7775299999994
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 654.0580449999998,
+            "warm": 697.9173129999999,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 784.8070709999993
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 820.5175819999986,
+            "warm": 806.5039219999999,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 928.4204609999997
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 980.2725910000008,
+            "warm": 989.0574399999987,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 971.8905930000001
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 1008.6233290000018,
+            "warm": 989.1419630000019,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 979.1344879999997
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 806.6220030000004,
+            "warm": 803.125221000002,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 939.8517150000007
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 672.3917669999973,
+            "warm": 665.4901460000001,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 782.2396289999997
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 686.3238939999974,
+            "warm": 677.6948880000018,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 798.6526669999985
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 826.5145039999989,
+            "warm": 809.5959750000002,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 959.0354540000008
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 1014.0238480000044,
+            "warm": 986.583341000005,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 989.2405289999951
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 1011.6587529999961,
+            "warm": 981.4691820000007,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 962.6636359999975
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 800.6233240000001,
+            "warm": 814.0954589999965,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 928.0980970000019
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 669.5990420000016,
+            "warm": 656.5007750000004,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 785.0187310000038
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "cold": 1297.1737490000014,
+            "warm": 1289.0430820000038,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1462.6591939999998
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "cold": 1028.5855579999989,
+            "warm": 1016.2089500000002,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1417.862331000004
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "cold": 792.6193930000009,
+            "warm": 780.1368640000001,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1033.7297959999996
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "cold": 811.6770609999949,
+            "warm": 818.4931740000029,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1070.9800689999975
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "cold": 1023.6598369999992,
+            "warm": 1026.081474999999,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1450.3280260000029
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "cold": 1290.7147100000002,
+            "warm": 1252.365399000002,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1501.9743650000019
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "cold": 1285.473948999992,
+            "warm": 1267.2086229999986,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1461.8017959999997
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "cold": 998.0390869999974,
+            "warm": 1023.1949599999934,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1462.8158720000065
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "cold": 790.1575770000054,
+            "warm": 792.0086290000036,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1048.4984200000035
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "cold": 832.9127220000082,
+            "warm": 789.4302890000108,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1047.8632120000111
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "cold": 995.976582999996,
+            "warm": 1012.4103380000015,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1452.061287000004
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "cold": 1282.3405740000017,
+            "warm": 1281.1161909999937,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1484.9807950000104
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "cold": 1320.6623099999997,
+            "warm": 1269.5565889999998,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1514.5759120000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "cold": 1023.3902710000111,
+            "warm": 1045.80931099999,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1430.4349710000097
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "cold": 794.425476000004,
+            "warm": 802.6576429999986,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1029.3698440000007
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 2102.549226000003,
+            "warm": 2025.5941079999902,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2762.1497249999957
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1504.7630670000071,
+            "warm": 1533.1579999999958,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2710.8957479999954
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1173.9011630000023,
+            "warm": 1094.9976659999957,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1719.6312739999994
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1156.9640720000025,
+            "warm": 1156.5291209999996,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1756.6218050000025
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1563.8777330000012,
+            "warm": 1521.0421549999883,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2703.802954999992
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 2111.8294679999817,
+            "warm": 2090.807873999991,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2755.453559000016
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 2069.326619999978,
+            "warm": 2045.6863589999848,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2779.292457000003
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1542.3361739999964,
+            "warm": 1527.032917000004,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2617.3937129999977
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1197.101010000013,
+            "warm": 1122.4021819999907,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1727.9150690000097
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1192.4722279999987,
+            "warm": 1122.3670159999747,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1749.793005000014
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1518.4374959999986,
+            "warm": 1532.9489580000227,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2624.696155999991
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 2074.3387689999945,
+            "warm": 2032.4653079999844,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2777.900443999999
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 2108.076873999991,
+            "warm": 2041.4841390000074,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2792.2923540000047
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1555.1214459999755,
+            "warm": 1548.417386999994,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2693.379248000012
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1192.4453180000128,
+            "warm": 1129.9395519999962,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1746.6751819999772
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T04-05-05.773Z-hmr.json",
+      "data": {
+        "node": "v24.20.0",
+        "browser": "145.0.7632.6",
+        "sweeps": 4,
+        "pairs": 5,
+        "serverRows": [],
+        "rows": [
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 93.646484375,
+            "cssLive": 37.946533203125,
+            "js": 93.646484375,
+            "browserUpdate": 2.446533203125,
+            "requests": 9,
+            "bytes": 370978
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 72.677978515625,
+            "cssLive": 29.578125,
+            "js": 72.677978515625,
+            "browserUpdate": 1.97802734375,
+            "requests": 9,
+            "bytes": 371040
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 85.02490234375,
+            "cssLive": 41.4248046875,
+            "js": 85.02490234375,
+            "browserUpdate": 3.224853515625,
+            "requests": 9,
+            "bytes": 371102
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 70.870361328125,
+            "cssLive": 29.47021484375,
+            "js": 70.870361328125,
+            "browserUpdate": 2.17041015625,
+            "requests": 9,
+            "bytes": 371164
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 66.1533203125,
+            "cssLive": 38.353271484375,
+            "js": 66.1533203125,
+            "browserUpdate": 1.953369140625,
+            "requests": 10,
+            "bytes": 371231
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 134.079833984375,
+            "cssLive": 105.179931640625,
+            "js": 134.079833984375,
+            "browserUpdate": 21.979736328125,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 95.17578125,
+            "cssLive": 71.27587890625,
+            "js": 95.17578125,
+            "browserUpdate": 15.17578125,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 100.228515625,
+            "cssLive": 71.12841796875,
+            "js": 100.228515625,
+            "browserUpdate": 12.728515625,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 100.60009765625,
+            "cssLive": 73.30029296875,
+            "js": 100.60009765625,
+            "browserUpdate": 13.10009765625,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 107.144775390625,
+            "cssLive": 83.744873046875,
+            "js": 107.144775390625,
+            "browserUpdate": 21.3447265625,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 70.202880859375,
+            "cssLive": 43.102783203125,
+            "js": 70.202880859375,
+            "browserUpdate": 2.302734375,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 72.14306640625,
+            "cssLive": 26.14306640625,
+            "js": 72.14306640625,
+            "browserUpdate": 2.2431640625,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 71.12109375,
+            "cssLive": 27.62109375,
+            "js": 71.12109375,
+            "browserUpdate": 3.12109375,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 72.7177734375,
+            "cssLive": 31.11767578125,
+            "js": 72.7177734375,
+            "browserUpdate": 2.11767578125,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 71.998046875,
+            "cssLive": 30.697998046875,
+            "js": 71.998046875,
+            "browserUpdate": 2.09814453125,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 83.546142578125,
+            "cssLive": 59.84619140625,
+            "js": 83.546142578125,
+            "browserUpdate": 10.4462890625,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 84.60009765625,
+            "cssLive": 60.400146484375,
+            "js": 84.60009765625,
+            "browserUpdate": 11.400146484375,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 94.2197265625,
+            "cssLive": 65.119873046875,
+            "js": 94.2197265625,
+            "browserUpdate": 15.81982421875,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 98.093505859375,
+            "cssLive": 73.79345703125,
+            "js": 98.093505859375,
+            "browserUpdate": 15.193603515625,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 90.603515625,
+            "cssLive": 63.103515625,
+            "js": 90.603515625,
+            "browserUpdate": 8.603515625,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 68.647216796875,
+            "cssLive": 29.34716796875,
+            "js": 68.647216796875,
+            "browserUpdate": 2.047119140625,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 58.916015625,
+            "cssLive": 26.81591796875,
+            "js": 58.916015625,
+            "browserUpdate": 2.01611328125,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 62.86279296875,
+            "cssLive": 30.462646484375,
+            "js": 62.86279296875,
+            "browserUpdate": 1.86279296875,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 64.690185546875,
+            "cssLive": 33.09033203125,
+            "js": 64.690185546875,
+            "browserUpdate": 2.290283203125,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 59.927001953125,
+            "cssLive": 28.527099609375,
+            "js": 59.927001953125,
+            "browserUpdate": 1.8271484375,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 85.395751953125,
+            "cssLive": 85.395751953125,
+            "js": 82.7958984375,
+            "browserUpdate": 4.69580078125,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 78.619140625,
+            "cssLive": 78.619140625,
+            "js": 76.019287109375,
+            "browserUpdate": 4.919189453125,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 76.9599609375,
+            "cssLive": 84.4599609375,
+            "js": 69.659912109375,
+            "browserUpdate": 4.35986328125,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 77.45849609375,
+            "cssLive": 77.45849609375,
+            "js": 75.258544921875,
+            "browserUpdate": 4.55859375,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 81.626953125,
+            "cssLive": 81.626953125,
+            "js": 73.126953125,
+            "browserUpdate": 4.22705078125,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 73.177490234375,
+            "cssLive": 33.077392578125,
+            "js": 73.177490234375,
+            "browserUpdate": 1.9775390625,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 66.265380859375,
+            "cssLive": 29.865478515625,
+            "js": 66.265380859375,
+            "browserUpdate": 2.46533203125,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 67.23583984375,
+            "cssLive": 28.73583984375,
+            "js": 67.23583984375,
+            "browserUpdate": 2.23583984375,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 70.616455078125,
+            "cssLive": 31.116455078125,
+            "js": 70.616455078125,
+            "browserUpdate": 2.016357421875,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 58.73974609375,
+            "cssLive": 28.339599609375,
+            "js": 58.73974609375,
+            "browserUpdate": 2.1396484375,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 85.568359375,
+            "cssLive": 85.568359375,
+            "js": 82.96826171875,
+            "browserUpdate": 5.16845703125,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 79.779541015625,
+            "cssLive": 79.779541015625,
+            "js": 77.279541015625,
+            "browserUpdate": 4.9794921875,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 79.36279296875,
+            "cssLive": 79.36279296875,
+            "js": 77.162841796875,
+            "browserUpdate": 4.462890625,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 78.689697265625,
+            "cssLive": 78.689697265625,
+            "js": 76.3896484375,
+            "browserUpdate": 4.78955078125,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 80.86376953125,
+            "cssLive": 80.86376953125,
+            "js": 78.663818359375,
+            "browserUpdate": 4.663818359375,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 65.60400390625,
+            "cssLive": 40.10400390625,
+            "js": 65.60400390625,
+            "browserUpdate": 2.10400390625,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 67.738525390625,
+            "cssLive": 25.738525390625,
+            "js": 67.738525390625,
+            "browserUpdate": 2.338623046875,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 69.77099609375,
+            "cssLive": 27.37109375,
+            "js": 69.77099609375,
+            "browserUpdate": 1.97119140625,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 67.715087890625,
+            "cssLive": 26.215087890625,
+            "js": 67.715087890625,
+            "browserUpdate": 1.9150390625,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 69.97607421875,
+            "cssLive": 29.376220703125,
+            "js": 69.97607421875,
+            "browserUpdate": 1.97607421875,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 82.585693359375,
+            "cssLive": 58.78564453125,
+            "js": 82.585693359375,
+            "browserUpdate": 8.685791015625,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 91.067626953125,
+            "cssLive": 64.267578125,
+            "js": 91.067626953125,
+            "browserUpdate": 12.467529296875,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 88.288818359375,
+            "cssLive": 61.288818359375,
+            "js": 88.288818359375,
+            "browserUpdate": 13.5888671875,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 100.56787109375,
+            "cssLive": 103.4677734375,
+            "js": 98.667724609375,
+            "browserUpdate": 14.767822265625,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 83.249267578125,
+            "cssLive": 59.1494140625,
+            "js": 83.249267578125,
+            "browserUpdate": 7.6494140625,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 77.224609375,
+            "cssLive": 32.82470703125,
+            "js": 77.224609375,
+            "browserUpdate": 2.124755859375,
+            "requests": 9,
+            "bytes": 370978
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 75.3642578125,
+            "cssLive": 32.764404296875,
+            "js": 75.3642578125,
+            "browserUpdate": 1.96435546875,
+            "requests": 9,
+            "bytes": 371040
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 83.770751953125,
+            "cssLive": 40.07080078125,
+            "js": 83.770751953125,
+            "browserUpdate": 1.970947265625,
+            "requests": 9,
+            "bytes": 371102
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 71.4921875,
+            "cssLive": 30.39208984375,
+            "js": 71.4921875,
+            "browserUpdate": 2.192138671875,
+            "requests": 9,
+            "bytes": 371164
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 85.441162109375,
+            "cssLive": 43.441162109375,
+            "js": 85.441162109375,
+            "browserUpdate": 2.041259765625,
+            "requests": 9,
+            "bytes": 371226
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 108.252685546875,
+            "cssLive": 84.652587890625,
+            "js": 108.252685546875,
+            "browserUpdate": 19.352783203125,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 94.1435546875,
+            "cssLive": 68.6435546875,
+            "js": 94.1435546875,
+            "browserUpdate": 12.543701171875,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 98.557373046875,
+            "cssLive": 98.557373046875,
+            "js": 96.25732421875,
+            "browserUpdate": 17.95751953125,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 98.964111328125,
+            "cssLive": 75.564208984375,
+            "js": 98.964111328125,
+            "browserUpdate": 13.3642578125,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 100.644775390625,
+            "cssLive": 74.3447265625,
+            "js": 100.644775390625,
+            "browserUpdate": 14.044921875,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 80.6650390625,
+            "cssLive": 35.26513671875,
+            "js": 80.6650390625,
+            "browserUpdate": 1.965087890625,
+            "requests": 9,
+            "bytes": 370978
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 77.744384765625,
+            "cssLive": 35.044189453125,
+            "js": 77.744384765625,
+            "browserUpdate": 1.744384765625,
+            "requests": 9,
+            "bytes": 371040
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 79.1005859375,
+            "cssLive": 33.900634765625,
+            "js": 79.1005859375,
+            "browserUpdate": 2.500732421875,
+            "requests": 9,
+            "bytes": 371102
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 74.26416015625,
+            "cssLive": 30.46435546875,
+            "js": 74.26416015625,
+            "browserUpdate": 1.664306640625,
+            "requests": 9,
+            "bytes": 371164
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 84.56005859375,
+            "cssLive": 40.860107421875,
+            "js": 84.56005859375,
+            "browserUpdate": 1.66015625,
+            "requests": 9,
+            "bytes": 371226
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 103.59228515625,
+            "cssLive": 81.1923828125,
+            "js": 103.59228515625,
+            "browserUpdate": 19.59228515625,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 109.25390625,
+            "cssLive": 79.5537109375,
+            "js": 109.25390625,
+            "browserUpdate": 13.0537109375,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 98.103759765625,
+            "cssLive": 75.103759765625,
+            "js": 98.103759765625,
+            "browserUpdate": 13.8037109375,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 106.383056640625,
+            "cssLive": 83.0830078125,
+            "js": 106.383056640625,
+            "browserUpdate": 18.18310546875,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 100.0146484375,
+            "cssLive": 76.214599609375,
+            "js": 100.0146484375,
+            "browserUpdate": 14.11474609375,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 67.404541015625,
+            "cssLive": 41.404541015625,
+            "js": 67.404541015625,
+            "browserUpdate": 2.1044921875,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 71.52001953125,
+            "cssLive": 26.820068359375,
+            "js": 71.52001953125,
+            "browserUpdate": 2.1201171875,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 66.5302734375,
+            "cssLive": 25.330078125,
+            "js": 66.5302734375,
+            "browserUpdate": 1.730224609375,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 76.885986328125,
+            "cssLive": 29.0859375,
+            "js": 76.885986328125,
+            "browserUpdate": 2.0859375,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 66.7724609375,
+            "cssLive": 26.2724609375,
+            "js": 66.7724609375,
+            "browserUpdate": 2.37255859375,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 80.5546875,
+            "cssLive": 56.254638671875,
+            "js": 80.5546875,
+            "browserUpdate": 8.0546875,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 84.23291015625,
+            "cssLive": 62.1328125,
+            "js": 84.23291015625,
+            "browserUpdate": 11.23291015625,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 99.14208984375,
+            "cssLive": 69.241943359375,
+            "js": 99.14208984375,
+            "browserUpdate": 14.44189453125,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 103.775146484375,
+            "cssLive": 75.375244140625,
+            "js": 103.775146484375,
+            "browserUpdate": 16.5751953125,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 82.344482421875,
+            "cssLive": 58.144287109375,
+            "js": 82.344482421875,
+            "browserUpdate": 8.344482421875,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 61.965576171875,
+            "cssLive": 30.865478515625,
+            "js": 61.965576171875,
+            "browserUpdate": 2.16552734375,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 60.93701171875,
+            "cssLive": 27.8369140625,
+            "js": 60.93701171875,
+            "browserUpdate": 2.136962890625,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 69.057861328125,
+            "cssLive": 30.35791015625,
+            "js": 69.057861328125,
+            "browserUpdate": 1.9580078125,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 63.289306640625,
+            "cssLive": 31.9892578125,
+            "js": 63.289306640625,
+            "browserUpdate": 2.08935546875,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 68.1376953125,
+            "cssLive": 29.837646484375,
+            "js": 68.1376953125,
+            "browserUpdate": 1.937744140625,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 84.59130859375,
+            "cssLive": 84.59130859375,
+            "js": 82.09130859375,
+            "browserUpdate": 4.9912109375,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 85.527587890625,
+            "cssLive": 85.527587890625,
+            "js": 82.82763671875,
+            "browserUpdate": 5.127685546875,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 78.7490234375,
+            "cssLive": 78.7490234375,
+            "js": 70.84912109375,
+            "browserUpdate": 4.7490234375,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 83.94287109375,
+            "cssLive": 83.94287109375,
+            "js": 81.142822265625,
+            "browserUpdate": 4.742919921875,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 76.6962890625,
+            "cssLive": 76.6962890625,
+            "js": 74.59619140625,
+            "browserUpdate": 7.09619140625,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 63.5947265625,
+            "cssLive": 31.394775390625,
+            "js": 63.5947265625,
+            "browserUpdate": 1.794677734375,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 72.58642578125,
+            "cssLive": 30.986328125,
+            "js": 72.58642578125,
+            "browserUpdate": 1.986328125,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 63.25537109375,
+            "cssLive": 32.655517578125,
+            "js": 63.25537109375,
+            "browserUpdate": 1.75537109375,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 72.613525390625,
+            "cssLive": 31.8134765625,
+            "js": 72.613525390625,
+            "browserUpdate": 2.113525390625,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 72.7685546875,
+            "cssLive": 32.668701171875,
+            "js": 72.7685546875,
+            "browserUpdate": 3.2685546875,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 80.44482421875,
+            "cssLive": 80.44482421875,
+            "js": 77.94482421875,
+            "browserUpdate": 5.24462890625,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 76.815673828125,
+            "cssLive": 76.815673828125,
+            "js": 74.515625,
+            "browserUpdate": 4.515625,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 72.62060546875,
+            "cssLive": 72.62060546875,
+            "js": 70.220703125,
+            "browserUpdate": 4.920654296875,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 74.19970703125,
+            "cssLive": 74.19970703125,
+            "js": 71.899658203125,
+            "browserUpdate": 4.599853515625,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 72.9765625,
+            "cssLive": 72.9765625,
+            "js": 70.776611328125,
+            "browserUpdate": 4.37646484375,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 68.925537109375,
+            "cssLive": 25.62548828125,
+            "js": 68.925537109375,
+            "browserUpdate": 2.325439453125,
+            "requests": 9,
+            "bytes": 365583
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 78.228759765625,
+            "cssLive": 32.728759765625,
+            "js": 78.228759765625,
+            "browserUpdate": 3.52880859375,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 67.786865234375,
+            "cssLive": 25.68701171875,
+            "js": 67.786865234375,
+            "browserUpdate": 2.5869140625,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 74.4755859375,
+            "cssLive": 27.775634765625,
+            "js": 74.4755859375,
+            "browserUpdate": 1.775634765625,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 66.050537109375,
+            "cssLive": 25.25048828125,
+            "js": 66.050537109375,
+            "browserUpdate": 1.650390625,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 84.682861328125,
+            "cssLive": 60.98291015625,
+            "js": 84.682861328125,
+            "browserUpdate": 8.282958984375,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 88.359619140625,
+            "cssLive": 66.15966796875,
+            "js": 88.359619140625,
+            "browserUpdate": 8.459716796875,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 104.7060546875,
+            "cssLive": 72.2060546875,
+            "js": 104.7060546875,
+            "browserUpdate": 11.506103515625,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 92.769775390625,
+            "cssLive": 62.56982421875,
+            "js": 92.769775390625,
+            "browserUpdate": 8.169921875,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 90.583740234375,
+            "cssLive": 61.683837890625,
+            "js": 90.583740234375,
+            "browserUpdate": 7.983642578125,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 85.66455078125,
+            "cssLive": 43.964599609375,
+            "js": 85.66455078125,
+            "browserUpdate": 4.464599609375,
+            "requests": 9,
+            "bytes": 370978
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 76.971435546875,
+            "cssLive": 34.771484375,
+            "js": 76.971435546875,
+            "browserUpdate": 2.17138671875,
+            "requests": 9,
+            "bytes": 371040
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 74.812744140625,
+            "cssLive": 29.412841796875,
+            "js": 74.812744140625,
+            "browserUpdate": 2.11279296875,
+            "requests": 9,
+            "bytes": 371102
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 74.4404296875,
+            "cssLive": 34.240478515625,
+            "js": 74.4404296875,
+            "browserUpdate": 2.140380859375,
+            "requests": 9,
+            "bytes": 371164
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 71.72119140625,
+            "cssLive": 29.121337890625,
+            "js": 71.72119140625,
+            "browserUpdate": 2.021240234375,
+            "requests": 9,
+            "bytes": 371226
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 96.0693359375,
+            "cssLive": 71.869384765625,
+            "js": 96.0693359375,
+            "browserUpdate": 14.0693359375,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 97.191162109375,
+            "cssLive": 71.59130859375,
+            "js": 97.191162109375,
+            "browserUpdate": 14.09130859375,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 111.3232421875,
+            "cssLive": 111.3232421875,
+            "js": 109.223388671875,
+            "browserUpdate": 22.92333984375,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 97.13720703125,
+            "cssLive": 72.537109375,
+            "js": 97.13720703125,
+            "browserUpdate": 13.337158203125,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 93.615966796875,
+            "cssLive": 70.615966796875,
+            "js": 93.615966796875,
+            "browserUpdate": 12.515869140625,
+            "requests": 5,
+            "bytes": 192977
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T04-02-26.412Z-styles-imported.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineCompilerHash": "d8bfa5fb511af38d02b9309099bb0fcfdfc8ca58b3ee9dfac4f8322119b09759",
+        "versions": {
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "styles",
+        "orphaned": false,
+        "runs": 3,
+        "counts": [
+          0,
+          800
+        ],
+        "results": [
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 0,
+            "run": 0,
+            "cold": 1016.7494159999999,
+            "warm": 997.6129020000001,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 997.5134449999996
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 0,
+            "run": 0,
+            "cold": 828.7303020000004,
+            "warm": 823.973516,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 938.853196
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 0,
+            "run": 0,
+            "cold": 665.0179940000007,
+            "warm": 663.467678,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 784.3757030000006
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 0,
+            "run": 1,
+            "cold": 683.0480420000004,
+            "warm": 678.0307739999989,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 800.8389380000008
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 0,
+            "run": 1,
+            "cold": 830.6180409999997,
+            "warm": 817.902806,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 930.4262490000001
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 0,
+            "run": 1,
+            "cold": 1015.7007300000005,
+            "warm": 994.439112,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 962.3004170000022
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 0,
+            "run": 2,
+            "cold": 974.2690199999997,
+            "warm": 994.8660930000005,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 971.509102
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 0,
+            "run": 2,
+            "cold": 806.5000820000023,
+            "warm": 820.2480999999971,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 946.5501479999984
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 0,
+            "run": 2,
+            "cold": 670.0803430000014,
+            "warm": 666.4711289999977,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 789.2296989999995
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 800,
+            "run": 0,
+            "cold": 1163.598503000001,
+            "warm": 1156.4782080000004,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1097.0453110000017
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 800,
+            "run": 0,
+            "cold": 878.4879970000038,
+            "warm": 919.8164000000033,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1079.5903550000003
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 800,
+            "run": 0,
+            "cold": 812.3159900000028,
+            "warm": 788.2715189999944,
+            "css": {
+              "raw": 359516,
+              "gzip": 37683,
+              "brotli": 17644
+            },
+            "start": 835.0741989999951
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 800,
+            "run": 1,
+            "cold": 810.941052000002,
+            "warm": 798.7106810000041,
+            "css": {
+              "raw": 359516,
+              "gzip": 37683,
+              "brotli": 17644
+            },
+            "start": 844.1899300000005
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 800,
+            "run": 1,
+            "cold": 876.5161569999982,
+            "warm": 883.621905,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1035.8501189999952
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 800,
+            "run": 1,
+            "cold": 1151.523715999996,
+            "warm": 1151.0329340000026,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1119.9103430000032
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 800,
+            "run": 2,
+            "cold": 1153.5301319999999,
+            "warm": 1156.2327149999983,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1082.5153479999935
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 800,
+            "run": 2,
+            "cold": 881.5474759999997,
+            "warm": 877.4544779999997,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1051.7858960000012
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 800,
+            "run": 2,
+            "cold": 820.5277580000038,
+            "warm": 843.5534159999952,
+            "css": {
+              "raw": 359516,
+              "gzip": 37683,
+              "brotli": 17644
+            },
+            "start": 859.6062479999964
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T04-03-26.410Z-files-orphaned.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineCompilerHash": "d8bfa5fb511af38d02b9309099bb0fcfdfc8ca58b3ee9dfac4f8322119b09759",
+        "versions": {
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "files",
+        "orphaned": true,
+        "runs": 3,
+        "counts": [
+          0,
+          1600
+        ],
+        "results": [
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 1014.1436219999999,
+            "warm": 1008.9492950000001,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 993.9867099999997
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 839.2342939999999,
+            "warm": 785.9634199999991,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 930.4851669999998
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 666.161701,
+            "warm": 656.8613160000004,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 801.8666059999996
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 675.9964999999993,
+            "warm": 654.7986650000003,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 788.3689080000004
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 824.1317719999988,
+            "warm": 818.7777350000015,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 945.0573239999994
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 1011.0768889999999,
+            "warm": 991.1341859999975,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 975.7023420000005
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 987.8159720000003,
+            "warm": 990.1623660000005,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 966.1230260000011
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 824.6348870000002,
+            "warm": 844.2296470000001,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 948.6618830000007
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 670.67137,
+            "warm": 671.9614580000016,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 785.7712329999995
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1004.3547089999993,
+            "warm": 999.921755000003,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1152.5291749999997
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 821.2305930000002,
+            "warm": 822.6798309999976,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1114.9473890000008
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 701.0419630000033,
+            "warm": 710.8274529999981,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 982.3387030000013
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 707.5231640000056,
+            "warm": 707.768339000002,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 995.2389800000019
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 829.6494310000053,
+            "warm": 809.8556769999996,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1086.034685999999
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 978.8677810000008,
+            "warm": 977.4949049999996,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1146.774252000003
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 987.593237000001,
+            "warm": 990.3042160000041,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1132.824394999996
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 824.229299000006,
+            "warm": 816.1061530000006,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1092.206646999999
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 700.8240989999977,
+            "warm": 685.9743929999968,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 979.7007319999975
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T04-04-23.882Z-files-imported.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineCompilerHash": "d8bfa5fb511af38d02b9309099bb0fcfdfc8ca58b3ee9dfac4f8322119b09759",
+        "versions": {
+          "precompiled": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "files",
+        "orphaned": false,
+        "runs": 5,
+        "counts": [
+          0
+        ],
+        "results": [
+          {
+            "engine": "precompiled",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 601.2677199999999,
+            "warm": 596.5794839999999,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 755.8816250000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 816.9963670000002,
+            "warm": 797.5540659999997,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 965.5001419999999
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 682.9167369999996,
+            "warm": 679.6884680000003,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 810.9118560000006
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 684.3123410000007,
+            "warm": 677.5153380000011,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 797.449611
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 834.5545199999997,
+            "warm": 839.5391450000006,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 968.4239319999997
+          },
+          {
+            "engine": "precompiled",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 601.744795999999,
+            "warm": 598.6657320000013,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 754.9105940000009
+          },
+          {
+            "engine": "precompiled",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 599.6799769999998,
+            "warm": 608.7957010000027,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 744.164514
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 815.1952430000019,
+            "warm": 816.2004369999995,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 940.5320810000012
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 676.078719000001,
+            "warm": 676.5247249999993,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 807.6430179999988
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 678.0640529999982,
+            "warm": 678.7929960000001,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 785.286462
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 812.9713270000029,
+            "warm": 811.3465310000029,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 958.5998120000004
+          },
+          {
+            "engine": "precompiled",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 604.8274830000009,
+            "warm": 595.0300879999995,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 748.9310769999975
+          },
+          {
+            "engine": "precompiled",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 607.3465450000003,
+            "warm": 594.9506540000002,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 746.2332779999997
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 816.5159219999987,
+            "warm": 821.0815890000013,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 954.5954930000007
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 681.3489950000003,
+            "warm": 681.9771390000024,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 792.7057090000017
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/parity/report.json",
+      "data": [
+        {
+          "key": "390-light-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "390-light-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "390-light-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "390-light-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "390-light-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "390-light-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        },
+        {
+          "key": "390-dark-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "390-dark-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "390-dark-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "390-dark-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "390-dark-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "390-dark-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        },
+        {
+          "key": "1280-light-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "1280-light-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "1280-light-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "1280-light-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "1280-light-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "1280-light-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        },
+        {
+          "key": "1280-dark-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "1280-dark-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "1280-dark-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "1280-dark-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "1280-dark-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "1280-dark-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        }
+      ]
+    },
+    {
+      "source": "benchmarks/results/parity/assets.json",
+      "data": {
+        "baselineJs": {
+          "raw": 391313,
+          "brotli": 110833
+        },
+        "candidateJs": {
+          "raw": 391313,
+          "brotli": 110833
+        }
+      }
+    }
+  ]
+}

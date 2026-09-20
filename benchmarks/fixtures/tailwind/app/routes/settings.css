@@ -1,0 +1,24 @@
+/* -----------------------------------------------------------------------------
+ * Selectors a utility class on the element cannot express: the switch knob is a
+ * pseudo-element driven by a preceding sibling, and the selected radio card
+ * comes from `:has()`. The route attaches `switch-track` / `radio-card` as
+ * plain anchor classes; Tailwind emits no rule for a name it cannot resolve to
+ * a utility, so they cost nothing in the stylesheet.
+ * -------------------------------------------------------------------------- */
+
+.switch-track::after {
+  content: "";
+  @apply absolute top-3 left-3 size-16 rounded-pill bg-white shadow-sm translate-x-0 transition duration-180;
+}
+
+input:checked + .switch-track {
+  @apply bg-accent;
+}
+
+input:checked + .switch-track::after {
+  @apply translate-x-16;
+}
+
+.radio-card:has(input:checked) {
+  @apply border-accent bg-accent-soft;
+}

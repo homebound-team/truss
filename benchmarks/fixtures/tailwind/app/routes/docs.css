@@ -1,0 +1,80 @@
+/* -----------------------------------------------------------------------------
+ * One `prose` class styles every descendant of the article, so its own markup
+ * carries no classes at all. Block elements are matched as direct children and
+ * inline elements only inside prose text, so the callout, code block and
+ * prev/next cards nested in the article keep their own utilities — a bare
+ * `.prose p` / `.prose a` would match those too.
+ * -------------------------------------------------------------------------- */
+
+.prose > h1 {
+  @apply text-28 font-semibold tracking-[-0.025em] mb-10;
+}
+
+.prose > h2 {
+  @apply text-19 font-semibold mt-30 mb-10 pt-4;
+}
+
+.prose > h3 {
+  @apply text-15-5 font-semibold mt-22 mb-8;
+}
+
+.prose > p {
+  @apply text-14-5 leading-[1.68] text-muted mb-14;
+}
+
+.prose > p:first-of-type {
+  @apply text-16 text-text;
+}
+
+.prose strong {
+  @apply text-text font-semibold;
+}
+
+.prose :is(p, li) a {
+  @apply text-accent underline underline-offset-2;
+}
+
+.prose > ul,
+.prose > ol {
+  @apply mb-14 pl-20 text-14-5 leading-[1.68] text-muted;
+}
+
+.prose > ul {
+  @apply list-disc;
+}
+
+.prose > ol {
+  @apply list-decimal;
+}
+
+.prose > :is(ul, ol) > li {
+  @apply mb-5;
+}
+
+.prose > :is(ul, ol) > li::marker {
+  @apply text-faint;
+}
+
+.prose :is(p, li) code {
+  @apply py-2 px-5 rounded-4 bg-surface2 border border-border text-12-5 font-mono text-text;
+}
+
+.prose > table {
+  @apply mb-16 text-13-5 w-full;
+}
+
+.prose > table th {
+  @apply py-9 px-12 bg-surface2 border-b border-border text-12 font-semibold text-left;
+}
+
+.prose > table td {
+  @apply py-9 px-12 border-b border-border text-muted;
+}
+
+.prose > table td:first-child {
+  @apply text-text font-550;
+}
+
+.prose > blockquote {
+  @apply mb-16 py-10 pl-16 border-l-3 border-border-strong text-14-5 leading-[1.65] text-muted italic;
+}

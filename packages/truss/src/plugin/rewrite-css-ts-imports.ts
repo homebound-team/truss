@@ -7,6 +7,7 @@ import { generate, parseModule } from "./babel-utils";
 export interface RewriteCssTsImportsResult {
   code: string;
   changed: boolean;
+  dependencies?: ReadonlyMap<string, boolean>;
 }
 
 /**
@@ -23,23 +24,24 @@ export interface RewriteCssTsImportsResult {
  *
  * Pure side-effect imports are rewritten directly to the virtual CSS import.
  */
-export function rewriteCssTsImports(code: string, filename: string): RewriteCssTsImportsResult {
+export function rewriteCssTsImports(code: string, filename: string, sharedAst?: t.File): RewriteCssTsImportsResult {
   if (!code.includes(".css")) {
     return { code, changed: false };
   }
 
   const importerDir = dirname(filename);
 
-  const ast = parseModule(code, filename);
+  const ast = sharedAst ?? parseModule(code, filename);
 
   const existingCssSideEffects = new Set<string>();
   const neededCssSideEffects = new Set<string>();
+  const dependencies = new Map<string, boolean>();
   let changed = false;
 
   for (const node of ast.program.body) {
     if (!t.isImportDeclaration(node)) continue;
     if (typeof node.source.value !== "string") continue;
-    if (!isCssTsImport(node.source.value, importerDir)) continue;
+    if (!isCssTsImport(node.source.value, importerDir, dependencies)) continue;
 
     if (node.specifiers.length === 0) {
       node.source = t.stringLiteral(toVirtualCssSpecifier(node.source.value));
@@ -59,7 +61,7 @@ export function rewriteCssTsImports(code: string, filename: string): RewriteCssT
   }
 
   if (!changed) {
-    return { code, changed: false };
+    return { code, changed: false, dependencies };
   }
 
   if (sideEffectImports.length > 0) {
@@ -67,19 +69,26 @@ export function rewriteCssTsImports(code: string, filename: string): RewriteCssT
     ast.program.body.splice(insertIndex, 0, ...sideEffectImports);
   }
 
+  // The caller will emit this AST after compiling Css expressions, so avoid an intermediate
+  // print/parse cycle (and keep source locations tied to the original module).
+  if (sharedAst) return { code, changed: true, dependencies };
+
   const output = generate(ast, {
     sourceFileName: filename,
     retainLines: false,
   });
-  return { code: output.code, changed: true };
+  return { code: output.code, changed: true, dependencies };
 }
 
 /** Check if this import targets a `.css.ts` file (explicitly or via a bare `.css` with a `.css.ts` on disk). */
-function isCssTsImport(specifier: string, importerDir: string): boolean {
+function isCssTsImport(specifier: string, importerDir: string, dependencies: Map<string, boolean>): boolean {
   if (specifier.endsWith(".css.ts")) return true;
   // I.e. `from "./App.css"` or `from "src/App.css"` — only rewrite if a `.css.ts` file exists
   if (specifier.endsWith(".css")) {
-    return existsSync(resolve(importerDir, `${specifier}.ts`));
+    const path = resolve(importerDir, `${specifier}.ts`);
+    const exists = existsSync(path);
+    dependencies.set(path, exists);
+    return exists;
   }
   return false;
 }

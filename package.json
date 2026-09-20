@@ -6,6 +6,10 @@
   "scripts": {
     "build": "tsc --build && yarn workspace @homebound/truss run build",
     "test": "yarn workspaces foreach --all run test",
+    "bench": "node benchmarks/run.mjs",
+    "bench:hmr": "node benchmarks/hmr.mjs",
+    "bench:compiler": "node benchmarks/compiler.mjs",
+    "bench:verify": "node benchmarks/verify.mjs",
     "semantic-release": "semantic-release",
     "codegen": "yarn build && yarn workspaces foreach -A run codegen"
   },

@@ -1,0 +1,24 @@
+/* ---------------------------------------------------------------------------
+   Baseline reset — byte-for-byte the CSS Bamboo emits from `preflight: true`.
+   ---------------------------------------------------------------------------
+   Bamboo ships this reset with the library. StyleX ships none, so the same
+   bytes are vendored here by hand: it is the only way the two apps can start
+   from an identical baseline and have the diff isolate the styling engine.
+
+   The one addition is the `--colors-transparent` definition below, which
+   Bamboo would otherwise supply from its own token layer.
+   ------------------------------------------------------------------------- */
+
+:root {
+  --colors-transparent: transparent;
+}
+
+html,:host{--font-fallback:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;tab-size:4;line-height:1.5;font-family:var(--global-font-body,var(--font-fallback));-webkit-tap-highlight-color:transparent}*,:before,:after,::backdrop{border-style:solid;border-width:0;border-color:var(--global-color-border,currentcolor);box-sizing:border-box;margin:0;padding:0}::file-selector-button{border-style:solid;border-width:0;border-color:var(--global-color-border,currentcolor);box-sizing:border-box;margin:0;padding:0}hr{color:inherit;border-top-width:1px;height:0}body{line-height:inherit;height:100%}img{border-style:none}img,svg,video,canvas,audio,iframe,embed,object{vertical-align:middle;display:block}img,video{max-width:100%;height:auto}h1,h2,h3,h4,h5,h6{text-wrap:balance;font-size:inherit;font-weight:inherit}p,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word}ol,ul,menu{list-style:none}button,input:where([type=button],[type=reset],[type=submit]){appearance:button}::file-selector-button{appearance:button}button,input,optgroup,select,textarea{font:inherit;background:var(--colors-transparent);font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit}::file-selector-button{font:inherit;background:var(--colors-transparent);font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit}::placeholder{--placeholder-fallback:#00000080;opacity:1;color:var(--global-color-placeholder,var(--placeholder-fallback))}@supports (not ((-webkit-appearance:-apple-pay-button))) or (contain-intrinsic-size:1px){::placeholder{--placeholder-fallback:color-mix(in oklab, currentcolor 50%, transparent)}}::selection{background-color:var(--global-color-selection,#0073ff4d)}textarea{resize:vertical}table{border-color:inherit;text-indent:0;border-collapse:collapse}summary{display:list-item}small{font-size:80%}sub,sup{vertical-align:baseline;font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}dialog{padding:0}a{-webkit-text-decoration:inherit;text-decoration:inherit;color:inherit}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}b,strong{font-weight:bolder}code,kbd,samp,pre{--font-mono-fallback:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";font-family:var(--global-font-mono,var(--font-mono-fallback));font-feature-settings:normal;font-variation-settings:normal;font-size:1em}progress{vertical-align:baseline}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-search-cancel-button{-webkit-appearance:none}::-webkit-inner-spin-button{height:auto}::-webkit-outer-spin-button{height:auto}:-moz-ui-invalid{box-shadow:none}:-moz-focusring{outline:auto}[hidden]:where(:not([hidden=until-found])){display:none!important}
+
+/* preflight sets its own font stack and leaves font-size at the UA default;
+   the design is built on Inter at 15px. Bamboo declares this through its
+   `global.css` config; here it is written by hand. */
+html {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px;
+}

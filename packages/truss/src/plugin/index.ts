@@ -289,6 +289,13 @@ __injectTrussCSS(${JSON.stringify(payload)});
       const fileId = stripQueryAndHash(id);
       if (isNodeModulesFile(fileId)) return null;
 
+      // Ordinary DSL modules need only one AST, including their .css.ts import rewrites.
+      // Test bootstrapping and arbitrary CSS modules retain their separate side-effect path.
+      if (!isTest && !fileId.endsWith(".css.ts") && (code.includes("Css") || code.includes("css="))) {
+        const result = session.transformCode(code, fileId, { debug, rewriteCssImports: true, ...diagnostics(this) });
+        return result ? { code: result.code, map: result.map } : null;
+      }
+
       const rewrittenImports = rewriteCssTsImports(code, id);
 
       // In tests, we do not boot through index.html and the dev runtime fetch path
