@@ -1,3 +1,9 @@
+## [2.33.4](https://github.com/homebound-team/truss/compare/v2.33.3...v2.33.4) (2026-09-20)
+
+### Performance Improvements
+
+* Reduce compiler work and add arena benchmarks ([#305](https://github.com/homebound-team/truss/issues/305)) ([9420ec1](https://github.com/homebound-team/truss/commit/9420ec12c8bd3068c072df715504f8db7019863e))
+
 ## [2.33.3](https://github.com/homebound-team/truss/compare/v2.33.2...v2.33.3) (2026-09-14)
 
 ### Bug Fixes
