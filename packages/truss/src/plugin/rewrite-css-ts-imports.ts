@@ -5,6 +5,13 @@ import { findLastImportIndex } from "./ast-utils";
 
 export interface RewriteCssTsImportsResult {
   changed: boolean;
+  /**
+   * Absolute .css.ts paths checked for bare .css imports, mapped to whether each file existed.
+   *
+   * I.e. importing "./theme.css" from /app/src/Page.ts records /app/src/theme.css.ts -> true
+   * if the companion exists, or -> false if it does not. Both outcomes are cache dependencies:
+   * creating or deleting the companion must invalidate the importer's cached transform.
+   */
   dependencies?: ReadonlyMap<string, boolean>;
 }
 
