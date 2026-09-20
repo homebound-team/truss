@@ -5,7 +5,8 @@ This suite uses frozen copies of the **Truss and Tailwind six-page React Router 
 and the frozen [arena README](fixtures/arena-README.md) and [measurement instructions](fixtures/arena-RUNNING.md).
 The suite does not need the other repository once these fixtures are imported.
 
-See [RESULTS.md](RESULTS.md) for the first optimization pass, including the remaining Tailwind gaps.
+See [RESULTS.md](RESULTS.md) for the optimization results, including the remaining Tailwind gaps
+and the [second-pass profiling findings](RESULTS.md#second-pass-profiling-and-findings).
 
 ## Setup
 
@@ -43,6 +44,9 @@ Default comparisons include `baseline` when a snapshot exists, plus local `truss
 the saved snapshot; relative paths are resolved from the repository root. This also applies to
 HMR and parity checks. Set `BASELINE_REVISION` and `CANDIDATE_REVISION` to label the raw measurements
 when comparing revisions (i.e. before and after a refactor).
+`CANDIDATE_BUILD=path/to/a/built/packages/truss/build` similarly selects the candidate for build/startup,
+HMR, and parity checks; it defaults to `packages/truss/build`. Both paths are relative to the repo root
+unless absolute. Keep saved reference builds separate from the original `.work/baseline` snapshot.
 Use `ENGINES=truss,tailwind` or `ENGINES=baseline,truss` to select a pair. The runner copies the built
 compiler/runtime into each Truss app's installed package; this preserves normal package resolution,
 React identity, and Vite dependency optimization. **Run `yarn build` after compiler edits.**
@@ -124,6 +128,14 @@ yarn bench:compiler
 node --cpu-prof --cpu-prof-dir=benchmarks/.work benchmarks/compiler.mjs
 node benchmarks/profile-summary.mjs benchmarks/.work/CPU.…cpuprofile
 
+# Separate profiles for import, mapping, fixture/cache passes, distinct modules, and changed source
+PROFILE_DIR=benchmarks/.work/compiler-profiles node benchmarks/compiler.mjs
+node benchmarks/profile-summary.mjs benchmarks/.work/compiler-profiles/edits-0.cpuprofile
+
+# Select another built compiler, including debug output and a JSON timing report
+COMPILER_BUILD=path/to/a/built/packages/truss/build MODE=dev \
+  OUTPUT=benchmarks/.work/compiler-dev.json node benchmarks/compiler.mjs
+
 # Per-module Vite transform timings; not a headline timing run
 PROFILE=1 ENGINES=truss RUNS=1 COUNTS=0 SCENARIOS=build yarn bench
 
@@ -132,9 +144,19 @@ ENGINES=precompiled,truss,tailwind RUNS=5 COUNTS=0 yarn bench
 ```
 
 The compiler microbenchmark uses the same real fixture modules and the repeated four-declaration
-module from file scaling. It reports plugin import, mapping setup, cold/repeated transforms, and
-1,600 distinct source modules. Profiled Vite builds write one `profile-*.json` per plugin instance
-in the disposable app directory, including module IDs, source lengths, and hook durations.
+module from file scaling. It reports plugin import, mapping setup, cold/repeated transforms,
+1,600 distinct source modules, and 100 unique-source dashboard transforms that bypass the cache.
+`RUNS` repeats sessions within one process; import is measured once, and later sessions retain JIT
+warmup. Use separate processes and interleave versions when comparing cold compiler performance.
+
+`COMPILER_BUILD` defaults to `packages/truss/build`. `MODE=dev` enables debug output; `SOURCE_MAPS=1`
+requests production maps. `OUTPUT` writes timing samples, the Node version, compiler hash, and mode.
+`PROFILE_DIR` writes one V8 profile per phase, sampled at 100 µs. `profile-summary.mjs` reports self
+time by category and frame; an optional second argument saves those totals as JSON. Inspector
+start/stop overhead is reported separately. Use unprofiled runs for wall-clock comparisons.
+
+Profiled Vite builds write one `profile-*.json` per plugin instance in the disposable app directory,
+including module IDs, source lengths, and hook durations.
 
 `precompiled` is an attribution control, **not a Truss performance result**. It replaces fixture
 DSL expressions with their production transforms and writes the collected stylesheet before timing,

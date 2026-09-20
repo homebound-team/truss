@@ -18,6 +18,10 @@ for (const report of reports) {
     );
     continue;
   }
+  if (data.categories || data.samples) {
+    console.table(data.categories ?? data.samples);
+    continue;
+  }
   const rows = data.results ?? data.rows;
   const groups = Map.groupBy(rows, (row) => `${row.engine}/${row.count ?? row.kind}`);
   const summary = [];

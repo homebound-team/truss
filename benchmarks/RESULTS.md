@@ -1,4 +1,4 @@
-# Initial compiler optimization results
+# Compiler optimization results
 
 Measured September 20, 2026 UTC on Linux, Intel i9-12900K, Node **24.20.0**, Vite **8.2.2**,
 React Router **8.3.1**, React **19.2.8**, Tailwind **4.3.3**. The saved Truss baseline is
@@ -163,3 +163,58 @@ The next investigation should evaluate a lighter/native frontend or a broader in
 compilation design, with initialization and per-file work measured separately. The benchmarks and
 regression suite now provide the acceptance criteria. No claim is made that Tailwind is impossible
 to beat, only that the incremental changes measured here have not done so.
+
+## Second-pass profiling and findings
+
+Measured September 20, 2026, in the same hardware/Node environment. This pass compares against
+**merged #305, `9420ec12`**, rather than the original unoptimized baseline. The retained changes were
+merged in [#306](https://github.com/homebound-team/truss/pull/306) and released in **2.33.5**:
+
+- Construct the constant spacing regex once per module instead of on every class-name value.
+- Skip Babel map construction when production source maps are disabled. Serve-mode maps stay enabled;
+  mapped builds and direct transform callers retain maps. The session cache includes the map policy.
+
+Five interleaved runs per engine, with reversed order on alternating runs; medians:
+
+| Metric                   |     #305 | #306 changes | Tailwind |
+| ------------------------ | -------: | -----------: | -------: |
+| Cold production build    |   833 ms |       808 ms |   689 ms |
+| Warm production build    |   845 ms |       814 ms |   680 ms |
+| Cold startup → SSR       |   958 ms |       972 ms |   797 ms |
+| Cold build, +1,600 files | 1,552 ms |     1,507 ms | 1,216 ms |
+| Warm build, +1,600 files | 1,573 ms |     1,512 ms | 1,216 ms |
+
+The production-build point estimates improve **3–4%**. Startup does not demonstrate an improvement.
+There are overlapping ranges and outliers, including in Tailwind: zero-file cold builds span
+814–855 ms before and 802–841 ms after. Full paired build/startup samples and compiler hashes are in
+[pass2-retained.json](baselines/2026-09-20-pass2-retained.json).
+
+### Attribution and next direction
+
+Phase-separated V8 profiles at a 100 µs sampling interval identify costs beyond parsing:
+
+- Plugin import alone takes **71.4 ms** in the unprofiled fresh-process median. Initialization is a
+  substantial part of the cold budget.
+- Across 100 changed-source production transforms, generator self time falls from **57.9 to 26.3 ms**
+  with the retained changes. The separate source-map-library category falls from **6.3 ms** to no
+  samples. Parsing and traversal still account for about **50 and 58 ms** after the changes.
+- Reconstructing the spacing regex accounts for **9.5 ms** of self time in the before profile.
+  Profiler overhead is accounted for separately; sampled self time is not a wall-clock speedup.
+
+A native parser alone was insufficient. For a full 18-module fixture pass, including AST transfer
+into JavaScript, median parser-only times were **2.96 ms for Babel**, **8.09 ms for Oxc's default JSON
+transfer**, and **1.77 ms for Oxc's experimental raw transfer**. These are warmed, sequential batches,
+not end-to-end build timings. A partial native frontend still required Babel fallback and did not
+establish a broadly useful replacement. Selected profile totals, import samples, and parser samples
+are retained in [pass2-attribution.json](baselines/2026-09-20-pass2-attribution.json).
+
+A separate experiment used value-independent, per-use-site development classes to avoid JS
+invalidation on literal-value edits. The benchmark's two font-size edits strongly favor that strategy;
+structural and ordinary JS edits still require module updates. The change to canonical naming and
+deduplication is not justified by that narrow evidence. The prototype and its special HMR harness
+were discarded.
+
+**Focus further work on initialization, parsing, traversal, and printing across ordinary workloads.**
+A native extractor returning compact Truss expressions, bindings, and source ranges could avoid
+whole-file AST transfer and Babel loading. Measure cold initialization separately from steady-state
+throughput before committing to that architecture.

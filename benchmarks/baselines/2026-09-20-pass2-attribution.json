@@ -1,0 +1,66 @@
+{
+  "description": "Selected second-pass attribution measurements. Times are milliseconds; CPU profile categories are sampled self time, not wall-clock phase durations. Full traces remain local under benchmarks/.work/.",
+  "date": "2026-09-20",
+  "node": "v24.20.0",
+  "platform": "linux",
+  "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+  "baselineRevision": "9420ec12",
+  "baselineCompilerHash": "ab57f4010ce54006fe63e41557c091f3e0a364012bbf2417479f41087d00133f",
+  "candidate": "Regex/source-map changes subsequently merged in #306",
+  "candidateCompilerHash": "200030038b3c656dfbd390496130fb9f1d0e88a8fc69d6eb1e79125d1e6e8c3f",
+  "baselineImport": {
+    "method": "Five fresh, unprofiled Node processes. Baseline samples retained in run order from an interleaved five-variant compiler comparison.",
+    "samples": [79.118336, 70.44216999999999, 71.386167, 72.274734, 71.172487]
+  },
+  "profiles": {
+    "method": "100 unique-source dashboard transforms in production mode, after the fixture and distinct-module passes. Inspector sampling interval 100 microseconds. Both variants configured with build.sourcemap=false; #305 still constructed maps.",
+    "before": {
+      "source": "benchmarks/.work/pass2-profile-before/edits-0.cpuprofile",
+      "samples": 2072,
+      "categories": {
+        "Profiler overhead": 71.302,
+        "Babel parser": 48.31200000000007,
+        "Babel types": 23.226999999999997,
+        "Babel traversal/scope": 60.3350000000001,
+        "Truss (bundled)": 67.31100000000015,
+        "Other": 3.4690000000000003,
+        "Babel generator": 57.93600000000007,
+        "Source maps": 6.2749999999999995,
+        "GC": 59.20400000000009,
+        "Node/loading": 0.153
+      },
+      "selectedFrames": [
+        ["mark node_modules/@babel/generator/lib/index.js:49", 18.419999999999995],
+        ["tryParseIncrementCalcMultiplier benchmarks/.work/pass2-baseline/plugin/index.js:466", 9.516999999999996]
+      ]
+    },
+    "after": {
+      "source": "benchmarks/.work/pass2-profile-after/edits-0.cpuprofile",
+      "samples": 1734,
+      "categories": {
+        "Profiler overhead": 60.282,
+        "Babel parser": 50.17900000000009,
+        "Babel types": 19.971999999999987,
+        "GC": 54.0850000000001,
+        "Babel traversal/scope": 58.03800000000011,
+        "Truss (bundled)": 58.625000000000156,
+        "Babel generator": 26.34499999999998,
+        "Other": 3.0669999999999997,
+        "Node/loading": 0.306
+      }
+    }
+  },
+  "parserProbe": {
+    "method": "Five sequential batches of 20 passes over all 18 fixture JS/TS modules except generated Css.ts. Each sample is batch milliseconds divided by 20. Babel uses typescript/jsx plugins; Oxc parseSync uses lang=tsx. Both read program.body, including AST transfer. These are parser-only observations from discarded experiments, not end-to-end comparisons.",
+    "oxcVersion": "0.150.0",
+    "babel": {
+      "samples": [5.6077369500000005, 3.568784849999999, 2.925801800000001, 2.9634098999999994, 2.9299121000000015]
+    },
+    "oxcJson": {
+      "samples": [8.13872185, 8.1846791, 8.07590365, 6.871768999999998, 8.090085399999998]
+    },
+    "oxcExperimentalRaw": {
+      "samples": [3.0932719, 2.5251574999999997, 1.1691254, 1.7700582499999995, 1.6840182]
+    }
+  }
+}
