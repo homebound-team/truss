@@ -83,6 +83,7 @@ And a static, build-time generated CSS file:
   - `Css.bgColor(maybe ? Palette.Black : Palette.Blue).$` or
   - `Css.mt0.if(someCondition).mt4.$`.
   - Still compiled to static/atomic CSS, with a lightweight runtime helper to apply dynamic values
+    - Basically we do what StyleX does 😇
 
 - Pseudo-selectors and breakpoints:
   - `Css.white.onHover.black.$` or
@@ -106,12 +107,12 @@ And a static, build-time generated CSS file:
 - Configure your design system in Truss's configuration 🧑‍🎨
   - Color palette, fonts, increments, and breakpoint 🎨s
   - [See example config](https://github.com/homebound-team/truss/blob/main/packages/template-tachyons/truss-config.ts) and the "Customization" section below
-
-- Optional **design tokens** (`config.tokens`) and **`Css.setVar`** for scoped CSS variables on **web** (build-time atomic classes). React Native does not support `setVar`. See [Design tokens and Css.setVar](#design-tokens-and-csssetvar).
-- Optional **`@property` registration** (the object form of `config.tokens`) and **`@keyframes`** (`config.keyframes`), so animation names are checked at build time and unused keyframes are pruned. See [Registering a token with `@property`](#registering-a-token-with-property) and [Keyframes](#keyframes).
+  - Use design tokens for scoped CSS variables, see [Design Tokens](#design-tokens).
+  - `@property` and `@keyframes` support for build time type-checking & pruning of unused keyframes, see [Registering a token with `@property`](#registering-a-token-with-property) and [Keyframes](#keyframes).
 
 - Escape hatch to arbitrary/runtime selectors
-  - `useRuntimeStyle({ body: RuntimeCss.blue.$ })`
+  - Truss is pragmatic about "sometimes you just need raw CSS" and supports it ergonomically
+  - Use our `useRuntimeStyle({ body: RuntimeCss.blue.$ })` hook for runtime `style` injection
   - Only applied when the component is mounted
 
 - Type-checking built in 💪
@@ -125,6 +126,7 @@ And the elephant 🐘 in the room:
   - Composing styles with POJO spreads instead of class name strings is more ergonomic
   - Easier escape hatches to dynamic values & dynamic selectors
   - "Modifier chains" of `ifSm.blue.p2.m2` is more succinct than repeating class name modifiers
+  - We started with Tachyons in 2019, missed the TW craze, and now AI is smart enough it doesn't matter 🧠
   - We just like Truss better 🤷 😀
 
 - Why not StyleX?
@@ -1043,11 +1045,15 @@ Projects should heavily customize these settings to match their project-specific
 
 ```
 
-#### Design tokens and Css.setVar
+#### Design Tokens
 
-You can declare a **`tokens`** map in `truss-config` / `defineConfig`: each key is a PascalCase name, each value is a CSS variable string (`"--my-token"`). Codegen adds **`export enum Tokens { … }`** (same idea as `Palette`) plus types used by **`Css.setVar`**. Use those names in `palette`, `fonts`, or sections with normal `var(…)` values—for example `Primary: "var(--theme-primary, #2563eb)"` once `--theme-primary` matches a `tokens` entry.
+You can declare a **`tokens`** map in `truss-config.ts`'s `defineConfig`: each key is a PascalCase name, each value is a CSS variable string (`"--my-token"`).
 
-**`Css.setVar({ … })`** (web target only) applies custom properties via **atomic classes** the Vite plugin emits—not `Css.style()` / inline styles—so rules can sit under the same `@media` / `@container` machinery as the rest of Truss. Keys are either **`[Tokens.SomeName]`** or ad-hoc **`"--local-var"`** string keys. Values must be **compile-time literals** (or an object with optional **`default`**, **`media`** keyed by your generated **`Breakpoint`** names, and **`container`** rows with the same **`gt` / `lt` / `name`** shape as **`ifContainer`**). You can omit **`default`** if you only need conditional branches, as long as at least one branch is present.
+Truss `codegen` will then add **`export enum Tokens { … }`** (similar to `Palette`) plus types used by **`Css.setVar`**.
+
+Use those names in `palette`, `fonts`, or sections with normal `var(…)` values—for example `Primary: "var(--theme-primary, #2563eb)"` once `--theme-primary` matches a `tokens` entry.
+
+**`Css.setVar({ … })`** applies custom properties via **atomic classes** the Vite plugin emits—not `Css.style()` / inline styles—so rules can sit under the same `@media` / `@container` machinery as the rest of Truss. Keys are either **`[Tokens.SomeName]`** or ad-hoc **`"--local-var"`** string keys. Values must be **compile-time literals** (or an object with optional **`default`**, **`media`** keyed by your generated **`Breakpoint`** names, and **`container`** rows with the same **`gt` / `lt` / `name`** shape as **`ifContainer`**). You can omit **`default`** if you only need conditional branches, as long as at least one branch is present.
 
 React Native: **`setVar`** is not supported (no web atomic pipeline).
 
