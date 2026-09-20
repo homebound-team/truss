@@ -26,6 +26,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   let mapping: TrussMapping | null = null;
   let libraryCache: ParsedTrussCss[] | null = null;
   const cssRegistry = new Map<string, AtomicRule>();
+  /** Complete selector-based CSS from each reached .css.ts file, keyed by its absolute source path. */
   const arbitraryCssRegistry = new Map<string, string>();
   const libraryPaths = options.libraries ?? [];
   // React Router builds the client and server with the same plugin. Keep the latest
@@ -58,6 +59,20 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     stylesheetCache.clear();
   }
 
+  /**
+   * Compile a .css.ts file's authored selectors and record its CSS for the combined stylesheet.
+   *
+   * "Arbitrary CSS" means rules for selectors the author chooses, such as body or .dialog > h2.
+   * The registry maps each absolute source path to that file's complete compiled CSS text.
+   * I.e. /app/src/reset.css.ts with `export const css = { body: "margin: 0;" }` records:
+   * /app/src/reset.css.ts -> "body {\n  margin: 0;\n}"
+   * And /app/src/dialog.css.ts with `export const css = { ".dialog > h2": Css.df.$ }` records:
+   * /app/src/dialog.css.ts -> ".dialog > h2 {\n  display: flex;\n}"
+   *
+   * collectCss() merges these blocks with atomic rules and library CSS. An edit replaces the
+   * file's previous block (or removes it if empty), so HMR does not retain stale selector rules.
+   * Each build starts with an empty registry and adds files as they are reached.
+   */
   function updateArbitraryCssRegistry(
     sourcePath: string,
     sourceCode: string,
