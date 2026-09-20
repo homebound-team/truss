@@ -87,6 +87,7 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   let isBuild = false;
   let isLib = false;
   let annotate = true;
+  let sourceMaps = true;
   let devSocket: { send: (payload: unknown) => void } | undefined;
   let devServer: any;
   /** True once a module imported `virtual:truss.css`, i.e. the app links its stylesheet itself. */
@@ -129,6 +130,8 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
       debug = config.command === "serve" || config.mode === "development" || config.mode === "test";
       isTest = config.mode === "test";
       isBuild = config.command === "build";
+      // Devtools need maps in dev. Production only consumes them when the build enables them.
+      sourceMaps = !isBuild || Boolean(config.build?.sourcemap);
       isLib = Boolean(config.build?.lib);
       annotate = !isBuild || isLib;
     },
@@ -298,6 +301,7 @@ __injectTrussCSS(${JSON.stringify(payload)});
       // The session also refreshes extracted CSS during HMR; virtual load only runs initially.
       const result = session.transformCode(code, fileId, {
         debug,
+        sourceMaps,
         rewriteCssImports: true,
         bootstrapImport: isTest ? VIRTUAL_TEST_CSS_ID : undefined,
         injectCss: isTest,

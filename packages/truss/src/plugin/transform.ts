@@ -50,6 +50,8 @@ export interface TransformResult {
 
 export interface TransformTrussOptions extends DiagnosticOptions {
   debug?: boolean;
+  /** Disable map construction when the build does not consume source maps. Defaults to true. */
+  sourceMaps?: boolean;
   /** When true, inject `__injectTrussCSS(payload)` call for jsdom/test environments. */
   injectCss?: boolean;
   /** Vite can rewrite CSS side-effect imports in the same parse as Truss expressions. */
@@ -117,7 +119,7 @@ export function transformTruss(
 
   if (!changed && arbitraryCss === undefined) return null;
   const output = changed
-    ? generate(ast, { sourceFileName: filename, sourceMaps: true, retainLines: false })
+    ? generate(ast, { sourceFileName: filename, sourceMaps: options.sourceMaps ?? true, retainLines: false })
     : { code, map: undefined };
   return {
     code: changed ? preserveBlankLineAfterImports(code, output.code) : code,

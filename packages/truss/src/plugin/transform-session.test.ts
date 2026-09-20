@@ -177,6 +177,32 @@ describe("transform-session", () => {
       ':root { --t-spacing: 8px; }\n@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }\nbody {\n  margin: 0;\n}',
     );
   });
+
+  test("a mapped request does not reuse a cached transform without maps", () => {
+    // Given a production transform that did not need a source map
+    const session = createSession();
+    const source = 'import { Css } from "./Css"; const s = Css.df.$;';
+    session.transformCode(source, "a.ts", { sourceMaps: false });
+
+    // When a caller requests the same source with the default map policy
+    const result = session.transformCode(source, "a.ts");
+
+    // Then it receives a map for the original source rather than the mapless cached result
+    expect(result?.map).toMatchObject({ sources: ["a.ts"] });
+  });
+
+  test("a mapless request does not reuse a cached mapped transform", () => {
+    // Given a transform with a source map
+    const session = createSession();
+    const source = 'import { Css } from "./Css"; const s = Css.df.$;';
+    session.transformCode(source, "a.ts");
+
+    // When a build requests the same source without source maps
+    const result = session.transformCode(source, "a.ts", { sourceMaps: false });
+
+    // Then the mapped cache entry does not leak into the mapless mode
+    expect(result?.map).toBeNull();
+  });
 });
 
 /** Use the same generated mapping as the transform regression suite. */
