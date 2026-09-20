@@ -1262,6 +1262,53 @@ describe("trussPlugin", () => {
   });
 });
 
+describe("trussPlugin source maps", () => {
+  test("omits maps for a production build that does not consume them", () => {
+    // Given a mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And a production build with Vite's default source-map policy
+    const plugin = trussPlugin({ mapping: "./Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "build", build: {} });
+
+    // When an application style is compiled
+    const result = runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "App.tsx"));
+
+    // Then source-map construction is omitted
+    expect(result?.map).toBeNull();
+  });
+
+  test("preserves maps for hidden production source maps", () => {
+    // Given a mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And a production build that writes maps without a sourceMappingURL comment
+    const plugin = trussPlugin({ mapping: "./Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "build", build: { sourcemap: "hidden" } });
+
+    // When an application style is compiled
+    const result = runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "App.tsx"));
+
+    // Then the downstream build can map it back to the application source
+    expect(result?.map.sources).toEqual([join(root, "App.tsx")]);
+  });
+
+  test("preserves devtools maps even when production maps are disabled", () => {
+    // Given a mapping with a flex rule
+    const root = createTempRoot();
+    writeMapping(join(root, "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
+    // And a dev server whose production build configuration disables maps
+    const plugin = trussPlugin({ mapping: "./Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", build: { sourcemap: false } });
+
+    // When an application style is compiled
+    const result = runTransform(plugin, 'import { Css } from "./Css"; const s = Css.df.$;', join(root, "App.tsx"));
+
+    // Then devtools can still find the original application source
+    expect(result?.map.sources).toEqual([join(root, "App.tsx")]);
+  });
+});
+
 function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }

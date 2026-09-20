@@ -32,8 +32,9 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   // React Router builds the client and server with the same plugin. Keep the latest source
   // and result for each file and combination of output options (the "transform mode"):
   // debug metadata (debug), CSS injection (injectCss), CSS import rewriting (rewriteCssImports),
-  // and the test bootstrap import (bootstrapImport). I.e. a production transform without debug
-  // metadata or CSS injection cannot be reused for a Vitest transform that includes them.
+  // source maps (sourceMaps), and the test bootstrap import (bootstrapImport).
+  // I.e. a production transform without debug metadata or CSS injection cannot be reused
+  // for a Vitest transform that includes them.
   // Keep these cached results across registry resets, then replay their rules on cache hits.
   const transformCache = new Map<string, { code: string; result: TransformResult | null }>();
   const arbitraryCache = new Map<string, { code: string; css: string }>();
@@ -123,7 +124,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     fileId: string,
     transformOptions: TransformTrussOptions = {},
   ): TransformResult | null {
-    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${Boolean(transformOptions.rewriteCssImports)}\0${transformOptions.bootstrapImport ?? ""}`;
+    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${Boolean(transformOptions.rewriteCssImports)}\0${transformOptions.bootstrapImport ?? ""}\0${transformOptions.sourceMaps ?? true}`;
     const cached = transformCache.get(key);
     const arbitrarySourcePath = fileId.endsWith(".css.ts") ? resolve(fileId).replace(/\\/g, "/") : undefined;
     let result: TransformResult | null;

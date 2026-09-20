@@ -7,6 +7,11 @@
 /** Custom property for increment-based spacing (web). */
 export const SPACING_CUSTOM_PROPERTY = "--t-spacing";
 
+// Class-name generation checks every resolved value; the property and pattern never change.
+const SPACING_CALC_PATTERN = new RegExp(
+  `^calc\\(var\\(${SPACING_CUSTOM_PROPERTY.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\) \\* (-?\\d+(?:\\.\\d+)?)\\)$`,
+);
+
 /** I.e. `calc(var(--t-spacing) * 3)` — requires prelude defining `--t-spacing`. */
 export function incrementCssValue(multiplier: number): string {
   return `calc(var(${SPACING_CUSTOM_PROPERTY}) * ${multiplier})`;
@@ -17,9 +22,7 @@ export function incrementCssValue(multiplier: number): string {
  * returns the multiplier substring `k` (e.g. `"2"`, `"-1"`, `"2.5"`). Otherwise null.
  */
 export function tryParseIncrementCalcMultiplier(cssValue: string): string | null {
-  const prop = SPACING_CUSTOM_PROPERTY.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`^calc\\(var\\(${prop}\\) \\* (-?\\d+(?:\\.\\d+)?)\\)$`);
-  const m = cssValue.match(re);
+  const m = SPACING_CALC_PATTERN.exec(cssValue);
   return m ? m[1] : null;
 }
 
