@@ -55,8 +55,14 @@ type StyleEntryGroups = Map<string, StyleEntry[]>;
  * Non-JSX positions become plain object expressions.
  */
 export function rewriteExpressionSites(options: RewriteSitesOptions): void {
-  // Runtime arguments are cloned into style hashes. A nested JSX attribute or Css.props()
-  // call then has a new path, so conservatively walk the rewritten AST in those cases.
+  // A "style hash" is a plain JavaScript object holding class names and runtime style metadata,
+  // not a digest like SHA-256. I.e. Css.df.$ becomes { display: "df" }.
+  // Expressions with runtime values are copied into these objects as AST nodes during compilation.
+  // I.e. in Css.className(Css.props(styles).className).$, the argument is Css.props(styles).className.
+  // Its AST is cloned into { className_Css_props_styles_className: Css.props(styles).className };
+  // the runtime value itself is not cloned. The copied Css.props() node has a new path, so we
+  // revisit it to produce trussProps(styles).className. Nested JSX css attributes also need this
+  // revisit: paths collected before cloning still point at the original nodes, not the copies.
   let revisit = options.hasCssPropsCall;
   if (!revisit) {
     for (const site of options.sites) {
