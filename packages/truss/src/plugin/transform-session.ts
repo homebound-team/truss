@@ -29,8 +29,12 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   /** Complete selector-based CSS from each reached .css.ts file, keyed by its absolute source path. */
   const arbitraryCssRegistry = new Map<string, string>();
   const libraryPaths = options.libraries ?? [];
-  // React Router builds the client and server with the same plugin. Keep the latest
-  // source per transform mode across registry resets, then replay rules on cache hits.
+  // React Router builds the client and server with the same plugin. Keep the latest source
+  // and result for each file and combination of output options (the "transform mode"):
+  // debug metadata (debug), CSS injection (injectCss), CSS import rewriting (rewriteCssImports),
+  // and the test bootstrap import (bootstrapImport). I.e. a production transform without debug
+  // metadata or CSS injection cannot be reused for a Vitest transform that includes them.
+  // Keep these cached results across registry resets, then replay their rules on cache hits.
   const transformCache = new Map<string, { code: string; result: TransformResult | null }>();
   const arbitraryCache = new Map<string, { code: string; css: string }>();
   const stylesheetCache = new Map<boolean, string>();
