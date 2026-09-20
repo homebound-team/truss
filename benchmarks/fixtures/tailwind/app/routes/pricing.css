@@ -1,0 +1,14 @@
+/* The FAQ accordion glyph: a pseudo-element flipped by `details[open]`, so no React state. */
+
+.faq-summary::-webkit-details-marker {
+  @apply hidden;
+}
+
+.faq-summary::after {
+  content: "+";
+  @apply text-17 font-normal text-muted leading-[1];
+}
+
+details[open] .faq-summary::after {
+  content: "−";
+}

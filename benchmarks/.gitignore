@@ -1,0 +1,5 @@
+.work/
+results/
+fixtures/*/node_modules/
+fixtures/*/build/
+fixtures/*/.react-router/

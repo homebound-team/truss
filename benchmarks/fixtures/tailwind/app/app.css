@@ -1,0 +1,262 @@
+@import "tailwindcss";
+
+/* Route-level rules whose selectors no utility class can express — descendant,
+   sibling and `:has()` relations. They are pulled in here rather than imported
+   from the route module so the app still ships one stylesheet, and they stay
+   outside `@layer` so they outrank the utilities on the same elements. */
+@import "./routes/docs.css";
+@import "./routes/lab.css";
+@import "./routes/pricing.css";
+@import "./routes/settings.css";
+
+/* -----------------------------------------------------------------------------
+ * Theme-aware token values.
+ *
+ * Declared here rather than straight into `@theme` because several tokens are
+ * derived from others with `color-mix()`, and `@theme` only emits the variables
+ * a utility actually reached — a token referenced *only* by another token can
+ * be dropped. Keeping the raw palette in a plain `:root` block makes the
+ * derivations safe and mirrors what the Bamboo app declares in
+ * bamboo.config.ts; every app must render the same pixels.
+ *
+ * Each value is a `light-dark()` pair, so the explicit theme toggle is just
+ * `color-scheme` on a subtree rather than a second copy of the palette.
+ * -------------------------------------------------------------------------- */
+:root {
+  --bg: light-dark(#f7f8fa, #14171f);
+  --surface: light-dark(#ffffff, #1b1f2a);
+  --surface2: light-dark(#f1f3f7, #232834);
+  --surface3: light-dark(#e8ecf3, #2b3140);
+  --border: light-dark(#e3e7ee, #2c3240);
+  --border-strong: light-dark(#cdd4e0, #3d4557);
+  --text: light-dark(#10131a, #e8ebf2);
+  --muted: light-dark(#5d6675, #98a1b3);
+  --faint: light-dark(#8b94a5, #7c8598);
+  --accent: light-dark(#4f46e5, #818cf8);
+  --accent-soft: light-dark(#eef0fe, #262a40);
+  --accent-contrast: light-dark(#ffffff, #0b0d12);
+  --success: light-dark(#0f7a52, #34d399);
+  --success-soft: light-dark(#e3f5ec, #16302a);
+  --warning: light-dark(#92500a, #fbbf24);
+  --warning-soft: light-dark(#fdf0dc, #332711);
+  --danger: light-dark(#c0271f, #f87171);
+  --danger-soft: light-dark(#fdeceb, #341d1f);
+
+  --shadow-1: 0 1px 2px rgb(16 19 26 / 0.06), 0 1px 3px rgb(16 19 26 / 0.04);
+  --shadow-2: 0 4px 12px rgb(16 19 26 / 0.08), 0 1px 3px rgb(16 19 26 / 0.04);
+  --shadow-3: 0 12px 32px rgb(16 19 26 / 0.12), 0 2px 8px rgb(16 19 26 / 0.06);
+}
+
+/* Shadows are not colours, so light-dark() cannot carry them. They follow the
+   OS preference only, exactly as the other apps' shadow tokens do. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-2: 0 4px 12px rgb(0 0 0 / 0.36);
+    --shadow-3: 0 12px 32px rgb(0 0 0 / 0.44);
+  }
+}
+
+@theme {
+  /* ---- palette -------------------------------------------------------- */
+  --color-page: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-surface3: var(--surface3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  /* Derived once from the theme-aware tokens above, so these need no dark
+     branch of their own — light-dark() resolves underneath. */
+  --color-accent-hover: color-mix(in srgb, var(--accent) 86%, #000);
+  --color-danger-hover: color-mix(in srgb, var(--danger) 86%, #000);
+  --color-surface-glass: color-mix(in srgb, var(--surface) 86%, transparent);
+  --color-surface-glass-strong: color-mix(in srgb, var(--surface) 92%, transparent);
+  --color-bar-secondary: color-mix(in srgb, var(--accent) 32%, transparent);
+  --color-accent-border: color-mix(in srgb, var(--accent) 30%, transparent);
+  --color-warning-border: color-mix(in srgb, var(--warning) 34%, transparent);
+  --color-danger-border: color-mix(in srgb, var(--danger) 40%, transparent);
+
+  /* ---- type ----------------------------------------------------------- */
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  /* The design is px-precise, so the scale is named by its pixel value and a
+     trailing `-5` is a half pixel: `text-13-5` is 13.5px. Tailwind's own
+     `--text-xs`…`--text-9xl` names stay defined but nothing uses them. */
+  --text-10: 10px;
+  --text-11: 11px;
+  --text-11-5: 11.5px;
+  --text-12: 12px;
+  --text-12-5: 12.5px;
+  --text-13: 13px;
+  --text-13-5: 13.5px;
+  --text-14: 14px;
+  --text-14-5: 14.5px;
+  --text-15: 15px;
+  --text-15-5: 15.5px;
+  --text-16: 16px;
+  --text-17: 17px;
+  --text-18: 18px;
+  --text-19: 19px;
+  --text-23: 23px;
+  --text-25: 25px;
+  --text-28: 28px;
+  --text-34: 34px;
+
+  /* Three weights off Tailwind's named scale. The design's semibold is 600
+     (`font-semibold`); these are the in-between weights Inter's variable axis
+     carries. */
+  --font-weight-550: 550;
+  --font-weight-650: 650;
+  --font-weight-680: 680;
+
+  /* ---- spacing -------------------------------------------------------- */
+  /* One pixel per step, so `p-18` is 18px. The design's spacing is off any
+     4px grid (7, 9, 11, 13, 22, 26 …), so a rem-based scale would have meant
+     an arbitrary value on most declarations. */
+  --spacing: 1px;
+
+  /* ---- radii ---------------------------------------------------------- */
+  --radius-2: 2px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-7: 7px;
+  --radius-10: 10px;
+  --radius-14: 14px;
+  --radius-pill: 999px;
+
+  /* ---- shadows -------------------------------------------------------- */
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+  /* Focus rings, 3px of the soft tone. */
+  --shadow-ring: 0 0 0 3px var(--accent-soft);
+  --shadow-ring-danger: 0 0 0 3px var(--danger-soft);
+
+  /* ---- breakpoints ---------------------------------------------------- */
+  /* The design is desktop-first, so every query is written `max-*`. Each
+     breakpoint is named for the range below it and set to that range's upper
+     edge plus one, so `max-tablet:` is `width < 901px`. `tablet:` is the
+     min-width form the featured pricing card needs. */
+  --breakpoint-tiny: 461px;
+  --breakpoint-phone: 561px;
+  --breakpoint-form: 621px;
+  --breakpoint-stack: 821px;
+  --breakpoint-narrow: 861px;
+  --breakpoint-tablet: 901px;
+  --breakpoint-lap: 1001px;
+  --breakpoint-wide: 1151px;
+
+  /* ---- motion --------------------------------------------------------- */
+  --animate-spin: spin 0.8s linear infinite;
+  --animate-pulse: pulse 1.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-sweep: sweep 1.6s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.45;
+      transform: scale(0.82);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes sweep {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * Custom utilities
+ * -------------------------------------------------------------------------- */
+
+@utility brand-gradient {
+  background-image: linear-gradient(
+    140deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 55%, #22d3ee)
+  );
+}
+
+@utility shimmer-gradient {
+  background-image: linear-gradient(
+    90deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 32%, transparent),
+    var(--accent)
+  );
+}
+
+/* -----------------------------------------------------------------------------
+ * Base
+ * -------------------------------------------------------------------------- */
+
+@layer base {
+  /* Tailwind's preflight leaves font-size at the UA default; the design is
+     built on Inter at 15px. The family comes from `--font-sans` above, which
+     preflight already reads through `--default-font-family`. */
+  html {
+    font-size: 15px;
+  }
+
+  /* The three declarations Tailwind's preflight does not carry but the arena's
+     shared baseline does. `text-wrap: balance` is not cosmetic here: without it
+     the pricing headline breaks at a different word than in every other app and
+     the visual-parity gate fails. */
+  body {
+    line-height: inherit;
+    height: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: break-word;
+  }
+}

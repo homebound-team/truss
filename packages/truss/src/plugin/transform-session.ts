@@ -1,4 +1,5 @@
 import { resolve } from "path";
+import { existsSync } from "fs";
 import { applyReferencedKeyframes, applyRegisteredProperties } from "./at-rule-refs";
 import { generateCssData, type AtomicRule } from "./emit-css";
 import { transformCssTs } from "./transform-css";
@@ -25,8 +26,18 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   let mapping: TrussMapping | null = null;
   let libraryCache: ParsedTrussCss[] | null = null;
   const cssRegistry = new Map<string, AtomicRule>();
+  /** Complete selector-based CSS from each reached .css.ts file, keyed by its absolute source path. */
   const arbitraryCssRegistry = new Map<string, string>();
   const libraryPaths = options.libraries ?? [];
+  // React Router builds the client and server with the same plugin. Keep the latest source
+  // and result for each file and combination of output options (the "transform mode"):
+  // debug metadata (debug), CSS injection (injectCss), CSS import rewriting (rewriteCssImports),
+  // and the test bootstrap import (bootstrapImport). I.e. a production transform without debug
+  // metadata or CSS injection cannot be reused for a Vitest transform that includes them.
+  // Keep these cached results across registry resets, then replay their rules on cache hits.
+  const transformCache = new Map<string, { code: string; result: TransformResult | null }>();
+  const arbitraryCache = new Map<string, { code: string; css: string }>();
+  const stylesheetCache = new Map<boolean, string>();
 
   function ensureMapping(): TrussMapping {
     if (!mapping) {
@@ -49,23 +60,60 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     cssRegistry.clear();
     arbitraryCssRegistry.clear();
     libraryCache = null;
+    stylesheetCache.clear();
   }
 
+  /**
+   * Compile a .css.ts file's authored selectors and record its CSS for the combined stylesheet.
+   *
+   * "Arbitrary CSS" means rules for selectors the author chooses, such as body or .dialog > h2.
+   * The registry maps each absolute source path to that file's complete compiled CSS text.
+   * I.e. /app/src/reset.css.ts with `export const css = { body: "margin: 0;" }` records:
+   * /app/src/reset.css.ts -> "body {\n  margin: 0;\n}"
+   * And /app/src/dialog.css.ts with `export const css = { ".dialog > h2": Css.df.$ }` records:
+   * /app/src/dialog.css.ts -> ".dialog > h2 {\n  display: flex;\n}"
+   *
+   * collectCss() merges these blocks with atomic rules and library CSS. An edit replaces the
+   * file's previous block (or removes it if empty), so HMR does not retain stale selector rules.
+   * Each build starts with an empty registry and adds files as they are reached.
+   */
   function updateArbitraryCssRegistry(
     sourcePath: string,
     sourceCode: string,
     diagnostics: DiagnosticOptions = {},
   ): void {
     sourcePath = resolve(sourcePath).replace(/\\/g, "/");
-    const css = transformCssTs(sourceCode, sourcePath, ensureMapping(), diagnostics).trim();
+    const cached = arbitraryCache.get(sourcePath);
+    let css: string;
+    if (cached?.code === sourceCode) {
+      css = cached.css;
+    } else {
+      let hadDiagnostic = false;
+      css = transformCssTs(sourceCode, sourcePath, ensureMapping(), {
+        onDiagnostic(error) {
+          hadDiagnostic = true;
+          diagnostics.onDiagnostic?.(error);
+        },
+      }).trim();
+      if (!hadDiagnostic) arbitraryCache.set(sourcePath, { code: sourceCode, css });
+    }
+    registerArbitraryCss(sourcePath, css);
+  }
+
+  /** Replay extracted CSS into the current build's registry without parsing its source again. */
+  function registerArbitraryCss(sourcePath: string, css: string): void {
     if (css.length > 0) {
       const prev = arbitraryCssRegistry.get(sourcePath);
       arbitraryCssRegistry.set(sourcePath, css);
-      if (prev !== css) options.onCssChanged?.();
+      if (prev !== css) {
+        stylesheetCache.clear();
+        options.onCssChanged?.();
+      }
       return;
     }
 
     if (arbitraryCssRegistry.delete(sourcePath)) {
+      stylesheetCache.clear();
       options.onCssChanged?.();
     }
   }
@@ -75,8 +123,37 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     fileId: string,
     transformOptions: TransformTrussOptions = {},
   ): TransformResult | null {
-    const result = transformTruss(code, fileId, ensureMapping(), transformOptions);
+    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${Boolean(transformOptions.rewriteCssImports)}\0${transformOptions.bootstrapImport ?? ""}`;
+    const cached = transformCache.get(key);
+    const arbitrarySourcePath = fileId.endsWith(".css.ts") ? resolve(fileId).replace(/\\/g, "/") : undefined;
+    let result: TransformResult | null;
+    if (cached?.code === code && importDependenciesUnchanged(cached.result)) {
+      result = cached.result;
+    } else {
+      let hadDiagnostic = false;
+      const cachedArbitrary = arbitrarySourcePath ? arbitraryCache.get(arbitrarySourcePath) : undefined;
+      result = transformTruss(code, fileId, ensureMapping(), {
+        ...transformOptions,
+        // A virtual load may already have extracted this file's CSS. The module transform
+        // still needs its AST for imports/injection, but can reuse the compiled stylesheet.
+        cachedArbitraryCss: cachedArbitrary?.code === code ? cachedArbitrary.css : undefined,
+        onDiagnostic(error) {
+          hadDiagnostic = true;
+          transformOptions.onDiagnostic?.(error);
+        },
+      });
+      // Re-run diagnostics each time instead of suppressing warnings on another environment.
+      // A null result has no dependency metadata; a newly created .css.ts could make an
+      // unchanged bare .css import start needing a rewrite on the next request.
+      if (!hadDiagnostic && (result || !transformOptions.rewriteCssImports)) transformCache.set(key, { code, result });
+      if (!hadDiagnostic && arbitrarySourcePath && result?.arbitraryCss !== undefined) {
+        arbitraryCache.set(arbitrarySourcePath, { code, css: result.arbitraryCss });
+      }
+    }
     if (!result) return null;
+    if (arbitrarySourcePath && result.arbitraryCss !== undefined) {
+      registerArbitraryCss(arbitrarySourcePath, result.arbitraryCss);
+    }
 
     let hasNewRules = false;
     for (const [className, rule] of result.rules) {
@@ -86,6 +163,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
       }
     }
     if (hasNewRules) {
+      stylesheetCache.clear();
       options.onCssChanged?.();
     }
 
@@ -94,6 +172,8 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
 
   /** Merge library and application CSS before optionally omitting build-time annotations. */
   function collectCss(annotate = true): string {
+    const cached = stylesheetCache.get(annotate);
+    if (cached !== undefined) return cached;
     const mapping = ensureMapping();
     const appCss = generateCssData(cssRegistry);
     const allArbitrary = Array.from(arbitraryCssRegistry.entries())
@@ -107,8 +187,9 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     applyReferencedKeyframes(merged, mapping);
     applyRegisteredProperties(merged, mapping);
     const body = serializeTrussCss(merged, annotate);
-    if (body.length === 0) return "";
-    return `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
+    const css = body.length === 0 ? "" : `${rootSpacingPreludeCss(mapping.increment)}\n${body}`;
+    stylesheetCache.set(annotate, css);
+    return css;
   }
 
   function hasCss(): boolean {
@@ -153,4 +234,12 @@ export interface TrussTransformSession {
   reset: () => void;
   transformCode: (code: string, fileId: string, options?: TransformTrussOptions) => TransformResult | null;
   updateArbitraryCssRegistry: (sourcePath: string, sourceCode: string, options?: DiagnosticOptions) => void;
+}
+
+/** Invalidate import rewrites when a bare .css target gains or loses its .css.ts companion. */
+function importDependenciesUnchanged(result: TransformResult | null): boolean {
+  for (const [path, existed] of result?.cssImportDependencies ?? []) {
+    if (existsSync(path) !== existed) return false;
+  }
+  return true;
 }

@@ -1,0 +1,36 @@
+/* -----------------------------------------------------------------------------
+ * The run log's structural and relational selectors. One class on the table;
+ * row position, the divider rule and the tint below a failed run are all
+ * selectors, so nothing is computed in JavaScript and no class varies per row.
+ * -------------------------------------------------------------------------- */
+
+.run-table th {
+  @apply text-left py-9 px-12 text-11-5 font-semibold tracking-[0.03em] uppercase text-faint border-b border-border;
+}
+
+.run-table td {
+  @apply py-10 px-12 text-text;
+}
+
+.run-table tbody tr:nth-child(even) {
+  @apply bg-surface2;
+}
+
+.run-table tbody tr:not(:last-child) td {
+  @apply border-b border-border;
+}
+
+/* `~` not `+`: StyleX's relational API has no next-sibling form, so the
+   general-sibling combinator is the strongest relation every app can express. */
+.run-table tbody tr[data-state="failed"] ~ tr {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+/* Matches `th` as well as `td`, so the numeric headers align with their columns. */
+.run-table [data-numeric="true"] {
+  @apply text-right tabular-nums text-muted;
+}
+
+.run-table tbody tr:hover td {
+  @apply bg-surface3;
+}

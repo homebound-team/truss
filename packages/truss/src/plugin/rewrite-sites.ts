@@ -38,6 +38,8 @@ export interface RewriteSitesOptions {
   maybeCssVarHelperName: string | null;
   runtime: RuntimeHelpers;
   runtimeLookupNames: Map<string, string>;
+  hasCssPropsCall: boolean;
+  cssAttributes: NodePath<t.JSXAttribute>[];
 }
 
 type StyleHashMember = t.ObjectProperty | t.SpreadElement;
@@ -53,6 +55,20 @@ type StyleEntryGroups = Map<string, StyleEntry[]>;
  * Non-JSX positions become plain object expressions.
  */
 export function rewriteExpressionSites(options: RewriteSitesOptions): void {
+  // Rewriting a Truss expression can clone argument nodes containing Css.props() calls or JSX
+  // css attributes. I.e. Css.className(Css.props(styles).className).$ copies its argument into
+  // the generated style object, but collected Babel NodePaths still point to the original nodes.
+  // Tell rewriteCssPropsAndCssAttributes to traverse the rewritten AST when this may happen;
+  // otherwise it can take the faster path of rewriting the collected NodePaths directly.
+  let revisit = options.hasCssPropsCall;
+  if (!revisit) {
+    for (const site of options.sites) {
+      t.traverseFast(site.path.node, (node) => {
+        if (t.isJSXElement(node) || t.isJSXFragment(node)) revisit = true;
+      });
+      if (revisit) break;
+    }
+  }
   for (const site of options.sites) {
     const styleHash = buildStyleHashFromChain(site.resolvedChain, options);
     const cssAttrPath = getCssAttributePath(site.path);
@@ -78,8 +94,8 @@ export function rewriteExpressionSites(options: RewriteSitesOptions): void {
     }
   }
 
-  // Single pass: rewrite Css.props(...) calls and remaining css={...} attributes together
-  rewriteCssPropsAndCssAttributes(options);
+  // Reuse collected JSX paths when the chain rewrite could not have cloned nested sites.
+  rewriteCssPropsAndCssAttributes(options, revisit);
 }
 
 /**
@@ -460,44 +476,60 @@ function removeExistingAttribute(path: NodePath<t.JSXAttribute>, attrName: strin
 // ---------------------------------------------------------------------------
 
 /**
- * Single traversal that rewrites both `Css.props(expr)` calls and remaining
- * `css={expr}` JSX attributes, avoiding two separate full-AST passes.
+ * Reuse JSX paths when possible, retaining traversal order for cloned/nested runtime calls.
+ * I.e. the first of two Css.props() spreads must still consume a sibling className property.
  */
-function rewriteCssPropsAndCssAttributes(options: RewriteSitesOptions): void {
-  traverse(options.ast, {
-    // -- Css.props(expr) → trussProps(expr) or mergeProps(...) --
-    CallExpression(path: NodePath<t.CallExpression>) {
-      if (!options.cssBindingName || !isCssMethodCall(path.node, options.cssBindingName, "props")) return;
+function rewriteCssPropsAndCssAttributes(options: RewriteSitesOptions, revisit: boolean): void {
+  if (revisit) {
+    traverse(options.ast, {
+      noScope: true,
+      CallExpression(path: NodePath<t.CallExpression>) {
+        rewritePropsCall(path, options);
+      },
+      JSXAttribute(path: NodePath<t.JSXAttribute>) {
+        rewriteCssAttribute(path, options);
+      },
+    });
+  } else {
+    for (const path of options.cssAttributes) rewriteCssAttribute(path, options);
+  }
+}
 
-      const arg = path.node.arguments[0];
-      if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
+/** Compile a props call, preserving the original source order of object spreads. */
+function rewritePropsCall(path: NodePath<t.CallExpression>, options: RewriteSitesOptions): void {
+  // -- Css.props(expr) → trussProps(expr) or mergeProps(...) --
+  if (!options.cssBindingName || !isCssMethodCall(path.node, options.cssBindingName, "props")) return;
 
-      // Check for a sibling `className` property in the parent object literal
-      const classNameExpr = extractSiblingClassName(path);
-      if (classNameExpr) {
-        path.replaceWith(
-          t.callExpression(t.identifier(options.runtime.use("mergeProps")), [
-            classNameExpr,
-            t.identifier("undefined"),
-            arg,
-          ]),
-        );
-      } else {
-        path.replaceWith(t.callExpression(t.identifier(options.runtime.use("trussProps")), [arg]));
-      }
-    },
-    // -- Remaining css={expr} JSX attributes → {...trussProps(expr)} spreads --
-    // I.e. css={someVariable}, css={{ ...a, ...b }}, css={cond ? a : b}
-    JSXAttribute(path: NodePath<t.JSXAttribute>) {
-      if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
-      if (isRuntimeStyleCssAttribute(path)) return;
-      const value = path.node.value;
-      if (!t.isJSXExpressionContainer(value)) return;
-      if (!t.isExpression(value.expression)) return;
+  const arg = path.node.arguments[0];
+  if (!arg || t.isSpreadElement(arg) || !t.isExpression(arg) || path.node.arguments.length !== 1) return;
 
-      path.replaceWith(buildCssSpreadAttribute(path, value.expression, path.node.loc?.start.line ?? null, options));
-    },
-  });
+  // Check for a sibling `className` property in the parent object literal
+  const classNameExpr = extractSiblingClassName(path);
+  if (classNameExpr) {
+    path.replaceWith(
+      t.callExpression(t.identifier(options.runtime.use("mergeProps")), [
+        classNameExpr,
+        t.identifier("undefined"),
+        arg,
+      ]),
+    );
+  } else {
+    path.replaceWith(t.callExpression(t.identifier(options.runtime.use("trussProps")), [arg]));
+  }
+}
+
+/** Compile a remaining JSX css attribute after direct chains have been replaced. */
+function rewriteCssAttribute(path: NodePath<t.JSXAttribute>, options: RewriteSitesOptions): void {
+  // -- Remaining css={expr} JSX attributes → {...trussProps(expr)} spreads --
+  // I.e. css={someVariable}, css={{ ...a, ...b }}, css={cond ? a : b}
+  // A directly compiled Css chain may already have replaced this attribute with a spread.
+  if (!path.isJSXAttribute() || !t.isJSXIdentifier(path.node.name, { name: "css" })) return;
+  if (isRuntimeStyleCssAttribute(path)) return;
+  const value = path.node.value;
+  if (!t.isJSXExpressionContainer(value)) return;
+  if (!t.isExpression(value.expression)) return;
+
+  path.replaceWith(buildCssSpreadAttribute(path, value.expression, path.node.loc?.start.line ?? null, options));
 }
 
 /**

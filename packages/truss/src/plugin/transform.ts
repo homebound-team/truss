@@ -1,6 +1,6 @@
 import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
-import { basename } from "path";
+import { basename, resolve } from "path";
 import { type DiagnosticOptions, type TrussMapping, type ResolvedSegment } from "./types";
 import { chainSegments, resolveFullChain, type CssChainReferenceResolver, type ResolvedChain } from "./resolve-chain";
 import { generate, parseModule, traverse } from "./babel-utils";
@@ -23,9 +23,11 @@ import {
 import { applyReferencedKeyframes } from "./at-rule-refs";
 import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css";
 import { serializeTrussCss } from "./truss-css";
-import { createTestCssPayload } from "./test-css";
+import { createTestCssPayload, splitArbitraryCss } from "./test-css";
+import { transformCssAst } from "./transform-css";
 import { buildMaybeIncDeclaration, buildRuntimeLookupDeclaration } from "./emit-style-hash";
 import { Diagnostic } from "./diagnostic";
+import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import {
   rewriteExpressionSites,
   type ExpressionSite,
@@ -36,16 +38,26 @@ import {
 export interface TransformResult {
   code: string;
   map?: unknown;
-  /** The generated CSS text for this file's Truss usages. */
+  /** The atomic CSS generated from this file's Truss expressions. */
   css: string;
   /** The atomic CSS rules collected during this transform, keyed by class name. */
   rules: Map<string, AtomicRule>;
+  /** Bare .css imports depend on whether a matching .css.ts exists, not just this source text. */
+  cssImportDependencies?: ReadonlyMap<string, boolean>;
+  /** Selector-based CSS extracted from a .css.ts file, including an empty stylesheet. */
+  arbitraryCss?: string;
 }
 
 export interface TransformTrussOptions extends DiagnosticOptions {
   debug?: boolean;
   /** When true, inject `__injectTrussCSS(payload)` call for jsdom/test environments. */
   injectCss?: boolean;
+  /** Vite can rewrite CSS side-effect imports in the same parse as Truss expressions. */
+  rewriteCssImports?: boolean;
+  /** Import the test CSS bootstrap even when a file has no local Truss expressions. */
+  bootstrapImport?: string;
+  /** The session can reuse selector-based CSS already compiled from this exact source. */
+  cachedArbitraryCss?: string;
 }
 
 const RUNTIME_MODULE = "@homebound/truss/runtime";
@@ -54,11 +66,10 @@ const RUNTIME_MODULE = "@homebound/truss/runtime";
 const RUNTIME_HELPER_ORDER: RuntimeHelperName[] = ["trussProps", "mergeProps", "TrussDebugInfo", "maybeCssVar"];
 
 /**
- * The core transform function. Given a source file's code and the truss mapping,
- * finds all `Css.*.$` expressions and rewrites them into Truss-native style hash
- * objects and `trussProps()`/`mergeProps()` runtime calls.
+ * Transform a file's CSS imports, Truss expressions, and test injections using one AST.
  *
- * Returns null if the file doesn't use Css.
+ * .css.ts files contribute selector-based CSS while keeping their runtime exports.
+ * Returns null when neither the JavaScript nor the CSS registry needs an update.
  */
 export function transformTruss(
   code: string,
@@ -66,11 +77,72 @@ export function transformTruss(
   mapping: TrussMapping,
   options: TransformTrussOptions = {},
 ): TransformResult | null {
-  // Fast bail: skip files that don't reference Css or use JSX css= attributes
-  if (!code.includes("Css") && !code.includes("css=")) return null;
+  const hasExpressions = code.includes("Css") || code.includes("css=");
+  const isArbitraryCss = filename.endsWith(".css.ts");
+  const mayRewriteImports = options.rewriteCssImports && code.includes(".css");
+  if (!hasExpressions && !isArbitraryCss && !mayRewriteImports && !options.bootstrapImport) return null;
 
   const ast = parseModule(code, filename);
+  const imports = mayRewriteImports ? rewriteCssTsImports(ast, filename) : undefined;
+  let changed = imports?.changed ?? false;
 
+  // Vitest loads application modules directly rather than through the app's HTML entry.
+  // ESM caching evaluates this bootstrap once per graph; per-file injections dedupe rules.
+  const hasBootstrapImport =
+    options.bootstrapImport &&
+    ast.program.body.some(
+      (node) =>
+        t.isImportDeclaration(node) &&
+        node.source.value === options.bootstrapImport &&
+        node.importKind !== "type" &&
+        node.specifiers.length === 0,
+    );
+  if (options.bootstrapImport && !hasBootstrapImport) {
+    ast.program.body.push(t.importDeclaration([], t.stringLiteral(options.bootstrapImport)));
+    changed = true;
+  }
+
+  let expressions: Pick<TransformResult, "css" | "rules"> | null = null;
+  let arbitraryCss: string | undefined;
+  if (isArbitraryCss) {
+    arbitraryCss = options.cachedArbitraryCss ?? transformCssAst(ast, filename, mapping, options).trim();
+    if (options.injectCss) {
+      appendTestCssInjection(ast, filename, arbitraryCss);
+      changed = true;
+    }
+  } else if (hasExpressions) {
+    expressions = compileExpressions(ast, filename, mapping, options);
+    changed ||= expressions !== null;
+  }
+
+  if (!changed && arbitraryCss === undefined) return null;
+  const output = changed
+    ? generate(ast, { sourceFileName: filename, sourceMaps: true, retainLines: false })
+    : { code, map: undefined };
+  return {
+    code: changed ? preserveBlankLineAfterImports(code, output.code) : code,
+    map: output.map,
+    get css() {
+      return expressions?.css ?? "";
+    },
+    rules: expressions?.rules ?? new Map(),
+    cssImportDependencies: imports?.dependencies,
+    arbitraryCss,
+  };
+}
+
+/**
+ * Rewrite Truss expressions in the shared AST and collect their atomic rules.
+ *
+ * An import rewrite or test bootstrap alone does not prove the Css binding can be removed;
+ * leave it intact when there are no expressions, i.e. a file that re-exports Css.
+ */
+function compileExpressions(
+  ast: t.File,
+  filename: string,
+  mapping: TrussMapping,
+  options: TransformTrussOptions,
+): Pick<TransformResult, "css" | "rules"> | null {
   // Step 1: Find the Css binding name — either from an import or a local `new CssBuilder(...)` declaration.
   // May be null when the file only has JSX css= attributes without importing Css.
   const cssImportBinding = findCssImportBinding(ast);
@@ -78,15 +150,24 @@ export function transformTruss(
 
   // Step 2: Collect all Css.*.$  expression sites AND detect Css.props() / JSX css= in a single pass.
   const sites: ExpressionSite[] = [];
+  const cssAttributes: NodePath<t.JSXAttribute>[] = [];
   const errorMessages: Array<{ message: string; line: number | null }> = [];
   let hasCssPropsCall = false;
-  let hasBuildtimeJsxCssAttribute = false;
   // Module-scope names, so injected helpers and imports can avoid collisions
-  let usedTopLevelNames = new Set<string>();
+  const usedTopLevelNames = new Set(
+    ast.program.body.flatMap((node) => Object.keys(t.getOuterBindingIdentifiers(node))),
+  );
+  const needsScope = hasWhenCall(ast);
 
   traverse(ast, {
-    Program(path: NodePath<t.Program>) {
-      usedTopLevelNames = new Set(Object.keys(path.scope.bindings));
+    // Scope crawling registers every binding/reference in the whole component, even though
+    // only when() references need lexical lookup. Ordinary chains do not need this work.
+    noScope: !needsScope,
+    VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
+      // `var` inside a module-level block still collides with injected module helpers.
+      if (path.node.kind === "var" && !path.getFunctionParent()) {
+        for (const name of Object.keys(t.getOuterBindingIdentifiers(path.node))) usedTopLevelNames.add(name);
+      }
     },
     // -- Css.*.$  chain collection --
     MemberExpression(path: NodePath<t.MemberExpression>) {
@@ -127,21 +208,32 @@ export function transformTruss(
       }
     },
     // -- JSX css={...} attribute detection (so we don't bail when there are only css props) --
+    // Collect in normal traversal order. Replacing an attribute reuses its expression nodes,
+    // so nested attributes remain reachable through their collected paths. Cases that clone
+    // expressions instead use rewriteExpressionSites' follow-up traversal of the new nodes.
     JSXAttribute(path: NodePath<t.JSXAttribute>) {
       if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
-      hasBuildtimeJsxCssAttribute = true;
+      cssAttributes.push(path);
     },
   });
 
-  if (sites.length === 0 && !hasCssPropsCall && !hasBuildtimeJsxCssAttribute) return null;
+  if (sites.length === 0 && !hasCssPropsCall && cssAttributes.length === 0) {
+    return null;
+  }
 
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
   const { rules, needsMaybeInc, needsMaybeCssVar } = collectAtomicRules(chains, mapping);
-  const cssData = generateCssData(rules);
-  // Each test module carries the keyframes its own rules name; production merges them once.
-  applyReferencedKeyframes(cssData, mapping);
-  const cssText = serializeTrussCss(cssData);
+  // Vite consumes rules and serializes the combined stylesheet once. Standalone callers
+  // can still read `css`, but do not make every module pay for unused CSS serialization.
+  let cssText: string | undefined;
+  /** Build per-module CSS only when a standalone caller or test injection consumes it. */
+  function collectCssData() {
+    const cssData = generateCssData(rules);
+    // Each test module carries the keyframes its own rules name; production merges them once.
+    applyReferencedKeyframes(cssData, mapping);
+    return cssData;
+  }
 
   // Step 4: Reserve local names for injected helpers
   const runtime = createRuntimeHelpers(ast, usedTopLevelNames);
@@ -167,6 +259,8 @@ export function transformTruss(
     maybeCssVarHelperName,
     runtime,
     runtimeLookupNames,
+    hasCssPropsCall,
+    cssAttributes,
   });
 
   // Step 6: Prepare runtime imports before removing the Css import.
@@ -206,10 +300,10 @@ export function transformTruss(
   }
 
   // Inject __injectTrussCSS call if requested
-  if (options.injectCss && cssText.length > 0) {
+  if (options.injectCss && rules.size > 0) {
     declarationsToInsert.push(
       t.expressionStatement(
-        t.callExpression(t.identifier("__injectTrussCSS"), [t.valueToNode(createTestCssPayload(cssData))]),
+        t.callExpression(t.identifier("__injectTrussCSS"), [t.valueToNode(createTestCssPayload(collectCssData()))]),
       ),
     );
   }
@@ -229,15 +323,41 @@ export function transformTruss(
 
   insertAfterLeadingImports(ast, declarationsToInsert);
 
-  const output = generate(ast, {
-    sourceFileName: filename,
-    sourceMaps: true,
-    retainLines: false,
+  return {
+    get css() {
+      return (cssText ??= serializeTrussCss(collectCssData()));
+    },
+    rules,
+  };
+}
+
+/**
+ * Append an __injectTrussCSS call so a .css.ts file delivers its compiled CSS when it
+ * evaluates in tests, including through dynamic imports the import rewrite cannot see.
+ *
+ * Reuses an existing runtime import of the helper, otherwise reserves a collision-free local
+ * name, so an exported __injectTrussCSS binding in the file still works.
+ */
+function appendTestCssInjection(ast: t.File, fileId: string, css: string): void {
+  // Module-scope names, so the injected import can avoid collisions.
+  let usedTopLevelNames = new Set<string>();
+  traverse(ast, {
+    Program(path) {
+      usedTopLevelNames = new Set(Object.keys(path.scope.bindings));
+      path.stop();
+    },
   });
-
-  const outputCode = preserveBlankLineAfterImports(code, output.code);
-
-  return { code: outputCode, map: output.map, css: cssText, rules };
+  const importedName = "__injectTrussCSS";
+  const existing = findNamedImportBinding(ast, importedName, RUNTIME_MODULE);
+  const localName = existing ?? reservePreferredName(usedTopLevelNames, importedName);
+  if (!existing) upsertNamedImports(ast, RUNTIME_MODULE, [{ importedName, localName }]);
+  ast.program.body.push(
+    t.expressionStatement(
+      t.callExpression(t.identifier(localName), [
+        t.valueToNode({ arbitraryRules: splitArbitraryCss(css), source: resolve(fileId).replace(/\\/g, "/") }),
+      ]),
+    ),
+  );
 }
 
 /**
@@ -342,6 +462,17 @@ function resolveCssChainReference(
 
   seen.add(value.name);
   return resolveCssChainReference(binding.path, init, cssBindingName, seen);
+}
+
+/** Conservatively enable lexical bindings for when(), including escaped/computed method names. */
+function hasWhenCall(ast: t.File): boolean {
+  let found = false;
+  t.traverseFast(ast, (node) => {
+    if (!t.isCallExpression(node) || !t.isMemberExpression(node.callee)) return;
+    const property = node.callee.property;
+    if (t.isIdentifier(property, { name: "when" }) || t.isStringLiteral(property, { value: "when" })) found = true;
+  });
+  return found;
 }
 
 /** Collect typography runtime lookups from all resolved chains, keyed by lookup name. */
