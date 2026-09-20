@@ -55,16 +55,11 @@ type StyleEntryGroups = Map<string, StyleEntry[]>;
  * Non-JSX positions become plain object expressions.
  */
 export function rewriteExpressionSites(options: RewriteSitesOptions): void {
-  // A "style hash" is a plain JavaScript object holding class names and runtime style metadata,
-  // not a digest like SHA-256. I.e. Css.df.$ becomes { display: "df" }.
-  // Expressions with runtime values are copied into these objects as AST nodes during compilation.
-  // I.e. in Css.className(Css.props(styles).className).$, the argument is Css.props(styles).className.
-  // Its AST is cloned into { className_Css_props_styles_className: Css.props(styles).className };
-  // the runtime value itself is not cloned. The copied Css.props() call is a different AST node.
-  // Previously collected Babel NodePaths still point to the original nodes, so we traverse the
-  // generated tree to find and rewrite the copies, producing trussProps(styles).className.
-  // Nested JSX css attributes also need this revisit. A NodePath describes a node's position
-  // and parent in the syntax tree, not a file path.
+  // Rewriting a Truss expression can clone argument nodes containing Css.props() calls or JSX
+  // css attributes. I.e. Css.className(Css.props(styles).className).$ copies its argument into
+  // the generated style object, but collected Babel NodePaths still point to the original nodes.
+  // Tell rewriteCssPropsAndCssAttributes to traverse the rewritten AST when this may happen;
+  // otherwise it can take the faster path of rewriting the collected NodePaths directly.
   let revisit = options.hasCssPropsCall;
   if (!revisit) {
     for (const site of options.sites) {
