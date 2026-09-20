@@ -5040,3 +5040,33 @@ export const s = Css.df.$;`;
     ".df { display: flex; }",
   );
 });
+
+test("nested JSX attributes still compile after the enclosing attribute is replaced", () => {
+  // Given a Truss attribute whose runtime expression contains another styled element
+  const source = 'const el = <div css={getStyles(<span css={inner} />)} className="custom" />;';
+
+  // When attributes are collected and rewritten in normal parent-first traversal order
+  const transform = expectTrussTransform(source);
+
+  // Then replacing the outer attribute keeps the nested attribute reachable for compilation
+  transform.toHaveTrussOutput(
+    `import { trussProps, mergeProps } from "@homebound/truss/runtime";
+    const el = <div {...mergeProps("custom", undefined, getStyles(<span {...trussProps(inner)} />))} />;`,
+    "",
+  );
+});
+
+test("cloned JSX attributes are compiled by the follow-up traversal", () => {
+  // Given a runtime className argument that contains a styled element
+  const source = 'import { Css } from "./Css"; const s = Css.className(getClassName(<span css={inner} />)).$;';
+
+  // When compiling the chain clones that argument into the generated style object
+  const transform = expectTrussTransform(source);
+
+  // Then the follow-up traversal rewrites the copy rather than the original collected node
+  transform.toHaveTrussOutput(
+    `import { trussProps } from "@homebound/truss/runtime";
+    const s = { className_getClassName_span_css_inner: getClassName(<span {...trussProps(inner)} />) };`,
+    "",
+  );
+});

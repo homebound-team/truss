@@ -153,7 +153,6 @@ function compileExpressions(
   const cssAttributes: NodePath<t.JSXAttribute>[] = [];
   const errorMessages: Array<{ message: string; line: number | null }> = [];
   let hasCssPropsCall = false;
-  let hasBuildtimeJsxCssAttribute = false;
   // Module-scope names, so injected helpers and imports can avoid collisions
   const usedTopLevelNames = new Set(
     ast.program.body.flatMap((node) => Object.keys(t.getOuterBindingIdentifiers(node))),
@@ -203,24 +202,22 @@ function compileExpressions(
       }
     },
     // -- Css.props() detection (so we don't bail early when there are no Css.*.$ sites) --
-    CallExpression: {
-      exit(path: NodePath<t.CallExpression>) {
-        if (cssBindingName && isCssMethodCall(path.node, cssBindingName, "props")) {
-          hasCssPropsCall = true;
-        }
-      },
+    CallExpression(path: NodePath<t.CallExpression>) {
+      if (cssBindingName && isCssMethodCall(path.node, cssBindingName, "props")) {
+        hasCssPropsCall = true;
+      }
     },
     // -- JSX css={...} attribute detection (so we don't bail when there are only css props) --
-    JSXAttribute: {
-      exit(path: NodePath<t.JSXAttribute>) {
-        if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
-        hasBuildtimeJsxCssAttribute = true;
-        cssAttributes.push(path);
-      },
+    // Collect in normal traversal order. Replacing an attribute reuses its expression nodes,
+    // so nested attributes remain reachable through their collected paths. Cases that clone
+    // expressions instead use rewriteExpressionSites' follow-up traversal of the new nodes.
+    JSXAttribute(path: NodePath<t.JSXAttribute>) {
+      if (!t.isJSXIdentifier(path.node.name, { name: "css" })) return;
+      cssAttributes.push(path);
     },
   });
 
-  if (sites.length === 0 && !hasCssPropsCall && !hasBuildtimeJsxCssAttribute) {
+  if (sites.length === 0 && !hasCssPropsCall && cssAttributes.length === 0) {
     return null;
   }
 

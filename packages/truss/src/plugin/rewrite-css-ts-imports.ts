@@ -12,7 +12,7 @@ export interface RewriteCssTsImportsResult {
    * if the companion exists, or -> false if it does not. Both outcomes are cache dependencies:
    * creating or deleting the companion must invalidate the importer's cached transform.
    */
-  dependencies?: ReadonlyMap<string, boolean>;
+  dependencies: ReadonlyMap<string, boolean>;
 }
 
 /**
@@ -61,16 +61,12 @@ export function rewriteCssTsImports(ast: t.File, filename: string): RewriteCssTs
     changed = true;
   }
 
-  if (!changed) {
-    return { changed: false, dependencies };
-  }
-
   if (sideEffectImports.length > 0) {
     const insertIndex = findLastImportIndex(ast) + 1;
     ast.program.body.splice(insertIndex, 0, ...sideEffectImports);
   }
 
-  return { changed: true, dependencies };
+  return { changed, dependencies };
 }
 
 /** Check if this import targets a `.css.ts` file (explicitly or via a bare `.css` with a `.css.ts` on disk). */
