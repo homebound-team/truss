@@ -39,6 +39,10 @@ was taken from **Truss 2.33.3, revision `8401bba1`**, before this optimization p
 after applying optimizations compares the new compiler with itself, not with that release.
 
 Default comparisons include `baseline` when a snapshot exists, plus local `truss` and `tailwind`.
+`BASELINE_BUILD=path/to/a/built/packages/truss/build` selects another baseline without overwriting
+the saved snapshot; relative paths are resolved from the repository root. This also applies to
+HMR and parity checks. Set `BASELINE_REVISION` and `CANDIDATE_REVISION` to label the raw measurements
+when comparing revisions (i.e. before and after a refactor).
 Use `ENGINES=truss,tailwind` or `ENGINES=baseline,truss` to select a pair. The runner copies the built
 compiler/runtime into each Truss app's installed package; this preserves normal package resolution,
 React identity, and Vite dependency optimization. **Run `yarn build` after compiler edits.**

@@ -7,7 +7,9 @@ import { onExit, requireFreePort, startProcess, stopProcess } from "./processes.
 const root = new URL("../", import.meta.url).pathname;
 const engines = (
   process.env.ENGINES ??
-  (existsSync(resolve(root, "benchmarks/.work/baseline")) ? "baseline,truss,tailwind" : "truss,tailwind")
+  (existsSync(resolve(root, process.env.BASELINE_BUILD ?? "benchmarks/.work/baseline"))
+    ? "baseline,truss,tailwind"
+    : "truss,tailwind")
 ).split(",");
 const sweeps = Number(process.env.SWEEPS ?? 4);
 const pairs = Number(process.env.PAIRS ?? 5);
@@ -115,7 +117,16 @@ try {
       }
       const report =
         JSON.stringify(
-          { node: process.version, browser: browser.version(), sweeps, pairs, serverRows, rows },
+          {
+            node: process.version,
+            browser: browser.version(),
+            baselineRevision: process.env.BASELINE_REVISION,
+            candidateRevision: process.env.CANDIDATE_REVISION,
+            sweeps,
+            pairs,
+            serverRows,
+            rows,
+          },
           null,
           2,
         ) + "\n";

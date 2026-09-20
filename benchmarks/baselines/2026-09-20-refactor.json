@@ -1,0 +1,4465 @@
+{
+  "description": "Raw samples. Truss package version fields describe the installed dependency shell; baseline/candidate compiled artifacts were overlaid into it. See RESULTS.md for revision and methodology.",
+  "reports": [
+    {
+      "source": "benchmarks/results/2026-09-20T15-29-36.542Z-files-imported.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "ab57f4010ce54006fe63e41557c091f3e0a364012bbf2417479f41087d00133f",
+        "baselineCompilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineRevision": "1aace93b",
+        "candidateRevision": "813aa35f",
+        "versions": {
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "files",
+        "orphaned": false,
+        "runs": 5,
+        "counts": [
+          0,
+          400,
+          1600
+        ],
+        "results": [
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 860.952281,
+            "warm": 949.803805,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 952.4495289999998
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 841.3624799999998,
+            "warm": 820.8566700000001,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 943.1648830000004
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 671.7895479999997,
+            "warm": 675.9742919999999,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 811.0218399999994
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 685.2663250000005,
+            "warm": 674.805894000001,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 793.374495
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 828.226541,
+            "warm": 828.1761510000015,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 947.9405989999996
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 848.763092000001,
+            "warm": 894.0439819999992,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 972.6067570000014
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 832.1900260000002,
+            "warm": 814.8196119999993,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 936.7316580000006
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 818.2357149999989,
+            "warm": 812.4581739999994,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 954.1950569999972
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 673.114583999999,
+            "warm": 672.6103150000017,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 781.2271130000008
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 670.8132070000029,
+            "warm": 682.1971620000004,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 790.2953390000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 830.5772679999973,
+            "warm": 935.5638010000002,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 953.2449360000028
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 3,
+            "cold": 824.8495209999965,
+            "warm": 833.3423269999985,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 940.9422419999973
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 845.8962509999983,
+            "warm": 818.9390620000049,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 2009.3952680000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 811.7088290000029,
+            "warm": 841.4254890000011,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 976.2458909999987
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 4,
+            "cold": 692.258351000004,
+            "warm": 691.0088200000027,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 799.537267000007
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "cold": 1037.3644459999996,
+            "warm": 1026.6802650000027,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1409.4940629999983
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "cold": 1016.1656670000011,
+            "warm": 1011.3313150000031,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1486.2579389999955
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "cold": 794.040688000001,
+            "warm": 795.7226389999996,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1030.0644639999955
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "cold": 843.6976839999988,
+            "warm": 794.0645409999997,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1066.2288409999965
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "cold": 1262.1889530000044,
+            "warm": 1105.2343180000025,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1561.028148999998
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "cold": 1016.3785360000038,
+            "warm": 1041.4857219999976,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1436.0482740000007
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "cold": 1023.8194930000027,
+            "warm": 1014.2607900000003,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1444.919968999995
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "cold": 1028.8795490000048,
+            "warm": 1045.537611000007,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1617.608058999991
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "cold": 828.9213440000021,
+            "warm": 780.7620270000043,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1030.4141819999932
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "cold": 797.6227649999928,
+            "warm": 771.6209970000054,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1028.3557680000085
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "cold": 994.3539540000056,
+            "warm": 1028.7726980000007,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1455.694187000001
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "cold": 1013.6376080000045,
+            "warm": 1021.0610089999973,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1452.9125769999955
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "cold": 1028.2405609999987,
+            "warm": 1036.002800999995,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1468.6735959999933
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "cold": 1023.6614859999972,
+            "warm": 1017.0906160000013,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 1469.8103669999982
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "cold": 797.6925599999959,
+            "warm": 816.109089000005,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1048.5219919999945
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1550.0782400000026,
+            "warm": 1606.3915310000011,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 3023.148340999993
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1541.2767250000034,
+            "warm": 1542.3965629999875,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2687.091913000011
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 1144.067028000005,
+            "warm": 1207.3763809999946,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1708.9674749999976
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1362.1225940000004,
+            "warm": 1216.2076669999951,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1733.3483330000017
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1550.4954799999978,
+            "warm": 1537.2347689999879,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2709.4815289999824
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 1563.4270620000025,
+            "warm": 1582.9702359999937,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2973.093596999999
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1553.4538109999849,
+            "warm": 1550.3440080000146,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2717.2050580000214
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1557.9474269999773,
+            "warm": 1521.248907000001,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2646.640360999998
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 1304.5926139999938,
+            "warm": 1230.737094000011,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1713.7354470000137
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1141.877959000005,
+            "warm": 1180.9101059999957,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1718.336673999991
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1550.463252000016,
+            "warm": 1565.2968659999897,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2773.269202000025
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 3,
+            "cold": 1615.0615990000078,
+            "warm": 1564.577438999986,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2732.026670000021
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1569.8604959999793,
+            "warm": 1566.7901840000122,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2649.284707999992
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1514.0581060000113,
+            "warm": 1622.3070200000075,
+            "css": {
+              "raw": 28571,
+              "gzip": 6699,
+              "brotli": 5650
+            },
+            "start": 2646.059337999992
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 4,
+            "cold": 1150.989470999979,
+            "warm": 1212.9030569999886,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1705.8770000000077
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T15-33-32.780Z-styles-imported.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "ab57f4010ce54006fe63e41557c091f3e0a364012bbf2417479f41087d00133f",
+        "baselineCompilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineRevision": "1aace93b",
+        "candidateRevision": "813aa35f",
+        "versions": {
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "styles",
+        "orphaned": false,
+        "runs": 3,
+        "counts": [
+          0,
+          800
+        ],
+        "results": [
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 0,
+            "run": 0,
+            "cold": 823.4064460000001,
+            "warm": 848.386364,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 953.6391979999999
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 0,
+            "run": 0,
+            "cold": 817.837317,
+            "warm": 812.8121240000005,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1126.6181939999997
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 0,
+            "run": 0,
+            "cold": 704.4157029999997,
+            "warm": 682.7661990000006,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 800.3860119999999
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 0,
+            "run": 1,
+            "cold": 685.0133760000008,
+            "warm": 681.7791040000011,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 792.6380210000007
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 0,
+            "run": 1,
+            "cold": 821.6869499999993,
+            "warm": 825.9301720000003,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 949.1732920000013
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 0,
+            "run": 1,
+            "cold": 837.805373000001,
+            "warm": 841.0587510000005,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 956.748864000001
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 0,
+            "run": 2,
+            "cold": 846.7519189999985,
+            "warm": 793.1755779999985,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1025.0081409999984
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 0,
+            "run": 2,
+            "cold": 823.7747610000006,
+            "warm": 810.2740490000033,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 945.7496219999994
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 0,
+            "run": 2,
+            "cold": 649.7612939999999,
+            "warm": 669.208509,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 784.647657999998
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 800,
+            "run": 0,
+            "cold": 884.9619979999989,
+            "warm": 869.4478920000001,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1037.8755459999993
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 800,
+            "run": 0,
+            "cold": 877.5096640000011,
+            "warm": 871.0229749999999,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1032.3238709999969
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 800,
+            "run": 0,
+            "cold": 822.0925270000007,
+            "warm": 920.6384790000011,
+            "css": {
+              "raw": 359516,
+              "gzip": 37683,
+              "brotli": 17644
+            },
+            "start": 845.4527090000047
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 800,
+            "run": 1,
+            "cold": 807.2924239999993,
+            "warm": 815.8651170000012,
+            "css": {
+              "raw": 359516,
+              "gzip": 37683,
+              "brotli": 17644
+            },
+            "start": 833.6067729999995
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 800,
+            "run": 1,
+            "cold": 876.5674300000028,
+            "warm": 872.7321510000038,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1040.4059229999984
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 800,
+            "run": 1,
+            "cold": 875.639568999999,
+            "warm": 882.3928470000028,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1054.8380519999992
+          },
+          {
+            "engine": "baseline",
+            "axis": "styles",
+            "count": 800,
+            "run": 2,
+            "cold": 885.7642439999981,
+            "warm": 873.7315070000041,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1106.3862279999958
+          },
+          {
+            "engine": "truss",
+            "axis": "styles",
+            "count": 800,
+            "run": 2,
+            "cold": 887.6328270000013,
+            "warm": 880.9978740000006,
+            "css": {
+              "raw": 188732,
+              "gzip": 31243,
+              "brotli": 14157
+            },
+            "start": 1054.411189999999
+          },
+          {
+            "engine": "tailwind",
+            "axis": "styles",
+            "count": 800,
+            "run": 2,
+            "cold": 811.610772,
+            "warm": 798.6282560000036,
+            "css": {
+              "raw": 359516,
+              "gzip": 37683,
+              "brotli": 17644
+            },
+            "start": 839.748904
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T15-34-30.253Z-files-orphaned.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "ab57f4010ce54006fe63e41557c091f3e0a364012bbf2417479f41087d00133f",
+        "baselineCompilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineRevision": "1aace93b",
+        "candidateRevision": "813aa35f",
+        "versions": {
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "tailwind": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "tailwindcss": "4.3.3"
+          }
+        },
+        "axis": "files",
+        "orphaned": true,
+        "runs": 3,
+        "counts": [
+          0,
+          1600
+        ],
+        "results": [
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 813.186198,
+            "warm": 810.373894,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 932.8095190000001
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 813.0834500000001,
+            "warm": 805.4273980000003,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 936.4999080000007
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 0,
+            "cold": 666.7124159999994,
+            "warm": 691.8968329999998,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 899.3047919999999
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 674.204264,
+            "warm": 669.7102910000012,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 793.3271860000004
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 807.8560949999992,
+            "warm": 813.6796219999997,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 935.0896140000004
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 1,
+            "cold": 817.2075919999988,
+            "warm": 805.5434260000002,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 931.1151160000009
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 815.4992259999999,
+            "warm": 821.6108819999972,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 944.0545999999995
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 815.9630519999992,
+            "warm": 837.713456999998,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 984.9791020000011
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 0,
+            "run": 2,
+            "cold": 677.8618850000021,
+            "warm": 660.7628609999992,
+            "css": {
+              "raw": 52116,
+              "gzip": 8505,
+              "brotli": 7157
+            },
+            "start": 794.261857999998
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 810.8524140000009,
+            "warm": 832.562253,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1091.9407490000012
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 827.4608799999987,
+            "warm": 816.8351340000008,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1121.1327290000045
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 0,
+            "cold": 701.5404710000003,
+            "warm": 696.9326130000045,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 993.258646000002
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 696.2022080000024,
+            "warm": 766.0578339999993,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 1252.8995020000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 948.8475150000013,
+            "warm": 826.4538180000018,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1093.1172720000031
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 1,
+            "cold": 834.8499749999974,
+            "warm": 821.4643979999964,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1127.564983999997
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 820.1991370000032,
+            "warm": 836.6606939999983,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1124.9952339999945
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 826.0429799999984,
+            "warm": 822.7119380000004,
+            "css": {
+              "raw": 28432,
+              "gzip": 6674,
+              "brotli": 5612
+            },
+            "start": 1124.1048259999952
+          },
+          {
+            "engine": "tailwind",
+            "axis": "files",
+            "count": 1600,
+            "run": 2,
+            "cold": 789.7921229999993,
+            "warm": 762.0575030000036,
+            "css": {
+              "raw": 52385,
+              "gzip": 8531,
+              "brotli": 7201
+            },
+            "start": 986.153127000005
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T15-35-26.401Z-hmr.json",
+      "data": {
+        "node": "v24.20.0",
+        "browser": "145.0.7632.6",
+        "baselineRevision": "1aace93b",
+        "candidateRevision": "813aa35f",
+        "sweeps": 4,
+        "pairs": 5,
+        "serverRows": [],
+        "rows": [
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 70.935791015625,
+            "cssLive": 44.03564453125,
+            "js": 70.935791015625,
+            "browserUpdate": 3.23583984375,
+            "requests": 10,
+            "bytes": 365679
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 69.552978515625,
+            "cssLive": 25.852783203125,
+            "js": 69.552978515625,
+            "browserUpdate": 2.15283203125,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 67.59228515625,
+            "cssLive": 25.492431640625,
+            "js": 67.59228515625,
+            "browserUpdate": 2.1923828125,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 67.615478515625,
+            "cssLive": 26.315673828125,
+            "js": 67.615478515625,
+            "browserUpdate": 2.515625,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 66.664306640625,
+            "cssLive": 25.8642578125,
+            "js": 66.664306640625,
+            "browserUpdate": 2.064208984375,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 105.441650390625,
+            "cssLive": 81.241455078125,
+            "js": 105.441650390625,
+            "browserUpdate": 16.54150390625,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 90.277587890625,
+            "cssLive": 64.07763671875,
+            "js": 90.277587890625,
+            "browserUpdate": 11.377685546875,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 85.732177734375,
+            "cssLive": 62.232177734375,
+            "js": 85.732177734375,
+            "browserUpdate": 14.232177734375,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 110.7431640625,
+            "cssLive": 78.2431640625,
+            "js": 110.7431640625,
+            "browserUpdate": 14.843017578125,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 89.115234375,
+            "cssLive": 59.015380859375,
+            "js": 89.115234375,
+            "browserUpdate": 8.21533203125,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 68.73486328125,
+            "cssLive": 41.134765625,
+            "js": 68.73486328125,
+            "browserUpdate": 2.23486328125,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 71.725830078125,
+            "cssLive": 28.725830078125,
+            "js": 71.725830078125,
+            "browserUpdate": 2.325927734375,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 66.299560546875,
+            "cssLive": 25.099365234375,
+            "js": 66.299560546875,
+            "browserUpdate": 1.99951171875,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 79.706787109375,
+            "cssLive": 34.306884765625,
+            "js": 79.706787109375,
+            "browserUpdate": 3.5068359375,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 75.020263671875,
+            "cssLive": 34.020263671875,
+            "js": 75.020263671875,
+            "browserUpdate": 3.020263671875,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 84.07177734375,
+            "cssLive": 57.771728515625,
+            "js": 84.07177734375,
+            "browserUpdate": 8.4716796875,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 96.168701171875,
+            "cssLive": 68.2685546875,
+            "js": 96.168701171875,
+            "browserUpdate": 13.668701171875,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 92.2353515625,
+            "cssLive": 61.83544921875,
+            "js": 92.2353515625,
+            "browserUpdate": 13.7353515625,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 106.13720703125,
+            "cssLive": 76.437255859375,
+            "js": 106.13720703125,
+            "browserUpdate": 14.437255859375,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 82.714599609375,
+            "cssLive": 59.0146484375,
+            "js": 82.714599609375,
+            "browserUpdate": 10.114501953125,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 69.93310546875,
+            "cssLive": 30.133056640625,
+            "js": 69.93310546875,
+            "browserUpdate": 2.133056640625,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 75.271240234375,
+            "cssLive": 29.871337890625,
+            "js": 75.271240234375,
+            "browserUpdate": 3.371337890625,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 63.563232421875,
+            "cssLive": 31.563232421875,
+            "js": 63.563232421875,
+            "browserUpdate": 3.36328125,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 60.95849609375,
+            "cssLive": 28.8583984375,
+            "js": 60.95849609375,
+            "browserUpdate": 2.05859375,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 66.48974609375,
+            "cssLive": 27.8896484375,
+            "js": 66.48974609375,
+            "browserUpdate": 1.8896484375,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 85.1201171875,
+            "cssLive": 85.1201171875,
+            "js": 82.72021484375,
+            "browserUpdate": 4.420166015625,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 84.302734375,
+            "cssLive": 84.302734375,
+            "js": 82.102783203125,
+            "browserUpdate": 4.902587890625,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 85.508544921875,
+            "cssLive": 85.508544921875,
+            "js": 83.108642578125,
+            "browserUpdate": 4.80859375,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 82.347412109375,
+            "cssLive": 82.347412109375,
+            "js": 79.6474609375,
+            "browserUpdate": 4.447509765625,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 75.537841796875,
+            "cssLive": 75.537841796875,
+            "js": 73.23779296875,
+            "browserUpdate": 4.93798828125,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 61.907470703125,
+            "cssLive": 30.007568359375,
+            "js": 61.907470703125,
+            "browserUpdate": 1.807373046875,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 65.55517578125,
+            "cssLive": 29.755126953125,
+            "js": 65.55517578125,
+            "browserUpdate": 2.05517578125,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 67.286376953125,
+            "cssLive": 31.58642578125,
+            "js": 67.286376953125,
+            "browserUpdate": 1.986328125,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 69.284912109375,
+            "cssLive": 28.48486328125,
+            "js": 69.284912109375,
+            "browserUpdate": 2.0849609375,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 58.030517578125,
+            "cssLive": 27.63037109375,
+            "js": 58.030517578125,
+            "browserUpdate": 2.23046875,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 78.593994140625,
+            "cssLive": 78.593994140625,
+            "js": 75.794189453125,
+            "browserUpdate": 4.694091796875,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 72.615478515625,
+            "cssLive": 72.615478515625,
+            "js": 70.41552734375,
+            "browserUpdate": 4.615478515625,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 74.309814453125,
+            "cssLive": 74.309814453125,
+            "js": 71.909912109375,
+            "browserUpdate": 6.2099609375,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 72.760498046875,
+            "cssLive": 72.760498046875,
+            "js": 70.360595703125,
+            "browserUpdate": 4.060546875,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 70.648193359375,
+            "cssLive": 70.648193359375,
+            "js": 68.34814453125,
+            "browserUpdate": 4.548095703125,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 69.537353515625,
+            "cssLive": 43.83740234375,
+            "js": 69.537353515625,
+            "browserUpdate": 8.637451171875,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 71.6943359375,
+            "cssLive": 28.994384765625,
+            "js": 71.6943359375,
+            "browserUpdate": 2.1943359375,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 68.32421875,
+            "cssLive": 25.624267578125,
+            "js": 68.32421875,
+            "browserUpdate": 1.92431640625,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 60.25634765625,
+            "cssLive": 33.956298828125,
+            "js": 60.25634765625,
+            "browserUpdate": 2.156494140625,
+            "requests": 10,
+            "bytes": 365774
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 69.78857421875,
+            "cssLive": 27.58837890625,
+            "js": 69.78857421875,
+            "browserUpdate": 1.6884765625,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 84.357177734375,
+            "cssLive": 61.1572265625,
+            "js": 84.357177734375,
+            "browserUpdate": 8.6572265625,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 95.585205078125,
+            "cssLive": 65.78515625,
+            "js": 95.585205078125,
+            "browserUpdate": 14.4853515625,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 93.22900390625,
+            "cssLive": 69.029052734375,
+            "js": 93.22900390625,
+            "browserUpdate": 15.529052734375,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 107.65625,
+            "cssLive": 84.15625,
+            "js": 107.65625,
+            "browserUpdate": 27.956298828125,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 84.522216796875,
+            "cssLive": 61.92236328125,
+            "js": 84.522216796875,
+            "browserUpdate": 8.322265625,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 70.206787109375,
+            "cssLive": 44.106689453125,
+            "js": 70.206787109375,
+            "browserUpdate": 1.90673828125,
+            "requests": 10,
+            "bytes": 365679
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 71.468017578125,
+            "cssLive": 29.3681640625,
+            "js": 71.468017578125,
+            "browserUpdate": 3.16796875,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 73.563720703125,
+            "cssLive": 30.063720703125,
+            "js": 73.563720703125,
+            "browserUpdate": 1.763671875,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 69.29931640625,
+            "cssLive": 26.999267578125,
+            "js": 69.29931640625,
+            "browserUpdate": 1.899169921875,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 71.5439453125,
+            "cssLive": 29.843994140625,
+            "js": 71.5439453125,
+            "browserUpdate": 1.843994140625,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 83.18505859375,
+            "cssLive": 60.885009765625,
+            "js": 83.18505859375,
+            "browserUpdate": 8.48486328125,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 84.399169921875,
+            "cssLive": 61.099365234375,
+            "js": 84.399169921875,
+            "browserUpdate": 11.79931640625,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 88.274169921875,
+            "cssLive": 63.374267578125,
+            "js": 88.274169921875,
+            "browserUpdate": 15.07421875,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 104.22900390625,
+            "cssLive": 74.928955078125,
+            "js": 104.22900390625,
+            "browserUpdate": 15.3291015625,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 86.547607421875,
+            "cssLive": 63.547607421875,
+            "js": 86.547607421875,
+            "browserUpdate": 11.74755859375,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 68.611083984375,
+            "cssLive": 41.9111328125,
+            "js": 68.611083984375,
+            "browserUpdate": 2.31103515625,
+            "requests": 10,
+            "bytes": 365679
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 70.187255859375,
+            "cssLive": 28.087158203125,
+            "js": 70.187255859375,
+            "browserUpdate": 2.4873046875,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 61.200927734375,
+            "cssLive": 33.401123046875,
+            "js": 61.200927734375,
+            "browserUpdate": 2.401123046875,
+            "requests": 10,
+            "bytes": 365803
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 70.770263671875,
+            "cssLive": 28.670166015625,
+            "js": 70.770263671875,
+            "browserUpdate": 2.270263671875,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 65.892822265625,
+            "cssLive": 25.49267578125,
+            "js": 65.892822265625,
+            "browserUpdate": 2.0927734375,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 82.05517578125,
+            "cssLive": 56.255126953125,
+            "js": 82.05517578125,
+            "browserUpdate": 8.6552734375,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 84.70703125,
+            "cssLive": 62.70703125,
+            "js": 84.70703125,
+            "browserUpdate": 13.007080078125,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 84.87548828125,
+            "cssLive": 62.475341796875,
+            "js": 84.87548828125,
+            "browserUpdate": 13.87548828125,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 100.18798828125,
+            "cssLive": 77.2880859375,
+            "js": 100.18798828125,
+            "browserUpdate": 14.988037109375,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 82.912109375,
+            "cssLive": 58.81201171875,
+            "js": 82.912109375,
+            "browserUpdate": 8.112060546875,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 66.079345703125,
+            "cssLive": 36.679443359375,
+            "js": 66.079345703125,
+            "browserUpdate": 2.37939453125,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 73.3095703125,
+            "cssLive": 26.3095703125,
+            "js": 73.3095703125,
+            "browserUpdate": 2.109375,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 69.669921875,
+            "cssLive": 27.969970703125,
+            "js": 69.669921875,
+            "browserUpdate": 2.169921875,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 69.05810546875,
+            "cssLive": 24.658203125,
+            "js": 69.05810546875,
+            "browserUpdate": 2.158203125,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 69.51708984375,
+            "cssLive": 28.81689453125,
+            "js": 69.51708984375,
+            "browserUpdate": 2.217041015625,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 87.716552734375,
+            "cssLive": 60.316650390625,
+            "js": 87.716552734375,
+            "browserUpdate": 8.316650390625,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 100.85009765625,
+            "cssLive": 74.85009765625,
+            "js": 100.85009765625,
+            "browserUpdate": 19.550048828125,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 86.305419921875,
+            "cssLive": 63.10546875,
+            "js": 86.305419921875,
+            "browserUpdate": 13.905517578125,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 95.069580078125,
+            "cssLive": 71.4697265625,
+            "js": 95.069580078125,
+            "browserUpdate": 15.669677734375,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 84.564697265625,
+            "cssLive": 60.164794921875,
+            "js": 84.564697265625,
+            "browserUpdate": 9.46484375,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 63.182861328125,
+            "cssLive": 30.982666015625,
+            "js": 63.182861328125,
+            "browserUpdate": 2.582763671875,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 77.670166015625,
+            "cssLive": 29.570068359375,
+            "js": 77.670166015625,
+            "browserUpdate": 2.170166015625,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 74.51318359375,
+            "cssLive": 35.51318359375,
+            "js": 74.51318359375,
+            "browserUpdate": 2.71337890625,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 71.346435546875,
+            "cssLive": 34.246337890625,
+            "js": 71.346435546875,
+            "browserUpdate": 1.9462890625,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 58.736328125,
+            "cssLive": 27.5361328125,
+            "js": 58.736328125,
+            "browserUpdate": 1.63623046875,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 85.1171875,
+            "cssLive": 85.1171875,
+            "js": 82.317138671875,
+            "browserUpdate": 4.217041015625,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 83.11083984375,
+            "cssLive": 83.11083984375,
+            "js": 80.7109375,
+            "browserUpdate": 4.5107421875,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 77.053466796875,
+            "cssLive": 77.053466796875,
+            "js": 74.75341796875,
+            "browserUpdate": 4.553466796875,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 78.74609375,
+            "cssLive": 78.74609375,
+            "js": 76.446044921875,
+            "browserUpdate": 4.14599609375,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 75.387451171875,
+            "cssLive": 75.387451171875,
+            "js": 72.987548828125,
+            "browserUpdate": 4.287353515625,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 62.398681640625,
+            "cssLive": 28.99853515625,
+            "js": 62.398681640625,
+            "browserUpdate": 1.99853515625,
+            "requests": 9,
+            "bytes": 328587
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 70.239013671875,
+            "cssLive": 30.0390625,
+            "js": 70.239013671875,
+            "browserUpdate": 2.13916015625,
+            "requests": 9,
+            "bytes": 328636
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 67.820556640625,
+            "cssLive": 33.320556640625,
+            "js": 67.820556640625,
+            "browserUpdate": 2.5205078125,
+            "requests": 9,
+            "bytes": 328685
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 72.01953125,
+            "cssLive": 33.319580078125,
+            "js": 72.01953125,
+            "browserUpdate": 1.819580078125,
+            "requests": 9,
+            "bytes": 328734
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 67.368408203125,
+            "cssLive": 27.968505859375,
+            "js": 67.368408203125,
+            "browserUpdate": 1.968505859375,
+            "requests": 9,
+            "bytes": 328783
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 86.441162109375,
+            "cssLive": 86.441162109375,
+            "js": 83.240966796875,
+            "browserUpdate": 4.541015625,
+            "requests": 5,
+            "bytes": 183163
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 80.10498046875,
+            "cssLive": 80.10498046875,
+            "js": 77.704833984375,
+            "browserUpdate": 4.60498046875,
+            "requests": 5,
+            "bytes": 183214
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 81.8994140625,
+            "cssLive": 81.8994140625,
+            "js": 79.29931640625,
+            "browserUpdate": 5.29931640625,
+            "requests": 5,
+            "bytes": 183265
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 93.13671875,
+            "cssLive": 95.936767578125,
+            "js": 89.336669921875,
+            "browserUpdate": 4.63671875,
+            "requests": 5,
+            "bytes": 183316
+          },
+          {
+            "engine": "tailwind",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 82.554931640625,
+            "cssLive": 82.554931640625,
+            "js": 80.054931640625,
+            "browserUpdate": 4.35498046875,
+            "requests": 5,
+            "bytes": 183367
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 69.156494140625,
+            "cssLive": 41.556396484375,
+            "js": 69.156494140625,
+            "browserUpdate": 2.3564453125,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 67.93017578125,
+            "cssLive": 25.730224609375,
+            "js": 67.93017578125,
+            "browserUpdate": 2.330322265625,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 66.474609375,
+            "cssLive": 25.174560546875,
+            "js": 66.474609375,
+            "browserUpdate": 1.974609375,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 68.653564453125,
+            "cssLive": 25.75341796875,
+            "js": 68.653564453125,
+            "browserUpdate": 2.053466796875,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 71.99462890625,
+            "cssLive": 31.694580078125,
+            "js": 71.99462890625,
+            "browserUpdate": 2.094482421875,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 98.009521484375,
+            "cssLive": 67.309326171875,
+            "js": 98.009521484375,
+            "browserUpdate": 8.809326171875,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 93.90185546875,
+            "cssLive": 62.8017578125,
+            "js": 93.90185546875,
+            "browserUpdate": 11.8017578125,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 94.611572265625,
+            "cssLive": 65.111572265625,
+            "js": 94.611572265625,
+            "browserUpdate": 15.21142578125,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 95.495361328125,
+            "cssLive": 72.29541015625,
+            "js": 95.495361328125,
+            "browserUpdate": 16.195556640625,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 81.68896484375,
+            "cssLive": 58.18896484375,
+            "js": 81.68896484375,
+            "browserUpdate": 7.989013671875,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 67.03369140625,
+            "cssLive": 39.43359375,
+            "js": 67.03369140625,
+            "browserUpdate": 6.93359375,
+            "requests": 10,
+            "bytes": 365679
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 68.845703125,
+            "cssLive": 25.945556640625,
+            "js": 68.845703125,
+            "browserUpdate": 2.345703125,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 68.872314453125,
+            "cssLive": 26.7724609375,
+            "js": 68.872314453125,
+            "browserUpdate": 1.872314453125,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 74.753173828125,
+            "cssLive": 33.453125,
+            "js": 74.753173828125,
+            "browserUpdate": 2.453125,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 67.60546875,
+            "cssLive": 26.50537109375,
+            "js": 67.60546875,
+            "browserUpdate": 1.9052734375,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 81.8828125,
+            "cssLive": 57.182861328125,
+            "js": 81.8828125,
+            "browserUpdate": 7.78271484375,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 86.644287109375,
+            "cssLive": 61.9443359375,
+            "js": 86.644287109375,
+            "browserUpdate": 12.844482421875,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 87.3271484375,
+            "cssLive": 63.527099609375,
+            "js": 87.3271484375,
+            "browserUpdate": 14.42724609375,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 104.75927734375,
+            "cssLive": 74.6591796875,
+            "js": 104.75927734375,
+            "browserUpdate": 15.25927734375,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 89.564453125,
+            "cssLive": 61.46435546875,
+            "js": 89.564453125,
+            "browserUpdate": 7.764404296875,
+            "requests": 5,
+            "bytes": 192977
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T15-42-39.645Z-files-imported.json",
+      "data": {
+        "node": "v24.20.0",
+        "platform": "linux",
+        "cpu": "12th Gen Intel(R) Core(TM) i9-12900K",
+        "compilerHash": "ab57f4010ce54006fe63e41557c091f3e0a364012bbf2417479f41087d00133f",
+        "baselineCompilerHash": "dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b",
+        "baselineRevision": "1aace93b",
+        "candidateRevision": "813aa35f",
+        "versions": {
+          "truss": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          },
+          "baseline": {
+            "vite": "8.2.2",
+            "@react-router/dev": "8.3.1",
+            "react": "19.2.8",
+            "@homebound/truss": "2.33.1"
+          }
+        },
+        "axis": "files",
+        "orphaned": false,
+        "runs": 7,
+        "counts": [
+          400
+        ],
+        "results": [
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "start": 1442.31502
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 0,
+            "start": 1428.3028019999997
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "start": 1433.0356179999999
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 1,
+            "start": 1410.2432250000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "start": 1446.8744550000001
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 2,
+            "start": 1423.2876219999998
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "start": 1413.5119430000013
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 3,
+            "start": 1474.7027710000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "start": 1448.1229599999988
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 4,
+            "start": 1423.0102890000016
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 5,
+            "start": 1441.6969580000004
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 5,
+            "start": 1438.7067900000002
+          },
+          {
+            "engine": "truss",
+            "axis": "files",
+            "count": 400,
+            "run": 6,
+            "start": 1461.5037899999988
+          },
+          {
+            "engine": "baseline",
+            "axis": "files",
+            "count": 400,
+            "run": 6,
+            "start": 1438.1653760000008
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/2026-09-20T15-43-07.024Z-hmr.json",
+      "data": {
+        "node": "v24.20.0",
+        "browser": "145.0.7632.6",
+        "baselineRevision": "1aace93b",
+        "candidateRevision": "813aa35f",
+        "sweeps": 6,
+        "pairs": 5,
+        "serverRows": [],
+        "rows": [
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 88.405029296875,
+            "cssLive": 66.605224609375,
+            "js": 88.405029296875,
+            "browserUpdate": 4.105224609375,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 74.59619140625,
+            "cssLive": 26.59619140625,
+            "js": 74.59619140625,
+            "browserUpdate": 2.6962890625,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 68.61279296875,
+            "cssLive": 24.312744140625,
+            "js": 68.61279296875,
+            "browserUpdate": 2.012939453125,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 69.122802734375,
+            "cssLive": 26.122802734375,
+            "js": 69.122802734375,
+            "browserUpdate": 2.122802734375,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 70.71875,
+            "cssLive": 29.118896484375,
+            "js": 70.71875,
+            "browserUpdate": 2.9189453125,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 83.9111328125,
+            "cssLive": 57.9111328125,
+            "js": 83.9111328125,
+            "browserUpdate": 8.2109375,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 85.1396484375,
+            "cssLive": 60.23974609375,
+            "js": 85.1396484375,
+            "browserUpdate": 12.039794921875,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 87.929443359375,
+            "cssLive": 65.429443359375,
+            "js": 87.929443359375,
+            "browserUpdate": 14.029541015625,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 100.85546875,
+            "cssLive": 72.155517578125,
+            "js": 100.85546875,
+            "browserUpdate": 14.85546875,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 89.17919921875,
+            "cssLive": 61.279052734375,
+            "js": 89.17919921875,
+            "browserUpdate": 8.17919921875,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 70.509521484375,
+            "cssLive": 27.20947265625,
+            "js": 70.509521484375,
+            "browserUpdate": 2.109619140625,
+            "requests": 9,
+            "bytes": 365674
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 67.017333984375,
+            "cssLive": 25.41748046875,
+            "js": 67.017333984375,
+            "browserUpdate": 2.017333984375,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 67.680908203125,
+            "cssLive": 25.98095703125,
+            "js": 67.680908203125,
+            "browserUpdate": 2.281005859375,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 70.36962890625,
+            "cssLive": 28.9697265625,
+            "js": 70.36962890625,
+            "browserUpdate": 2.36962890625,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 73.74462890625,
+            "cssLive": 25.8447265625,
+            "js": 73.74462890625,
+            "browserUpdate": 2.044677734375,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 84.98876953125,
+            "cssLive": 62.388671875,
+            "js": 84.98876953125,
+            "browserUpdate": 9.088623046875,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 119.823486328125,
+            "cssLive": 75.5234375,
+            "js": 119.823486328125,
+            "browserUpdate": 9.0234375,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 90.035888671875,
+            "cssLive": 67.935791015625,
+            "js": 90.035888671875,
+            "browserUpdate": 8.23583984375,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 86.464111328125,
+            "cssLive": 57.064208984375,
+            "js": 86.464111328125,
+            "browserUpdate": 8.064208984375,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 0,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 97.752197265625,
+            "cssLive": 64.752197265625,
+            "js": 97.752197265625,
+            "browserUpdate": 13.4521484375,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 68.209228515625,
+            "cssLive": 39.80908203125,
+            "js": 68.209228515625,
+            "browserUpdate": 2.109130859375,
+            "requests": 10,
+            "bytes": 365679
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 72.432373046875,
+            "cssLive": 26.332275390625,
+            "js": 72.432373046875,
+            "browserUpdate": 2.13232421875,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 70.446044921875,
+            "cssLive": 28.34619140625,
+            "js": 70.446044921875,
+            "browserUpdate": 2.046142578125,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 70.325927734375,
+            "cssLive": 26.02587890625,
+            "js": 70.325927734375,
+            "browserUpdate": 2.02587890625,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 67.795654296875,
+            "cssLive": 26.895751953125,
+            "js": 67.795654296875,
+            "browserUpdate": 1.69580078125,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 88.27978515625,
+            "cssLive": 58.579833984375,
+            "js": 88.27978515625,
+            "browserUpdate": 8.27978515625,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 91.34130859375,
+            "cssLive": 62.84130859375,
+            "js": 91.34130859375,
+            "browserUpdate": 11.141357421875,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 87.51318359375,
+            "cssLive": 64.113037109375,
+            "js": 87.51318359375,
+            "browserUpdate": 15.51318359375,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 94.53076171875,
+            "cssLive": 70.53076171875,
+            "js": 94.53076171875,
+            "browserUpdate": 14.330810546875,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 85.02001953125,
+            "cssLive": 60.820068359375,
+            "js": 85.02001953125,
+            "browserUpdate": 9.6201171875,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 69.8232421875,
+            "cssLive": 41.42333984375,
+            "js": 69.8232421875,
+            "browserUpdate": 2.123291015625,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 69.1416015625,
+            "cssLive": 26.441650390625,
+            "js": 69.1416015625,
+            "browserUpdate": 2.941650390625,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 69.2646484375,
+            "cssLive": 26.664794921875,
+            "js": 69.2646484375,
+            "browserUpdate": 2.36474609375,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 72.308349609375,
+            "cssLive": 29.408447265625,
+            "js": 72.308349609375,
+            "browserUpdate": 3.308349609375,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 67.76513671875,
+            "cssLive": 27.365234375,
+            "js": 67.76513671875,
+            "browserUpdate": 2.065185546875,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 82.337890625,
+            "cssLive": 59.037841796875,
+            "js": 82.337890625,
+            "browserUpdate": 8.738037109375,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 87.747802734375,
+            "cssLive": 64.247802734375,
+            "js": 87.747802734375,
+            "browserUpdate": 13.147705078125,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 90.524169921875,
+            "cssLive": 63.82421875,
+            "js": 90.524169921875,
+            "browserUpdate": 13.82421875,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 106.65625,
+            "cssLive": 71.956298828125,
+            "js": 106.65625,
+            "browserUpdate": 16.256103515625,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 1,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 93.545166015625,
+            "cssLive": 64.545166015625,
+            "js": 93.545166015625,
+            "browserUpdate": 11.545166015625,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 71.10205078125,
+            "cssLive": 71.10205078125,
+            "js": 71.10205078125,
+            "browserUpdate": 2.10205078125,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 71.254638671875,
+            "cssLive": 29.0546875,
+            "js": 71.254638671875,
+            "browserUpdate": 2.0546875,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 66.63232421875,
+            "cssLive": 25.13232421875,
+            "js": 66.63232421875,
+            "browserUpdate": 2.232177734375,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 72.078125,
+            "cssLive": 27.278076171875,
+            "js": 72.078125,
+            "browserUpdate": 2.078125,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 69.9404296875,
+            "cssLive": 26.740478515625,
+            "js": 69.9404296875,
+            "browserUpdate": 1.9404296875,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 94.842041015625,
+            "cssLive": 59.842041015625,
+            "js": 94.842041015625,
+            "browserUpdate": 9.641845703125,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 94.68896484375,
+            "cssLive": 70.18896484375,
+            "js": 94.68896484375,
+            "browserUpdate": 12.989013671875,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 87.7177734375,
+            "cssLive": 65.31787109375,
+            "js": 87.7177734375,
+            "browserUpdate": 13.91796875,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 105.115234375,
+            "cssLive": 78.115234375,
+            "js": 105.115234375,
+            "browserUpdate": 15.515380859375,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 87.18701171875,
+            "cssLive": 61.68701171875,
+            "js": 87.18701171875,
+            "browserUpdate": 8.787109375,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 69.625,
+            "cssLive": 43.02490234375,
+            "js": 69.625,
+            "browserUpdate": 2.224853515625,
+            "requests": 10,
+            "bytes": 365679
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 73.5546875,
+            "cssLive": 28.95458984375,
+            "js": 73.5546875,
+            "browserUpdate": 2.0546875,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 69.373291015625,
+            "cssLive": 27.17333984375,
+            "js": 69.373291015625,
+            "browserUpdate": 2.0732421875,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 71.131103515625,
+            "cssLive": 24.73095703125,
+            "js": 71.131103515625,
+            "browserUpdate": 2.131103515625,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 66.9677734375,
+            "cssLive": 26.36767578125,
+            "js": 66.9677734375,
+            "browserUpdate": 1.9677734375,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 83.151123046875,
+            "cssLive": 60.151123046875,
+            "js": 83.151123046875,
+            "browserUpdate": 8.751220703125,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 86.465576171875,
+            "cssLive": 63.86572265625,
+            "js": 86.465576171875,
+            "browserUpdate": 12.065673828125,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 98.221923828125,
+            "cssLive": 68.621826171875,
+            "js": 98.221923828125,
+            "browserUpdate": 15.121826171875,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 94.63427734375,
+            "cssLive": 69.93408203125,
+            "js": 94.63427734375,
+            "browserUpdate": 15.5341796875,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 2,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 90.010498046875,
+            "cssLive": 60.310302734375,
+            "js": 90.010498046875,
+            "browserUpdate": 8.21044921875,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 91.8583984375,
+            "cssLive": 46.3583984375,
+            "js": 91.8583984375,
+            "browserUpdate": 2.45849609375,
+            "requests": 9,
+            "bytes": 365674
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 69.660888671875,
+            "cssLive": 27.160888671875,
+            "js": 69.660888671875,
+            "browserUpdate": 2.160888671875,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 73.821044921875,
+            "cssLive": 27.9208984375,
+            "js": 73.821044921875,
+            "browserUpdate": 1.9208984375,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 70.9638671875,
+            "cssLive": 29.06396484375,
+            "js": 70.9638671875,
+            "browserUpdate": 2.06396484375,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 68.266845703125,
+            "cssLive": 25.666748046875,
+            "js": 68.266845703125,
+            "browserUpdate": 1.86669921875,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 90.064208984375,
+            "cssLive": 67.364013671875,
+            "js": 90.064208984375,
+            "browserUpdate": 9.1640625,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 84.811279296875,
+            "cssLive": 62.411376953125,
+            "js": 84.811279296875,
+            "browserUpdate": 12.71142578125,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 86.314453125,
+            "cssLive": 63.514404296875,
+            "js": 86.314453125,
+            "browserUpdate": 13.414306640625,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 96.559814453125,
+            "cssLive": 72.259765625,
+            "js": 96.559814453125,
+            "browserUpdate": 14.85986328125,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 89.068359375,
+            "cssLive": 60.268310546875,
+            "js": 89.068359375,
+            "browserUpdate": 7.568359375,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 70.044189453125,
+            "cssLive": 51.544189453125,
+            "js": 70.044189453125,
+            "browserUpdate": 7.444091796875,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 68.892578125,
+            "cssLive": 26.1923828125,
+            "js": 68.892578125,
+            "browserUpdate": 2.29248046875,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 66.189453125,
+            "cssLive": 24.58935546875,
+            "js": 66.189453125,
+            "browserUpdate": 2.08935546875,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 67.98291015625,
+            "cssLive": 26.682861328125,
+            "js": 67.98291015625,
+            "browserUpdate": 2.0830078125,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 65.836181640625,
+            "cssLive": 25.5361328125,
+            "js": 65.836181640625,
+            "browserUpdate": 2.0361328125,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 90.451416015625,
+            "cssLive": 62.6513671875,
+            "js": 90.451416015625,
+            "browserUpdate": 10.951416015625,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 86.954345703125,
+            "cssLive": 64.154296875,
+            "js": 86.954345703125,
+            "browserUpdate": 11.75439453125,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 102.16943359375,
+            "cssLive": 67.369384765625,
+            "js": 102.16943359375,
+            "browserUpdate": 17.0693359375,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 106.82666015625,
+            "cssLive": 73.126708984375,
+            "js": 106.82666015625,
+            "browserUpdate": 15.126708984375,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 3,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 81.14599609375,
+            "cssLive": 56.745849609375,
+            "js": 81.14599609375,
+            "browserUpdate": 7.845947265625,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 77.343505859375,
+            "cssLive": 51.343505859375,
+            "js": 77.343505859375,
+            "browserUpdate": 2.6435546875,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 68.249267578125,
+            "cssLive": 25.44921875,
+            "js": 68.249267578125,
+            "browserUpdate": 2.249267578125,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 66.058837890625,
+            "cssLive": 24.458984375,
+            "js": 66.058837890625,
+            "browserUpdate": 1.958984375,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 66.14306640625,
+            "cssLive": 24.242919921875,
+            "js": 66.14306640625,
+            "browserUpdate": 2.14306640625,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 67.410888671875,
+            "cssLive": 26.910888671875,
+            "js": 67.410888671875,
+            "browserUpdate": 3.11083984375,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 81.894287109375,
+            "cssLive": 57.6943359375,
+            "js": 81.894287109375,
+            "browserUpdate": 8.394287109375,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 94.25048828125,
+            "cssLive": 67.350341796875,
+            "js": 94.25048828125,
+            "browserUpdate": 12.650390625,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 94.310302734375,
+            "cssLive": 67.210205078125,
+            "js": 94.310302734375,
+            "browserUpdate": 14.310302734375,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 106.041259765625,
+            "cssLive": 77.84130859375,
+            "js": 106.041259765625,
+            "browserUpdate": 17.141357421875,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 92.66845703125,
+            "cssLive": 63.868408203125,
+            "js": 92.66845703125,
+            "browserUpdate": 9.568603515625,
+            "requests": 5,
+            "bytes": 192938
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 64.785400390625,
+            "cssLive": 36.285400390625,
+            "js": 64.785400390625,
+            "browserUpdate": 2.08544921875,
+            "requests": 10,
+            "bytes": 365679
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 71.256591796875,
+            "cssLive": 28.856689453125,
+            "js": 71.256591796875,
+            "browserUpdate": 2.15673828125,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 68.430419921875,
+            "cssLive": 26.13037109375,
+            "js": 68.430419921875,
+            "browserUpdate": 2.13037109375,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 65.80224609375,
+            "cssLive": 24.502197265625,
+            "js": 65.80224609375,
+            "browserUpdate": 2.10205078125,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 67.609619140625,
+            "cssLive": 27.009521484375,
+            "js": 67.609619140625,
+            "browserUpdate": 1.8095703125,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 83.291748046875,
+            "cssLive": 60.191650390625,
+            "js": 83.291748046875,
+            "browserUpdate": 8.691650390625,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 93.103271484375,
+            "cssLive": 64.203369140625,
+            "js": 93.103271484375,
+            "browserUpdate": 12.103271484375,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 92.5,
+            "cssLive": 63.5,
+            "js": 92.5,
+            "browserUpdate": 13.300048828125,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 94.05859375,
+            "cssLive": 71.55859375,
+            "js": 94.05859375,
+            "browserUpdate": 14.358642578125,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 4,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 82.3125,
+            "cssLive": 58.8125,
+            "js": 82.3125,
+            "browserUpdate": 8.612548828125,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 71.28515625,
+            "cssLive": 27.38525390625,
+            "js": 71.28515625,
+            "browserUpdate": 2.28515625,
+            "requests": 9,
+            "bytes": 365674
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 67.165771484375,
+            "cssLive": 25.165771484375,
+            "js": 67.165771484375,
+            "browserUpdate": 2.065673828125,
+            "requests": 9,
+            "bytes": 365736
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 68.11767578125,
+            "cssLive": 26.217529296875,
+            "js": 68.11767578125,
+            "browserUpdate": 2.217529296875,
+            "requests": 9,
+            "bytes": 365798
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 69.6064453125,
+            "cssLive": 27.50634765625,
+            "js": 69.6064453125,
+            "browserUpdate": 2.1064453125,
+            "requests": 9,
+            "bytes": 365860
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 71.7353515625,
+            "cssLive": 25.635498046875,
+            "js": 71.7353515625,
+            "browserUpdate": 1.935302734375,
+            "requests": 9,
+            "bytes": 365922
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 92.922119140625,
+            "cssLive": 63.52197265625,
+            "js": 92.922119140625,
+            "browserUpdate": 9.02197265625,
+            "requests": 5,
+            "bytes": 192717
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 88.353271484375,
+            "cssLive": 88.353271484375,
+            "js": 86.253173828125,
+            "browserUpdate": 8.6533203125,
+            "requests": 5,
+            "bytes": 192782
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 87.22998046875,
+            "cssLive": 87.22998046875,
+            "js": 85.130126953125,
+            "browserUpdate": 8.030029296875,
+            "requests": 5,
+            "bytes": 192847
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 83.0166015625,
+            "cssLive": 58.5166015625,
+            "js": 83.0166015625,
+            "browserUpdate": 8.116455078125,
+            "requests": 5,
+            "bytes": 192912
+          },
+          {
+            "engine": "baseline",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 102.0498046875,
+            "cssLive": 78.44970703125,
+            "js": 102.0498046875,
+            "browserUpdate": 16.349853515625,
+            "requests": 5,
+            "bytes": 192977
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 0,
+            "correct": 69.67724609375,
+            "cssLive": 42.277099609375,
+            "js": 69.67724609375,
+            "browserUpdate": 2.277099609375,
+            "requests": 10,
+            "bytes": 365588
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 1,
+            "correct": 68.175048828125,
+            "cssLive": 25.775146484375,
+            "js": 68.175048828125,
+            "browserUpdate": 2.275146484375,
+            "requests": 9,
+            "bytes": 365645
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 2,
+            "correct": 70.318359375,
+            "cssLive": 28.618408203125,
+            "js": 70.318359375,
+            "browserUpdate": 2.018310546875,
+            "requests": 9,
+            "bytes": 365707
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 3,
+            "correct": 73.87109375,
+            "cssLive": 31.37109375,
+            "js": 73.87109375,
+            "browserUpdate": 2.071044921875,
+            "requests": 9,
+            "bytes": 365769
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "shared",
+            "pair": 4,
+            "correct": 66.045654296875,
+            "cssLive": 25.545654296875,
+            "js": 66.045654296875,
+            "browserUpdate": 2.045654296875,
+            "requests": 9,
+            "bytes": 365831
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 0,
+            "correct": 87.431396484375,
+            "cssLive": 58.031494140625,
+            "js": 87.431396484375,
+            "browserUpdate": 8.531494140625,
+            "requests": 5,
+            "bytes": 192678
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 1,
+            "correct": 92.2236328125,
+            "cssLive": 63.523681640625,
+            "js": 92.2236328125,
+            "browserUpdate": 12.823486328125,
+            "requests": 5,
+            "bytes": 192743
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 2,
+            "correct": 102.79296875,
+            "cssLive": 74.69287109375,
+            "js": 102.79296875,
+            "browserUpdate": 17.89306640625,
+            "requests": 5,
+            "bytes": 192808
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 3,
+            "correct": 102.780517578125,
+            "cssLive": 73.58056640625,
+            "js": 102.780517578125,
+            "browserUpdate": 15.380615234375,
+            "requests": 5,
+            "bytes": 192873
+          },
+          {
+            "engine": "truss",
+            "sweep": 5,
+            "kind": "leaf",
+            "pair": 4,
+            "correct": 83.749755859375,
+            "cssLive": 59.349853515625,
+            "js": 83.749755859375,
+            "browserUpdate": 9.349853515625,
+            "requests": 5,
+            "bytes": 192938
+          }
+        ]
+      }
+    },
+    {
+      "source": "benchmarks/results/parity/report.json",
+      "data": [
+        {
+          "key": "390-light-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "390-light-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "390-light-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "390-light-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "390-light-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "390-light-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        },
+        {
+          "key": "390-dark-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "390-dark-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "390-dark-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "390-dark-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "390-dark-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "390-dark-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        },
+        {
+          "key": "1280-light-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "1280-light-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "1280-light-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "1280-light-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "1280-light-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "1280-light-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        },
+        {
+          "key": "1280-dark-dashboard",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8415
+        },
+        {
+          "key": "1280-dark-projects",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 15124
+        },
+        {
+          "key": "1280-dark-settings",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 8516
+        },
+        {
+          "key": "1280-dark-pricing",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 9893
+        },
+        {
+          "key": "1280-dark-docs",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 5581
+        },
+        {
+          "key": "1280-dark-lab",
+          "differingPixels": 0,
+          "materialDifferences": 0,
+          "ssrClassBytes": 6494
+        }
+      ]
+    },
+    {
+      "source": "benchmarks/results/parity/assets.json",
+      "data": {
+        "baselineJs": {
+          "raw": 391313,
+          "brotli": 110833
+        },
+        "candidateJs": {
+          "raw": 391313,
+          "brotli": 110833
+        }
+      }
+    }
+  ]
+}

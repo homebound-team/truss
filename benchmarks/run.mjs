@@ -10,11 +10,12 @@ import { precompile } from "./precompiled.mjs";
 
 const root = new URL("../", import.meta.url).pathname;
 const work = resolve(root, "benchmarks/.work");
+const baselineBuild = resolve(root, process.env.BASELINE_BUILD ?? "benchmarks/.work/baseline");
 const runs = Number(process.env.RUNS ?? 5);
 const axis = process.env.AXIS ?? "files";
 const counts = (process.env.COUNTS ?? (axis === "styles" ? "0,50,200,800" : "0,400,1600")).split(",").map(Number);
 const engines = (
-  process.env.ENGINES ?? (existsSync(resolve(work, "baseline")) ? "baseline,truss,tailwind" : "truss,tailwind")
+  process.env.ENGINES ?? (existsSync(baselineBuild) ? "baseline,truss,tailwind" : "truss,tailwind")
 ).split(",");
 const scenarios = (process.env.SCENARIOS ?? "build,start").split(",");
 const results = [];
@@ -67,11 +68,13 @@ for (const count of counts) {
               compilerHash: createHash("sha256")
                 .update(readFileSync(resolve(root, "packages/truss/build/plugin/index.js")))
                 .digest("hex"),
-              baselineCompilerHash: existsSync(resolve(work, "baseline/plugin/index.js"))
+              baselineCompilerHash: existsSync(resolve(baselineBuild, "plugin/index.js"))
                 ? createHash("sha256")
-                    .update(readFileSync(resolve(work, "baseline/plugin/index.js")))
+                    .update(readFileSync(resolve(baselineBuild, "plugin/index.js")))
                     .digest("hex")
                 : undefined,
+              baselineRevision: process.env.BASELINE_REVISION,
+              candidateRevision: process.env.CANDIDATE_REVISION,
               versions: Object.fromEntries(engines.map((name) => [name, versions(directory(name))])),
               axis,
               orphaned: process.env.ORPHANED === "1",
@@ -121,7 +124,7 @@ function prepare(engine) {
       css.replace('@import "tailwindcss";', '@import "tailwindcss" source(none);\n@source "./";'),
     );
   }
-  const build = engine === "baseline" ? resolve(work, "baseline") : resolve(root, "packages/truss/build");
+  const build = engine === "baseline" ? baselineBuild : resolve(root, "packages/truss/build");
   if (engine !== "tailwind") {
     // Exercise normal package resolution, including React and Vite dependency optimization.
     // An absolute alias outside this app would introduce a second copy of React.

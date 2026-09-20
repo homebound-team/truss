@@ -95,6 +95,48 @@ bootstrap cache isolation, and cached `.css.ts` registry replay. Validation pass
 comparison also retains the build improvement over the saved baseline. The archived table above
 remains the measurements from the initial optimization pass.
 
+## Refactoring regression check
+
+Compared the current compiler at **`813aa35f`** directly with the original optimized compiler at
+**`1aace93b`**, using interleaved fresh processes and alternating order. The reconstructed reference
+has SHA-256 `dcaa459fd0f8a82cb90207ca1f044f58fc307b18194e5abca3c5d722149a2b3b`, exactly matching
+the optimized compiler in the original archived results. The saved unoptimized 2.33.3 baseline
+was preserved; `BASELINE_BUILD` selects this separate reference build.
+
+**No material regression was detected.** Builds are flat or slightly faster. Focused reruns retain
+small positive differences in 400-file startup and component HMR, approximately 1–2%; these are
+point estimates with overlapping run-to-run ranges, not proof of precisely zero regression.
+
+| Metric                                         | Before refactoring | After refactoring | Change |
+| ---------------------------------------------- | -----------------: | ----------------: | -----: |
+| Cold build                                     |             846 ms |            828 ms |  -2.1% |
+| Warm build                                     |             833 ms |            828 ms |  -0.6% |
+| Cold startup → SSR                             |             952 ms |            953 ms |  +0.1% |
+| Cold build, +400 files                         |           1,024 ms |          1,024 ms |    ~0% |
+| Cold build, +1,600 files                       |           1,563 ms |          1,550 ms |  -0.8% |
+| Warm build, +1,600 files                       |           1,567 ms |          1,542 ms |  -1.6% |
+| Cold startup, +1,600 files                     |           2,732 ms |          2,687 ms |  -1.6% |
+| Cold build, +800 style definitions             |             885 ms |            878 ms |  -0.8% |
+| Cold build, +1,600 orphan files                |             820 ms |            827 ms |  +0.9% |
+| Cold startup, +400 files (focused rerun)       |           1,428 ms |          1,447 ms |  +1.3% |
+| Shared edit → correct style (focused rerun)    |            69.6 ms |           69.2 ms |  -0.6% |
+| Component edit → correct style (focused rerun) |            89.5 ms |           91.4 ms |  +2.0% |
+
+Build/startup rows use five samples; style/orphan rows use three. The focused startup rerun uses
+seven samples per version; its ranges were **1,414–1,442 ms** before and **1,410–1,475 ms** after.
+The focused HMR rerun uses 30 edits per kind per version across six fresh servers, with the two
+versions alternating first/second position. Component HMR ranges were **82.3–119.8 ms** before
+and **81.1–106.8 ms** after.
+
+The initial three-engine run included Tailwind as a control and showed larger differences for
+400-file startup (**1,445 → 1,486 ms**) and component HMR (**87.0 → 93.6 ms**). Those larger gaps
+did not reproduce in the focused comparisons. Both runs are retained in
+[baselines/2026-09-20-refactor.json](baselines/2026-09-20-refactor.json).
+
+CSS sizes match at every file/style count, and orphan files still emit no additional Truss CSS.
+Production CSS and SSR classes are identical between revisions; all client JavaScript still totals
+**110,833 Brotli bytes**. All **24 visual comparisons** pass with no browser page errors.
+
 ## Remaining work
 
 The remaining base-app gap is approximately **148 ms for cold builds**, **155 ms for startup**,
