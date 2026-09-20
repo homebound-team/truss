@@ -2,15 +2,11 @@ import { readFileSync, existsSync } from "fs";
 import { resolve, dirname, isAbsolute } from "path";
 import { createHash } from "crypto";
 import { type PluginContext } from "rollup";
-import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import { createTrussTransformSession } from "./transform-session";
 import { splitArbitraryCss } from "./test-css";
 import { applyReferencedKeyframes } from "./at-rule-refs";
 import type { ParsedTrussCss } from "../truss-css";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
-import { generate, parseModule, traverse } from "./babel-utils";
-import { findNamedImportBinding, reservePreferredName, upsertNamedImports } from "./ast-utils";
-import * as t from "@babel/types";
 import { type DiagnosticOptions, type TransformDiagnostic } from "./types";
 
 export interface TrussPluginOptions {
@@ -46,8 +42,6 @@ export interface TrussVitePlugin {
 const VIRTUAL_CSS_PREFIX = "\0truss-css:";
 const VIRTUAL_TEST_CSS_PREFIX = "\0truss-test-css:";
 const CSS_TS_QUERY = "?truss-css";
-const RUNTIME_MODULE = "@homebound/truss/runtime";
-const INJECT_CSS_HELPER = "__injectTrussCSS";
 
 /**
  * The app's stylesheet. `import "virtual:truss.css"` in the entry module lets the framework
@@ -289,74 +283,27 @@ __injectTrussCSS(${JSON.stringify(payload)});
       const fileId = stripQueryAndHash(id);
       if (isNodeModulesFile(fileId)) return null;
 
-      // Compile Truss expressions and rewrite .css.ts imports in the same AST for JS/TS/JSX/TSX
-      // modules outside test mode. The remaining path below handles these other cases:
-      // - .css.ts files: compile selector-based CSS through updateArbitraryCssRegistry, while
-      //   keeping the TypeScript module available for named exports used at runtime.
-      // - Application modules loaded in test mode: bootstrap library CSS and spacing, and
-      //   inject per-module CSS because the test environment does not load the app's HTML
-      //   stylesheet entry. This includes components/helpers, not just test files.
-      // - Modules with only CSS imports: rewrite those imports without compiling Truss expressions.
+      // All eligible files use one transformation flow, sharing an AST across these steps:
+      // - A file with Truss expressions: compile the expressions.
+      // - A file with only CSS imports: rewrite the imports.
+      // - A .css.ts file: extract selector-based CSS while preserving runtime exports.
+      // - Test mode: additionally bootstrap library CSS/spacing and inject per-file CSS.
+      //   This is an option applied to the relevant files, not a separate parsing pipeline.
       //
       // "Test mode" here means Vite's config.mode === "test", normally set by Vitest when
       // an application uses this plugin in its tests. It is not a check for NODE_ENV or Jest;
       // Jest does not automatically run this Vite plugin.
-      if (!isTest && !fileId.endsWith(".css.ts") && (code.includes("Css") || code.includes("css="))) {
-        const result = session.transformCode(code, fileId, { debug, rewriteCssImports: true, ...diagnostics(this) });
-        return result ? { code: result.code, map: result.map } : null;
-      }
-
-      // This path currently passes source text between stages rather than sharing an AST:
-      // 1. rewriteCssTsImports parses when the source contains ".css", then prints the AST
-      //    back to source if it changes an import. Test bootstrapping appends another import.
-      // 2. For a file with Truss expressions, session.transformCode parses that source into a
-      //    second AST on a cache miss. For a .css.ts module, updateArbitraryCssRegistry invokes
-      //    transformCssTs, which separately parses the original source on a cache miss.
-      // A second parse is not universal: the import stage can skip parsing, a compiler cache
-      // can hit, or an import-only module can skip compilation. Nor is it required by tests;
-      // the shared-AST optimization above simply does not cover this path yet.
-      const rewrittenImports = rewriteCssTsImports(code, id);
-
-      // In tests, we do not boot through index.html and the dev runtime fetch path
-      // (`virtual:truss:runtime` -> fetch("/virtual:truss.css")), so we inject the
-      // library CSS and spacing through a virtual module side effect instead.
-      //
-      // We add `import "virtual:truss:test-css"` to each eligible transformed module,
-      // but ESM module caching should evaluate that virtual module only once per test
-      // module graph. Transformed files may still emit per-file `__injectTrussCSS`
-      // calls; atomic classes are deduped in the runtime helper.
-      const shouldBootstrapTestCss = isTest;
-      const transformedCode = shouldBootstrapTestCss
-        ? `${rewrittenImports.code}\nimport "${VIRTUAL_TEST_CSS_ID}";`
-        : rewrittenImports.code;
-      // The result to return when only the import rewrites changed the module
-      const importsOnlyResult =
-        rewrittenImports.changed || shouldBootstrapTestCss ? { code: transformedCode, map: null } : null;
-
-      if (fileId.endsWith(".css.ts")) {
-        // Keep `.css.ts` modules as normal TS so named exports like class-name
-        // constants still work at runtime. Tests also inject their CSS at evaluation.
-        //
-        // Also update the arbitrary CSS registry so HMR picks up changes —
-        // the load hook only runs on first resolve, so edits need to refresh
-        // the registry here where Vite re-transforms changed files.
-        session.updateArbitraryCssRegistry(fileId, code, diagnostics(this));
-        if (isTest) {
-          const css = session.getArbitraryCss(fileId);
-          return { code: appendTestCssInjection(transformedCode, fileId, css), map: null };
-        }
-        return importsOnlyResult;
-      }
-
-      // Some non-`.css.ts` modules only need the import rewrite and do not have
-      // any `Css.*.$` expressions for the main Truss transform to process.
-      const hasCssDsl = rewrittenImports.code.includes("Css") || rewrittenImports.code.includes("css=");
-      if (!hasCssDsl) return importsOnlyResult;
-
-      // For a file with Truss expressions, run the full Truss
-      // transform after the import rewrite so both behaviors compose.
-      const result = session.transformCode(transformedCode, fileId, { debug, injectCss: isTest, ...diagnostics(this) });
-      return result ? { code: result.code, map: result.map } : importsOnlyResult;
+      // It includes application components/helpers loaded by tests, not just test files.
+      // Test environments load modules directly instead of the app's HTML stylesheet entry.
+      // The session also refreshes extracted CSS during HMR; virtual load only runs initially.
+      const result = session.transformCode(code, fileId, {
+        debug,
+        rewriteCssImports: true,
+        bootstrapImport: isTest ? VIRTUAL_TEST_CSS_ID : undefined,
+        injectCss: isTest,
+        ...diagnostics(this),
+      });
+      return result ? { code: result.code, map: result.map } : null;
     },
 
     // -- Production CSS emission --
@@ -507,37 +454,6 @@ function isNodeModulesFile(filePath: string): boolean {
 /** Absolute, forward-slashed path, matching the arbitrary CSS registry keys on every platform. */
 function canonicalSourcePath(filePath: string): string {
   return resolve(filePath).replace(/\\/g, "/");
-}
-
-/**
- * Append an `__injectTrussCSS` call so a `.css.ts` module delivers its compiled CSS when it
- * evaluates in tests, including through dynamic imports the import rewrite cannot see.
- *
- * Reuses an existing runtime import of the helper, otherwise reserves a collision-free local
- * name the same way the main transform does, so `export const __injectTrussCSS` in the module
- * still works.
- */
-function appendTestCssInjection(code: string, fileId: string, css: string): string {
-  const ast = parseModule(code, fileId);
-  // Module-scope names, so the injected import can avoid collisions
-  let usedTopLevelNames = new Set<string>();
-  traverse(ast, {
-    Program(path) {
-      usedTopLevelNames = new Set(Object.keys(path.scope.bindings));
-      path.stop();
-    },
-  });
-  const existing = findNamedImportBinding(ast, INJECT_CSS_HELPER, RUNTIME_MODULE);
-  const localName = existing ?? reservePreferredName(usedTopLevelNames, INJECT_CSS_HELPER);
-  if (!existing) upsertNamedImports(ast, RUNTIME_MODULE, [{ importedName: INJECT_CSS_HELPER, localName }]);
-  ast.program.body.push(
-    t.expressionStatement(
-      t.callExpression(t.identifier(localName), [
-        t.valueToNode({ arbitraryRules: splitArbitraryCss(css), source: canonicalSourcePath(fileId) }),
-      ]),
-    ),
-  );
-  return generate(ast, { sourceFileName: fileId }).code;
 }
 
 export type { TrussMapping, TrussMappingEntry } from "./types";

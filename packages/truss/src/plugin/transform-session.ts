@@ -78,6 +78,11 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
       }).trim();
       if (!hadDiagnostic) arbitraryCache.set(sourcePath, { code: sourceCode, css });
     }
+    registerArbitraryCss(sourcePath, css);
+  }
+
+  /** Replay extracted CSS into the current build's registry without parsing its source again. */
+  function registerArbitraryCss(sourcePath: string, css: string): void {
     if (css.length > 0) {
       const prev = arbitraryCssRegistry.get(sourcePath);
       arbitraryCssRegistry.set(sourcePath, css);
@@ -99,15 +104,20 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     fileId: string,
     transformOptions: TransformTrussOptions = {},
   ): TransformResult | null {
-    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${Boolean(transformOptions.rewriteCssImports)}`;
+    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${Boolean(transformOptions.rewriteCssImports)}\0${transformOptions.bootstrapImport ?? ""}`;
     const cached = transformCache.get(key);
+    const arbitrarySourcePath = fileId.endsWith(".css.ts") ? resolve(fileId).replace(/\\/g, "/") : undefined;
     let result: TransformResult | null;
     if (cached?.code === code && importDependenciesUnchanged(cached.result)) {
       result = cached.result;
     } else {
       let hadDiagnostic = false;
+      const cachedArbitrary = arbitrarySourcePath ? arbitraryCache.get(arbitrarySourcePath) : undefined;
       result = transformTruss(code, fileId, ensureMapping(), {
         ...transformOptions,
+        // A virtual load may already have extracted this file's CSS. The module transform
+        // still needs its AST for imports/injection, but can reuse the compiled stylesheet.
+        cachedArbitraryCss: cachedArbitrary?.code === code ? cachedArbitrary.css : undefined,
         onDiagnostic(error) {
           hadDiagnostic = true;
           transformOptions.onDiagnostic?.(error);
@@ -117,8 +127,14 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
       // A null result has no dependency metadata; a newly created .css.ts could make an
       // unchanged bare .css import start needing a rewrite on the next request.
       if (!hadDiagnostic && (result || !transformOptions.rewriteCssImports)) transformCache.set(key, { code, result });
+      if (!hadDiagnostic && arbitrarySourcePath && result?.arbitraryCss !== undefined) {
+        arbitraryCache.set(arbitrarySourcePath, { code, css: result.arbitraryCss });
+      }
     }
     if (!result) return null;
+    if (arbitrarySourcePath && result.arbitraryCss !== undefined) {
+      registerArbitraryCss(arbitrarySourcePath, result.arbitraryCss);
+    }
 
     let hasNewRules = false;
     for (const [className, rule] of result.rules) {

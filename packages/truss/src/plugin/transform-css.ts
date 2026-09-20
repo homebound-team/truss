@@ -35,8 +35,16 @@ export function transformCssTs(
   mapping: TrussMapping,
   options: DiagnosticOptions = {},
 ): string {
-  const ast = parseModule(code, filename);
+  return transformCssAst(parseModule(code, filename), filename, mapping, options);
+}
 
+/** Extract selector-based CSS from an existing module AST without changing its runtime exports. */
+export function transformCssAst(
+  ast: t.File,
+  filename: string,
+  mapping: TrussMapping,
+  options: DiagnosticOptions = {},
+): string {
   // Css import is optional — only needed when Css.*.$  chains are used
   const cssBindingName = findCssImportBinding(ast);
 

@@ -5003,3 +5003,40 @@ test("rewrites props calls cloned into a chain's runtime metadata", () => {
     "",
   );
 });
+
+test("rewrites CSS imports in a file without Truss expressions", () => {
+  // Given a file with only a stylesheet import and an unrelated export
+  const source = 'import "./theme.css.ts"; export const value = 1;';
+
+  // When the same transformation flow processes its imports
+  const transform = expectTrussTransform(source, { rewriteCssImports: true });
+
+  // Then the import is rewritten without adding expression helpers
+  transform.toHaveTrussOutput('import "./theme.css.ts?truss-css"; export const value = 1;', "");
+});
+
+test("test bootstrap and CSS import rewrites keep original expression source locations", () => {
+  // Given a named stylesheet import before a Truss expression on line three
+  const source = `import { label } from "./theme.css.ts";
+import { Css } from "./Css";
+export const s = Css.df.$;`;
+
+  // When test-mode bootstrap, injection, and expression compilation share the original AST
+  const transform = expectTrussTransform(source, {
+    rewriteCssImports: true,
+    debug: true,
+    injectCss: true,
+    bootstrapImport: "virtual:truss:test-css",
+  });
+
+  // Then the new imports do not shift the debug location and both test CSS steps are emitted
+  transform.toHaveTrussOutput(
+    `import { label } from "./theme.css.ts";
+    import { TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
+    import "./theme.css.ts?truss-css";
+    __injectTrussCSS({ rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }] });
+    export const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
+    import "virtual:truss:test-css";`,
+    ".df { display: flex; }",
+  );
+});

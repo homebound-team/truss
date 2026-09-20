@@ -2,10 +2,8 @@ import { existsSync } from "fs";
 import { dirname, resolve } from "path";
 import * as t from "@babel/types";
 import { findLastImportIndex } from "./ast-utils";
-import { generate, parseModule } from "./babel-utils";
 
 export interface RewriteCssTsImportsResult {
-  code: string;
   changed: boolean;
   dependencies?: ReadonlyMap<string, boolean>;
 }
@@ -23,15 +21,11 @@ export interface RewriteCssTsImportsResult {
  * side-effect import so the resolveId/load pipeline can find the source file.
  *
  * Pure side-effect imports are rewritten directly to the virtual CSS import.
+ * Mutates the caller's AST so expression compilation keeps the original source locations
+ * without an intermediate print/parse cycle.
  */
-export function rewriteCssTsImports(code: string, filename: string, sharedAst?: t.File): RewriteCssTsImportsResult {
-  if (!code.includes(".css")) {
-    return { code, changed: false };
-  }
-
+export function rewriteCssTsImports(ast: t.File, filename: string): RewriteCssTsImportsResult {
   const importerDir = dirname(filename);
-
-  const ast = sharedAst ?? parseModule(code, filename);
 
   const existingCssSideEffects = new Set<string>();
   const neededCssSideEffects = new Set<string>();
@@ -61,7 +55,7 @@ export function rewriteCssTsImports(code: string, filename: string, sharedAst?: 
   }
 
   if (!changed) {
-    return { code, changed: false, dependencies };
+    return { changed: false, dependencies };
   }
 
   if (sideEffectImports.length > 0) {
@@ -69,15 +63,7 @@ export function rewriteCssTsImports(code: string, filename: string, sharedAst?: 
     ast.program.body.splice(insertIndex, 0, ...sideEffectImports);
   }
 
-  // The caller will emit this AST after compiling Css expressions, so avoid an intermediate
-  // print/parse cycle (and keep source locations tied to the original module).
-  if (sharedAst) return { code, changed: true, dependencies };
-
-  const output = generate(ast, {
-    sourceFileName: filename,
-    retainLines: false,
-  });
-  return { code: output.code, changed: true, dependencies };
+  return { changed: true, dependencies };
 }
 
 /** Check if this import targets a `.css.ts` file (explicitly or via a bare `.css` with a `.css.ts` on disk). */

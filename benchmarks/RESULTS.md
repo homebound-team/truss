@@ -81,6 +81,20 @@ is smaller. Full raw samples are retained in [baselines/2026-09-20.json](baselin
   timing enough and was removed. No dependency or generated application-Css changes are needed
   for the retained compiler optimizations.
 
+## Follow-up: one transformation flow
+
+The Vite hook now sends every eligible file through the same transformation flow. Import rewriting,
+Truss expressions, test bootstrap imports, and test CSS injection share one parsed AST; `.css.ts`
+extraction also consumes that AST while preserving runtime exports. The import-rewrite helper no
+longer has a separate source-text parsing/printing path.
+
+Four additional regression tests cover import-only files, original source locations in test mode,
+bootstrap cache isolation, and cached `.css.ts` registry replay. Validation passes with **608 tests,
+1 existing skip**, a successful build, unchanged production CSS/SSR classes/client-JS size, all
+24 visual comparisons, and shared/component browser HMR checks. A three-run 0/400-file smoke
+comparison also retains the build improvement over the saved baseline. The archived table above
+remains the measurements from the initial optimization pass.
+
 ## Remaining work
 
 The remaining base-app gap is approximately **148 ms for cold builds**, **155 ms for startup**,

@@ -160,3 +160,33 @@ function createTemporaryDirectory() {
   temporaryDirectories.push(directory);
   return directory;
 }
+
+test("a cached no-op does not suppress a later test bootstrap for the same source", () => {
+  // Given a plain application file previously requested without test bootstrapping
+  const session = createSession();
+  const source = "export const value = 1;";
+  session.transformCode(source, "a.ts");
+
+  // When the same file is loaded by a test environment
+  const result = session.transformCode(source, "a.ts", { bootstrapImport: "virtual:truss:test-css" });
+
+  // Then the test environment receives its bootstrap import
+  expect(result?.code).toBe('export const value = 1;\nimport "virtual:truss:test-css";');
+});
+
+test("cached css.ts module transforms restore selector-based CSS after a build reset", () => {
+  // Given selector-based CSS extracted by the shared module transformation flow
+  const session = createSession();
+  const source = 'export const css = { body: "margin: 0;" }; export const className = "body";';
+  session.transformCode(source, "a.css.ts", { rewriteCssImports: true });
+  session.collectCss(false);
+
+  // When the next build reaches the unchanged stylesheet module
+  session.reset();
+  session.transformCode(source, "a.css.ts", { rewriteCssImports: true });
+
+  // Then replaying the cached module also restores its stylesheet to the new registry
+  expect(session.collectCss(false)).toBe(
+    ':root { --t-spacing: 8px; }\n@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }\nbody {\n  margin: 0;\n}',
+  );
+});
