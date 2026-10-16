@@ -2,5 +2,10 @@ node_modules/
 .idea/
 build/
 *.tsbuildinfo
-/.yarn/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 beam/
