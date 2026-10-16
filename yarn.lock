@@ -2,7 +2,7 @@
 # Manual changes might be lost - proceed with caution!
 
 __metadata:
-  version: 8
+  version: 10
   cacheKey: 10
 
 "@actions/core@npm:^3.0.0":
@@ -1392,8 +1392,8 @@ __metadata:
   linkType: hard
 
 "@semantic-release/npm@npm:^13.1.1, @semantic-release/npm@npm:^13.1.5":
-  version: 13.1.5
-  resolution: "@semantic-release/npm@npm:13.1.5"
+  version: 13.2.0
+  resolution: "@semantic-release/npm@npm:13.2.0"
   dependencies:
     "@actions/core": "npm:^3.0.0"
     "@semantic-release/error": "npm:^4.0.0"
@@ -1412,7 +1412,7 @@ __metadata:
     tempy: "npm:^3.0.0"
   peerDependencies:
     semantic-release: ">=20.1.0"
-  checksum: 10/3137cadef37348b8dff8aeae879fcd2fb01ac7472e9048ad4e08971721c601424575800ab48459823ad5fa84f5c8d59e8680a980d0c79a96527fd2f230b8e7db
+  checksum: 10/92d4a8df0e832246a424d433309b16b426d36dcd96e181ec187b92749bb795230733228e7f7dd9848978e96f4c521bff6e6105de1bcc17d776845b098e19bb3b
   languageName: node
   linkType: hard
 
