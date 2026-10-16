@@ -1,3 +1,9 @@
+## [2.33.6](https://github.com/homebound-team/truss/compare/v2.33.5...v2.33.6) (2026-10-16)
+
+### Bug Fixes
+
+* **ci:** publish to npm via CircleCI OIDC ([#311](https://github.com/homebound-team/truss/issues/311)) ([2573b2f](https://github.com/homebound-team/truss/commit/2573b2f17600b75c1edd053552f518c8e9900a8a))
+
 ## [2.33.5](https://github.com/homebound-team/truss/compare/v2.33.4...v2.33.5) (2026-09-20)
 
 ### Performance Improvements
