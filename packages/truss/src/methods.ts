@@ -7,11 +7,11 @@ export type Prop = keyof Properties;
 
 // ── Method Definitions ────────────────────────────────────────────────
 // Each helper returns data, not code: the `Css.json` entry the build plugin compiles the method
-// with, plus the few details the generator needs to write the `Css.ts` method. `renderMethod` in
-// `render-methods.ts` turns a definition into the builder's TypeScript source.
+// with. `renderMethod` in `render-methods.ts` writes the builder's TypeScript source from that
+// same entry, so `Css.ts` and `Css.json` cannot disagree.
 
 /**
- * One utility method: its name, its `Css.json` entry, and what the generator needs to write it.
+ * One utility method: its name and its `Css.json` entry.
  *
  * I.e. `newMethod("df", { display: "flex" })` returns
  * `{ abbr: "df", entry: { kind: "static", defs: { display: "flex" } } }`, which the generator
@@ -24,8 +24,6 @@ export interface MethodDefinition {
   entry: TrussMappingEntry;
   /** The config key `abbr` is named after; absent when a `newMethod` call spells the name. */
   namedAfter?: ConfigKey;
-  /** How to write the builder method, where `entry` alone does not say. */
-  source?: MethodSource;
   /**
    * The `Css.json` entry for the target of a `delegate` that no other method generates.
    *
@@ -34,17 +32,6 @@ export interface MethodDefinition {
    */
   delegateTarget?: TrussMappingEntry;
 }
-
-/**
- * The details of a builder method that its `Css.json` entry does not carry.
- *
- * - `px`: a `delegate` entry only names its target, so this gives the props for the doc comment,
- *   and whether the method calls its target (i.e. `mhPx(px)` calls `this.mh(...)`) or sets each
- *   prop itself (i.e. `mtPx(px)` calls `add("marginTop", ...)`).
- * - `cssVariables`: a `static` entry that sets custom properties, which csstype does not type, so
- *   the method casts each name and has no doc comment.
- */
-export type MethodSource = { kind: "px"; props: Prop[]; callsTarget: boolean } | { kind: "cssVariables" };
 
 /**
  * A key in one of the user's config maps that a method takes its name from.
@@ -140,7 +127,7 @@ export function newMethodsForProp<P extends Prop>(
     ),
     // Conditionally add a method that directly accepts a value for prop
     ...(baseName !== null ? [newParamMethod(baseName, prop, valueMethodExtraProperties)] : []),
-    ...(baseName !== null && includePx ? [newPxMethod(baseName, prop)] : []),
+    ...(baseName !== null && includePx ? [newPxMethod(baseName)] : []),
   ];
 }
 
@@ -178,8 +165,7 @@ export function newAliasesMethods(aliases: Aliases): MethodDefinition[] {
  * TODO: Create a `Css.set(cssVars).$` method.
  */
 export function newSetCssVariablesMethod(abbr: UtilityName, defs: Record<string, string>): MethodDefinition {
-  // The plugin compiles it like any other static method; only the `Css.ts` source differs.
-  return { abbr, entry: { kind: "static", defs: { ...defs } }, source: { kind: "cssVariables" } };
+  return { abbr, entry: { kind: "static", defs: { ...defs } } };
 }
 
 /** An abbreviation and its single or multiple CSS properties to set. */
@@ -217,12 +203,8 @@ export function newIncrementMethods(
     ...(opts.auto ? [newMethod(`${abbr}a`, Object.fromEntries(props.map((p) => [p, "auto"])))] : []),
     // `mt(v)` goes through `maybeInc`, so a number is a count of increments and a string is used as-is
     { abbr, entry: { kind: "variable", props, incremented: true } },
-    // `mtPx(px)` sets each prop itself, but its mapping still delegates to `mt` for the props
-    {
-      abbr: `${abbr}Px`,
-      entry: { kind: "delegate", target: abbr },
-      source: { kind: "px", props, callsTarget: false },
-    },
+    // `mtPx(px)` delegates to `mt` for the props it sets
+    { abbr: `${abbr}Px`, entry: { kind: "delegate", target: abbr } },
   ];
 }
 
@@ -239,13 +221,9 @@ export function newCoreIncrementMethods(config: Config, abbr: UtilityName, props
   });
 }
 
-/** Makes a `<abbr>Px(px)` method that calls the existing `<abbr>(value)` method with a px value. */
-export function newPxMethod(abbr: UtilityName, prop: Prop): MethodDefinition {
-  return {
-    abbr: `${abbr}Px`,
-    entry: { kind: "delegate", target: abbr },
-    source: { kind: "px", props: [prop], callsTarget: true },
-  };
+/** Makes a `<abbr>Px(px)` method that sets the props of the existing `<abbr>(value)` method, as px. */
+export function newPxMethod(abbr: UtilityName): MethodDefinition {
+  return { abbr: `${abbr}Px`, entry: { kind: "delegate", target: abbr } };
 }
 
 /**
@@ -259,7 +237,6 @@ export function newPxMethods(abbr: UtilityName, props: Prop[]): MethodDefinition
     {
       abbr: `${abbr}Px`,
       entry: { kind: "delegate", target: abbr },
-      source: { kind: "px", props, callsTarget: false },
       delegateTarget: { kind: "variable", props, incremented: false },
     },
   ];

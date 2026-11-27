@@ -1,25 +1,28 @@
 import type { MethodDefinition } from "src/methods";
+import type { TrussMappingEntry } from "src/truss-mapping";
 
 /**
  * Writes the `CssBuilder` member for one utility method, as a line of TypeScript.
  *
  * The web and React Native builders both use this, so each method is written one way.
+ * `abbreviations` is every `Css.json` entry, which a `delegate` needs to find its target's props.
  *
  * I.e. `{ abbr: "df", entry: { kind: "static", defs: { display: "flex" } } }` is written as
  * `/** Sets \`display: "flex"\`. *\/ get df() { return this.add("display", "flex"); }`.
  */
-export function renderMethod(method: MethodDefinition): string {
+export function renderMethod(method: MethodDefinition, abbreviations: Record<string, TrussMappingEntry>): string {
   const abbr = method.abbr;
   const entry = method.entry;
   switch (entry.kind) {
     case "static":
-      return method.source?.kind === "cssVariables"
+      // csstype does not type custom properties, i.e. `--primary`, so those methods cast each name
+      return Object.keys(entry.defs).some((prop) => prop.startsWith("--"))
         ? cssVariablesSource(abbr, entry.defs)
         : `${comment(entry.defs)} get ${abbr}() { return this${addAll(entry.defs)}; }`;
     case "variable":
       return entry.incremented ? incrementedSource(abbr, entry.props) : paramSource(abbr, entry.props, entry.extraDefs);
     case "delegate":
-      return pxSource(method, entry.target);
+      return pxSource(abbr, entry.target, abbreviations[entry.target]);
     case "alias":
       return `get ${abbr}() { return this${entry.chain.map((v) => `.${v}`).join("")}; }`;
     case "keyframe":
@@ -58,19 +61,19 @@ function incrementedSource(abbr: string, props: string[]): string {
 }
 
 /**
- * I.e. `mhPx(px: number) { return this.mh(...); }`, or `mtPx(px: number) { return this.add("marginTop", ...); }`.
+ * I.e. `mtPx(px: number) { return this.add("marginTop", \`${px}px\`); }`.
  *
- * A `delegate` entry only names its target, so the props and the choice between the two come from
- * the method's `px` source.
+ * A `delegate` entry only names its target, so the props come from the target's own entry, i.e.
+ * `mtPx` sets the `marginTop` that `mt` sets, plus any extra properties the target always sets.
  */
-function pxSource(method: MethodDefinition, target: string): string {
-  const source = method.source;
-  if (source?.kind !== "px") throw new Error(`Cannot write "${method.abbr}": a delegate needs a "px" source.`);
-  const pxComment = comment(Object.fromEntries(source.props.map((p) => [p, "px"])));
-  const body = source.callsTarget
-    ? `this.${target}(\`\${px}px\`)`
-    : `this.${source.props.map((p) => `add("${p}", \`\${px}px\`)`).join(".")}`;
-  return `${pxComment} ${method.abbr}(px: number) { return ${body}; }`;
+function pxSource(abbr: string, target: string, targetEntry: TrussMappingEntry | undefined): string {
+  if (targetEntry?.kind !== "variable") {
+    throw new Error(`Cannot write "${abbr}": its delegate target "${target}" is not a method that takes a value.`);
+  }
+  const props = targetEntry.props;
+  const pxComment = comment(Object.fromEntries(props.map((p) => [p, "px"])));
+  const adds = props.map((p) => `.add("${p}", \`\${px}px\`)`).join("");
+  return `${pxComment} ${abbr}(px: number) { return this${adds}${addAll(targetEntry.extraDefs ?? {})}; }`;
 }
 
 /** I.e. `.add("display", "flex").add("order", 1)`. */

@@ -7,8 +7,10 @@ import {
   newPxMethod,
   newPxMethods,
   newSetCssVariablesMethod,
+  type MethodDefinition,
 } from "src/methods";
 import { renderMethod } from "src/render-methods";
+import type { TrussMappingEntry } from "src/truss-mapping";
 import { describe, expect, it } from "vitest";
 
 describe("methods", () => {
@@ -22,7 +24,7 @@ describe("methods", () => {
 
   describe("newIncrementMethods", () => {
     it("can handle mt", () => {
-      expect(newIncrementMethods(config, "mt", "marginTop", { auto: true }).map(renderMethod)).toMatchInlineSnapshot(`
+      expect(renderMethods(newIncrementMethods(config, "mt", "marginTop", { auto: true }))).toMatchInlineSnapshot(`
         [
           "/** Sets \`marginTop: "calc(var(--t-spacing) * 0)"\`. */
          get mt0() { return this.add("marginTop", "calc(var(--t-spacing) * 0)"); }",
@@ -43,7 +45,7 @@ describe("methods", () => {
     });
 
     it("can handle mx", () => {
-      expect(newIncrementMethods(config, "mx", ["marginLeft", "marginRight"], { auto: true }).map(renderMethod))
+      expect(renderMethods(newIncrementMethods(config, "mx", ["marginLeft", "marginRight"], { auto: true })))
         .toMatchInlineSnapshot(`
         [
           "/** Sets \`marginLeft: "calc(var(--t-spacing) * 0)"; marginRight: "calc(var(--t-spacing) * 0)"\`. */
@@ -66,7 +68,7 @@ describe("methods", () => {
 
     it("can handle m", () => {
       expect(
-        newIncrementMethods(config, "m", ["marginTop", "marginRight", "marginBottom", "marginLeft"]).map(renderMethod),
+        renderMethods(newIncrementMethods(config, "m", ["marginTop", "marginRight", "marginBottom", "marginLeft"])),
       ).toMatchInlineSnapshot(`
           [
             "/** Sets \`marginTop: "calc(var(--t-spacing) * 0)"; marginRight: "calc(var(--t-spacing) * 0)"; marginBottom: "calc(var(--t-spacing) * 0)"; marginLeft: "calc(var(--t-spacing) * 0)"\`. */
@@ -90,7 +92,7 @@ describe("methods", () => {
     it("creates a new method with a parameter", () => {
       // Given the bgColor alias for the backgroundColor property
       // When we create a method that takes the value as a parameter
-      const result = renderMethod(newParamMethod("bgColor", "backgroundColor"));
+      const result = renderMethod(newParamMethod("bgColor", "backgroundColor"), {});
       // Then it should output the expected method
       expect(result).toMatchInlineSnapshot(`
         "/** Sets \`backgroundColor: value\`. */
@@ -102,7 +104,7 @@ describe("methods", () => {
       // Given the bgColor alias for the backgroundColor property
       // And display: block as an additional property to always set
       // When we create a method that takes the value as a parameter
-      const result = renderMethod(newParamMethod("bgColor", "backgroundColor", { display: "block" }));
+      const result = renderMethod(newParamMethod("bgColor", "backgroundColor", { display: "block" }), {});
       // Then it should output the expected method
       expect(result).toMatchInlineSnapshot(`
         "/** Sets \`backgroundColor: value\`. */
@@ -113,7 +115,7 @@ describe("methods", () => {
 
   describe("newPxMethods", () => {
     it("creates a multi-property px method", () => {
-      expect(newPxMethods("sq", ["height", "width"]).map(renderMethod)).toMatchInlineSnapshot(`
+      expect(renderMethods(newPxMethods("sq", ["height", "width"]))).toMatchInlineSnapshot(`
         [
           "/** Sets \`height: px; width: px\`. */
          sqPx(px: number) { return this.add(\"height\", \`\${px}px\`).add(\"width\", \`\${px}px\`); }",
@@ -131,9 +133,7 @@ describe("methods", () => {
         ...baseProperties,
       });
       // When we create the new methods
-      const result = newMethodsForProp("lineClamp", { lineClamp1: def(1), lineClampNone: def("unset") }).map(
-        renderMethod,
-      );
+      const result = renderMethods(newMethodsForProp("lineClamp", { lineClamp1: def(1), lineClampNone: def("unset") }));
       // Then it should output the expected methods
       expect(result).toMatchInlineSnapshot(`
         [
@@ -151,7 +151,7 @@ describe("methods", () => {
       // Given some base properties
       const baseProperties: Properties = { overflow: "hidden", textOverflow: "ellipsis" };
       // When we call newMethodsForProp with the base properties for "lineClamp"
-      const result = newMethodsForProp("WebkitLineClamp", {}, "lineClamp", false, baseProperties).map(renderMethod);
+      const result = renderMethods(newMethodsForProp("WebkitLineClamp", {}, "lineClamp", false, baseProperties));
       // Then it should output a lineClamp function with the base properties
       expect(result).toMatchInlineSnapshot(`
         [
@@ -167,13 +167,12 @@ describe("methods", () => {
     const methods = newIncrementMethods(config, "mt", "marginTop");
     // When we look at the last two, after the `mt0`..`mt3` getters
     const result = methods.slice(-2);
-    // Then `mt` is an incremented variable and `mtPx` delegates to it, writing its own adds
+    // Then `mt` is an incremented variable and `mtPx` delegates to it
     expect(result).toEqual([
       { abbr: "mt", entry: { kind: "variable", props: ["marginTop"], incremented: true } },
       {
         abbr: "mtPx",
         entry: { kind: "delegate", target: "mt" },
-        source: { kind: "px", props: ["marginTop"], callsTarget: false },
       },
     ]);
   });
@@ -187,25 +186,43 @@ describe("methods", () => {
       {
         abbr: "sqPx",
         entry: { kind: "delegate", target: "sq" },
-        source: { kind: "px", props: ["height", "width"], callsTarget: false },
         delegateTarget: { kind: "variable", props: ["height", "width"], incremented: false },
       },
     ]);
   });
 
-  it("writes a px method that calls its value method", () => {
-    // Given a `mhPx` method for the existing `mh(value)` method
-    // When we write it
-    const result = renderMethod(newPxMethod("mh", "minHeight"));
-    // Then it calls `mh` with the px value
-    expect(result).toEqual("/** Sets `minHeight: px`. */\n mhPx(px: number) { return this.mh(`${px}px`); }");
-  });
-
   it("writes a css variables method without a doc comment", () => {
     // Given a method that sets a CSS custom property
     // When we write it
-    const result = renderMethod(newSetCssVariablesMethod("darkMode", { "--primary": "#000000" }));
+    const result = renderMethod(newSetCssVariablesMethod("darkMode", { "--primary": "#000000" }), {});
     // Then it casts the custom property name, since csstype does not know it
     expect(result).toEqual('get darkMode() { return this.add("--primary" as any, "#000000"); }');
   });
+
+  it("writes a px method with the props and extra properties of its value method", () => {
+    // Given a `mhPx` method
+    const method = newPxMethod("mh");
+    // And the `Css.json` entry of the `mh(value)` method it delegates to
+    const abbreviations: Record<string, TrussMappingEntry> = {
+      mh: { kind: "variable", props: ["minHeight"], incremented: false, extraDefs: { display: "block" } },
+    };
+    // When we write it
+    const result = renderMethod(method, abbreviations);
+    // Then it sets what `mh` sets, with the value in px
+    expect(result).toEqual(
+      '/** Sets `minHeight: px`. */\n mhPx(px: number) { return this.add("minHeight", `${px}px`).add("display", "block"); }',
+    );
+  });
 });
+
+/** Writes each method, with the entries of `methods` as the `Css.json` a delegate looks its target up in. */
+function renderMethods(methods: MethodDefinition[]): string[] {
+  const abbreviations: Record<string, TrussMappingEntry> = {};
+  for (const method of methods) {
+    abbreviations[method.abbr] = method.entry;
+    if (method.entry.kind === "delegate" && method.delegateTarget) {
+      abbreviations[method.entry.target] = method.delegateTarget;
+    }
+  }
+  return methods.map((method) => renderMethod(method, abbreviations));
+}

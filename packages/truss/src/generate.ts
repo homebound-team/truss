@@ -867,7 +867,12 @@ function condensedJson(mapping: TrussMapping): string {
 
 /** The builder lines for every section: a `// name` header, its methods, and a blank line. */
 function sectionLines(sections: GeneratedSection[]): string[] {
-  return sections.flatMap((generated) => [`// ${generated.section.name}`, ...generated.methods.map(renderMethod), ""]);
+  const abbreviations = Object.fromEntries(mappingEntries(sections));
+  return sections.flatMap((generated) => [
+    `// ${generated.section.name}`,
+    ...generated.methods.map((method) => renderMethod(method, abbreviations)),
+    "",
+  ]);
 }
 
 /**

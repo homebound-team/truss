@@ -1,7 +1,7 @@
 export * from "src/config";
 export { defaultSections } from "src/sections/tachyons";
 export { generate } from "src/generate";
-export type { ConfigKey, IncConfig, MethodDefinition, MethodSection, MethodSource } from "src/methods";
+export type { ConfigKey, IncConfig, MethodDefinition, MethodSection } from "src/methods";
 export type { TrussMapping, TrussMappingEntry } from "src/truss-mapping";
 export { maybeCssVar } from "src/css-custom-property";
 export {
