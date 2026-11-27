@@ -2,14 +2,16 @@ import { afterEach, describe, expect, test } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { tmpdir } from "os";
-import { transformCssTs } from "./transform-css";
+import { transformCssAst } from "./transform-css";
+import { parseModule } from "./babel-utils";
+import type { DiagnosticOptions, TrussMapping } from "./types";
 import { camelToKebab } from "../utils";
 import { loadMapping, trussPlugin } from "./index";
 import { resolve } from "path";
 
 const mapping = loadMapping(resolve(__dirname, "../../../app/src/Css.json"));
 
-describe("transformCssTs", () => {
+describe("transformCssAst", () => {
   test("single selector with static chain", () => {
     const css = transformCssTs(
       `import { Css } from "./Css"; export const css = { ".foo": Css.df.$ };`,
@@ -539,15 +541,16 @@ describe("trussPlugin .css.ts integration", () => {
     );
   });
 
-  test("transform keeps named .css.ts imports and adds a virtual CSS side effect", () => {
+  test("transform leaves named .css.ts imports pointed at the real module", () => {
+    // Given a plugin
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
     });
-
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {}, { root });
 
+    // When a file imports a name from a .css.ts file
     const result = invokeHook(
       plugin.transform,
       {},
@@ -555,16 +558,8 @@ describe("trussPlugin .css.ts integration", () => {
       join(root, "src", "App.tsx"),
     );
 
-    expect(result).toMatchObject({ code: expect.any(String) });
-    expect(n((result as { code: string }).code)).toBe(
-      n(`
-        import { someClassName } from "./component.css.ts";
-        import "./component.css.ts?truss-css";
-        export function App() {
-          return <div className={someClassName} />;
-        }
-      `),
-    );
+    // Then the file is unchanged, because the real module's own transform registers its CSS
+    expect(result).toBeNull();
   });
 
   test("transform rewrites side-effect .css.ts imports to the virtual CSS module", () => {
@@ -594,7 +589,7 @@ describe("trussPlugin .css.ts integration", () => {
     );
   });
 
-  test("transform rewrites bare .css imports when a .css.ts file exists on disk", () => {
+  test("transform rewrites bare .css side-effect imports when a .css.ts file exists on disk", () => {
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {
       df: { kind: "static", defs: { display: "flex" } },
@@ -607,21 +602,20 @@ describe("trussPlugin .css.ts integration", () => {
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {}, { root });
 
-    // Import uses bare ".css" (no .ts) — should still add the ?truss-css side-effect
+    // Import uses bare ".css" (no .ts) — should still point at the ?truss-css module
     const result = invokeHook(
       plugin.transform,
       {},
-      `import { someClassName } from "./component.css"; export function App() { return <div className={someClassName} />; }`,
+      `import "./component.css"; export function App() { return <div />; }`,
       join(root, "src", "App.tsx"),
     );
 
     expect(result).toMatchObject({ code: expect.any(String) });
     expect(n((result as { code: string }).code)).toBe(
       n(`
-        import { someClassName } from "./component.css";
         import "./component.css.ts?truss-css";
         export function App() {
-          return <div className={someClassName} />;
+          return <div />;
         }
       `),
     );
@@ -660,7 +654,35 @@ describe("trussPlugin .css.ts integration", () => {
     expect(invokeHook(plugin.resolveId, {} as any, "./App.tsx", join(root, "src", "main.ts"))).toBeNull();
     expect(invokeHook(plugin.resolveId, {} as any, "./styles.css", join(root, "src", "main.ts"))).toBeNull();
   });
+
+  test("transform leaves named bare .css imports for Vite to resolve to the .css.ts file", () => {
+    // Given a .css.ts file on disk
+    const root = createTempRoot();
+    writeMapping(join(root, "src", "Css.json"), {
+      df: { kind: "static", defs: { display: "flex" } },
+    });
+    writeFileSync(join(root, "src", "component.css.ts"), `export const someClassName = "some";`, "utf8");
+    // And a plugin
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root });
+
+    // When a file imports a name through the bare ".css" specifier
+    const result = invokeHook(
+      plugin.transform,
+      {},
+      `import { someClassName } from "./component.css"; export function App() { return <div className={someClassName} />; }`,
+      join(root, "src", "App.tsx"),
+    );
+
+    // Then the file is unchanged, because Vite's extension lookup already finds the .css.ts file
+    expect(result).toBeNull();
+  });
 });
+
+/** Compile one .css.ts source the way the transform does after parsing it. */
+function transformCssTs(code: string, filename: string, mapping: TrussMapping, options?: DiagnosticOptions): string {
+  return transformCssAst(parseModule(code, filename), filename, mapping, options);
+}
 
 function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();

@@ -50,13 +50,7 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
       build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
 
-        if (args.path.endsWith(".css.ts")) {
-          session.updateArbitraryCssRegistry(args.path, code, diagnostics);
-          return { contents: code, loader: loaderForPath(args.path) };
-        }
-
-        if (!code.includes("Css") && !code.includes("css=")) return undefined;
-
+        // A .css.ts file keeps its code; its transform registers the selector-based CSS.
         const result = session.transformCode(code, args.path, diagnostics);
         if (!result) return undefined;
 

@@ -33,6 +33,7 @@ describe("transform", () => {
       }] });
       const a = { color: "media_min_width_600px_blue" };
       const b = { color: "container_min_width_601px_blue" };
+      import "virtual:truss:test-css";
       `,
       `
       @media (min-width: 600px) {
@@ -57,12 +58,13 @@ describe("transform", () => {
     transform.toHaveTrussOutput(
       `
       import { Tokens } from "./Css";
-      import { __injectTrussCSS } from "@homebound/truss/runtime";
       __injectTrussCSS({
         rules: [{ priority: 2000.5, className: "bc_var", cssText: ".bc_var { border-color: var(--borderColor); }" }],
         properties: [{ varName: "--borderColor", cssText: "@property --borderColor { syntax: \\"*\\"; inherits: false; }" }]
       });
       const s = { borderColor: ["bc_var", { "--borderColor": "var(--theme-accent)" }] };
+      import "virtual:truss:test-css";
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
       `,
       `
       .bc_var { border-color: var(--borderColor); }
@@ -77,7 +79,10 @@ describe("transform", () => {
     // When we transform the file with CSS injection on
     const transform = expectTrussTransform(source, { injectCss: true });
     // Then no injection call is emitted
-    transform.toHaveTrussOutput(`import { __injectTrussCSS } from "@homebound/truss/runtime"; const s = {};`, "");
+    transform.toHaveTrussOutput(
+      `import { __injectTrussCSS } from "@homebound/truss/runtime"; const s = {}; import "virtual:truss:test-css";`,
+      "",
+    );
   });
 
   test("returns null for files without Css import", () => {
@@ -4912,20 +4917,19 @@ describe("transform", () => {
   });
 
   test("compiles CSS imports and chains without changing debug source lines", () => {
-    // Given a named arbitrary-CSS import before a source-located style chain
-    const source = `import { label } from "./theme.css.ts";
+    // Given a side-effect arbitrary-CSS import before a source-located style chain
+    const source = `import "./theme.css.ts";
 import { Css } from "./Css";
 const s = Css.df.$;`;
 
     // When the import rewrite shares the DSL's original AST
     const transform = expectTrussTransform(source, { debug: true, rewriteCssImports: true });
 
-    // Then the inserted side-effect import does not move the original style's debug location
+    // Then the rewritten import does not move the original style's debug location
     transform.toHaveTrussOutput(
       `
-    import { label } from "./theme.css.ts";
-    import { TrussDebugInfo } from "@homebound/truss/runtime";
     import "./theme.css.ts?truss-css";
+    import { TrussDebugInfo } from "@homebound/truss/runtime";
     const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
     `,
       ".df { display: flex; }",
@@ -4990,24 +4994,18 @@ const s = Css.df.$;`;
   });
 
   test("test bootstrap and CSS import rewrites keep original expression source locations", () => {
-    // Given a named stylesheet import before a Truss expression on line three
-    const source = `import { label } from "./theme.css.ts";
+    // Given a side-effect stylesheet import before a Truss expression on line three
+    const source = `import "./theme.css.ts";
 import { Css } from "./Css";
 export const s = Css.df.$;`;
 
     // When test-mode bootstrap, injection, and expression compilation share the original AST
-    const transform = expectTrussTransform(source, {
-      rewriteCssImports: true,
-      debug: true,
-      injectCss: true,
-      bootstrapImport: "virtual:truss:test-css",
-    });
+    const transform = expectTrussTransform(source, { rewriteCssImports: true, debug: true, injectCss: true });
 
     // Then the new imports do not shift the debug location and both test CSS steps are emitted
     transform.toHaveTrussOutput(
-      `import { label } from "./theme.css.ts";
+      `import "./theme.css.ts?truss-css";
     import { TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
-    import "./theme.css.ts?truss-css";
     __injectTrussCSS({ rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }] });
     export const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
     import "virtual:truss:test-css";`,

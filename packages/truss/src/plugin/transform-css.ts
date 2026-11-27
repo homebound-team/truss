@@ -4,11 +4,10 @@ import { resolveFullChain } from "./resolve-chain";
 import { extractDollarChain, findCssImportBinding, unwrapExpression } from "./ast-utils";
 import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils";
 import { camelToKebab } from "../utils";
-import { parseModule } from "./babel-utils";
 import { Diagnostic } from "./diagnostic";
 
 /**
- * Transform a `.css.ts` file into a plain CSS string.
+ * Extract selector-based CSS from an existing `.css.ts` module AST without changing its runtime exports.
  *
  * The file is expected to have the shape:
  * ```ts
@@ -29,16 +28,6 @@ import { Diagnostic } from "./diagnostic";
  *
  * Returns the generated CSS string.
  */
-export function transformCssTs(
-  code: string,
-  filename: string,
-  mapping: TrussMapping,
-  options: DiagnosticOptions = {},
-): string {
-  return transformCssAst(parseModule(code, filename), filename, mapping, options);
-}
-
-/** Extract selector-based CSS from an existing module AST without changing its runtime exports. */
 export function transformCssAst(
   ast: t.File,
   filename: string,

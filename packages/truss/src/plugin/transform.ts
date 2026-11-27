@@ -23,7 +23,7 @@ import {
 import { applyReferencedKeyframes } from "./at-rule-refs";
 import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css";
 import { serializeTrussCss } from "./truss-css";
-import { createTestCssPayload, splitArbitraryCss } from "./test-css";
+import { createArbitraryTestCssPayload, createTestCssPayload, TEST_CSS_BOOTSTRAP_ID } from "./test-css";
 import { transformCssAst } from "./transform-css";
 import { buildMaybeIncDeclaration, buildRuntimeLookupDeclaration } from "./emit-style-hash";
 import { Diagnostic } from "./diagnostic";
@@ -42,7 +42,7 @@ export interface TransformResult {
   css: string;
   /** The atomic CSS rules collected during this transform, keyed by class name. */
   rules: Map<string, AtomicRule>;
-  /** Bare .css imports depend on whether a matching .css.ts exists, not just this source text. */
+  /** Bare .css side-effect imports depend on whether a matching .css.ts exists, not just this source text. */
   cssImportDependencies?: ReadonlyMap<string, boolean>;
   /** Selector-based CSS extracted from a .css.ts file, including an empty stylesheet. */
   arbitraryCss?: string;
@@ -52,14 +52,13 @@ export interface TransformTrussOptions extends DiagnosticOptions {
   debug?: boolean;
   /** Disable map construction when the build does not consume source maps. Defaults to true. */
   sourceMaps?: boolean;
-  /** When true, inject `__injectTrussCSS(payload)` call for jsdom/test environments. */
+  /**
+   * When true, deliver CSS for jsdom/test environments: inject `__injectTrussCSS(payload)` calls,
+   * and import the test CSS bootstrap even when a file has no local Truss expressions.
+   */
   injectCss?: boolean;
   /** Vite can rewrite CSS side-effect imports in the same parse as Truss expressions. */
   rewriteCssImports?: boolean;
-  /** Import the test CSS bootstrap even when a file has no local Truss expressions. */
-  bootstrapImport?: string;
-  /** The session can reuse selector-based CSS already compiled from this exact source. */
-  cachedArbitraryCss?: string;
 }
 
 const RUNTIME_MODULE = "@homebound/truss/runtime";
@@ -82,7 +81,7 @@ export function transformTruss(
   const hasExpressions = code.includes("Css") || code.includes("css=");
   const isArbitraryCss = filename.endsWith(".css.ts");
   const mayRewriteImports = options.rewriteCssImports && code.includes(".css");
-  if (!hasExpressions && !isArbitraryCss && !mayRewriteImports && !options.bootstrapImport) return null;
+  if (!hasExpressions && !isArbitraryCss && !mayRewriteImports && !options.injectCss) return null;
 
   const ast = parseModule(code, filename);
   const imports = mayRewriteImports ? rewriteCssTsImports(ast, filename) : undefined;
@@ -91,25 +90,25 @@ export function transformTruss(
   // Vitest loads application modules directly rather than through the app's HTML entry.
   // ESM caching evaluates this bootstrap once per graph; per-file injections dedupe rules.
   const hasBootstrapImport =
-    options.bootstrapImport &&
+    options.injectCss &&
     ast.program.body.some(
       (node) =>
         t.isImportDeclaration(node) &&
-        node.source.value === options.bootstrapImport &&
+        node.source.value === TEST_CSS_BOOTSTRAP_ID &&
         node.importKind !== "type" &&
         node.specifiers.length === 0,
     );
-  if (options.bootstrapImport && !hasBootstrapImport) {
-    ast.program.body.push(t.importDeclaration([], t.stringLiteral(options.bootstrapImport)));
+  if (options.injectCss && !hasBootstrapImport) {
+    ast.program.body.push(t.importDeclaration([], t.stringLiteral(TEST_CSS_BOOTSTRAP_ID)));
     changed = true;
   }
 
   let expressions: Pick<TransformResult, "css" | "rules"> | null = null;
   let arbitraryCss: string | undefined;
   if (isArbitraryCss) {
-    arbitraryCss = options.cachedArbitraryCss ?? transformCssAst(ast, filename, mapping, options).trim();
+    arbitraryCss = transformCssAst(ast, filename, mapping, options).trim();
     if (options.injectCss) {
-      appendTestCssInjection(ast, filename, arbitraryCss);
+      appendTestCssInjection(ast, filename, arbitraryCss, mapping);
       changed = true;
     }
   } else if (hasExpressions) {
@@ -340,7 +339,7 @@ function compileExpressions(
  * Reuses an existing runtime import of the helper, otherwise reserves a collision-free local
  * name, so an exported __injectTrussCSS binding in the file still works.
  */
-function appendTestCssInjection(ast: t.File, fileId: string, css: string): void {
+function appendTestCssInjection(ast: t.File, fileId: string, css: string, mapping: TrussMapping): void {
   // Module-scope names, so the injected import can avoid collisions.
   let usedTopLevelNames = new Set<string>();
   traverse(ast, {
@@ -356,7 +355,7 @@ function appendTestCssInjection(ast: t.File, fileId: string, css: string): void 
   ast.program.body.push(
     t.expressionStatement(
       t.callExpression(t.identifier(localName), [
-        t.valueToNode({ arbitraryRules: splitArbitraryCss(css), source: resolve(fileId).replace(/\\/g, "/") }),
+        t.valueToNode(createArbitraryTestCssPayload(css, resolve(fileId).replace(/\\/g, "/"), mapping)),
       ]),
     ),
   );

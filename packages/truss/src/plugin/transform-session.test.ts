@@ -55,31 +55,14 @@ describe("transform-session", () => {
     expect(result?.code).toBe('const s = {\n  display: "df"\n};');
   });
 
-  test("cached arbitrary CSS is restored after a build reset", () => {
-    // Given a compiled arbitrary stylesheet
-    const session = createSession();
-    const source = 'export const css = { body: "margin: 0;" };';
-    session.updateArbitraryCssRegistry("a.css.ts", source);
-    session.collectCss(false);
-
-    // When an unchanged stylesheet is loaded in the next build
-    session.reset();
-    session.updateArbitraryCssRegistry("a.css.ts", source);
-
-    // Then the new registry emits the cached stylesheet
-    expect(session.collectCss(false)).toBe(
-      ':root { --t-spacing: 8px; }\n@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }\nbody {\n  margin: 0;\n}',
-    );
-  });
-
   test("removing arbitrary CSS invalidates the collected stylesheet", () => {
     // Given an already collected stylesheet
     const session = createSession();
-    session.updateArbitraryCssRegistry("a.css.ts", 'export const css = { body: "margin: 0;" };');
+    session.transformCode('export const css = { body: "margin: 0;" };', "a.css.ts");
     session.collectCss(false);
 
     // When the file no longer contributes rules
-    session.updateArbitraryCssRegistry("a.css.ts", "export const css = {};");
+    session.transformCode("export const css = {};", "a.css.ts");
 
     // Then a subsequent request cannot serve stale CSS
     expect(session.collectCss(false)).toBe(
@@ -155,7 +138,7 @@ describe("transform-session", () => {
     session.transformCode(source, "a.ts");
 
     // When the same file is loaded by a test environment
-    const result = session.transformCode(source, "a.ts", { bootstrapImport: "virtual:truss:test-css" });
+    const result = session.transformCode(source, "a.ts", { injectCss: true });
 
     // Then the test environment receives its bootstrap import
     expect(result?.code).toBe('export const value = 1;\nimport "virtual:truss:test-css";');
