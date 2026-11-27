@@ -366,7 +366,7 @@ ${extras || ""}
 }
 
 /**
- * Invokes all of the `MethodFns` to create actual `UtilityMethod`s.
+ * Invokes all of the `MethodFns` to create the actual methods.
  *
  * Each section's methods are tagged with the section name here, where the generator calls the
  * function, so a method never has to know which section it is in.
@@ -404,7 +404,6 @@ function generateSections(config: Config): GeneratedSection[] {
 
   const generated = Object.values(sections);
   checkForDuplicateMethods(generated);
-  if (config.target !== "react-native") warnAboutHandWrittenMethods(generated);
   return generated;
 }
 
@@ -875,13 +874,12 @@ function sectionLines(sections: GeneratedSection[]): string[] {
  * Every `Css.json` abbreviation the sections define, in the order they are written.
  *
  * A `delegate` whose target has no method of its own brings the target's entry with it, written
- * just before the delegate, i.e. `sq` and then `sqPx`. A hand-written method string has no entry.
+ * just before the delegate, i.e. `sq` and then `sqPx`.
  */
 function mappingEntries(sections: GeneratedSection[]): Array<[string, TrussMappingEntry]> {
   const entries: Array<[string, TrussMappingEntry]> = [];
   for (const generated of sections) {
     for (const method of generated.methods) {
-      if (typeof method === "string") continue;
       if (method.delegateTarget && method.entry.kind === "delegate") {
         entries.push([method.entry.target, method.delegateTarget]);
       }
@@ -889,23 +887,4 @@ function mappingEntries(sections: GeneratedSection[]): Array<[string, TrussMappi
     }
   }
   return entries;
-}
-
-/**
- * Warns about each custom section that returns hand-written method strings, on the web target.
- *
- * The string still reaches `Css.ts`, so the method type-checks, but we cannot read a `Css.json`
- * entry out of TypeScript source, so the build plugin later fails on it as an unknown abbreviation.
- * Saying so here names the section, which the plugin's error cannot.
- */
-function warnAboutHandWrittenMethods(sections: GeneratedSection[]): void {
-  for (const generated of sections) {
-    const count = generated.methods.filter((method) => typeof method === "string").length;
-    if (count === 0) continue;
-    console.warn(
-      `[truss] the \`${generated.section.name}\` section returns ${count} hand-written method string(s), ` +
-        `which Css.json cannot describe, so the build plugin cannot compile them. ` +
-        `Use newMethod, newParamMethod, or another method helper instead.`,
-    );
-  }
 }

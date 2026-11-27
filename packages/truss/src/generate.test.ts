@@ -4,7 +4,7 @@ import { join } from "path";
 import { type Config } from "src/config";
 import { generate } from "src/generate";
 import { newMethod, newMethodsForProp } from "src/methods";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("generate", () => {
   it("escapes double quotes in palette and font values and imports csstype as a type", async () => {
@@ -233,60 +233,6 @@ describe("generate", () => {
       // Then the plugin can resolve `foo`
       expect(mapping.abbreviations.foo).toEqual({ kind: "static", defs: { color: "#000000" } });
     } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("writes a hand-written method string to Css.ts as-is", async () => {
-    // Given a custom section that returns a hand-written method string
-    const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));
-    const config: Config = {
-      outputPath: join(dir, "Css.ts"),
-      palette: {},
-      fonts: {},
-      increment: 8,
-      numberOfIncrements: 1,
-      target: "react-native",
-      sections: { customStuff: () => ['get foo() { return this.add("color", "red"); }'] },
-    };
-
-    try {
-      // When we generate the Css.ts file
-      await generate(config);
-      const lines = readFileSync(config.outputPath, "utf8").split("\n");
-      // Then the method follows its section's header
-      const headerIndex = lines.findIndex((line) => line.trim() === "// customStuff");
-      expect(lines[headerIndex + 1].trim()).toEqual('get foo() { return this.add("color", "red"); }');
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("warns that a hand-written method string cannot reach the web mapping", async () => {
-    // Given a web config with a custom section that returns a hand-written method string
-    const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));
-    const config: Config = {
-      outputPath: join(dir, "Css.ts"),
-      palette: {},
-      fonts: {},
-      increment: 8,
-      numberOfIncrements: 1,
-      sections: { customStuff: () => ['get foo() { return this.add("color", "red"); }'] },
-    };
-    // And a console we can read warnings from
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    try {
-      // When we generate the Css.ts file and its mapping
-      await generate(config);
-      // Then the warning names the section
-      expect(warn).toHaveBeenCalledWith(
-        "[truss] the `customStuff` section returns 1 hand-written method string(s), which Css.json cannot " +
-          "describe, so the build plugin cannot compile them. Use newMethod, newParamMethod, or another method " +
-          "helper instead.",
-      );
-    } finally {
-      warn.mockRestore();
       rmSync(dir, { recursive: true, force: true });
     }
   });

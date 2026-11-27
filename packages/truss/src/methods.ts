@@ -1,4 +1,4 @@
-import type { Aliases, Config, UtilityMethod, UtilityName } from "src/config";
+import type { Aliases, Config, UtilityName } from "src/config";
 import type { Properties } from "csstype";
 import { incrementCssValue } from "src/spacing-css-var";
 import type { TrussMappingEntry } from "src/truss-mapping";
@@ -73,14 +73,10 @@ export interface MethodSection {
   custom: boolean;
 }
 
-/**
- * The methods one section function returned, tagged with the section the generator called.
- *
- * A custom section may still return hand-written method strings, so `methods` can hold both.
- */
+/** The methods one section function returned, tagged with the section the generator called. */
 export interface GeneratedSection {
   section: MethodSection;
-  methods: UtilityMethod[];
+  methods: MethodDefinition[];
 }
 
 /**

@@ -189,26 +189,13 @@ export function defineConfig(config: Config): Config {
  * ```
  *
  * See the `newMethod` and `newParamMethod` functions for creating each method.
- *
- * A hand-written line of TypeScript like `"get mb0() { return this.mb(0); }"` is still accepted
- * and written to `Css.ts` as-is, but the web target's `Css.json` cannot describe it, so the build
- * plugin cannot compile `Css.mb0.$`; the generator warns about it.
  */
-export type CreateMethodsFn = (config: Config) => UtilityMethod[];
+export type CreateMethodsFn = (config: Config) => MethodDefinition[];
 
 /**
  * A type-alias to clarify strings that are meant to be abbreviation/utility names.
  */
 export type UtilityName = string;
-
-/**
- * A utility method that a section returns.
- *
- * Usually a `MethodDefinition` from a helper like `newMethod`, which the generator writes to both
- * `Css.ts` and `Css.json`. A string is a hand-written line of TypeScript like `get abbr() { ... }`,
- * which only reaches `Css.ts`.
- */
-export type UtilityMethod = MethodDefinition | string;
 
 /** A type-alias to clarify groups of utility methods. */
 export type SectionName = string;

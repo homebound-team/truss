@@ -208,13 +208,4 @@ describe("methods", () => {
     // Then it casts the custom property name, since csstype does not know it
     expect(result).toEqual('get darkMode() { return this.add("--primary" as any, "#000000"); }');
   });
-
-  it("writes a hand-written method string as-is", () => {
-    // Given a method a custom section wrote by hand
-    const method = 'get foo() { return this.add("color", "red"); }';
-    // When we write it
-    const result = renderMethod(method);
-    // Then it is unchanged
-    expect(result).toEqual(method);
-  });
 });

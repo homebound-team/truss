@@ -14,9 +14,7 @@ interface PlacedMethod {
  * without this check the broken file ships to any project that does not run `tsc` in CI.
  *
  * `sections` is what the section functions returned, so each method already knows its name and
- * the config entry that spells it, and each section knows its own name. A section a custom section
- * replaced never runs, so its methods are not in `sections` at all. A hand-written method string
- * has no name we can read without parsing it, so it is not checked.
+ * the config entry that spells it, and each section knows its own name.
  *
  * I.e. `palette: { Bg: "var(--bg)" }` makes `get bg()` in `skins`, and the built-in `background`
  * section makes `bg(value)`, so we report ``duplicate method `bg` ``.
@@ -27,7 +25,6 @@ export function checkForDuplicateMethods(sections: GeneratedSection[]): void {
 
   for (const generated of sections) {
     for (const method of generated.methods) {
-      if (typeof method === "string") continue;
       const placed = { method, section: generated.section };
       const owner = owners.get(method.abbr);
       if (owner === undefined) {

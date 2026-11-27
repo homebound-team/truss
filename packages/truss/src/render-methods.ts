@@ -1,17 +1,14 @@
-import type { UtilityMethod } from "src/config";
 import type { MethodDefinition } from "src/methods";
 
 /**
  * Writes the `CssBuilder` member for one utility method, as a line of TypeScript.
  *
- * The web and React Native builders both use this, so each method is written one way. A string is
- * a method a custom section wrote by hand, and is written as-is.
+ * The web and React Native builders both use this, so each method is written one way.
  *
  * I.e. `{ abbr: "df", entry: { kind: "static", defs: { display: "flex" } } }` is written as
  * `/** Sets \`display: "flex"\`. *\/ get df() { return this.add("display", "flex"); }`.
  */
-export function renderMethod(method: UtilityMethod): string {
-  if (typeof method === "string") return method;
+export function renderMethod(method: MethodDefinition): string {
   const abbr = method.abbr;
   const entry = method.entry;
   switch (entry.kind) {
