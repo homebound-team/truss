@@ -8,8 +8,17 @@ import type { TrussMapping } from "./types";
 /**
  * Test-only bootstrap module that injects merged library CSS and the spacing prelude.
  *
- * Vitest/jsdom does not import `virtual:truss.css` or run browser CSS HMR; it imports modules
- * directly into the test environment, so CSS has to enter via a module side effect instead.
+ * Virtual modules work in Vitest, but `virtual:truss.css` does not fit tests, for two reasons:
+ *
+ * - Nothing imports it. The application imports it from its entry point, and tests load
+ *   components directly without that entry. The transform adds the import of this bootstrap
+ *   module to each transformed file instead, so tests do not need to import anything.
+ * - Its content would be incomplete. It is loaded once, with the CSS collected so far, and Vitest
+ *   transforms files lazily as tests import them. Dev mode corrects this with browser CSS HMR,
+ *   which does not run in tests.
+ *
+ * So this module only injects the CSS that is known up front, and each application module
+ * injects its own CSS with `__injectTrussCSS` when it evaluates.
  */
 export const TEST_CSS_BOOTSTRAP_ID = "virtual:truss:test-css";
 
