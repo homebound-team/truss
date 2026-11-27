@@ -1,13 +1,50 @@
-import { Aliases, Config, UtilityMethod, UtilityName } from "src/config";
-import { Properties } from "csstype";
+import type { Aliases, Config, UtilityMethod, UtilityName } from "src/config";
+import type { Properties } from "csstype";
 import { incrementCssValue } from "src/spacing-css-var";
+import type { TrussMappingEntry } from "src/truss-mapping";
 
 export type Prop = keyof Properties;
 
-// ── Web Collector ─────────────────────────────────────────────────────
-// When web collection is enabled, each helper function pushes structured
-// metadata into this array as a side-effect. This lets the web code generator
-// reuse the existing section definitions without modifying any section files.
+// ── Method Definitions ────────────────────────────────────────────────
+// Each helper returns data, not code: the `Css.json` entry the build plugin compiles the method
+// with, plus the few details the generator needs to write the `Css.ts` method. `renderMethod` in
+// `render-methods.ts` turns a definition into the builder's TypeScript source.
+
+/**
+ * One utility method: its name, its `Css.json` entry, and what the generator needs to write it.
+ *
+ * I.e. `newMethod("df", { display: "flex" })` returns
+ * `{ abbr: "df", entry: { kind: "static", defs: { display: "flex" } } }`, which the generator
+ * writes to `Css.ts` as `get df() { ... }` and to `Css.json` as `"df": { "kind": "static", ... }`.
+ */
+export interface MethodDefinition {
+  /** The builder member and the `Css.json` key, i.e. `mt0`. */
+  abbr: UtilityName;
+  /** How the build plugin resolves `abbr`, written to `Css.json` as-is. */
+  entry: TrussMappingEntry;
+  /** The config key `abbr` is named after; absent when a `newMethod` call spells the name. */
+  namedAfter?: ConfigKey;
+  /** How to write the builder method, where `entry` alone does not say. */
+  source?: MethodSource;
+  /**
+   * The `Css.json` entry for the target of a `delegate` that no other method generates.
+   *
+   * I.e. `sqPx` delegates to `sq`, but there is no `Css.sq(value)` method, so `sq` only exists in
+   * `Css.json`, to give the plugin the props that `sqPx` sets.
+   */
+  delegateTarget?: TrussMappingEntry;
+}
+
+/**
+ * The details of a builder method that its `Css.json` entry does not carry.
+ *
+ * - `px`: a `delegate` entry only names its target, so this gives the props for the doc comment,
+ *   and whether the method calls its target (i.e. `mhPx(px)` calls `this.mh(...)`) or sets each
+ *   prop itself (i.e. `mtPx(px)` calls `add("marginTop", ...)`).
+ * - `cssVariables`: a `static` entry that sets custom properties, which csstype does not type, so
+ *   the method casts each name and has no doc comment.
+ */
+export type MethodSource = { kind: "px"; props: Prop[]; callsTarget: boolean } | { kind: "cssVariables" };
 
 /**
  * A key in one of the user's config maps that a method takes its name from.
@@ -36,92 +73,30 @@ export interface MethodSection {
   custom: boolean;
 }
 
-export interface WebEntry {
-  kind: "static" | "param" | "increment-param" | "px-delegate" | "alias" | "cssvar" | "keyframe";
-  abbr: string;
-  /** For static: the CSS properties object, e.g. { display: "flex" } */
-  defs?: Record<string, unknown>;
-  /** For param/increment-param: the CSS property name(s) */
-  props?: string[];
-  /** For increment-param: whether to use maybeInc */
-  usesMaybeInc?: boolean;
-  /** For param methods: extra properties to set alongside the main prop */
-  extraDefs?: Record<string, unknown>;
-  /** For aliases: the list of chained abbreviations */
-  aliasTargets?: string[];
-  /** For keyframes: the `@keyframes` name the method puts in front of its value */
-  keyframeName?: string;
-  /** The section the entry was collected in, i.e. `skins`. Every method is generated in one. */
-  section: MethodSection;
-  /** The config key `abbr` is named after; absent when a `newMethod` call spells the name. */
-  namedAfter?: ConfigKey;
-  /** True when the entry only backs a mapping delegate, i.e. no method is generated for it. */
-  mappingOnly?: boolean;
-}
-
-/** What a method helper passes to `collect`; the collector itself adds the section. */
-type CollectedEntry = Omit<WebEntry, "section">;
-
-let _webCollector: WebEntry[] | null = null;
-let _section: MethodSection | null = null;
-
-/** Start collecting WebEntry metadata from method helpers. */
-export function startWebCollection(): void {
-  _webCollector = [];
-}
-
-/** Stop collecting and return all accumulated entries. Safe to call when already stopped. */
-export function stopWebCollection(): WebEntry[] {
-  const result = _webCollector ?? [];
-  _webCollector = null;
-  _section = null;
-  return result;
-}
-
 /**
- * Runs `fn` with every entry it collects tagged as part of `section`.
+ * The methods one section function returned, tagged with the section the generator called.
  *
- * The tag is what lets us tell two sections that generate the same method name apart, without
- * reading the generated code back to find out what is in it.
+ * A custom section may still return hand-written method strings, so `methods` can hold both.
  */
-export function inSection<T>(section: MethodSection, fn: () => T): T {
-  _section = section;
-  try {
-    return fn();
-  } finally {
-    _section = null;
-  }
-}
-
-function collect(entry: CollectedEntry): void {
-  if (!_webCollector) return;
-  // Every section runs inside `inSection`, so this only trips if a new caller forgets to.
-  if (!_section) throw new Error(`Cannot collect "${entry.abbr}" outside of a section.`);
-  _webCollector.push({ ...entry, section: _section });
-}
-
-/** The abbreviations collected so far, for the sections that must not re-use an existing name. */
-export function collectedAbbreviations(): Set<string> {
-  return new Set((_webCollector ?? []).map((entry) => entry.abbr));
+export interface GeneratedSection {
+  section: MethodSection;
+  methods: UtilityMethod[];
 }
 
 /**
  * Given a single abbreviation (i.e. `mt0`) and multiple `{ prop: value }` CSS values, returns
- * the TypeScript code for a `mt0` utility method that sets those values.
+ * a `mt0` utility method that sets those values.
  *
  * Pass `namedAfter` when a key the user wrote in their config is what spells the method's name,
  * i.e. a palette key, so an error can name that key instead of the section the method comes from.
  */
-export function newMethod(abbr: UtilityName, defs: Properties, namedAfter?: ConfigKey): UtilityMethod {
-  collect({ kind: "static", abbr, defs: { ...defs }, namedAfter });
-  return `${comment(defs)} get ${abbr}() { return this${Object.entries(defs)
-    .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
-    .join("")}; }`;
+export function newMethod(abbr: UtilityName, defs: Properties, namedAfter?: ConfigKey): MethodDefinition {
+  return { abbr, entry: { kind: "static", defs: { ...defs } }, namedAfter };
 }
 
 /**
- * Given a single abbreviation (i.e. `mt`) and a property name (i.e. `marginTop`), returns the
- * TypeScript code for a `mt` utility method that accepts a user-provided value of the prop to set.
+ * Given a single abbreviation (i.e. `mt`) and a property name (i.e. `marginTop`), returns a `mt`
+ * utility method that accepts a user-provided value of the prop to set.
  * Use `extraProperties` for additional properties to set.
  *
  * I.e. `Css.mt(someValue).$`
@@ -130,19 +105,9 @@ export function newParamMethod(
   abbr: UtilityName,
   prop: keyof Properties,
   extraProperties: Properties = {},
-): UtilityMethod {
-  collect({
-    kind: "param",
-    abbr,
-    props: [prop],
-    extraDefs: Object.keys(extraProperties).length > 0 ? { ...extraProperties } : undefined,
-  });
-  const additionalDefs = Object.entries(extraProperties)
-    .map(([prop, value]) => `.add("${prop}", ${maybeWrap(value)})`)
-    .join("");
-  return `${comment({
-    [prop]: "value",
-  })} ${abbr}(value: Properties["${prop}"]) { return this.add("${prop}", value)${additionalDefs}; }`;
+): MethodDefinition {
+  const extraDefs = Object.keys(extraProperties).length > 0 ? { ...extraProperties } : undefined;
+  return { abbr, entry: { kind: "variable", props: [prop], incremented: false, extraDefs } };
 }
 
 /**
@@ -168,7 +133,7 @@ export function newMethodsForProp<P extends Prop>(
   baseName: string | null = prop,
   includePx: boolean = false,
   valueMethodExtraProperties?: Omit<Properties, P>,
-): UtilityMethod[] {
+): MethodDefinition[] {
   return [
     ...Object.entries(defs).map(([abbr, value]) =>
       newMethod(
@@ -184,25 +149,25 @@ export function newMethodsForProp<P extends Prop>(
 }
 
 /**
- * Given a keyframe abbreviation (i.e. `sweep`) and its `@keyframes` name, returns the TypeScript
- * code for a `sweep` utility method that puts the name in front of the animation shorthand.
+ * Given a keyframe abbreviation (i.e. `sweep`) and its `@keyframes` name, returns a `sweep`
+ * utility method that puts the name in front of the animation shorthand.
  *
  * I.e. `Css.sweep("1.6s linear infinite").$` sets `animation: sweep 1.6s linear infinite`.
  */
-export function newKeyframeMethod(abbr: UtilityName, name: string): UtilityMethod {
-  collect({ kind: "keyframe", abbr, keyframeName: name, namedAfter: { kind: "keyframe", name } });
-  return `/** Sets \`animation: ${name} value\`. */\n ${abbr}(value: string) { return this.add("animation", \`${name} \${value}\`); }`;
+export function newKeyframeMethod(abbr: UtilityName, name: string): MethodDefinition {
+  return { abbr, entry: { kind: "keyframe", name }, namedAfter: { kind: "keyframe", name } };
 }
 
 /**
  * Given aliases, i.e. `{ bodyText: ["f12", "bold"] }`, returns a utility method
  * for each alias that calls its corresponding utility classes.
  */
-export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
-  return Object.entries(aliases).map(([abbr, values]) => {
-    collect({ kind: "alias", abbr, aliasTargets: values, namedAfter: { kind: "alias", name: abbr } });
-    return `get ${abbr}() { return this${values.map((v) => `.${v}`).join("")}; }`;
-  });
+export function newAliasesMethods(aliases: Aliases): MethodDefinition[] {
+  return Object.entries(aliases).map(([abbr, values]) => ({
+    abbr,
+    entry: { kind: "alias", chain: values },
+    namedAfter: { kind: "alias", name: abbr },
+  }));
 }
 
 /**
@@ -216,11 +181,9 @@ export function newAliasesMethods(aliases: Aliases): UtilityMethod[] {
  *
  * TODO: Create a `Css.set(cssVars).$` method.
  */
-export function newSetCssVariablesMethod(abbr: UtilityName, defs: Record<string, string>): UtilityMethod {
-  collect({ kind: "cssvar", abbr, defs: { ...defs } });
-  return `get ${abbr}() { return this${Object.entries(defs)
-    .map(([prop, value]) => `.add("${prop}" as any, ${JSON.stringify(value)})`)
-    .join("")}; }`;
+export function newSetCssVariablesMethod(abbr: UtilityName, defs: Record<string, string>): MethodDefinition {
+  // The plugin compiles it like any other static method; only the `Css.ts` source differs.
+  return { abbr, entry: { kind: "static", defs: { ...defs } }, source: { kind: "cssVariables" } };
 }
 
 /** An abbreviation and its single or multiple CSS properties to set. */
@@ -248,33 +211,22 @@ export function newIncrementMethods(
   abbr: UtilityName,
   prop: Prop | Prop[],
   opts: { auto?: boolean } = {},
-): UtilityMethod[] {
+): MethodDefinition[] {
   // Create `m1`, `m2`, etc. that will call our main `m` method.
   const props = typeof prop === "string" ? [prop] : prop;
   const delegateMethods = newCoreIncrementMethods(config, abbr, props);
 
-  const autoComment = comment(Object.fromEntries(props.map((p) => [p, "auto"])));
-  const valueComment = comment(Object.fromEntries(props.map((p) => [p, "v"])));
-  const pxComment = comment(Object.fromEntries(props.map((p) => [p, "px"])));
-
-  // Collect auto entry
-  if (opts.auto) {
-    collect({ kind: "static", abbr: `${abbr}a`, defs: Object.fromEntries(props.map((p) => [p, "auto"])) });
-  }
-  // Collect increment-param entry (uses maybeInc)
-  collect({ kind: "increment-param", abbr, props, usesMaybeInc: true });
-  // Collect px-delegate entry
-  collect({ kind: "px-delegate", abbr: `${abbr}Px`, props });
-
   return [
     ...delegateMethods,
-    ...(opts.auto
-      ? [`${autoComment} get ${abbr}a() { return this.${props.map((p) => `add("${p}", "auto")`).join(".")}; }`]
-      : []),
-    `${valueComment} ${abbr}(v: number | string) { return this.${props
-      .map((p) => `add("${p}", maybeInc(v))`)
-      .join(".")}; }`,
-    `${pxComment} ${abbr}Px(px: number) { return this.${props.map((p) => `add("${p}", \`\${px}px\`)`).join(".")}; }`,
+    ...(opts.auto ? [newMethod(`${abbr}a`, Object.fromEntries(props.map((p) => [p, "auto"])))] : []),
+    // `mt(v)` goes through `maybeInc`, so a number is a count of increments and a string is used as-is
+    { abbr, entry: { kind: "variable", props, incremented: true } },
+    // `mtPx(px)` sets each prop itself, but its mapping still delegates to `mt` for the props
+    {
+      abbr: `${abbr}Px`,
+      entry: { kind: "delegate", target: abbr },
+      source: { kind: "px", props, callsTarget: false },
+    },
   ];
 }
 
@@ -283,47 +235,43 @@ export function newIncrementMethods(
  *
  * See `newIncrementMethods` for handling the `<abbr>Px`, `<abbr>a`, and `<attr>(value)` methods.
  */
-function isWebIncrementTarget(config: Config): boolean {
-  return config.target !== "react-native";
-}
-
-export function newCoreIncrementMethods(config: Config, abbr: UtilityName, props: Prop[]): UtilityMethod[] {
+export function newCoreIncrementMethods(config: Config, abbr: UtilityName, props: Prop[]): MethodDefinition[] {
   return zeroTo(config.numberOfIncrements).map((i) => {
+    // The web target scales one `--t-spacing` variable, while React Native has no CSS variables
     const value = isWebIncrementTarget(config) ? incrementCssValue(i) : `${i * config.increment}px`;
-    const defs = Object.fromEntries(props.map((p) => [p, value]));
-    collect({ kind: "static", abbr: `${abbr}${i}`, defs });
-    const sets = props.map((p) => `add("${p}", "${value}")`).join(".");
-    return `${comment(defs)} get ${abbr}${i}() { return this.${sets}; }`;
+    return newMethod(`${abbr}${i}`, Object.fromEntries(props.map((p) => [p, value])));
   });
 }
 
-export function newPxMethod(abbr: UtilityName, prop: Prop): UtilityMethod {
-  collect({ kind: "px-delegate", abbr: `${abbr}Px`, props: [prop] });
-  return `${comment({ [prop]: "px" })} ${abbr}Px(px: number) { return this.${abbr}(\`\${px}px\`); }`;
+/** Makes a `<abbr>Px(px)` method that calls the existing `<abbr>(value)` method with a px value. */
+export function newPxMethod(abbr: UtilityName, prop: Prop): MethodDefinition {
+  return {
+    abbr: `${abbr}Px`,
+    entry: { kind: "delegate", target: abbr },
+    source: { kind: "px", props: [prop], callsTarget: true },
+  };
 }
 
-export function newPxMethods(abbr: UtilityName, props: Prop[]): UtilityMethod[] {
-  const defs = Object.fromEntries(props.map((prop) => [prop, "px"]));
-  // Only the `${abbr}Px` method is generated, so the `${abbr}` entry exists just to give the
-  // mapping's `${abbr}Px` delegate a target to resolve the props through.
-  collect({ kind: "param", abbr, props, mappingOnly: true });
-  collect({ kind: "px-delegate", abbr: `${abbr}Px`, props });
+/**
+ * Makes a `<abbr>Px(px)` method that sets several props, without a `<abbr>(value)` method.
+ *
+ * I.e. `newPxMethods("sq", ["height", "width"])` makes `sqPx(px)`. Its `Css.json` entry still
+ * delegates to `sq`, so `sq` is given an entry of its own there, as `delegateTarget`.
+ */
+export function newPxMethods(abbr: UtilityName, props: Prop[]): MethodDefinition[] {
   return [
-    `${comment(defs)} ${abbr}Px(px: number) { return this.${props.map((prop) => `add("${prop}", \`\${px}px\`)`).join(".")}; }`,
+    {
+      abbr: `${abbr}Px`,
+      entry: { kind: "delegate", target: abbr },
+      source: { kind: "px", props, callsTarget: false },
+      delegateTarget: { kind: "variable", props, incremented: false },
+    },
   ];
 }
 
 export const zeroTo: (n: number) => number[] = (n) => [...Array(n + 1).keys()];
 
-/** Keeps numbers as literals, and emits anything else as an escaped double-quoted string literal. */
-function maybeWrap(value: unknown): string {
-  return typeof value === "number" ? String(value) : JSON.stringify(String(value));
-}
-
-export function comment(defs: object): string {
-  const paramNames = ["value", "px", "inc"];
-  const values = Object.entries(defs)
-    .map(([prop, value]) => `${prop}: ${paramNames.includes(value) ? value : maybeWrap(value)}`)
-    .join("; ");
-  return `/** Sets \`${values}\`. */\n`;
+/** Whether increments are written as `--t-spacing` multiples, which only the web target supports. */
+function isWebIncrementTarget(config: Config): boolean {
+  return config.target !== "react-native";
 }

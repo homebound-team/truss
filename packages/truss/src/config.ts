@@ -1,5 +1,6 @@
 import { Properties } from "csstype";
 import { Code } from "ts-poet";
+import type { MethodDefinition } from "src/methods";
 
 /**
  * A map from human name to font size, i.e. `f12` -> `12px`.
@@ -152,7 +153,7 @@ export interface Config {
    * A map of "section" to list of rules to create application-specific
    * utility methods.
    *
-   * I.e. "borderColors" -> () => [`get ml1() { ... }`].
+   * I.e. "borderColors" -> () => [newMethod("bcRed", { borderColor: "red" })].
    *
    * This can be used to either add new sections or override built-in sections.
    */
@@ -182,13 +183,16 @@ export function defineConfig(config: Config): Config {
  *
  * ```
  *   [
- *     "get mb0() { return this.mb(0); }",
- *     "get mb1() { return this.mb(1); }",
+ *     newMethod("mb0", { marginBottom: 0 }),
+ *     newParamMethod("mb", "marginBottom"),
  *   ]
  * ```
  *
- * See the `newMethod` and `newParamMethod` functions for more easily
- * creating the `get ...() { ... }` output.
+ * See the `newMethod` and `newParamMethod` functions for creating each method.
+ *
+ * A hand-written line of TypeScript like `"get mb0() { return this.mb(0); }"` is still accepted
+ * and written to `Css.ts` as-is, but the web target's `Css.json` cannot describe it, so the build
+ * plugin cannot compile `Css.mb0.$`; the generator warns about it.
  */
 export type CreateMethodsFn = (config: Config) => UtilityMethod[];
 
@@ -198,13 +202,13 @@ export type CreateMethodsFn = (config: Config) => UtilityMethod[];
 export type UtilityName = string;
 
 /**
- * A type-alias to clarify which method returns types are utility methods.
+ * A utility method that a section returns.
  *
- * I.e. they should be a line of TypeScript code like `get abbr() { ... }`.
- *
- * See `newMethod` for a helper method to create the string.
+ * Usually a `MethodDefinition` from a helper like `newMethod`, which the generator writes to both
+ * `Css.ts` and `Css.json`. A string is a hand-written line of TypeScript like `get abbr() { ... }`,
+ * which only reaches `Css.ts`.
  */
-export type UtilityMethod = string;
+export type UtilityMethod = MethodDefinition | string;
 
 /** A type-alias to clarify groups of utility methods. */
 export type SectionName = string;

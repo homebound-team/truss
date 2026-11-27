@@ -1,7 +1,7 @@
 import { camelCase, pascalCase } from "change-case";
 import { makeBreakpoints } from "src/breakpoints";
-import { type Config, type UtilityMethod } from "src/config";
-import { newKeyframeMethod } from "src/methods";
+import type { Config } from "src/config";
+import { newKeyframeMethod, type MethodDefinition } from "src/methods";
 import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
 
 /**
@@ -11,9 +11,10 @@ import { TRUSS_PSEUDO_METHODS } from "src/pseudo-selectors";
  * The method only puts the name in front of the value, so the rest of the animation shorthand is
  * written as usual, and two animations still go through `Css.animation`, which takes the whole value.
  *
- * `taken` is every abbreviation the other sections already generated; see `keyframeAbbreviation`.
+ * `taken` is every abbreviation the other sections already put in `Css.ts` or `Css.json`; see
+ * `keyframeAbbreviation`.
  */
-export function newKeyframesMethods(config: Config, taken: Set<string>): UtilityMethod[] {
+export function newKeyframesMethods(config: Config, taken: Set<string>): MethodDefinition[] {
   const names = Object.keys(config.keyframes ?? {});
   if (names.length === 0) return [];
   const used = new Set([...taken, ...reservedMethodNames(config)]);
@@ -56,7 +57,12 @@ function reservedMethodNames(config: Config): string[] {
   ];
 }
 
-/** The non-abbreviation members of the generated `CssBuilder`. */
+/**
+ * The non-abbreviation members of the generated `CssBuilder`.
+ *
+ * These are written by hand in the builder templates in `generate.ts`, not returned by a section,
+ * so there is no definition to read them from; keep this list in step with those templates.
+ */
 const BUILDER_METHODS = [
   "$",
   "add",
