@@ -330,17 +330,33 @@ describe("trussEsbuildPlugin", () => {
   });
 
   test("bundles a side-effect-only .css.ts import without the CssBuilder", async () => {
-    // Given a library whose entry imports a .css.ts file only for its side effect
-    const root = createCssTsLibrary('import "./Grid.css.ts";\nexport const a = 1;\n');
+    // Given a library with a Css stand-in whose `$` throws, so a chain that still evaluates fails
+    const root = createLibrary({
+      "Css.json": mappingJson({ black: { kind: "static", defs: { color: "#353535" } } }),
+      "Css.ts": `class CssBuilder { get black() { return this; } get $() { throw new Error("runtime Css"); } }
+        export const Css = new CssBuilder();`,
+      // And a .css.ts file that uses a Css chain
+      "Grid.css.ts": `import { Css } from "./Css"; export const css = { ".grid": Css.black.$ };`,
+      // And an entry that imports the .css.ts file only for its side effect
+      "index.ts": `import "./Grid.css.ts"; export const a = 1;`,
+    });
     // When real esbuild bundles it with the plugin
     const js = await bundleLibrary(root);
-    // Then the compiled css export is unused, so only the entry's own code remains
+    // Then only the entry's own code remains
     expect(js).toBe("// src/index.ts\nvar a = 1;\nexport {\n  a\n};\n");
   });
 
   test("bundles a named .css.ts import as undefined", async () => {
-    // Given a library whose entry re-exports a .css.ts file's css export
-    const root = createCssTsLibrary('export { css } from "./Grid.css.ts";\n');
+    // Given a library with a Css stand-in whose `$` throws, so a chain that still evaluates fails
+    const root = createLibrary({
+      "Css.json": mappingJson({ black: { kind: "static", defs: { color: "#353535" } } }),
+      "Css.ts": `class CssBuilder { get black() { return this; } get $() { throw new Error("runtime Css"); } }
+        export const Css = new CssBuilder();`,
+      // And a .css.ts file that uses a Css chain
+      "Grid.css.ts": `import { Css } from "./Css"; export const css = { ".grid": Css.black.$ };`,
+      // And an entry that re-exports the css export
+      "index.ts": `export { css } from "./Grid.css.ts";`,
+    });
     // When real esbuild bundles it with the plugin
     const js = await bundleLibrary(root);
     // Then the export still links, holds undefined, and no CssBuilder code is bundled
@@ -348,8 +364,13 @@ describe("trussEsbuildPlugin", () => {
   });
 
   test("writes the rules of a bare .css side-effect import to truss.css", async () => {
-    // Given a library whose entry imports the .css.ts file through its bare ".css" name
-    const root = createCssTsLibrary('import "./Grid.css";\nexport const a = 1;\n');
+    // Given a library with a raw-string .css.ts file
+    const root = createLibrary({
+      "Css.json": mappingJson({}),
+      "Grid.css.ts": `export const css = { ".grid": "color: #353535;" };`,
+      // And an entry that imports it through its bare ".css" name
+      "index.ts": `import "./Grid.css"; export const a = 1;`,
+    });
     // When real esbuild bundles it with the plugin
     await bundleLibrary(root);
     // Then truss.css has the file's rule
@@ -425,25 +446,19 @@ function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
-/**
- * Write a library with a `Grid.css.ts` file, a `Css.ts` stand-in and the given entry module.
- *
- * The stand-in names its class `CssBuilder` and throws on `$`, so a bundle that still evaluates
- * a chain fails, and one that still includes the builder shows its name.
- */
-function createCssTsLibrary(entry: string): string {
+/** Write the given `src/` files, keyed by file name, into a new temp library and return its root. */
+function createLibrary(files: Record<string, string>): string {
   const root = createTempRoot();
-  writeMapping(join(root, "src", "Css.json"), { black: { kind: "static", defs: { color: "#353535" } } });
-  writeFileSync(
-    join(root, "src", "Css.ts"),
-    'class CssBuilder { get black() { return this; } get $() { throw new Error("runtime Css"); } }\nexport const Css = new CssBuilder();\n',
-  );
-  writeFileSync(
-    join(root, "src", "Grid.css.ts"),
-    'import { Css } from "./Css";\nexport const css = { ".grid": Css.black.$ };\n',
-  );
-  writeFileSync(join(root, "src", "index.ts"), entry);
+  mkdirSync(join(root, "src"), { recursive: true });
+  for (const [name, contents] of Object.entries(files)) {
+    writeFileSync(join(root, "src", name), contents, "utf8");
+  }
   return root;
+}
+
+/** The contents of a `Css.json` mapping file with the given abbreviations. */
+function mappingJson(abbreviations: Record<string, Record<string, unknown>>): string {
+  return JSON.stringify({ increment: 8, abbreviations });
 }
 
 /** Bundle the library with real esbuild, i.e. the way tsup runs the plugin, and return its JavaScript. */

@@ -47,7 +47,9 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
     setup(build: EsbuildPluginBuild) {
       const outDir = build.initialOptions.outdir ?? join(process.cwd(), "dist");
 
-      // Only real files; another plugin's virtual module has no file on disk to read.
+      // Load every source file through the Truss transform, to compile its `Css.*.$` expressions
+      // and record its CSS for onEnd to write to truss.css. The "file" namespace limits this to
+      // real files, i.e. another plugin's virtual module has no file on disk to read.
       build.onLoad({ filter: /\.[cm]?[jt]sx?$/, namespace: "file" }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
 
