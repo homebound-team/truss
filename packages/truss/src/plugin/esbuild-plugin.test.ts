@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { tmpdir } from "os";
+import { build } from "esbuild";
 import { trussEsbuildPlugin } from "./esbuild-plugin";
 
 const tempDirs: string[] = [];
@@ -106,7 +107,7 @@ describe("trussEsbuildPlugin", () => {
     });
     expect(cssTsResult).toBeDefined();
     expect(cssTsResult?.loader).toBe("ts");
-    expect(cssTsResult?.contents).toBe(cssTsSource);
+    expect(cssTsResult?.contents).toBe('export const zebraRows = "zebraRows";\nexport const css = undefined;');
 
     onLoadCallback({
       path: join(root, "src", "DataGrid.tsx"),
@@ -327,6 +328,63 @@ describe("trussEsbuildPlugin", () => {
     const js = onLoadCallback({ path: join(root, "src", "index.js"), contents: code });
     expect(js?.loader).toBe("js");
   });
+
+  test("bundles a side-effect-only .css.ts import without the CssBuilder", async () => {
+    // Given a library with a Css stand-in whose `$` throws, so a chain that still evaluates fails
+    const root = createLibrary({
+      "Css.json": mappingJson({ black: { kind: "static", defs: { color: "#353535" } } }),
+      "Css.ts": `class CssBuilder { get black() { return this; } get $() { throw new Error("runtime Css"); } }
+        export const Css = new CssBuilder();`,
+      // And a .css.ts file that uses a Css chain
+      "Grid.css.ts": `import { Css } from "./Css"; export const css = { ".grid": Css.black.$ };`,
+      // And an entry that imports the .css.ts file only for its side effect
+      "index.ts": `import "./Grid.css.ts"; export const a = 1;`,
+    });
+    // When real esbuild bundles it with the plugin
+    const js = await bundleLibrary(root);
+    // Then only the entry's own code remains
+    expect(js).toBe("// src/index.ts\nvar a = 1;\nexport {\n  a\n};\n");
+  });
+
+  test("bundles a named .css.ts import as undefined", async () => {
+    // Given a library with a Css stand-in whose `$` throws, so a chain that still evaluates fails
+    const root = createLibrary({
+      "Css.json": mappingJson({ black: { kind: "static", defs: { color: "#353535" } } }),
+      "Css.ts": `class CssBuilder { get black() { return this; } get $() { throw new Error("runtime Css"); } }
+        export const Css = new CssBuilder();`,
+      // And a .css.ts file that uses a Css chain
+      "Grid.css.ts": `import { Css } from "./Css"; export const css = { ".grid": Css.black.$ };`,
+      // And an entry that re-exports the css export
+      "index.ts": `export { css } from "./Grid.css.ts";`,
+    });
+    // When real esbuild bundles it with the plugin
+    const js = await bundleLibrary(root);
+    // Then the export still links, holds undefined, and no CssBuilder code is bundled
+    expect(js).toBe(["// src/Grid.css.ts", "var css = void 0;", "export {", "  css", "};", ""].join("\n"));
+  });
+
+  test("writes the rules of a bare .css side-effect import to truss.css", async () => {
+    // Given a library with a raw-string .css.ts file
+    const root = createLibrary({
+      "Css.json": mappingJson({}),
+      "Grid.css.ts": `export const css = { ".grid": "color: #353535;" };`,
+      // And an entry that imports it through its bare ".css" name
+      "index.ts": `import "./Grid.css"; export const a = 1;`,
+    });
+    // When real esbuild bundles it with the plugin
+    await bundleLibrary(root);
+    // Then truss.css has the file's rule
+    expect(readFileSync(join(root, "dist", "truss.css"), "utf8")).toBe(
+      [
+        ":root { --t-spacing: 8px; }",
+        "/* @truss arbitrary:start */",
+        ".grid {",
+        "  color: #353535;",
+        "}",
+        "/* @truss arbitrary:end */",
+      ].join("\n"),
+    );
+  });
 });
 
 function createTempRoot(): string {
@@ -351,18 +409,15 @@ function setupPlugin(
   plugin: ReturnType<typeof trussEsbuildPlugin>,
   outDir: string,
 ): {
-  onLoadCallback: (args: { path: string; contents: string }) => { contents: string; loader: string } | undefined;
+  onLoadCallback: (args: { path: string; contents: string }) => LoadResult;
   onEndCallback: () => void;
 } {
-  let loadCallback: ((args: { path: string }) => { contents: string; loader: string } | undefined) | undefined;
+  let loadCallback: ((args: { path: string }) => LoadResult) | undefined;
   let endCallback: (() => void) | undefined;
 
   const fakeBuild = {
     initialOptions: { outdir: outDir },
-    onLoad(
-      _opts: { filter: RegExp },
-      cb: (args: { path: string }) => { contents: string; loader: string } | undefined,
-    ) {
+    onLoad(_opts: { filter: RegExp; namespace?: string }, cb: (args: { path: string }) => LoadResult) {
       loadCallback = cb;
     },
     onEnd(cb: () => void) {
@@ -385,6 +440,38 @@ function setupPlugin(
   };
 }
 
+type LoadResult = { contents: string; loader: string } | undefined;
+
 function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
+}
+
+/** Write the given `src/` files, keyed by file name, into a new temp library and return its root. */
+function createLibrary(files: Record<string, string>): string {
+  const root = createTempRoot();
+  mkdirSync(join(root, "src"), { recursive: true });
+  for (const [name, contents] of Object.entries(files)) {
+    writeFileSync(join(root, "src", name), contents, "utf8");
+  }
+  return root;
+}
+
+/** The contents of a `Css.json` mapping file with the given abbreviations. */
+function mappingJson(abbreviations: Record<string, Record<string, unknown>>): string {
+  return JSON.stringify({ increment: 8, abbreviations });
+}
+
+/** Bundle the library with real esbuild, i.e. the way tsup runs the plugin, and return its JavaScript. */
+async function bundleLibrary(root: string): Promise<string> {
+  const result = await build({
+    absWorkingDir: root,
+    entryPoints: ["./src/index.ts"],
+    bundle: true,
+    format: "esm",
+    outdir: join(root, "dist"),
+    write: false,
+    logLevel: "silent",
+    plugins: [trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") })],
+  });
+  return result.outputFiles![0].text;
 }

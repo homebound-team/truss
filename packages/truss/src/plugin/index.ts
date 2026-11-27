@@ -1,13 +1,10 @@
-import { readFileSync, existsSync } from "fs";
-import { resolve, dirname, isAbsolute } from "path";
+import { resolve } from "path";
 import { createHash } from "crypto";
 import { type PluginContext } from "rollup";
 import { createTrussTransformSession } from "./transform-session";
-import { splitArbitraryCss } from "./test-css";
-import { applyReferencedKeyframes } from "./at-rule-refs";
-import type { ParsedTrussCss } from "../truss-css";
+import { TEST_CSS_BOOTSTRAP_ID } from "./test-css";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
-import { type DiagnosticOptions, type TransformDiagnostic } from "./types";
+import type { DiagnosticOptions, TransformDiagnostic } from "./types";
 
 export interface TrussPluginOptions {
   /** Path to the Css.json mapping file used for transforming files (relative to project root or absolute). */
@@ -38,11 +35,6 @@ export interface TrussVitePlugin {
     | { order?: "pre" | "post"; handler: (this: PluginContext, options: any, bundle: any) => void };
 }
 
-/** Prefix for virtual CSS module IDs generated from .css.ts files. */
-const VIRTUAL_CSS_PREFIX = "\0truss-css:";
-const VIRTUAL_TEST_CSS_PREFIX = "\0truss-test-css:";
-const CSS_TS_QUERY = "?truss-css";
-
 /**
  * The app's stylesheet. `import "virtual:truss.css"` in the entry module lets the framework
  * link and bundle Truss's CSS the same as any other stylesheet, which works for a Vite SPA and
@@ -62,20 +54,16 @@ const STYLESHEET_PLACEHOLDER_RE = /\.__truss_placeholder__\s*\{[^}]*\}/;
 const LEGACY_CSS_LINK_RE =
   /<link[^>]*href=["'][^"']*(?:virtual:truss\.css|__TRUSS_CSS_HASH__|\/assets\/truss-[0-9a-f]+\.css)["'][^>]*\/?>/;
 
-// Test-only bootstrap that injects merged library CSS and the spacing prelude as a virtual
-// module side effect. Vitest/jsdom does not import `virtual:truss.css` or run browser CSS
-// HMR; it imports modules directly into the test environment, so CSS has to enter via a
-// module side effect instead.
-const VIRTUAL_TEST_CSS_ID = "virtual:truss:test-css";
-const RESOLVED_VIRTUAL_TEST_CSS_ID = "\0" + VIRTUAL_TEST_CSS_ID;
+// Test-only bootstrap that injects merged library CSS and the spacing prelude, see TEST_CSS_BOOTSTRAP_ID.
+const RESOLVED_VIRTUAL_TEST_CSS_ID = "\0" + TEST_CSS_BOOTSTRAP_ID;
 
 /**
  * Vite plugin that transforms `Css.*.$` expressions from truss's CssBuilder DSL
  * into Truss-native style hash objects and `trussProps()`/`mergeProps()` runtime calls.
  *
  * Also supports `.css.ts` files: a `.css.ts` file with
- * `export const css = { ".selector": Css.blue.$ }` can keep other runtime exports,
- * while imports are supplemented with a virtual CSS side-effect module.
+ * `export const css = { ".selector": Css.blue.$ }` adds its selectors to the stylesheet, and its
+ * `css` export compiles to `undefined`, so any import of it loads the real module.
  *
  * In dev mode, serves CSS via a virtual endpoint that the injected runtime keeps in sync.
  * In production, emits a content-hashed CSS asset (e.g. `assets/truss-abc123.css`) for long-term caching.
@@ -187,31 +175,17 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
 
     // -- Virtual module resolution --
 
-    resolveId(source: string, importer: string | undefined) {
+    resolveId(source: string) {
       if (source === VIRTUAL_STYLESHEET_ID) {
         stylesheetImported = true;
         return RESOLVED_VIRTUAL_STYLESHEET_ID;
       }
 
-      if (source === VIRTUAL_TEST_CSS_ID || source === "/" + VIRTUAL_TEST_CSS_ID) {
+      if (source === TEST_CSS_BOOTSTRAP_ID || source === "/" + TEST_CSS_BOOTSTRAP_ID) {
         return RESOLVED_VIRTUAL_TEST_CSS_ID;
       }
 
-      // Handle .css.ts virtual modules
-      if (!source.endsWith(CSS_TS_QUERY)) return null;
-
-      const absolutePath = resolveImportPath(source.slice(0, -CSS_TS_QUERY.length), importer, projectRoot);
-
-      // Only handle it if the .css.ts file actually exists
-      if (!existsSync(absolutePath)) return null;
-
-      // Compile test side effects without evaluating build-only CssBuilder expressions.
-      if (isTest) return VIRTUAL_TEST_CSS_PREFIX + absolutePath;
-
-      // Return a virtual module ID that maps back to the source .css.ts file. Its rules go
-      // into collectCss(), so the module itself stays JavaScript and Vite writes no stylesheet
-      // for it — a CSS module here becomes a near-empty per-route asset the document must link.
-      return VIRTUAL_CSS_PREFIX + absolutePath;
+      return null;
     },
 
     load(id: string) {
@@ -237,50 +211,10 @@ __injectTrussCSS(${JSON.stringify(payload)});
 `;
       }
 
-      if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX)) {
-        const sourcePath = canonicalSourcePath(id.slice(VIRTUAL_TEST_CSS_PREFIX.length));
-        session.updateArbitraryCssRegistry(sourcePath, readFileSync(sourcePath, "utf8"), diagnostics(this));
-        const arbitraryRules = splitArbitraryCss(session.getArbitraryCss(sourcePath));
-        // Raw blocks name keyframes too, so this module carries the ones it animates.
-        const atRules: ParsedTrussCss = {
-          rules: [],
-          properties: [],
-          keyframes: [],
-          arbitraryCssBlocks: arbitraryRules.map((cssText) => ({ cssText })),
-        };
-        applyReferencedKeyframes(atRules, session.ensureMapping());
-        const payload = {
-          arbitraryRules,
-          ...(atRules.keyframes.length > 0 ? { keyframes: atRules.keyframes } : {}),
-          source: sourcePath,
-        };
-        return `
-import "${VIRTUAL_TEST_CSS_ID}";
-import { __injectTrussCSS } from "@homebound/truss/runtime";
-
-__injectTrussCSS(${JSON.stringify(payload)});
-`;
-      }
-
-      // Handle .css.ts virtual modules
-      if (!id.startsWith(VIRTUAL_CSS_PREFIX)) return null;
-
-      const sourcePath = id.slice(VIRTUAL_CSS_PREFIX.length);
-      const sourceCode = readFileSync(sourcePath, "utf8");
-
-      // Populate the arbitrary CSS registry on first load; subsequent updates
-      // happen in the transform hook when Vite re-transforms the changed file.
-      session.updateArbitraryCssRegistry(sourcePath, sourceCode, diagnostics(this));
-
-      // Return an empty module — the real CSS is served via collectCss(), either through
-      // the app's own `virtual:truss.css` import or, without one, the dev endpoint and the
-      // emitted truss-<hash>.css. So we avoid duplicating it in Vite's own CSS bundle.
-      return `/* [truss] ${sourcePath} — included via truss.css */\nexport {};`;
+      return null;
     },
 
     transform(code: string, id: string) {
-      // The virtual modules already contain compiled CSS or an empty body, not source TypeScript.
-      if (id.startsWith(VIRTUAL_TEST_CSS_PREFIX) || id.startsWith(VIRTUAL_CSS_PREFIX)) return null;
       // Only process JS/TS/JSX/TSX files outside node_modules
       if (!/\.[cm]?[jt]sx?(\?|$)/.test(id)) return null;
       const fileId = stripQueryAndHash(id);
@@ -288,8 +222,8 @@ __injectTrussCSS(${JSON.stringify(payload)});
 
       // All eligible files use one transformation flow, sharing an AST across these steps:
       // - A file with Truss expressions: compile the expressions.
-      // - A file with only CSS imports: rewrite the imports.
-      // - A .css.ts file: extract selector-based CSS while preserving runtime exports.
+      // - A .css.ts file: extract selector-based CSS and replace its `css` export with `undefined`,
+      //   while preserving its other runtime exports.
       // - Test mode: additionally bootstrap library CSS/spacing and inject per-file CSS.
       //   This is an option applied to the relevant files, not a separate parsing pipeline.
       //
@@ -298,12 +232,10 @@ __injectTrussCSS(${JSON.stringify(payload)});
       // Jest does not automatically run this Vite plugin.
       // It includes application components/helpers loaded by tests, not just test files.
       // Test environments load modules directly instead of the app's HTML stylesheet entry.
-      // The session also refreshes extracted CSS during HMR; virtual load only runs initially.
+      // An edited .css.ts re-runs this transform, and the session replaces that file's previous CSS.
       const result = session.transformCode(code, fileId, {
         debug,
         sourceMaps,
-        rewriteCssImports: true,
-        bootstrapImport: isTest ? VIRTUAL_TEST_CSS_ID : undefined,
         injectCss: isTest,
         ...diagnostics(this),
       });
@@ -422,18 +354,6 @@ function rehashStylesheet(bundle: Record<string, any>, item: any): void {
   }
 }
 
-function resolveImportPath(source: string, importer: string | undefined, projectRoot: string | undefined): string {
-  if (isAbsolute(source)) {
-    return source;
-  }
-
-  if (importer) {
-    return resolve(dirname(importer), source);
-  }
-
-  return resolve(projectRoot || process.cwd(), source);
-}
-
 /** Strip Vite query/hash suffixes from an id. */
 function stripQueryAndHash(id: string): string {
   const queryIndex = id.indexOf("?");
@@ -453,11 +373,6 @@ function stripQueryAndHash(id: string): string {
 
 function isNodeModulesFile(filePath: string): boolean {
   return filePath.replace(/\\/g, "/").includes("/node_modules/");
-}
-
-/** Absolute, forward-slashed path, matching the arbitrary CSS registry keys on every platform. */
-function canonicalSourcePath(filePath: string): string {
-  return resolve(filePath).replace(/\\/g, "/");
 }
 
 export type { TrussMapping, TrussMappingEntry } from "./types";

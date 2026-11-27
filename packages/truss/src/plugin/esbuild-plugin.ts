@@ -47,16 +47,15 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
     setup(build: EsbuildPluginBuild) {
       const outDir = build.initialOptions.outdir ?? join(process.cwd(), "dist");
 
-      build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, (args: { path: string }) => {
+      // Load every source file through the Truss transform, to compile its `Css.*.$` expressions
+      // and record its CSS for onEnd to write to truss.css. The "file" namespace limits this to
+      // real files, i.e. another plugin's virtual module has no file on disk to read.
+      build.onLoad({ filter: /\.[cm]?[jt]sx?$/, namespace: "file" }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
 
-        if (args.path.endsWith(".css.ts")) {
-          session.updateArbitraryCssRegistry(args.path, code, diagnostics);
-          return { contents: code, loader: loaderForPath(args.path) };
-        }
-
-        if (!code.includes("Css") && !code.includes("css=")) return undefined;
-
+        // A .css.ts file comes back with its `css` export replaced by `undefined`, and its selector CSS
+        // recorded for onEnd. I.e. `export const css = { body: Css.df.$ }` is bundled as
+        // `export const css = undefined`, and truss.css gets the `body` rule.
         const result = session.transformCode(code, args.path, diagnostics);
         if (!result) return undefined;
 
@@ -78,7 +77,7 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
 }
 
 /** Map file extension to esbuild loader type. */
-function loaderForPath(filePath: string): string {
+function loaderForPath(filePath: string): EsbuildLoader {
   if (filePath.endsWith(".tsx")) return "tsx";
   if (filePath.endsWith(".ts")) return "ts";
   if (filePath.endsWith(".jsx")) return "jsx";
@@ -93,8 +92,11 @@ function loaderForPath(filePath: string): string {
 interface EsbuildPluginBuild {
   initialOptions: { outdir?: string };
   onLoad(
-    options: { filter: RegExp },
-    callback: (args: { path: string }) => { contents: string; loader: string } | undefined,
+    options: { filter: RegExp; namespace?: string },
+    callback: (args: { path: string }) => { contents: string; loader: EsbuildLoader } | undefined,
   ): void;
   onEnd(callback: () => void): void;
 }
+
+/** The esbuild loaders this plugin returns; a plain `string` does not match esbuild's own `Plugin` type. */
+type EsbuildLoader = "tsx" | "ts" | "jsx" | "js";

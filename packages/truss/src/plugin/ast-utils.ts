@@ -88,7 +88,8 @@ export function removeCssImport(ast: t.File, cssBinding: string): void {
     const node = ast.program.body[i];
     if (!t.isImportDeclaration(node)) continue;
 
-    const cssSpecIndex = node.specifiers.findIndex((s) => t.isImportSpecifier(s) && s.local.name === cssBinding);
+    // Any specifier kind, so a default or namespace import that only a `.css.ts` export used goes too
+    const cssSpecIndex = node.specifiers.findIndex((s) => s.local.name === cssBinding);
     if (cssSpecIndex === -1) continue;
 
     if (node.specifiers.length === 1) {

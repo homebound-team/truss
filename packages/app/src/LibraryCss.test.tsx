@@ -94,7 +94,7 @@ describe("library css", () => {
     expect(late.lateClassName).toBe("late-library-css");
     // And the already-mounted element picks up the late rule
     expect(el).toHaveStyle({ display: "flex" });
-    // And a named import adds the virtual side effect for the same canonical source
+    // And a named import reaches the same module through the bare ".css" specifier
     const named = await import("./test-fixtures/LateLibraryImport");
     expect(named.lateClassName).toBe("late-library-css");
     // And the rule is delivered only once

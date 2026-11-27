@@ -33,6 +33,7 @@ describe("transform", () => {
       }] });
       const a = { color: "media_min_width_600px_blue" };
       const b = { color: "container_min_width_601px_blue" };
+      import "virtual:truss:test-css";
       `,
       `
       @media (min-width: 600px) {
@@ -57,12 +58,13 @@ describe("transform", () => {
     transform.toHaveTrussOutput(
       `
       import { Tokens } from "./Css";
-      import { __injectTrussCSS } from "@homebound/truss/runtime";
       __injectTrussCSS({
         rules: [{ priority: 2000.5, className: "bc_var", cssText: ".bc_var { border-color: var(--borderColor); }" }],
         properties: [{ varName: "--borderColor", cssText: "@property --borderColor { syntax: \\"*\\"; inherits: false; }" }]
       });
       const s = { borderColor: ["bc_var", { "--borderColor": "var(--theme-accent)" }] };
+      import "virtual:truss:test-css";
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
       `,
       `
       .bc_var { border-color: var(--borderColor); }
@@ -77,7 +79,10 @@ describe("transform", () => {
     // When we transform the file with CSS injection on
     const transform = expectTrussTransform(source, { injectCss: true });
     // Then no injection call is emitted
-    transform.toHaveTrussOutput(`import { __injectTrussCSS } from "@homebound/truss/runtime"; const s = {};`, "");
+    transform.toHaveTrussOutput(
+      `import { __injectTrussCSS } from "@homebound/truss/runtime"; const s = {}; import "virtual:truss:test-css";`,
+      "",
+    );
   });
 
   test("returns null for files without Css import", () => {
@@ -4911,27 +4916,6 @@ describe("transform", () => {
     );
   });
 
-  test("compiles CSS imports and chains without changing debug source lines", () => {
-    // Given a named arbitrary-CSS import before a source-located style chain
-    const source = `import { label } from "./theme.css.ts";
-import { Css } from "./Css";
-const s = Css.df.$;`;
-
-    // When the import rewrite shares the DSL's original AST
-    const transform = expectTrussTransform(source, { debug: true, rewriteCssImports: true });
-
-    // Then the inserted side-effect import does not move the original style's debug location
-    transform.toHaveTrussOutput(
-      `
-    import { label } from "./theme.css.ts";
-    import { TrussDebugInfo } from "@homebound/truss/runtime";
-    import "./theme.css.ts?truss-css";
-    const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
-    `,
-      ".df { display: flex; }",
-    );
-  });
-
   test("props calls preserve sibling spread order", () => {
     // Given two props spreads sharing an explicit className property
     const source = `import { Css } from "./Css";
@@ -4978,36 +4962,19 @@ const s = Css.df.$;`;
     );
   });
 
-  test("rewrites CSS imports in a file without Truss expressions", () => {
-    // Given a file with only a stylesheet import and an unrelated export
-    const source = 'import "./theme.css.ts"; export const value = 1;';
-
-    // When the same transformation flow processes its imports
-    const transform = expectTrussTransform(source, { rewriteCssImports: true });
-
-    // Then the import is rewritten without adding expression helpers
-    transform.toHaveTrussOutput('import "./theme.css.ts?truss-css"; export const value = 1;', "");
-  });
-
-  test("test bootstrap and CSS import rewrites keep original expression source locations", () => {
-    // Given a named stylesheet import before a Truss expression on line three
-    const source = `import { label } from "./theme.css.ts";
+  test("test bootstrap keeps original expression source locations", () => {
+    // Given a side-effect stylesheet import before a Truss expression on line three
+    const source = `import "./theme.css.ts";
 import { Css } from "./Css";
 export const s = Css.df.$;`;
 
     // When test-mode bootstrap, injection, and expression compilation share the original AST
-    const transform = expectTrussTransform(source, {
-      rewriteCssImports: true,
-      debug: true,
-      injectCss: true,
-      bootstrapImport: "virtual:truss:test-css",
-    });
+    const transform = expectTrussTransform(source, { debug: true, injectCss: true });
 
     // Then the new imports do not shift the debug location and both test CSS steps are emitted
     transform.toHaveTrussOutput(
-      `import { label } from "./theme.css.ts";
+      `import "./theme.css.ts";
     import { TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
-    import "./theme.css.ts?truss-css";
     __injectTrussCSS({ rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }] });
     export const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
     import "virtual:truss:test-css";`,
@@ -5044,14 +5011,88 @@ export const s = Css.df.$;`;
       "",
     );
   });
+
+  test("replaces a .css.ts css export with undefined and drops the Css import", () => {
+    // Given a .css.ts file with a Css chain, a Css.raw value, a plain string, and another runtime export
+    const source = `
+      import { Css } from "./Css";
+      export const zebraRows = "zebraRows";
+      export const css = { [\`.\${zebraRows} td\`]: Css.df.aic.$, h1: Css.raw\`margin: 0;\`, body: "margin: 0;" };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then every rule is in the CSS, the export is undefined, and nothing imports Css
+    transform.toHaveTrussOutput(
+      `
+      export const zebraRows = "zebraRows";
+      export const css = undefined;
+      `,
+      `
+      .zebraRows td { display: flex; align-items: center; }
+      h1 { margin: 0; }
+      body { margin: 0; }
+      `,
+    );
+  });
+
+  test("drops a .css.ts import that only a css export value used", () => {
+    // Given a .css.ts chain whose argument reads Tokens
+    const source = `
+      import { Css, Tokens } from "./Css";
+      export const css = { ".focus": Css.bc(Tokens.ThemeAccent).$ };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then Tokens goes away with Css
+    transform.toHaveTrussOutput(`export const css = undefined;`, ".focus { border-color: var(--theme-accent); }");
+  });
+
+  test("keeps a .css.ts import that other code still uses", () => {
+    // Given a .css.ts file that also exports Css for other modules
+    const source = `
+      import { Css } from "./Css";
+      export const css = { body: Css.df.$ };
+      export { Css };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then the import stays for the re-export
+    transform.toHaveTrussOutput(
+      `
+      import { Css } from "./Css";
+      export const css = undefined;
+      export { Css };
+      `,
+      "body { display: flex; }",
+    );
+  });
+
+  test("replaces a raw-string-only .css.ts css export with undefined", () => {
+    // Given a .css.ts file with no Css import, whose selector comes from a local const
+    const source = `
+      const selector = ".dialog > h2";
+      export const css = { [selector]: "margin: 0;" };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then the export is undefined, and the local const stays for the bundler to drop if unused
+    transform.toHaveTrussOutput(
+      `
+      const selector = ".dialog > h2";
+      export const css = undefined;
+      `,
+      ".dialog > h2 { margin: 0; }",
+    );
+  });
 });
 
 /** Expect helper around transform code and css outputs. */
-function expectTrussTransform(code: string, options?: TransformTrussOptions) {
-  const result = transformTruss(snippet(code), "test.tsx", mapping, options);
+function expectTrussTransform(code: string, options?: TransformTrussOptions, filename = "test.tsx") {
+  const result = transformTruss(snippet(code), filename, mapping, options);
   return expect({
     code: result?.code ? normalize(result.code) : null,
-    css: normalize(result?.css ?? ""),
+    // A .css.ts file's selector CSS is its output; other files emit atomic CSS
+    css: normalize(result?.arbitraryCss ?? result?.css ?? ""),
   });
 }
 

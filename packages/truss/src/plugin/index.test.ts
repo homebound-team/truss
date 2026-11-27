@@ -120,23 +120,19 @@ describe("trussPlugin", () => {
     );
   });
 
-  test("production rejects unsupported .css.ts in virtual load and transform", () => {
+  test("production rejects unsupported .css.ts in transform", () => {
     // Given a mapping without atomic abbreviations
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {});
     // And an arbitrary CSS file with an unsupported spread
     const id = join(root, "src", "Button.css.ts");
     const code = "export const css = { ...styles };";
-    writeFileSync(id, code);
     // And a build using the default unsupported-pattern policy
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {}, { root, command: "build", mode: "production" });
     invokeHook(plugin.buildStart, {});
-    const virtualId = invokeHook(plugin.resolveId, {}, "./Button.css.ts?truss-css", join(root, "src", "App.tsx"));
-    expect(virtualId).toBe("\0truss-css:" + id);
 
-    // When Vite loads then transforms the CSS, then both hooks reject the spread
-    expect(() => invokeHook(plugin.load, {}, virtualId)).toThrow("spread elements in css.ts export");
+    // When Vite transforms the CSS file, then the transform rejects the spread
     expect(() => runTransform(plugin, code, id)).toThrow("spread elements in css.ts export");
   });
 
@@ -425,16 +421,14 @@ describe("trussPlugin", () => {
       export const _injectTrussCSS = "occupied";
       export const __injectTrussCSS = "also occupied";
       export const css = { ".late": Css.df.$ };`;
-    writeFileSync(sourcePath, code);
     // When we transform the late file
     const result = runTransform(plugin, code, `/@fs/${sourcePath}?v=1`);
     // Then the injection uses an aliased helper that avoids the existing exports
     expect(n(result?.code ?? "")).toBe(
       n(`
-      import { Css } from "./Css";
       export const _injectTrussCSS = "occupied";
       export const __injectTrussCSS = "also occupied";
-      export const css = { ".late": Css.df.$ };
+      export const css = undefined;
       import "virtual:truss:test-css";
       import { __injectTrussCSS as __injectTrussCSS_1 } from "@homebound/truss/runtime";
       __injectTrussCSS_1({ arbitraryRules: [".late {\\n  display: flex;\\n}"], source: ${JSON.stringify(sourcePath)} });
@@ -442,16 +436,6 @@ describe("trussPlugin", () => {
     );
     // And the bootstrap module is unchanged
     expect(getTestCssModule(plugin)).toBe(bootstrap);
-    // And the late file's own module delivers the same rule
-    const resolvedId = invokeHook(plugin.resolveId, {}, "./Late.css.ts?truss-css", join(root, "src", "App.tsx"));
-    expect(resolvedId).toBe("\0truss-test-css:" + sourcePath);
-    expect(n(invokeHook(plugin.load, {}, resolvedId) as string)).toBe(
-      n(`
-      import "virtual:truss:test-css";
-      import { __injectTrussCSS } from "@homebound/truss/runtime";
-      __injectTrussCSS({"arbitraryRules":[".late {\\n  display: flex;\\n}"],"source":${JSON.stringify(sourcePath)}});
-    `),
-    );
   });
 
   test.each([
@@ -519,7 +503,7 @@ describe("trussPlugin", () => {
     expect(n(result?.code ?? "")).toBe(
       n(`
         ${scenario.expectedImports}
-        export const css = { ".target": "color: red;" };
+        export const css = undefined;
         import "virtual:truss:test-css";
         ${scenario.addedImport}
         ${scenario.helper}({ arbitraryRules: [".target {\\n  color: red;\\n}"], source: ${JSON.stringify(sourcePath)} });
@@ -527,37 +511,28 @@ describe("trussPlugin", () => {
     );
   });
 
-  test("test mode compiles side-effect-only CSS without evaluating build-only expressions", () => {
+  test("test mode compiles build-only CSS expressions so the module never evaluates them", () => {
     // Given a CSS file with a setVar expression that cannot execute in CssBuilder
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), {});
     const sourcePath = join(root, "src", "BuildOnly.css.ts");
-    writeFileSync(
-      sourcePath,
-      'import { Css } from "./Css"; export const css = { ".build-only": Css.setVar({ "--test-color": "red" }).$ };',
-    );
-    // And a test-mode plugin receiving a side-effect-only import
+    const code =
+      'import { Css } from "./Css"; export const css = { ".build-only": Css.setVar({ "--test-color": "red" }).$ };';
+    // And a test-mode plugin
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
     invokeHook(plugin.buildStart, {});
-    const importer = join(root, "src", "App.tsx");
-    // When we transform the importer
-    const result = runTransform(plugin, 'import "./BuildOnly.css";', importer);
-    // Then the import points at the compiled CSS module
-    expect(result?.code).toBe('import "./BuildOnly.css.ts?truss-css";\nimport "virtual:truss:test-css";');
-    // And that module injects the rule the setVar expression declares
-    const resolvedId = invokeHook(plugin.resolveId, {}, "./BuildOnly.css.ts?truss-css", importer);
-    expect(resolvedId).toBe("\0truss-test-css:" + sourcePath);
-    const loaded = invokeHook(plugin.load, {}, resolvedId) as string;
-    expect(n(loaded)).toBe(
+    // When we transform the real module, as any import of it loads it
+    const result = runTransform(plugin, code, sourcePath);
+    // Then the export holds no setVar call, the Css import is gone, and the module injects the rule
+    expect(n(result?.code ?? "")).toBe(
       n(`
+      export const css = undefined;
       import "virtual:truss:test-css";
       import { __injectTrussCSS } from "@homebound/truss/runtime";
-      __injectTrussCSS({"arbitraryRules":[".build-only {\\n  --test-color: red;\\n}"],"source":${JSON.stringify(sourcePath)}});
+      __injectTrussCSS({ arbitraryRules: [".build-only {\\n  --test-color: red;\\n}"], source: ${JSON.stringify(sourcePath)} });
     `),
     );
-    // And the loaded module is not transformed again
-    expect(runTransform(plugin, loaded, resolvedId as string)).toBeNull();
   });
 
   test("production arbitrary CSS follows codepoint source order instead of discovery order", () => {
@@ -824,33 +799,23 @@ describe("trussPlugin", () => {
     expect(emitted).toEqual([]);
   });
 
-  test("a .css.ts side-effect import compiles to an empty module, not a stylesheet", () => {
+  test("a .css.ts module compiles to JavaScript without the CssBuilder, not a stylesheet", () => {
     // Given a .css.ts file with an arbitrary selector
     const root = createTempRoot();
     writeMapping(join(root, "src", "Css.json"), { df: { kind: "static", defs: { display: "flex" } } });
     const cssTsPath = join(root, "src", "App.css.ts");
-    mkdirSync(dirname(cssTsPath), { recursive: true });
-    writeFileSync(cssTsPath, 'import { Css } from "./Css";\nexport const css = { ".card": Css.df.$ };\n', "utf8");
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     runConfigHooks(plugin, root);
 
-    // When the `?truss-css` side effect is resolved and loaded
-    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", cssTsPath);
-    const moduleCode = invokeHook(plugin.load, {} as unknown, resolvedId);
-
-    // Then it is JavaScript, so Vite writes no per-route stylesheet for it
-    expect(moduleCode).toBe(`/* [truss] ${cssTsPath} — included via truss.css */\nexport {};`);
-    // And the rules still reach the collected stylesheet
-    expect(getVirtualCss(plugin)).toBe(
-      [
-        ":root { --t-spacing: 8px; }",
-        "/* @truss arbitrary:start */",
-        ".card {",
-        "  display: flex;",
-        "}",
-        "/* @truss arbitrary:end */",
-      ].join("\n"),
+    // When Vite transforms the real module, which any import form loads
+    const result = runTransform(
+      plugin,
+      'import { Css } from "./Css";\nexport const css = { ".card": Css.df.$ };\n',
+      cssTsPath,
     );
+
+    // Then it stays JavaScript, so Vite writes no per-route stylesheet, and it no longer imports Css
+    expect(result?.code).toBe("export const css = undefined;");
   });
 
   test("dev virtual CSS orders static base rules before variable rules for the same property", () => {
@@ -1007,17 +972,13 @@ describe("trussPlugin", () => {
     invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
     invokeHook(plugin.buildStart, {} as any);
 
-    // App file imports the .css.ts — triggers import rewriting
+    // App file imports the .css.ts by name, so Vite loads and transforms the real module
     runTransform(
       plugin,
       `import { css } from "./App.css.ts"; const el = <div className={css} />;`,
       join(root, "src", "App.tsx"),
     );
-
-    // Simulate resolving and loading the virtual CSS module
-    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", appCssTsPath);
-    expect(resolvedId).toBeTruthy();
-    invokeHook(plugin.load, {} as unknown, resolvedId);
+    runTransform(plugin, readFileSync(appCssTsPath, "utf8"), appCssTsPath);
 
     // The merged CSS should include both the library's arbitrary block and the app's .css.ts content
     const css = getVirtualCss(plugin);
@@ -1069,25 +1030,17 @@ describe("trussPlugin", () => {
     invokeHook(plugin.configResolved, {} as any, { root, command: "serve", mode: "development" } as any);
     invokeHook(plugin.buildStart, {} as any);
 
-    // The importing file uses bare `from "./App.css"` (no .ts) — rewriteCssTsImports
-    // detects the .css.ts file on disk and adds a ?truss-css side-effect import
+    // The importing file uses bare `from "./App.css"` (no .ts) and stays unchanged,
+    // because Vite's extension lookup resolves it to the real App.css.ts module
     const result = runTransform(
       plugin,
       `import { css } from "./App.css"; const el = <div className={css} />;`,
       join(root, "src", "Page.tsx"),
     );
-    expect(n(result?.code ?? "")).toBe(
-      n(`
-        import { css } from "./App.css";
-        import "./App.css.ts?truss-css";
-        const el = <div className={css} />;
-      `),
-    );
+    expect(result).toBeNull();
 
-    // Simulate Vite resolving and loading the virtual CSS module
-    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", appCssTsPath);
-    expect(resolvedId).toBeTruthy();
-    invokeHook(plugin.load, {} as unknown, resolvedId);
+    // Simulate Vite loading and transforming the real module
+    runTransform(plugin, readFileSync(appCssTsPath, "utf8"), appCssTsPath);
 
     // The .css.ts content should be in the merged output
     const css = getVirtualCss(plugin);
@@ -1240,8 +1193,7 @@ describe("trussPlugin", () => {
     );
     const plugin = trussPlugin({ mapping: "./src/Css.json" });
     runConfigHooks(plugin, root);
-    const resolvedId = invokeHook(plugin.resolveId, {} as unknown, "./App.css.ts?truss-css", cssTsPath);
-    invokeHook(plugin.load, {} as unknown, resolvedId);
+    runTransform(plugin, readFileSync(cssTsPath, "utf8"), cssTsPath);
 
     // When the stylesheet is served
     const css = getVirtualCss(plugin);
@@ -1258,6 +1210,35 @@ describe("trussPlugin", () => {
         "}",
         "/* @truss arbitrary:end */",
       ].join("\n"),
+    );
+  });
+
+  test("test mode injects the keyframes a .css.ts raw block animates", () => {
+    // Given a mapping with a configured keyframe
+    const root = createTempRoot();
+    writeMapping(
+      join(root, "src", "Css.json"),
+      {},
+      { keyframes: { spin: "@keyframes spin { to { transform: rotate(360deg); } }" } },
+    );
+    // And a test-mode plugin
+    const plugin = trussPlugin({ mapping: "./src/Css.json" });
+    invokeHook(plugin.configResolved, {}, { root, command: "serve", mode: "test" });
+    invokeHook(plugin.buildStart, {});
+    const sourcePath = join(root, "src", "Loader.css.ts");
+    const code = 'export const css = { ".loader": "animation: spin 1s;" };';
+
+    // When the real module is transformed
+    const result = runTransform(plugin, code, sourcePath);
+
+    // Then its injection carries the keyframe
+    expect(n(result?.code ?? "")).toBe(
+      n(`
+      export const css = undefined;
+      import "virtual:truss:test-css";
+      import { __injectTrussCSS } from "@homebound/truss/runtime";
+      __injectTrussCSS({ arbitraryRules: [".loader {\\n  animation: spin 1s;\\n}"], keyframes: [{ name: "spin", cssText: "@keyframes spin { to { transform: rotate(360deg); } }" }], source: ${JSON.stringify(sourcePath)} });
+    `),
     );
   });
 });
