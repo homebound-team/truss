@@ -46,6 +46,16 @@ export interface TrussVitePlugin {
  * It registers (or, in tests, injects) the file's CSS without evaluating the real module, whose
  * `Css.*.$` values would pull in the CssBuilder runtime. Imports with specifiers load the real
  * module, and its own transform handles the CSS.
+ *
+ * What the virtual module contains depends on how CSS reaches the document:
+ *
+ * - Dev and build: an empty module, `export {}`. Loading it only records the file's rules in the
+ *   session. The document gets them from the app's stylesheet, `virtual:truss.css`, together
+ *   with every other Truss rule. I.e. `body { margin: 0 }` from App.css.ts is in truss.css, and
+ *   no JavaScript chunk contains it.
+ * - Tests (Vitest/jsdom): a module that calls `__injectTrussCSS(payload)`. A test loads modules
+ *   directly and never loads `virtual:truss.css`, so each module must add its own rules to the
+ *   document when it evaluates. An empty module here would deliver no CSS.
  */
 const VIRTUAL_CSS_PREFIX = "\0truss-css:";
 
@@ -110,7 +120,12 @@ export function trussPlugin(opts: TrussPluginOptions): TrussVitePlugin {
   }
 
   /**
-   * Options for every transform, so a virtual `.css.ts` load and the real module share one cache entry.
+   * Options for the two places that run session.transformCode: the transform hook and the load hook.
+   *
+   * The transform hook compiles real modules. The load hook compiles the source behind the virtual
+   * module of a side-effect-only `.css.ts` import. The same options give both one cache entry, so a
+   * file reached both ways is parsed once. I.e. `import "./App.css.ts"` in main.tsx loads the
+   * virtual module, and `import { note } from "./App.css.ts"` in App.tsx loads the real module.
    *
    * "Test mode" (injectCss) means Vite's config.mode === "test", normally set by Vitest when
    * an application uses this plugin in its tests. It is not a check for NODE_ENV or Jest;
@@ -250,14 +265,22 @@ __injectTrussCSS(${JSON.stringify(payload)});
       // Handle .css.ts virtual modules
       if (!id.startsWith(VIRTUAL_CSS_PREFIX)) return null;
 
-      // Run the same transform as the real module, which registers the file's CSS for
-      // collectCss(), and reuses its cached result when both import forms reach one file.
+      // This virtual module is a different module from the real `.css.ts` file. I.e. the id is
+      // `\0truss-css:/app/src/App.css.ts`, not `/app/src/App.css.ts`. The transform rewrote the
+      // side-effect-only import to point here, so Vite never loads the real file for that import.
+      // Read the real file from disk and run the same transform the real module gets. That
+      // registers its CSS for collectCss(), and reuses the cached result when a named import
+      // also loads the real module.
       const sourcePath = canonicalSourcePath(id.slice(VIRTUAL_CSS_PREFIX.length));
       const result = session.transformCode(readFileSync(sourcePath, "utf8"), sourcePath, transformOptions(this));
       // A virtual id names no file, so without this, dev ignores edits to the .css.ts file.
       this.addWatchFile?.(sourcePath);
 
       // Tests inject the CSS when this module evaluates, without evaluating build-only CssBuilder expressions.
+      // Vitest/jsdom never loads `virtual:truss.css`, so this call is the only way the file's rules
+      // reach the test document. I.e. for `export const css = { body: Css.m0.$ }` the payload is
+      // `{ arbitraryRules: [<the body rule>], source: "/app/src/App.css.ts" }`.
+      // The bootstrap import first injects the library CSS and the spacing prelude.
       if (isTest) {
         const payload = createArbitraryTestCssPayload(result?.arbitraryCss ?? "", sourcePath, session.ensureMapping());
         return `
@@ -271,6 +294,8 @@ __injectTrussCSS(${JSON.stringify(payload)});
       // Return an empty module — the real CSS is served via collectCss(), either through
       // the app's own `virtual:truss.css` import or, without one, the dev endpoint and the
       // emitted truss-<hash>.css. So we avoid duplicating it in Vite's own CSS bundle.
+      // The transformCode call above already recorded the rules; this module only has to exist
+      // so that the rewritten import resolves.
       return `/* [truss] ${sourcePath} — included via truss.css */\nexport {};`;
     },
 
