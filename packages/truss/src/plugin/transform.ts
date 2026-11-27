@@ -27,7 +27,6 @@ import { createArbitraryTestCssPayload, createTestCssPayload, TEST_CSS_BOOTSTRAP
 import { transformCssAst } from "./transform-css";
 import { buildMaybeIncDeclaration, buildRuntimeLookupDeclaration } from "./emit-style-hash";
 import { Diagnostic } from "./diagnostic";
-import { rewriteCssTsImports } from "./rewrite-css-ts-imports";
 import {
   rewriteExpressionSites,
   type ExpressionSite,
@@ -42,8 +41,6 @@ export interface TransformResult {
   css: string;
   /** The atomic CSS rules collected during this transform, keyed by class name. */
   rules: Map<string, AtomicRule>;
-  /** Bare .css side-effect imports depend on whether a matching .css.ts exists, not just this source text. */
-  cssImportDependencies?: ReadonlyMap<string, boolean>;
   /** Selector-based CSS extracted from a .css.ts file, including an empty stylesheet. */
   arbitraryCss?: string;
 }
@@ -57,8 +54,6 @@ export interface TransformTrussOptions extends DiagnosticOptions {
    * and import the test CSS bootstrap even when a file has no local Truss expressions.
    */
   injectCss?: boolean;
-  /** Vite can rewrite CSS side-effect imports in the same parse as Truss expressions. */
-  rewriteCssImports?: boolean;
 }
 
 const RUNTIME_MODULE = "@homebound/truss/runtime";
@@ -67,9 +62,10 @@ const RUNTIME_MODULE = "@homebound/truss/runtime";
 const RUNTIME_HELPER_ORDER: RuntimeHelperName[] = ["trussProps", "mergeProps", "TrussDebugInfo", "maybeCssVar"];
 
 /**
- * Transform a file's CSS imports, Truss expressions, and test injections using one AST.
+ * Transform a file's Truss expressions and test injections using one AST.
  *
- * .css.ts files contribute selector-based CSS while keeping their runtime exports.
+ * .css.ts files contribute selector-based CSS, and their `css` export compiles to plain strings,
+ * so every import form loads the real module without evaluating the CssBuilder.
  * Returns null when neither the JavaScript nor the CSS registry needs an update.
  */
 export function transformTruss(
@@ -80,12 +76,10 @@ export function transformTruss(
 ): TransformResult | null {
   const hasExpressions = code.includes("Css") || code.includes("css=");
   const isArbitraryCss = filename.endsWith(".css.ts");
-  const mayRewriteImports = options.rewriteCssImports && code.includes(".css");
-  if (!hasExpressions && !isArbitraryCss && !mayRewriteImports && !options.injectCss) return null;
+  if (!hasExpressions && !isArbitraryCss && !options.injectCss) return null;
 
   const ast = parseModule(code, filename);
-  const imports = mayRewriteImports ? rewriteCssTsImports(ast, filename) : undefined;
-  let changed = imports?.changed ?? false;
+  let changed = false;
 
   // Vitest loads application modules directly rather than through the app's HTML entry.
   // ESM caching evaluates this bootstrap once per graph; per-file injections dedupe rules.
@@ -106,7 +100,15 @@ export function transformTruss(
   let expressions: Pick<TransformResult, "css" | "rules"> | null = null;
   let arbitraryCss: string | undefined;
   if (isArbitraryCss) {
-    arbitraryCss = transformCssAst(ast, filename, mapping, options).trim();
+    // Imports that only the compiled values used go away with them, i.e. `Css` and `Tokens`
+    // in `Css.bc(Tokens.Accent).$`, so the module no longer loads the CssBuilder at runtime.
+    const referencedImports = referencedImportNames(ast);
+    const cssTs = transformCssAst(ast, filename, mapping, options);
+    arbitraryCss = cssTs.css.trim();
+    if (cssTs.rewritten) {
+      removeUnreferencedImports(ast, referencedImports);
+      changed = true;
+    }
     if (options.injectCss) {
       appendTestCssInjection(ast, filename, arbitraryCss, mapping);
       changed = true;
@@ -127,7 +129,6 @@ export function transformTruss(
       return expressions?.css ?? "";
     },
     rules: expressions?.rules ?? new Map(),
-    cssImportDependencies: imports?.dependencies,
     arbitraryCss,
   };
 }
@@ -135,7 +136,7 @@ export function transformTruss(
 /**
  * Rewrite Truss expressions in the shared AST and collect their atomic rules.
  *
- * An import rewrite or test bootstrap alone does not prove the Css binding can be removed;
+ * A test bootstrap alone does not prove the Css binding can be removed;
  * leave it intact when there are no expressions, i.e. a file that re-exports Css.
  */
 function compileExpressions(
@@ -334,7 +335,7 @@ function compileExpressions(
 
 /**
  * Append an __injectTrussCSS call so a .css.ts file delivers its compiled CSS when it
- * evaluates in tests, including through dynamic imports the import rewrite cannot see.
+ * evaluates in tests, including through dynamic imports.
  *
  * Reuses an existing runtime import of the helper, otherwise reserves a collision-free local
  * name, so an exported __injectTrussCSS binding in the file still works.
@@ -485,6 +486,35 @@ function collectRuntimeLookups(chains: ResolvedChain[]): Map<string, Record<stri
     }
   }
   return lookups;
+}
+
+/** Collect the module's imported names that the code references, i.e. `Css` in `Css.df.$`. */
+function referencedImportNames(ast: t.File): Set<string> {
+  const names = new Set<string>();
+  traverse(ast, {
+    Program(path) {
+      path.scope.crawl();
+      for (const [name, binding] of Object.entries(path.scope.bindings)) {
+        if (binding.kind === "module" && binding.referenced) names.add(name);
+      }
+      path.stop();
+    },
+  });
+  return names;
+}
+
+/**
+ * Remove the imports that were referenced before a rewrite and no longer are.
+ *
+ * Mirrors how the expression transform drops its `Css` import, and also drops other imports that only
+ * compiled values used. I.e. after `Css.bc(Tokens.Accent).$` becomes `"border-color: var(--accent);"`,
+ * `import { Css, Tokens } from "./Css"` is removed. An import still used elsewhere stays.
+ */
+function removeUnreferencedImports(ast: t.File, referencedBefore: Set<string>): void {
+  const stillReferenced = referencedImportNames(ast);
+  for (const name of referencedBefore) {
+    if (!stillReferenced.has(name)) removeCssImport(ast, name);
+  }
 }
 
 /** Babel's generator drops the blank line after the import block; put it back when the source had one. */

@@ -1,17 +1,8 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { resolve } from "path";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
-import { tmpdir } from "os";
 import { createTrussTransformSession } from "./transform-session";
 
-const temporaryDirectories: string[] = [];
-
 describe("transform-session", () => {
-  afterEach(() => {
-    for (const directory of temporaryDirectories) rmSync(directory, { recursive: true, force: true });
-    temporaryDirectories.length = 0;
-  });
-
   test("a new build restores cached rules only for modules it reaches", () => {
     // Given a build with two independently styled modules
     const session = createSession();
@@ -99,38 +90,6 @@ describe("transform-session", () => {
     expect(errors).toHaveLength(2);
   });
 
-  test("a cached transform notices a new css.ts companion for a bare CSS import", () => {
-    // Given a compiled module whose stylesheet was ordinary CSS
-    const directory = createTemporaryDirectory();
-    const session = createSession();
-    const source = 'import "./theme.css"; import { Css } from "./Css"; const s = Css.df.$;';
-    writeFileSync(resolve(directory, "theme.css"), "body { margin: 0; }");
-    session.transformCode(source, resolve(directory, "a.ts"), { rewriteCssImports: true });
-
-    // When the unchanged import gains a build-time stylesheet companion
-    writeFileSync(resolve(directory, "theme.css.ts"), "export const css = {};");
-    const result = session.transformCode(source, resolve(directory, "a.ts"), { rewriteCssImports: true });
-
-    // Then the transform rechecks resolution rather than replaying its stale import
-    expect(result?.code).toBe('import "./theme.css.ts?truss-css";\nconst s = {\n  display: "df"\n};');
-  });
-
-  test("a former no-op can rewrite a new stylesheet without removing a re-exported Css binding", () => {
-    // Given a module with no DSL expressions and an ordinary stylesheet import
-    const directory = createTemporaryDirectory();
-    const session = createSession();
-    const source = 'import { Css } from "./Css"; import "./theme.css"; export { Css };';
-    writeFileSync(resolve(directory, "theme.css"), "body { margin: 0; }");
-    session.transformCode(source, resolve(directory, "a.ts"), { rewriteCssImports: true });
-
-    // When a build-time stylesheet makes the unchanged module need an import-only rewrite
-    writeFileSync(resolve(directory, "theme.css.ts"), "export const css = {};");
-    const result = session.transformCode(source, resolve(directory, "a.ts"), { rewriteCssImports: true });
-
-    // Then the import is updated while the non-DSL use of Css stays valid
-    expect(result?.code).toBe('import { Css } from "./Css";\nimport "./theme.css.ts?truss-css";\nexport { Css };');
-  });
-
   test("a cached no-op does not suppress a later test bootstrap for the same source", () => {
     // Given a plain application file previously requested without test bootstrapping
     const session = createSession();
@@ -148,12 +107,12 @@ describe("transform-session", () => {
     // Given selector-based CSS extracted by the shared module transformation flow
     const session = createSession();
     const source = 'export const css = { body: "margin: 0;" }; export const className = "body";';
-    session.transformCode(source, "a.css.ts", { rewriteCssImports: true });
+    session.transformCode(source, "a.css.ts");
     session.collectCss(false);
 
     // When the next build reaches the unchanged stylesheet module
     session.reset();
-    session.transformCode(source, "a.css.ts", { rewriteCssImports: true });
+    session.transformCode(source, "a.css.ts");
 
     // Then replaying the cached module also restores its stylesheet to the new registry
     expect(session.collectCss(false)).toBe(
@@ -194,11 +153,4 @@ function createSession() {
     mappingPath: () => resolve(__dirname, "../../../app/src/Css.json"),
     projectRoot: () => resolve(__dirname),
   });
-}
-
-/** Own each test's stylesheet files so filesystem-dependent cache checks stay isolated. */
-function createTemporaryDirectory() {
-  const directory = mkdtempSync(resolve(tmpdir(), "truss-transform-session-"));
-  temporaryDirectories.push(directory);
-  return directory;
 }

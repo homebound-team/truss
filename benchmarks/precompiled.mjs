@@ -27,12 +27,7 @@ export async function precompile(dir) {
     if (name.endsWith(".css.ts")) {
       writeFileSync(file, "export {};\n");
     } else {
-      writeFileSync(
-        file,
-        (transformed?.code ?? original)
-          .replace(/import\s*["'][^"']+\?truss-css["'];?/g, "")
-          .replace('"virtual:truss.css"', '"./precompiled.css"'),
-      );
+      writeFileSync(file, (transformed?.code ?? original).replace('"virtual:truss.css"', '"./precompiled.css"'));
     }
   }
   const id = plugin.resolveId("virtual:truss.css");

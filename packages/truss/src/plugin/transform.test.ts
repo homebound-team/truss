@@ -4916,26 +4916,6 @@ describe("transform", () => {
     );
   });
 
-  test("compiles CSS imports and chains without changing debug source lines", () => {
-    // Given a side-effect arbitrary-CSS import before a source-located style chain
-    const source = `import "./theme.css.ts";
-import { Css } from "./Css";
-const s = Css.df.$;`;
-
-    // When the import rewrite shares the DSL's original AST
-    const transform = expectTrussTransform(source, { debug: true, rewriteCssImports: true });
-
-    // Then the rewritten import does not move the original style's debug location
-    transform.toHaveTrussOutput(
-      `
-    import "./theme.css.ts?truss-css";
-    import { TrussDebugInfo } from "@homebound/truss/runtime";
-    const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
-    `,
-      ".df { display: flex; }",
-    );
-  });
-
   test("props calls preserve sibling spread order", () => {
     // Given two props spreads sharing an explicit className property
     const source = `import { Css } from "./Css";
@@ -4982,29 +4962,18 @@ const s = Css.df.$;`;
     );
   });
 
-  test("rewrites CSS imports in a file without Truss expressions", () => {
-    // Given a file with only a stylesheet import and an unrelated export
-    const source = 'import "./theme.css.ts"; export const value = 1;';
-
-    // When the same transformation flow processes its imports
-    const transform = expectTrussTransform(source, { rewriteCssImports: true });
-
-    // Then the import is rewritten without adding expression helpers
-    transform.toHaveTrussOutput('import "./theme.css.ts?truss-css"; export const value = 1;', "");
-  });
-
-  test("test bootstrap and CSS import rewrites keep original expression source locations", () => {
+  test("test bootstrap keeps original expression source locations", () => {
     // Given a side-effect stylesheet import before a Truss expression on line three
     const source = `import "./theme.css.ts";
 import { Css } from "./Css";
 export const s = Css.df.$;`;
 
     // When test-mode bootstrap, injection, and expression compilation share the original AST
-    const transform = expectTrussTransform(source, { rewriteCssImports: true, debug: true, injectCss: true });
+    const transform = expectTrussTransform(source, { debug: true, injectCss: true });
 
     // Then the new imports do not shift the debug location and both test CSS steps are emitted
     transform.toHaveTrussOutput(
-      `import "./theme.css.ts?truss-css";
+      `import "./theme.css.ts";
     import { TrussDebugInfo, __injectTrussCSS } from "@homebound/truss/runtime";
     __injectTrussCSS({ rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }] });
     export const s = { display: ["df", new TrussDebugInfo("test.tsx:3")] };
@@ -5042,14 +5011,84 @@ export const s = Css.df.$;`;
       "",
     );
   });
+
+  test("compiles a .css.ts css export to declaration strings and drops the Css import", () => {
+    // Given a .css.ts file with a Css chain and another runtime export
+    const source = `
+      import { Css } from "./Css";
+      export const zebraRows = "zebraRows";
+      export const css = { [\`.\${zebraRows} td\`]: Css.df.aic.$, body: "margin: 0;" };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then the chain is a plain string, the raw value is unchanged, and nothing imports Css
+    transform.toHaveTrussOutput(
+      `
+      export const zebraRows = "zebraRows";
+      export const css = { [\`.\${zebraRows} td\`]: "display: flex; align-items: center;", body: "margin: 0;" };
+      `,
+      `
+      .zebraRows td { display: flex; align-items: center; }
+      body { margin: 0; }
+      `,
+    );
+  });
+
+  test("drops a .css.ts import that only a compiled chain argument used", () => {
+    // Given a .css.ts chain whose argument reads Tokens
+    const source = `
+      import { Css, Tokens } from "./Css";
+      export const css = { ".focus": Css.bc(Tokens.ThemeAccent).$ };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then Tokens goes away with Css
+    transform.toHaveTrussOutput(
+      `export const css = { ".focus": "border-color: var(--theme-accent);" };`,
+      ".focus { border-color: var(--theme-accent); }",
+    );
+  });
+
+  test("compiles a .css.ts Css.raw value to a plain string", () => {
+    // Given a .css.ts value written with the Css.raw tag
+    const source = `
+      import { Css } from "./Css";
+      export const css = { body: Css.raw\`margin: 0;\` };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then the tag no longer reads Css at runtime
+    transform.toHaveTrussOutput(`export const css = { body: "margin: 0;" };`, "body { margin: 0; }");
+  });
+
+  test("keeps a .css.ts import that other code still uses", () => {
+    // Given a .css.ts file that also exports Css for other modules
+    const source = `
+      import { Css } from "./Css";
+      export const css = { body: Css.df.$ };
+      export { Css };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then the import stays for the re-export
+    transform.toHaveTrussOutput(
+      `
+      import { Css } from "./Css";
+      export const css = { body: "display: flex;" };
+      export { Css };
+      `,
+      "body { display: flex; }",
+    );
+  });
 });
 
 /** Expect helper around transform code and css outputs. */
-function expectTrussTransform(code: string, options?: TransformTrussOptions) {
-  const result = transformTruss(snippet(code), "test.tsx", mapping, options);
+function expectTrussTransform(code: string, options?: TransformTrussOptions, filename = "test.tsx") {
+  const result = transformTruss(snippet(code), filename, mapping, options);
   return expect({
     code: result?.code ? normalize(result.code) : null,
-    css: normalize(result?.css ?? ""),
+    // A .css.ts file's selector CSS is its output; other files emit atomic CSS
+    css: normalize(result?.arbitraryCss ?? result?.css ?? ""),
   });
 }
 

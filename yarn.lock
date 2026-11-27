@@ -530,6 +530,7 @@ __metadata:
     change-case: "npm:^5.4.4"
     css-tree: "npm:^3.2.1"
     csstype: "npm:^3.2.3"
+    esbuild: "npm:^0.27.0"
     jiti: "npm:^2.7.0"
     jsdom: "npm:^30.0.1"
     react: "npm:^19.2.8"

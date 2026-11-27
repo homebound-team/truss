@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { tmpdir } from "os";
+import { build } from "esbuild";
 import { trussEsbuildPlugin } from "./esbuild-plugin";
 
 const tempDirs: string[] = [];
@@ -106,7 +107,14 @@ describe("trussEsbuildPlugin", () => {
     });
     expect(cssTsResult).toBeDefined();
     expect(cssTsResult?.loader).toBe("ts");
-    expect(cssTsResult?.contents).toBe(cssTsSource);
+    expect(cssTsResult?.contents).toBe(
+      [
+        'export const zebraRows = "zebraRows";',
+        "export const css = {",
+        '  [`.${zebraRows} tbody tr:nth-child(even) td`]: "color: #353535;"',
+        "};",
+      ].join("\n"),
+    );
 
     onLoadCallback({
       path: join(root, "src", "DataGrid.tsx"),
@@ -327,86 +335,41 @@ describe("trussEsbuildPlugin", () => {
     const js = onLoadCallback({ path: join(root, "src", "index.js"), contents: code });
     expect(js?.loader).toBe("js");
   });
-  test("points a side-effect-only .css.ts import at the CSS-only module when bundling", () => {
-    // Given a bundling build
-    const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {});
-    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
-    const { onLoadCallback } = setupPlugin(plugin, join(root, "dist"), true);
-    // When esbuild loads a module with a side-effect-only .css.ts import
-    const result = onLoadCallback({
-      path: join(root, "src", "index.ts"),
-      contents: `import "./App.css.ts";\nexport const a = 1;`,
-    });
-    // Then the import names the CSS-only module
-    expect(n(result!.contents)).toBe(n(`import "./App.css.ts?truss-css"; export const a = 1;`));
+
+  test("bundles a side-effect-only .css.ts import without the CssBuilder", async () => {
+    // Given a library whose entry imports a .css.ts file only for its side effect
+    const root = createCssTsLibrary('import "./Grid.css.ts";\nexport const a = 1;\n');
+    // When real esbuild bundles it with the plugin
+    const js = await bundleLibrary(root);
+    // Then the compiled css export is unused, so only the entry's own code remains
+    expect(js).toBe("// src/index.ts\nvar a = 1;\nexport {\n  a\n};\n");
   });
 
-  test("leaves a side-effect-only .css.ts import as written when not bundling", () => {
-    // Given a build that does not bundle, so esbuild resolves no imports
-    const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {});
-    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
-    const { onLoadCallback } = setupPlugin(plugin, join(root, "dist"), false);
-    // When esbuild loads a module with a side-effect-only .css.ts import
-    const result = onLoadCallback({
-      path: join(root, "src", "index.ts"),
-      contents: `import "./App.css.ts";\nexport const a = 1;`,
-    });
-    // Then the module needs no transform
-    expect(result).toBeUndefined();
+  test("bundles a named .css.ts import as compiled strings", async () => {
+    // Given a library whose entry re-exports a .css.ts file's css export
+    const root = createCssTsLibrary('export { css } from "./Grid.css.ts";\n');
+    // When real esbuild bundles it with the plugin
+    const js = await bundleLibrary(root);
+    // Then the export is a plain string, and no CssBuilder code is bundled
+    expect(js).toBe(
+      ["// src/Grid.css.ts", "var css = {", '  ".grid": "color: #353535;"', "};", "export {", "  css", "};", ""].join(
+        "\n",
+      ),
+    );
   });
 
-  test("resolves the CSS-only import to the .css.ts file in the truss-css namespace", () => {
-    // Given a bundling build
-    const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {});
-    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
-    const { onResolveCallback } = setupPlugin(plugin, join(root, "dist"), true);
-    // And a .css.ts file on disk
-    const sourcePath = join(root, "src", "App.css.ts");
-    writeFileSync(sourcePath, `export const css = { body: "margin: 0;" };`, "utf8");
-    // When esbuild resolves the rewritten import
-    const result = onResolveCallback({ path: "./App.css.ts?truss-css", resolveDir: join(root, "src") });
-    // Then it is the CSS-only module for that file
-    expect(result).toEqual({ path: sourcePath, namespace: "truss-css" });
-  });
-
-  test("loads the CSS-only module as an empty module", () => {
-    // Given a bundling build
-    const root = createTempRoot();
-    writeMapping(join(root, "src", "Css.json"), {});
-    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
-    const { onCssOnlyLoadCallback } = setupPlugin(plugin, join(root, "dist"), true);
-    // And a .css.ts file on disk
-    const sourcePath = join(root, "src", "App.css.ts");
-    writeFileSync(sourcePath, `export const css = { body: "margin: 0;" };`, "utf8");
-    // When esbuild loads the CSS-only module
-    const result = onCssOnlyLoadCallback({ path: sourcePath });
-    // Then no code from the .css.ts file is bundled
-    expect(result).toEqual({ contents: "export {};", loader: "js" });
-  });
-
-  test("writes the CSS of a .css.ts file that is only loaded as the CSS-only module", () => {
-    // Given a bundling build
-    const root = createTempRoot();
-    const outDir = join(root, "dist");
-    writeMapping(join(root, "src", "Css.json"), {});
-    const plugin = trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") });
-    const { onCssOnlyLoadCallback, onEndCallback } = setupPlugin(plugin, outDir, true);
-    // And a .css.ts file on disk
-    const sourcePath = join(root, "src", "App.css.ts");
-    writeFileSync(sourcePath, `export const css = { body: "margin: 0;" };`, "utf8");
-    // When esbuild loads only its CSS-only module and the build ends
-    onCssOnlyLoadCallback({ path: sourcePath });
-    onEndCallback();
+  test("writes the rules of a bare .css side-effect import to truss.css", async () => {
+    // Given a library whose entry imports the .css.ts file through its bare ".css" name
+    const root = createCssTsLibrary('import "./Grid.css";\nexport const a = 1;\n');
+    // When real esbuild bundles it with the plugin
+    await bundleLibrary(root);
     // Then truss.css has the file's rule
-    expect(readFileSync(join(outDir, "truss.css"), "utf8")).toBe(
+    expect(readFileSync(join(root, "dist", "truss.css"), "utf8")).toBe(
       [
         ":root { --t-spacing: 8px; }",
         "/* @truss arbitrary:start */",
-        "body {",
-        "  margin: 0;",
+        ".grid {",
+        "  color: #353535;",
         "}",
         "/* @truss arbitrary:end */",
       ].join("\n"),
@@ -435,27 +398,17 @@ function writeMapping(path: string, abbreviations: Record<string, Record<string,
 function setupPlugin(
   plugin: ReturnType<typeof trussEsbuildPlugin>,
   outDir: string,
-  bundle = false,
 ): {
   onLoadCallback: (args: { path: string; contents: string }) => LoadResult;
-  onResolveCallback: (args: { path: string; resolveDir: string }) => ResolveResult;
-  onCssOnlyLoadCallback: (args: { path: string }) => LoadResult;
   onEndCallback: () => void;
 } {
   let loadCallback: ((args: { path: string }) => LoadResult) | undefined;
-  let cssOnlyLoadCallback: ((args: { path: string }) => LoadResult) | undefined;
-  let resolveCallback: ((args: { path: string; resolveDir: string }) => ResolveResult) | undefined;
   let endCallback: (() => void) | undefined;
 
   const fakeBuild = {
-    initialOptions: { outdir: outDir, bundle },
-    onResolve(_opts: { filter: RegExp }, cb: (args: { path: string; resolveDir: string }) => ResolveResult) {
-      resolveCallback = cb;
-    },
-    onLoad(opts: { filter: RegExp; namespace?: string }, cb: (args: { path: string }) => LoadResult) {
-      // The namespaced onLoad serves the CSS-only module of a side-effect-only .css.ts import
-      if (opts.namespace === "truss-css") cssOnlyLoadCallback = cb;
-      else loadCallback = cb;
+    initialOptions: { outdir: outDir },
+    onLoad(_opts: { filter: RegExp; namespace?: string }, cb: (args: { path: string }) => LoadResult) {
+      loadCallback = cb;
     },
     onEnd(cb: () => void) {
       endCallback = cb;
@@ -471,12 +424,6 @@ function setupPlugin(
       writeFileSync(args.path, args.contents, "utf8");
       return loadCallback!(args);
     },
-    onResolveCallback(args: { path: string; resolveDir: string }) {
-      return resolveCallback!(args);
-    },
-    onCssOnlyLoadCallback(args: { path: string }) {
-      return cssOnlyLoadCallback!(args);
-    },
     onEndCallback() {
       endCallback!();
     },
@@ -484,8 +431,43 @@ function setupPlugin(
 }
 
 type LoadResult = { contents: string; loader: string } | undefined;
-type ResolveResult = { path: string; namespace: string } | undefined;
 
 function n(s: string): string {
   return s.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Write a library with a `Grid.css.ts` file, a `Css.ts` stand-in and the given entry module.
+ *
+ * The stand-in names its class `CssBuilder` and throws on `$`, so a bundle that still evaluates
+ * a chain fails, and one that still includes the builder shows its name.
+ */
+function createCssTsLibrary(entry: string): string {
+  const root = createTempRoot();
+  writeMapping(join(root, "src", "Css.json"), { black: { kind: "static", defs: { color: "#353535" } } });
+  writeFileSync(
+    join(root, "src", "Css.ts"),
+    'class CssBuilder { get black() { return this; } get $() { throw new Error("runtime Css"); } }\nexport const Css = new CssBuilder();\n',
+  );
+  writeFileSync(
+    join(root, "src", "Grid.css.ts"),
+    'import { Css } from "./Css";\nexport const css = { ".grid": Css.black.$ };\n',
+  );
+  writeFileSync(join(root, "src", "index.ts"), entry);
+  return root;
+}
+
+/** Bundle the library with real esbuild, i.e. the way tsup runs the plugin, and return its JavaScript. */
+async function bundleLibrary(root: string): Promise<string> {
+  const result = await build({
+    absWorkingDir: root,
+    entryPoints: ["./src/index.ts"],
+    bundle: true,
+    format: "esm",
+    outdir: join(root, "dist"),
+    write: false,
+    logLevel: "silent",
+    plugins: [trussEsbuildPlugin({ mapping: join(root, "src", "Css.json") })],
+  });
+  return result.outputFiles![0].text;
 }

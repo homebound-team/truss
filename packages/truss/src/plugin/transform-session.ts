@@ -1,5 +1,4 @@
 import { resolve } from "path";
-import { existsSync } from "fs";
 import { applyReferencedKeyframes, applyRegisteredProperties } from "./at-rule-refs";
 import { generateCssData, type AtomicRule } from "./emit-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
@@ -30,8 +29,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
   const libraryPaths = options.libraries ?? [];
   // React Router builds the client and server with the same plugin. Keep the latest source
   // and result for each file and combination of output options (the "transform mode"):
-  // debug metadata (debug), test CSS injection and bootstrap (injectCss), CSS import
-  // rewriting (rewriteCssImports), and source maps (sourceMaps).
+  // debug metadata (debug), test CSS injection and bootstrap (injectCss), and source maps (sourceMaps).
   // I.e. a production transform without debug metadata or CSS injection cannot be reused
   // for a Vitest transform that includes them.
   // Keep these cached results across registry resets, then replay their rules on cache hits.
@@ -99,11 +97,11 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     fileId: string,
     transformOptions: TransformTrussOptions = {},
   ): TransformResult | null {
-    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${Boolean(transformOptions.rewriteCssImports)}\0${transformOptions.sourceMaps ?? true}`;
+    const key = `${fileId}\0${Boolean(transformOptions.debug)}\0${Boolean(transformOptions.injectCss)}\0${transformOptions.sourceMaps ?? true}`;
     const cached = transformCache.get(key);
     const arbitrarySourcePath = fileId.endsWith(".css.ts") ? resolve(fileId).replace(/\\/g, "/") : undefined;
     let result: TransformResult | null;
-    if (cached?.code === code && importDependenciesUnchanged(cached.result)) {
+    if (cached?.code === code) {
       result = cached.result;
     } else {
       let hadDiagnostic = false;
@@ -115,9 +113,7 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
         },
       });
       // Re-run diagnostics each time instead of suppressing warnings on another environment.
-      // A null result has no dependency metadata; a newly created .css.ts could make an
-      // unchanged bare .css import start needing a rewrite on the next request.
-      if (!hadDiagnostic && (result || !transformOptions.rewriteCssImports)) transformCache.set(key, { code, result });
+      if (!hadDiagnostic) transformCache.set(key, { code, result });
     }
     if (!result) return null;
     if (arbitrarySourcePath && result.arbitraryCss !== undefined) {
@@ -194,12 +190,4 @@ export interface TrussTransformSession {
   hasCss: () => boolean;
   reset: () => void;
   transformCode: (code: string, fileId: string, options?: TransformTrussOptions) => TransformResult | null;
-}
-
-/** Invalidate import rewrites when a bare .css side-effect target gains or loses its .css.ts companion. */
-function importDependenciesUnchanged(result: TransformResult | null): boolean {
-  for (const [path, existed] of result?.cssImportDependencies ?? []) {
-    if (existsSync(path) !== existed) return false;
-  }
-  return true;
 }

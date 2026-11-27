@@ -6,8 +6,15 @@ import { collectStaticStringBindings, resolveStaticString } from "./css-ts-utils
 import { camelToKebab } from "../utils";
 import { Diagnostic } from "./diagnostic";
 
+export interface CssTsResult {
+  /** The selector-based CSS, i.e. `.foo {\n  display: flex;\n}`. */
+  css: string;
+  /** True when a `Css` value in the `css` export was replaced by its declaration string. */
+  rewritten: boolean;
+}
+
 /**
- * Extract selector-based CSS from an existing `.css.ts` module AST without changing its runtime exports.
+ * Extract selector-based CSS from a `.css.ts` module AST, and compile its `css` export to plain strings.
  *
  * The file is expected to have the shape:
  * ```ts
@@ -26,14 +33,19 @@ import { Diagnostic } from "./diagnostic";
  * chain or a string literal / template literal containing raw CSS declarations.
  * The chains are resolved via the truss mapping into concrete CSS declarations.
  *
- * Returns the generated CSS string.
+ * Each compiled `Css` value is replaced in the AST by a string of its declarations, so the module
+ * never evaluates the CssBuilder at runtime. I.e. `".foo": Css.df.aic.$` becomes
+ * `".foo": "display: flex; align-items: center;"`, and `Css.raw\`margin: 0;\`` becomes `"margin: 0;"`.
+ * Plain string values and unsupported values stay as written.
+ *
+ * Returns the generated CSS string, and whether any value was replaced.
  */
 export function transformCssAst(
   ast: t.File,
   filename: string,
   mapping: TrussMapping,
   options: DiagnosticOptions = {},
-): string {
+): CssTsResult {
   // Css import is optional — only needed when Css.*.$  chains are used
   const cssBindingName = findCssImportBinding(ast);
 
@@ -43,10 +55,14 @@ export function transformCssAst(
     options.onDiagnostic?.(
       new Diagnostic("expected `export const css = { ... }` with an object literal", filename, ast.program),
     );
-    return `/* [truss] ${filename}: expected \`export const css = { ... }\` with an object literal */\n`;
+    return {
+      css: `/* [truss] ${filename}: expected \`export const css = { ... }\` with an object literal */\n`,
+      rewritten: false,
+    };
   }
 
   const rules: string[] = [];
+  let rewritten = false;
   const stringBindings = collectStaticStringBindings(ast);
 
   for (const prop of cssExport.properties) {
@@ -73,6 +89,11 @@ export function transformCssAst(
     const rawCss = extractStaticStringValue(valueNode, cssBindingName);
     if (rawCss !== null) {
       rules.push(formatRawCssRule(selector, rawCss));
+      // A `Css.raw` tag still reads Css at runtime, so it becomes a plain string too
+      if (t.isTaggedTemplateExpression(valueNode)) {
+        prop.value = t.stringLiteral(rawCss);
+        rewritten = true;
+      }
       continue;
     }
 
@@ -94,9 +115,11 @@ export function transformCssAst(
     }
 
     rules.push(formatCssRule(selector, cssResult.declarations));
+    prop.value = t.stringLiteral(cssResult.declarations.map((d) => `${d.property}: ${d.value};`).join(" "));
+    rewritten = true;
   }
 
-  return rules.join("\n\n") + "\n";
+  return { css: rules.join("\n\n") + "\n", rewritten };
 
   /** Report omitted CSS to the build tool and retain a comment for non-fatal transforms. */
   function unsupported(message: string, node: t.Node): string {
