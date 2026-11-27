@@ -5012,29 +5012,30 @@ export const s = Css.df.$;`;
     );
   });
 
-  test("compiles a .css.ts css export to declaration strings and drops the Css import", () => {
-    // Given a .css.ts file with a Css chain and another runtime export
+  test("replaces a .css.ts css export with undefined and drops the Css import", () => {
+    // Given a .css.ts file with a Css chain, a Css.raw value, a plain string, and another runtime export
     const source = `
       import { Css } from "./Css";
       export const zebraRows = "zebraRows";
-      export const css = { [\`.\${zebraRows} td\`]: Css.df.aic.$, body: "margin: 0;" };
+      export const css = { [\`.\${zebraRows} td\`]: Css.df.aic.$, h1: Css.raw\`margin: 0;\`, body: "margin: 0;" };
       `;
     // When we transform it
     const transform = expectTrussTransform(source, {}, "test.css.ts");
-    // Then the chain is a plain string, the raw value is unchanged, and nothing imports Css
+    // Then every rule is in the CSS, the export is undefined, and nothing imports Css
     transform.toHaveTrussOutput(
       `
       export const zebraRows = "zebraRows";
-      export const css = { [\`.\${zebraRows} td\`]: "display: flex; align-items: center;", body: "margin: 0;" };
+      export const css = undefined;
       `,
       `
       .zebraRows td { display: flex; align-items: center; }
+      h1 { margin: 0; }
       body { margin: 0; }
       `,
     );
   });
 
-  test("drops a .css.ts import that only a compiled chain argument used", () => {
+  test("drops a .css.ts import that only a css export value used", () => {
     // Given a .css.ts chain whose argument reads Tokens
     const source = `
       import { Css, Tokens } from "./Css";
@@ -5043,22 +5044,7 @@ export const s = Css.df.$;`;
     // When we transform it
     const transform = expectTrussTransform(source, {}, "test.css.ts");
     // Then Tokens goes away with Css
-    transform.toHaveTrussOutput(
-      `export const css = { ".focus": "border-color: var(--theme-accent);" };`,
-      ".focus { border-color: var(--theme-accent); }",
-    );
-  });
-
-  test("compiles a .css.ts Css.raw value to a plain string", () => {
-    // Given a .css.ts value written with the Css.raw tag
-    const source = `
-      import { Css } from "./Css";
-      export const css = { body: Css.raw\`margin: 0;\` };
-      `;
-    // When we transform it
-    const transform = expectTrussTransform(source, {}, "test.css.ts");
-    // Then the tag no longer reads Css at runtime
-    transform.toHaveTrussOutput(`export const css = { body: "margin: 0;" };`, "body { margin: 0; }");
+    transform.toHaveTrussOutput(`export const css = undefined;`, ".focus { border-color: var(--theme-accent); }");
   });
 
   test("keeps a .css.ts import that other code still uses", () => {
@@ -5074,10 +5060,28 @@ export const s = Css.df.$;`;
     transform.toHaveTrussOutput(
       `
       import { Css } from "./Css";
-      export const css = { body: "display: flex;" };
+      export const css = undefined;
       export { Css };
       `,
       "body { display: flex; }",
+    );
+  });
+
+  test("replaces a raw-string-only .css.ts css export with undefined", () => {
+    // Given a .css.ts file with no Css import, whose selector comes from a local const
+    const source = `
+      const selector = ".dialog > h2";
+      export const css = { [selector]: "margin: 0;" };
+      `;
+    // When we transform it
+    const transform = expectTrussTransform(source, {}, "test.css.ts");
+    // Then the export is undefined, and the local const stays for the bundler to drop if unused
+    transform.toHaveTrussOutput(
+      `
+      const selector = ".dialog > h2";
+      export const css = undefined;
+      `,
+      ".dialog > h2 { margin: 0; }",
     );
   });
 });

@@ -64,7 +64,7 @@ const RUNTIME_HELPER_ORDER: RuntimeHelperName[] = ["trussProps", "mergeProps", "
 /**
  * Transform a file's Truss expressions and test injections using one AST.
  *
- * .css.ts files contribute selector-based CSS, and their `css` export compiles to plain strings,
+ * .css.ts files contribute selector-based CSS, and their `css` export compiles to `undefined`,
  * so every import form loads the real module without evaluating the CssBuilder.
  * Returns null when neither the JavaScript nor the CSS registry needs an update.
  */
@@ -100,15 +100,12 @@ export function transformTruss(
   let expressions: Pick<TransformResult, "css" | "rules"> | null = null;
   let arbitraryCss: string | undefined;
   if (isArbitraryCss) {
-    // Imports that only the compiled values used go away with them, i.e. `Css` and `Tokens`
-    // in `Css.bc(Tokens.Accent).$`, so the module no longer loads the CssBuilder at runtime.
+    // The `css` export becomes `undefined`, and imports that only its values used go away with it,
+    // i.e. `Css` and `Tokens` in `Css.bc(Tokens.Accent).$`, so the module never loads the CssBuilder.
     const referencedImports = referencedImportNames(ast);
-    const cssTs = transformCssAst(ast, filename, mapping, options);
-    arbitraryCss = cssTs.css.trim();
-    if (cssTs.rewritten) {
-      removeUnreferencedImports(ast, referencedImports);
-      changed = true;
-    }
+    arbitraryCss = transformCssAst(ast, filename, mapping, options).trim();
+    removeUnreferencedImports(ast, referencedImports);
+    changed = true;
     if (options.injectCss) {
       appendTestCssInjection(ast, filename, arbitraryCss, mapping);
       changed = true;
@@ -507,8 +504,9 @@ function referencedImportNames(ast: t.File): Set<string> {
  * Remove the imports that were referenced before a rewrite and no longer are.
  *
  * Mirrors how the expression transform drops its `Css` import, and also drops other imports that only
- * compiled values used. I.e. after `Css.bc(Tokens.Accent).$` becomes `"border-color: var(--accent);"`,
- * `import { Css, Tokens } from "./Css"` is removed. An import still used elsewhere stays.
+ * the removed values used. I.e. after `export const css = { ".a": Css.bc(Tokens.Accent).$ }` becomes
+ * `export const css = undefined`, `import { Css, Tokens } from "./Css"` is removed. An import still
+ * used elsewhere stays, and so do local consts, which the bundler drops itself when unused.
  */
 function removeUnreferencedImports(ast: t.File, referencedBefore: Set<string>): void {
   const stillReferenced = referencedImportNames(ast);

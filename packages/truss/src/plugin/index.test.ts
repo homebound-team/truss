@@ -428,7 +428,7 @@ describe("trussPlugin", () => {
       n(`
       export const _injectTrussCSS = "occupied";
       export const __injectTrussCSS = "also occupied";
-      export const css = { ".late": "display: flex;" };
+      export const css = undefined;
       import "virtual:truss:test-css";
       import { __injectTrussCSS as __injectTrussCSS_1 } from "@homebound/truss/runtime";
       __injectTrussCSS_1({ arbitraryRules: [".late {\\n  display: flex;\\n}"], source: ${JSON.stringify(sourcePath)} });
@@ -503,7 +503,7 @@ describe("trussPlugin", () => {
     expect(n(result?.code ?? "")).toBe(
       n(`
         ${scenario.expectedImports}
-        export const css = { ".target": "color: red;" };
+        export const css = undefined;
         import "virtual:truss:test-css";
         ${scenario.addedImport}
         ${scenario.helper}({ arbitraryRules: [".target {\\n  color: red;\\n}"], source: ${JSON.stringify(sourcePath)} });
@@ -524,10 +524,10 @@ describe("trussPlugin", () => {
     invokeHook(plugin.buildStart, {});
     // When we transform the real module, as any import of it loads it
     const result = runTransform(plugin, code, sourcePath);
-    // Then the setVar value is a plain string, the Css import is gone, and the module injects the rule
+    // Then the export holds no setVar call, the Css import is gone, and the module injects the rule
     expect(n(result?.code ?? "")).toBe(
       n(`
-      export const css = { ".build-only": "--test-color: red;" };
+      export const css = undefined;
       import "virtual:truss:test-css";
       import { __injectTrussCSS } from "@homebound/truss/runtime";
       __injectTrussCSS({ arbitraryRules: [".build-only {\\n  --test-color: red;\\n}"], source: ${JSON.stringify(sourcePath)} });
@@ -815,7 +815,7 @@ describe("trussPlugin", () => {
     );
 
     // Then it stays JavaScript, so Vite writes no per-route stylesheet, and it no longer imports Css
-    expect(result?.code).toBe('export const css = {\n  ".card": "display: flex;"\n};');
+    expect(result?.code).toBe("export const css = undefined;");
   });
 
   test("dev virtual CSS orders static base rules before variable rules for the same property", () => {
@@ -1234,7 +1234,7 @@ describe("trussPlugin", () => {
     // Then its injection carries the keyframe
     expect(n(result?.code ?? "")).toBe(
       n(`
-      export const css = { ".loader": "animation: spin 1s;" };
+      export const css = undefined;
       import "virtual:truss:test-css";
       import { __injectTrussCSS } from "@homebound/truss/runtime";
       __injectTrussCSS({ arbitraryRules: [".loader {\\n  animation: spin 1s;\\n}"], keyframes: [{ name: "spin", cssText: "@keyframes spin { to { transform: rotate(360deg); } }" }], source: ${JSON.stringify(sourcePath)} });

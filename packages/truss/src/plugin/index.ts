@@ -63,7 +63,7 @@ const RESOLVED_VIRTUAL_TEST_CSS_ID = "\0" + TEST_CSS_BOOTSTRAP_ID;
  *
  * Also supports `.css.ts` files: a `.css.ts` file with
  * `export const css = { ".selector": Css.blue.$ }` adds its selectors to the stylesheet, and its
- * `css` export compiles to plain strings, so any import of it loads the real module.
+ * `css` export compiles to `undefined`, so any import of it loads the real module.
  *
  * In dev mode, serves CSS via a virtual endpoint that the injected runtime keeps in sync.
  * In production, emits a content-hashed CSS asset (e.g. `assets/truss-abc123.css`) for long-term caching.
@@ -222,7 +222,7 @@ __injectTrussCSS(${JSON.stringify(payload)});
 
       // All eligible files use one transformation flow, sharing an AST across these steps:
       // - A file with Truss expressions: compile the expressions.
-      // - A .css.ts file: extract selector-based CSS and compile its `css` export to strings,
+      // - A .css.ts file: extract selector-based CSS and replace its `css` export with `undefined`,
       //   while preserving its other runtime exports.
       // - Test mode: additionally bootstrap library CSS/spacing and inject per-file CSS.
       //   This is an option applied to the relevant files, not a separate parsing pipeline.

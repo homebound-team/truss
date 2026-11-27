@@ -51,9 +51,9 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
       build.onLoad({ filter: /\.[cm]?[jt]sx?$/, namespace: "file" }, (args: { path: string }) => {
         const code = readFileSync(args.path, "utf8");
 
-        // A .css.ts file comes back with its `css` export compiled to strings, and its selector CSS
+        // A .css.ts file comes back with its `css` export replaced by `undefined`, and its selector CSS
         // recorded for onEnd. I.e. `export const css = { body: Css.df.$ }` is bundled as
-        // `export const css = { body: "display: flex;" }`, and truss.css gets the `body` rule.
+        // `export const css = undefined`, and truss.css gets the `body` rule.
         const result = session.transformCode(code, args.path, diagnostics);
         if (!result) return undefined;
 

@@ -107,14 +107,7 @@ describe("trussEsbuildPlugin", () => {
     });
     expect(cssTsResult).toBeDefined();
     expect(cssTsResult?.loader).toBe("ts");
-    expect(cssTsResult?.contents).toBe(
-      [
-        'export const zebraRows = "zebraRows";',
-        "export const css = {",
-        '  [`.${zebraRows} tbody tr:nth-child(even) td`]: "color: #353535;"',
-        "};",
-      ].join("\n"),
-    );
+    expect(cssTsResult?.contents).toBe('export const zebraRows = "zebraRows";\nexport const css = undefined;');
 
     onLoadCallback({
       path: join(root, "src", "DataGrid.tsx"),
@@ -345,17 +338,13 @@ describe("trussEsbuildPlugin", () => {
     expect(js).toBe("// src/index.ts\nvar a = 1;\nexport {\n  a\n};\n");
   });
 
-  test("bundles a named .css.ts import as compiled strings", async () => {
+  test("bundles a named .css.ts import as undefined", async () => {
     // Given a library whose entry re-exports a .css.ts file's css export
     const root = createCssTsLibrary('export { css } from "./Grid.css.ts";\n');
     // When real esbuild bundles it with the plugin
     const js = await bundleLibrary(root);
-    // Then the export is a plain string, and no CssBuilder code is bundled
-    expect(js).toBe(
-      ["// src/Grid.css.ts", "var css = {", '  ".grid": "color: #353535;"', "};", "export {", "  css", "};", ""].join(
-        "\n",
-      ),
-    );
+    // Then the export still links, holds undefined, and no CssBuilder code is bundled
+    expect(js).toBe(["// src/Grid.css.ts", "var css = void 0;", "export {", "  css", "};", ""].join("\n"));
   });
 
   test("writes the rules of a bare .css side-effect import to truss.css", async () => {

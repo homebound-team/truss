@@ -740,7 +740,7 @@ export function DataGrid() {
 
 This keeps the base element styling in Truss, i.e. `Css.w100`, while using the `.css.ts` class as the anchor for arbitrary selectors. At build time, Truss merges both into the final `className` prop.
 
-A `.css.ts` file is an ordinary module, so any import form works: `import "./DataGrid.css.ts"`, `import "./DataGrid.css"`, a path alias, or a named import like the one above. At build time, Truss compiles each `Css.*.$` value in the `css` export to a string of its declarations, i.e. `Css.df.$` becomes `"display: flex;"`, and removes the `Css` import when nothing else uses it, so the module never runs the `Css` builder in the browser. Its other exports, i.e. `zebraRows`, are unchanged.
+A `.css.ts` file is an ordinary module, so any import form works: `import "./DataGrid.css.ts"`, `import "./DataGrid.css"`, a path alias, or a named import like the one above. The `css` export only tells the build which CSS to write, so once Truss has extracted its rules, it compiles the export to `export const css = undefined` and removes the `Css` import when nothing else uses it. The module never runs the `Css` builder in the browser, and its other exports, i.e. `zebraRows`, are unchanged.
 
 If both `DataGrid.css` and `DataGrid.css.ts` exist, `import "./DataGrid.css"` loads the plain stylesheet, as the bundler resolves the exact file name first.
 

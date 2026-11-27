@@ -571,7 +571,7 @@ describe("trussPlugin .css.ts integration", () => {
 
 /** Compile one .css.ts source the way the transform does after parsing it. */
 function transformCssTs(code: string, filename: string, mapping: TrussMapping, options?: DiagnosticOptions): string {
-  return transformCssAst(parseModule(code, filename), filename, mapping, options).css;
+  return transformCssAst(parseModule(code, filename), filename, mapping, options);
 }
 
 function n(s: string): string {
