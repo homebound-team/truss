@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { mergeTrussCssData } from "./merge-css";
-import type { ParsedTrussCss } from "../truss-css-types";
-import { parseTrussCss, serializeTrussCss } from "./truss-css";
+import { parseTrussCss, serializeTrussCss, type ParsedTrussCss } from "./truss-css";
 
 test("structured merge keeps first-source rules and properties and opaque arbitrary blocks", () => {
   const library = parsedTrussCss({

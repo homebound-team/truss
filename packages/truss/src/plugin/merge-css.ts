@@ -1,13 +1,13 @@
 import { readFileSync } from "fs";
 import { atRulePrelude, compareRuleSortKeys, ruleSortKey } from "../css-order";
-import { parseTrussCss } from "./truss-css";
-import type {
-  ParsedArbitraryCssBlock,
-  ParsedCssRule,
-  ParsedKeyframesBlock,
-  ParsedPropertyDeclaration,
-  ParsedTrussCss,
-} from "../truss-css-types";
+import {
+  parseTrussCss,
+  type ParsedArbitraryCssBlock,
+  type ParsedCssRule,
+  type ParsedKeyframesBlock,
+  type ParsedPropertyDeclaration,
+  type ParsedTrussCss,
+} from "./truss-css";
 
 /**
  * Read and parse an annotated truss.css file from disk.

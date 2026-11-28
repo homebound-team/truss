@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mergeProps, TrussDebugInfo, trussProps, __injectTrussCSS } from "./runtime";
 import { mergeTrussCssData } from "./plugin/merge-css";
 import { serializeTrussCss } from "./plugin/truss-css";
-import type { TestCssPayload } from "./test-css-types";
+import type { TestCssPayload } from "./runtime-css";
 
 describe("trussProps", () => {
   test("merges static style hashes", () => {

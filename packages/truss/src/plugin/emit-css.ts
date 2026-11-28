@@ -4,7 +4,7 @@ import { sortRulesByPriority } from "./priority";
 import { markerClassName, styleEntriesForSegment } from "./style-entries";
 import { camelToKebab } from "../utils";
 import { WHEN_RELATIONSHIPS, type WhenRelationship } from "./when-relationships";
-import type { ParsedTrussCss } from "../truss-css-types";
+import type { ParsedTrussCss } from "./truss-css";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 

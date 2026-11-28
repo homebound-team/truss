@@ -1,4 +1,4 @@
-import type { ParsedTrussCss } from "../truss-css-types";
+import type { ParsedTrussCss } from "./truss-css";
 import type { TrussMapping } from "./types";
 
 /**

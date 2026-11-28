@@ -3,10 +3,9 @@ import { applyReferencedKeyframes, applyRegisteredProperties } from "./at-rule-r
 import { generateCssData, type AtomicRule } from "./emit-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
 import { mergeTrussCssData, readTrussCss } from "./merge-css";
-import type { ParsedTrussCss } from "../truss-css-types";
-import { serializeTrussCss } from "./truss-css";
+import { serializeTrussCss, type ParsedTrussCss } from "./truss-css";
 import { createTestCssPayload } from "./test-css";
-import type { TestCssPayload } from "../test-css-types";
+import type { TestCssPayload } from "../runtime-css";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
