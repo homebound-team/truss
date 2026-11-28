@@ -12,19 +12,8 @@ export interface DiagnosticOptions {
   onDiagnostic?: (diagnostic: TransformDiagnostic) => void;
 }
 
-/** The shape of the Css.json mapping file consumed by the Vite plugin. */
-export interface TrussMapping {
-  increment: number;
-  breakpoints?: Record<string, string>;
-  typography?: string[];
-  /** Token member name → CSS variable (from `config.tokens`), for `setVar` key resolution. */
-  tokens?: Record<string, string>;
-  /** CSS variable → its `@property` block, for the tokens `config.tokens` registers with a `syntax`. */
-  properties?: Record<string, string>;
-  /** Keyframe name → its `@keyframes` block (from `config.keyframes`). */
-  keyframes?: Record<string, string>;
-  abbreviations: Record<string, TrussMappingEntry>;
-}
+// Declared once in `truss-mapping.ts`, since the generator writes the same shape the plugin reads.
+export type { TrussMapping, TrussMappingEntry } from "../truss-mapping";
 
 /** A `when()` relationship selector context that can stack with other condition axes. */
 export interface WhenCondition {
@@ -41,23 +30,6 @@ export interface ResolvedConditionContext {
   pseudoElement: string | null;
   whenPseudo: WhenCondition | null;
 }
-
-/**
- * A single abbreviation entry from `Css.json`.
- *
- * Each `kind` describes how the transformer should resolve that abbreviation.
- */
-export type TrussMappingEntry =
-  /** I.e. `{ "kind": "static", "defs": { "display": "flex" } }` for `Css.df.$`. */
-  | { kind: "static"; defs: Record<string, unknown> }
-  /** I.e. `{ "kind": "variable", "props": ["marginTop"], "incremented": true }` for `Css.mt(v).$`. */
-  | { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
-  /** I.e. `{ "kind": "delegate", "target": "mt" }` for `Css.mtPx(v).$`. */
-  | { kind: "delegate"; target: string }
-  /** I.e. `{ "kind": "alias", "chain": ["f14", "black"] }` for `Css.bodyText.$`. */
-  | { kind: "alias"; chain: string[] }
-  /** I.e. `{ "kind": "keyframe", "name": "sweep" }` for `Css.sweep("1.6s linear infinite").$`. */
-  | { kind: "keyframe"; name: string };
 
 /** Fields shared by the segments that resolve to atomic CSS declarations. */
 interface CssSegmentBase {

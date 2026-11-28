@@ -1374,7 +1374,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `minHeight: px`. */
   mhPx(px: number) {
-    return this.mh(`${px}px`);
+    return this.add("minHeight", `${px}px`);
   }
   /** Sets `maxHeight: "0"`. */
   get maxh0() {
@@ -1402,7 +1402,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `maxHeight: px`. */
   maxhPx(px: number) {
-    return this.maxh(`${px}px`);
+    return this.add("maxHeight", `${px}px`);
   }
   /** Sets `height: px; width: px`. */
   sqPx(px: number) {
@@ -2874,7 +2874,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `fontSize: px`. */
   fsPx(px: number) {
-    return this.fs(`${px}px`);
+    return this.add("fontSize", `${px}px`);
   }
   /** Sets `lineHeight: value`. */
   lh(value: Properties["lineHeight"]) {
@@ -2882,7 +2882,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `lineHeight: px`. */
   lhPx(px: number) {
-    return this.lh(`${px}px`);
+    return this.add("lineHeight", `${px}px`);
   }
   /** Sets `letterSpacing: value`. */
   ls(value: Properties["letterSpacing"]) {
@@ -2890,7 +2890,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `letterSpacing: px`. */
   lsPx(px: number) {
-    return this.ls(`${px}px`);
+    return this.add("letterSpacing", `${px}px`);
   }
   /** Sets `textWrap: "balance"`. */
   get twb() {
@@ -3072,7 +3072,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `minWidth: px`. */
   mwPx(px: number) {
-    return this.mw(`${px}px`);
+    return this.add("minWidth", `${px}px`);
   }
   /** Sets `maxWidth: "0"`. */
   get maxw0() {
@@ -3112,7 +3112,7 @@ class CssBuilder<T extends Properties, S extends StyleKind = "buildtime"> {
   }
   /** Sets `maxWidth: px`. */
   maxwPx(px: number) {
-    return this.maxw(`${px}px`);
+    return this.add("maxWidth", `${px}px`);
   }
   /** Sets `width: "calc(var(--t-spacing) * 0)"`. */
   get w0() {

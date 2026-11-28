@@ -3,7 +3,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { type Config } from "src/config";
 import { generate } from "src/generate";
-import { newMethodsForProp } from "src/methods";
+import { newMethod, newMethodsForProp } from "src/methods";
 import { describe, expect, it } from "vitest";
 
 describe("generate", () => {
@@ -212,5 +212,28 @@ describe("generate", () => {
     await expect(generate(config)).rejects.toThrow(
       'Unsupported truss target "emotion". Use "web" (default) or "react-native".',
     );
+  });
+
+  it("writes a custom section's method to the mapping", async () => {
+    // Given a custom section that makes `foo` with `newMethod`
+    const dir = mkdtempSync(join(tmpdir(), "truss-generate-"));
+    const config: Config = {
+      outputPath: join(dir, "Css.ts"),
+      palette: {},
+      fonts: {},
+      increment: 8,
+      numberOfIncrements: 1,
+      sections: { customStuff: () => [newMethod("foo", { color: "#000000" })] },
+    };
+
+    try {
+      // When we generate the Css.ts file and its mapping
+      await generate(config);
+      const mapping = JSON.parse(readFileSync(join(dir, "Css.json"), "utf8"));
+      // Then the plugin can resolve `foo`
+      expect(mapping.abbreviations.foo).toEqual({ kind: "static", defs: { color: "#000000" } });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

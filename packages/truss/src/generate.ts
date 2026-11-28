@@ -2,15 +2,10 @@ import { type Properties } from "csstype";
 import { promises as fs } from "fs";
 import { code, Code, def, imp } from "ts-poet";
 import { makeBreakpoints } from "src/breakpoints";
-import { Config, SectionName, Sections, UtilityMethod } from "src/config";
-import {
-  collectedAbbreviations,
-  inSection,
-  newAliasesMethods,
-  startWebCollection,
-  stopWebCollection,
-  WebEntry,
-} from "src/methods";
+import type { Config, SectionName, Sections } from "src/config";
+import { newAliasesMethods, type GeneratedSection } from "src/methods";
+import { renderMethod } from "src/render-methods";
+import type { TrussMapping, TrussMappingEntry } from "src/truss-mapping";
 import { newKeyframesMethods } from "src/keyframe-methods";
 import { defaultSections } from "src/sections/tachyons";
 import { quote } from "src/utils";
@@ -68,12 +63,12 @@ export async function generate(config: Config): Promise<void> {
   const { outputPath } = config;
   const target: string = config.target ?? "web";
   if (target === "web") {
-    const { sections, entries } = generateSections(config);
+    const sections = generateSections(config);
     // For web target: generate a web-friendly CssBuilder (for types/IDE) + a mapping JSON
     const cssOutput = generateWebCssBuilder(config, sections).toString();
     await fs.writeFile(outputPath, cssOutput);
     const mappingPath = config.mappingOutputPath || outputPath.replace(/\.ts$/, ".json");
-    const mapping = generateTrussMapping(config, entries);
+    const mapping = generateTrussMapping(config, sections);
     await fs.writeFile(mappingPath, condensedJson(mapping) + "\n");
     return;
   }
@@ -89,11 +84,7 @@ export async function generate(config: Config): Promise<void> {
 
 function generateReactNativeBuilder(config: Config): Code {
   const { fonts, increment, extras, typeAliases, breakpoints = {}, palette, tokens } = config;
-  const { sections } = generateSections(config);
-
-  const lines = Object.entries(sections)
-    .map(([name, value]) => [`// ${name}`, ...value, ""])
-    .flat();
+  const lines = sectionLines(generateSections(config));
 
   const typeAliasCode = Object.entries({
     ...defaultTypeAliases,
@@ -374,45 +365,46 @@ ${extras || ""}
   `;
 }
 
-/** Invokes all of the `MethodFns` to create actual `UtilityMethod`s. */
-function generateMethods(config: Config, methodFns: Sections, custom: boolean): Record<SectionName, UtilityMethod[]> {
+/**
+ * Invokes all of the `MethodFns` to create the actual methods.
+ *
+ * Each section's methods are tagged with the section name here, where the generator calls the
+ * function, so a method never has to know which section it is in.
+ */
+function generateMethods(config: Config, methodFns: Sections, custom: boolean): Record<SectionName, GeneratedSection> {
   return Object.fromEntries(
-    Object.entries(methodFns).map(([name, fn]) => [name, inSection({ name, custom }, () => fn(config))]),
+    Object.entries(methodFns).map(([name, fn]) => [name, { section: { name, custom }, methods: fn(config) }]),
   );
 }
 
 /**
- * Returns all utility sections configured for this project, with the `WebEntry` metadata the web
- * mapping is built from.
+ * Returns all utility sections configured for this project, in `Css.ts` order.
  *
  * Keyframe methods come last, so a keyframe only falls back to its `animate<Name>` spelling when a
  * utility method, a custom section, or an alias already owns the plain name.
  */
-function generateSections(config: Config): { sections: Record<string, UtilityMethod[]>; entries: WebEntry[] } {
+function generateSections(config: Config): GeneratedSection[] {
   const { aliases, defaultMethods = "tachyons", sections: customSections } = config;
   const builtIn =
     defaultMethods === "tachyons" ? defaultSections : defaultMethods === "tachyons-rn" ? reactNativeSections : {};
-  startWebCollection();
-  try {
-    const sections: Record<string, UtilityMethod[]> = {
-      ...generateMethods(config, notOverridden(builtIn, customSections), false),
-      ...(customSections ? generateMethods(config, customSections, true) : {}),
-      ...(aliases && { aliases: inSection({ name: "aliases", custom: true }, () => newAliasesMethods(aliases)) }),
-    };
-    // `@keyframes` are a web-only feature, like the `Keyframes` enum itself.
-    if (config.target !== "react-native") {
-      const keyframes = inSection({ name: "keyframes", custom: true }, () =>
-        newKeyframesMethods(config, collectedAbbreviations()),
-      );
-      if (keyframes.length > 0) sections.keyframes = keyframes;
-    }
-    const entries = stopWebCollection();
-    checkForDuplicateMethods(entries);
-    return { sections, entries };
-  } catch (error) {
-    stopWebCollection();
-    throw error;
+
+  // A later section of the same name replaces an earlier one, i.e. a custom `aliases` section
+  const sections: Record<SectionName, GeneratedSection> = {
+    ...generateMethods(config, notOverridden(builtIn, customSections), false),
+    ...(customSections ? generateMethods(config, customSections, true) : {}),
+    ...(aliases && { aliases: { section: { name: "aliases", custom: true }, methods: newAliasesMethods(aliases) } }),
+  };
+
+  // `@keyframes` are a web-only feature, like the `Keyframes` enum itself.
+  if (config.target !== "react-native") {
+    const taken = new Set(mappingEntries(Object.values(sections)).map(([abbr]) => abbr));
+    const keyframes = newKeyframesMethods(config, taken);
+    if (keyframes.length > 0) sections.keyframes = { section: { name: "keyframes", custom: true }, methods: keyframes };
   }
+
+  const generated = Object.values(sections);
+  checkForDuplicateMethods(generated);
+  return generated;
 }
 
 /**
@@ -437,12 +429,10 @@ function notOverridden(builtIn: Sections, customSections: Sections | undefined):
  * The actual web transformation happens at build time via the truss Vite plugin,
  * which reads the companion `Css.json` to understand what each abbreviation produces.
  */
-function generateWebCssBuilder(config: Config, sections: Record<string, UtilityMethod[]>): Code {
+function generateWebCssBuilder(config: Config, sections: GeneratedSection[]): Code {
   const { fonts, increment, extras, typeAliases, palette, breakpoints = {}, tokens } = config;
 
-  const lines = Object.entries(sections)
-    .map(([name, value]) => [`// ${name}`, ...value, ""])
-    .flat();
+  const lines = sectionLines(sections);
 
   const typeAliasCode = Object.entries({
     ...defaultTypeAliases,
@@ -808,77 +798,17 @@ ${extras || ""}
 
 // ── Truss Mapping Generator ──────────────────────────────────────────
 
-/** The shape of the Css.json mapping file consumed by the Vite plugin. */
-export interface TrussMapping {
-  increment: number;
-  breakpoints?: Record<string, string>;
-  typography?: string[];
-  tokens?: Record<string, string>;
-  /** CSS custom property → its `@property` block, for the tokens that declare a `syntax`. */
-  properties?: Record<string, string>;
-  /** Keyframe name → its `@keyframes` block, from `config.keyframes`. */
-  keyframes?: Record<string, string>;
-  abbreviations: Record<string, TrussMappingEntry>;
-}
-
-export type TrussMappingEntry =
-  | { kind: "static"; defs: Record<string, unknown> }
-  | { kind: "variable"; props: string[]; incremented: boolean; extraDefs?: Record<string, unknown> }
-  | { kind: "delegate"; target: string }
-  | { kind: "alias"; chain: string[] }
-  | { kind: "keyframe"; name: string };
-
 /**
  * Generates the truss mapping JSON that the Vite plugin uses to resolve
  * Css abbreviation chains into CSS properties at build time.
  */
-function generateTrussMapping(config: Config, entries: WebEntry[]): TrussMapping {
+function generateTrussMapping(config: Config, sections: GeneratedSection[]): TrussMapping {
   const { breakpoints = {} } = config;
 
+  // A later entry for the same abbreviation wins, but keeps the earlier entry's place in the file
   const abbreviations: Record<string, TrussMappingEntry> = {};
-
-  for (const entry of entries) {
-    switch (entry.kind) {
-      case "static":
-      case "cssvar":
-        abbreviations[entry.abbr] = { kind: "static", defs: entry.defs || {} };
-        break;
-      case "param":
-        abbreviations[entry.abbr] = {
-          kind: "variable",
-          props: entry.props || [],
-          incremented: false,
-          extraDefs: entry.extraDefs,
-        };
-        break;
-      case "increment-param":
-        abbreviations[entry.abbr] = {
-          kind: "variable",
-          props: entry.props || [],
-          incremented: true,
-          extraDefs: entry.extraDefs,
-        };
-        break;
-      case "px-delegate":
-        // The target is the abbreviation without the Px suffix
-        abbreviations[entry.abbr] = {
-          kind: "delegate",
-          target: entry.abbr.replace(/Px$/, ""),
-        };
-        break;
-      case "alias":
-        abbreviations[entry.abbr] = {
-          kind: "alias",
-          chain: entry.aliasTargets || [],
-        };
-        break;
-      case "keyframe":
-        abbreviations[entry.abbr] = {
-          kind: "keyframe",
-          name: entry.keyframeName || entry.abbr,
-        };
-        break;
-    }
+  for (const [abbr, entry] of mappingEntries(sections)) {
+    abbreviations[abbr] = entry;
   }
 
   // Generate breakpoint mapping: { ifSm: "@media ...", ifMd: "@media ...", ... }
@@ -933,4 +863,33 @@ function condensedJson(mapping: TrussMapping): string {
   lines.push("  }");
   lines.push("}");
   return lines.join("\n");
+}
+
+/** The builder lines for every section: a `// name` header, its methods, and a blank line. */
+function sectionLines(sections: GeneratedSection[]): string[] {
+  const abbreviations = Object.fromEntries(mappingEntries(sections));
+  return sections.flatMap((generated) => [
+    `// ${generated.section.name}`,
+    ...generated.methods.map((method) => renderMethod(method, abbreviations)),
+    "",
+  ]);
+}
+
+/**
+ * Every `Css.json` abbreviation the sections define, in the order they are written.
+ *
+ * A `delegate` whose target has no method of its own brings the target's entry with it, written
+ * just before the delegate, i.e. `sq` and then `sqPx`.
+ */
+function mappingEntries(sections: GeneratedSection[]): Array<[string, TrussMappingEntry]> {
+  const entries: Array<[string, TrussMappingEntry]> = [];
+  for (const generated of sections) {
+    for (const method of generated.methods) {
+      if (method.delegateTarget && method.entry.kind === "delegate") {
+        entries.push([method.entry.target, method.delegateTarget]);
+      }
+      entries.push([method.abbr, method.entry]);
+    }
+  }
+  return entries;
 }

@@ -1,5 +1,5 @@
-import { CreateMethodsFn, UtilityMethod } from "src/config";
-import { newMethod, newMethodsForProp, Prop } from "src/methods";
+import type { CreateMethodsFn } from "src/config";
+import { newMethod, newMethodsForProp, type MethodDefinition, type Prop } from "src/methods";
 import { lowerCaseFirst } from "src/utils";
 
 export const skins: CreateMethodsFn = (config) => {
@@ -22,7 +22,11 @@ export const skins: CreateMethodsFn = (config) => {
  * Each method passes along the palette key it is named after, so an error about a duplicate
  * method name can name the palette entry instead of this section.
  */
-function paletteMethods(palette: Record<string, string>, prop: Prop, abbrOf: (key: string) => string): UtilityMethod[] {
+function paletteMethods(
+  palette: Record<string, string>,
+  prop: Prop,
+  abbrOf: (key: string) => string,
+): MethodDefinition[] {
   return Object.entries(palette).map(([key, value]) =>
     newMethod(abbrOf(key), { [prop]: value }, { kind: "palette", name: key }),
   );

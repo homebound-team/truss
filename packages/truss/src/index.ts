@@ -1,7 +1,8 @@
 export * from "src/config";
 export { defaultSections } from "src/sections/tachyons";
 export { generate } from "src/generate";
-export type { ConfigKey, IncConfig, MethodSection, WebEntry } from "src/methods";
+export type { ConfigKey, IncConfig, MethodDefinition, MethodSection } from "src/methods";
+export type { TrussMapping, TrussMappingEntry } from "src/truss-mapping";
 export { maybeCssVar } from "src/css-custom-property";
 export {
   SPACING_CUSTOM_PROPERTY,
@@ -18,6 +19,4 @@ export {
   newIncrementMethods,
   newParamMethod,
   newSetCssVariablesMethod,
-  startWebCollection,
-  stopWebCollection,
 } from "src/methods";

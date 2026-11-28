@@ -1,5 +1,6 @@
 import { Properties } from "csstype";
 import { Code } from "ts-poet";
+import type { MethodDefinition } from "src/methods";
 
 /**
  * A map from human name to font size, i.e. `f12` -> `12px`.
@@ -152,7 +153,7 @@ export interface Config {
    * A map of "section" to list of rules to create application-specific
    * utility methods.
    *
-   * I.e. "borderColors" -> () => [`get ml1() { ... }`].
+   * I.e. "borderColors" -> () => [newMethod("bcRed", { borderColor: "red" })].
    *
    * This can be used to either add new sections or override built-in sections.
    */
@@ -182,29 +183,19 @@ export function defineConfig(config: Config): Config {
  *
  * ```
  *   [
- *     "get mb0() { return this.mb(0); }",
- *     "get mb1() { return this.mb(1); }",
+ *     newMethod("mb0", { marginBottom: 0 }),
+ *     newParamMethod("mb", "marginBottom"),
  *   ]
  * ```
  *
- * See the `newMethod` and `newParamMethod` functions for more easily
- * creating the `get ...() { ... }` output.
+ * See the `newMethod` and `newParamMethod` functions for creating each method.
  */
-export type CreateMethodsFn = (config: Config) => UtilityMethod[];
+export type CreateMethodsFn = (config: Config) => MethodDefinition[];
 
 /**
  * A type-alias to clarify strings that are meant to be abbreviation/utility names.
  */
 export type UtilityName = string;
-
-/**
- * A type-alias to clarify which method returns types are utility methods.
- *
- * I.e. they should be a line of TypeScript code like `get abbr() { ... }`.
- *
- * See `newMethod` for a helper method to create the string.
- */
-export type UtilityMethod = string;
 
 /** A type-alias to clarify groups of utility methods. */
 export type SectionName = string;
