@@ -5,11 +5,11 @@ import { transformTruss, type TransformResult, type TransformTrussOptions } from
 import { mergeTrussCssData, readTrussCss } from "./merge-css";
 import { serializeTrussCss, type ParsedTrussCss } from "./truss-css";
 import { createTestCssPayload } from "./test-css";
-import type { TestCssPayload } from "../runtime-css";
+import type { TestCssPayload } from "src/runtime-css";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
-import { rootSpacingPreludeCss } from "../spacing-css-var";
-import { compareClassNames } from "../css-order";
+import { rootSpacingPreludeCss } from "src/shared/spacing-css-var";
+import { compareClassNames } from "src/shared/css-order";
 
 export interface TrussTransformSessionOptions {
   mappingPath: () => string;

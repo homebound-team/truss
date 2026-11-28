@@ -10,7 +10,7 @@
  * wins wherever both match. See `compareRuleSortKeys`.
  */
 
-import { compareRuleSortKeys, ruleSortKey } from "../css-order";
+import { compareRuleSortKeys, ruleSortKey } from "src/shared/css-order";
 import {
   getPropertyPriority,
   getPseudoClassPriority,

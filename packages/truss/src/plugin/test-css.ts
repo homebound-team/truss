@@ -1,6 +1,6 @@
 import { parse, type StyleSheet } from "css-tree";
-import { atRulePrelude } from "../css-order";
-import type { TestCssPayload } from "../runtime-css";
+import { atRulePrelude } from "src/shared/css-order";
+import type { TestCssPayload } from "src/runtime-css";
 import type { ParsedTrussCss } from "./truss-css";
 import { applyReferencedKeyframes } from "./at-rule-refs";
 import type { TrussMapping } from "./types";

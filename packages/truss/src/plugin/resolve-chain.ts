@@ -8,8 +8,8 @@ import { requireEntry, resolveEntry } from "./resolve-entry";
 import { resolveCallNode } from "./resolve-calls";
 import { resolveWhenCall } from "./resolve-when";
 import { containerQueryFromCall } from "./container-query";
-import { invertMediaQuery } from "../media-query";
-import { isTrussPseudoMethod, trussPseudoSelector } from "../pseudo-selectors";
+import { invertMediaQuery } from "src/shared/media-query";
+import { isTrussPseudoMethod, trussPseudoSelector } from "src/shared/pseudo-selectors";
 
 /**
  * Optional hook for resolving identifier references like `const same = Css.blue.$`

@@ -1,8 +1,8 @@
 import type {} from "vitest";
-import type { StyleExpectation } from "src/toHaveStyle";
+import type { StyleExpectation } from "./toHaveStyle";
 
-export { toHaveStyle } from "src/toHaveStyle";
-export type { StyleExpectation } from "src/toHaveStyle";
+export { toHaveStyle } from "./toHaveStyle";
+export type { StyleExpectation } from "./toHaveStyle";
 
 declare module "vitest" {
   interface Matchers<R, T> {

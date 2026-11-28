@@ -1,4 +1,4 @@
-import { compareClassNames, compareRuleSortKeys, ruleSortKey, type RuleSortKey } from "./css-order";
+import { compareClassNames, compareRuleSortKeys, ruleSortKey, type RuleSortKey } from "./shared/css-order";
 import type { ParsedCssRule, ParsedKeyframesBlock, ParsedPropertyDeclaration } from "./plugin/truss-css";
 
 interface InstalledRule {

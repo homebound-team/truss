@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { type PluginContext } from "rollup";
 import { createTrussTransformSession } from "./transform-session";
 import { TEST_CSS_BOOTSTRAP_ID } from "./test-css";
-import { rootSpacingPreludeCss } from "../spacing-css-var";
+import { rootSpacingPreludeCss } from "src/shared/spacing-css-var";
 import type { DiagnosticOptions, TransformDiagnostic } from "./types";
 
 export interface TrussPluginOptions {

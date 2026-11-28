@@ -1,0 +1,30 @@
+import { newMethod, newMethodsForProp, newParamMethod } from "src/codegen/methods";
+import { CreateMethodsFn } from "src/codegen/config";
+
+// See typeScale for the FontConfig.fonts handling
+
+export const typography: CreateMethodsFn = () => [
+  newMethod("measure", { maxWidth: "30em" }),
+  newMethod("measureWide", { maxWidth: "34em" }),
+  newMethod("measureNarrow", { maxWidth: "20em" }),
+  newMethod("indent", {
+    textIndent: "1em",
+    marginTop: "0px",
+    marginBottom: "0px",
+  }),
+  newMethod("smallCaps", { fontVariant: "small-caps" }),
+  newMethod("truncate", {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  }),
+  // Include `fs(...)` & `fsPx(...)` for one-off font-sizes. We technically also have
+  // `fs0` and `fs1` for `flexShrink`, but this seems fine.
+  ...newMethodsForProp("fontSize", {}, "fs", true),
+  ...newMethodsForProp("lineHeight", {}, "lh", true),
+  ...newMethodsForProp("letterSpacing", {}, "ls", true),
+  ...newMethodsForProp("textWrap", { twb: "balance", twp: "pretty" }, "tw"),
+  ...newMethodsForProp("fontVariantNumeric", { tabularNums: "tabular-nums" }),
+  // For the `content` of a `:before`/`:after`, i.e. `Css.before(Css.content('"*"').$).$`.
+  ...newMethodsForProp("content", {}),
+];
