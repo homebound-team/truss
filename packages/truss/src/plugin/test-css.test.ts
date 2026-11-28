@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ruleSortKey } from "../css-order";
-import type { TestCssPayload } from "../test-css";
+import type { TestCssPayload } from "../runtime-css";
 import { createTestCssPayload, splitArbitraryCss } from "./test-css";
 
 describe("createTestCssPayload", () => {

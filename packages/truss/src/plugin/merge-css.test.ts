@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { mergeTrussCss, mergeTrussCssData } from "./merge-css";
-import type { ParsedTrussCss } from "../truss-css";
-import { parseTrussCss, serializeTrussCss } from "./truss-css";
+import { mergeTrussCssData } from "./merge-css";
+import { parseTrussCss, serializeTrussCss, type ParsedTrussCss } from "./truss-css";
 
 test("structured merge keeps first-source rules and properties and opaque arbitrary blocks", () => {
   const library = parsedTrussCss({
@@ -34,7 +33,6 @@ test("structured merge keeps first-source rules and properties and opaque arbitr
       "/* @truss arbitrary:end */",
     ].join("\n"),
   );
-  expect(mergeTrussCss([library, app])).toEqual(serializeTrussCss(merged));
 });
 
 describe("parseTrussCss", () => {
@@ -155,7 +153,7 @@ describe("parseTrussCss", () => {
   });
 });
 
-describe("mergeTrussCss", () => {
+describe("mergeTrussCssData", () => {
   test("merges two sources with no overlap", () => {
     const source1 = parsedTrussCss({
       rules: [{ priority: 3000, className: "df", cssText: ".df { display: flex; }" }],
@@ -164,7 +162,7 @@ describe("mergeTrussCss", () => {
       rules: [{ priority: 3000, className: "black", cssText: ".black { color: #353535; }" }],
     });
 
-    const merged = mergeTrussCss([source1, source2]);
+    const merged = serializeTrussCss(mergeTrussCssData([source1, source2]));
     // Both rules present, alphabetical tiebreak: black before df
     expect(merged.includes(".black { color: #353535; }")).toBe(true);
     expect(merged.includes(".df { display: flex; }")).toBe(true);
@@ -187,7 +185,7 @@ describe("mergeTrussCss", () => {
       ],
     });
 
-    const merged = mergeTrussCss([source1, source2]);
+    const merged = serializeTrussCss(mergeTrussCssData([source1, source2]));
     // "df" should appear only once
     const dfCount = merged.split(".df { display: flex; }").length - 1;
     expect(dfCount).toBe(1);
@@ -207,7 +205,7 @@ describe("mergeTrussCss", () => {
       ],
     });
 
-    const merged = mergeTrussCss([source1, source2]);
+    const merged = serializeTrussCss(mergeTrussCssData([source1, source2]));
     const blackIdx = merged.indexOf(".black {");
     const hoverIdx = merged.indexOf(".h_blue:hover {");
     const mediaIdx = merged.indexOf(".sm_blue.sm_blue {");
@@ -235,7 +233,7 @@ describe("mergeTrussCss", () => {
       ],
     });
 
-    const merged = mergeTrussCss([library, app]);
+    const merged = serializeTrussCss(mergeTrussCssData([library, app]));
     const widerIdx = merged.indexOf(".mdandup_white.mdandup_white {");
     const narrowerIdx = merged.indexOf(".lg_black.lg_black {");
     expect(widerIdx).toBeLessThan(narrowerIdx);
@@ -257,7 +255,7 @@ describe("mergeTrussCss", () => {
       ],
     });
 
-    const merged = mergeTrussCss([source]);
+    const merged = serializeTrussCss(mergeTrussCssData([source]));
     const boundedIdx = merged.indexOf(".sm_black.sm_black {");
     const unboundedIdx = merged.indexOf(".print_white.print_white {");
     expect(boundedIdx).toBeLessThan(unboundedIdx);
@@ -276,7 +274,7 @@ describe("mergeTrussCss", () => {
       ],
     });
 
-    const merged = mergeTrussCss([source1, source2]);
+    const merged = serializeTrussCss(mergeTrussCssData([source1, source2]));
     const marginTopCount = merged.split("@property --marginTop").length - 1;
     expect(marginTopCount).toBe(1);
     expect(merged.includes("@property --width")).toBe(true);
@@ -291,7 +289,7 @@ describe("mergeTrussCss", () => {
       properties: [{ cssText: '@property --marginTop { syntax: "*"; inherits: false; }', varName: "--marginTop" }],
     });
 
-    const merged = mergeTrussCss([source]);
+    const merged = serializeTrussCss(mergeTrussCssData([source]));
     const lastRuleIdx = merged.indexOf(".mt_var {");
     const propertyIdx = merged.indexOf("@property --marginTop");
     expect(lastRuleIdx).toBeLessThan(propertyIdx);
@@ -303,13 +301,13 @@ describe("mergeTrussCss", () => {
       properties: [{ cssText: '@property --marginTop { syntax: "*"; inherits: false; }', varName: "--marginTop" }],
     });
 
-    const merged = mergeTrussCss([source]);
+    const merged = serializeTrussCss(mergeTrussCssData([source]));
     expect(merged.includes("/* @truss p:3000 c:df */")).toBe(true);
     expect(merged.includes("/* @truss @property */")).toBe(true);
   });
 
   test("handles empty sources", () => {
-    const merged = mergeTrussCss([]);
+    const merged = serializeTrussCss(mergeTrussCssData([]));
     expect(merged).toBe("");
   });
 
@@ -319,7 +317,7 @@ describe("mergeTrussCss", () => {
       properties: [{ cssText: '@property --color { syntax: "*"; inherits: false; }', varName: "--color" }],
     });
 
-    const merged = mergeTrussCss([source]);
+    const merged = serializeTrussCss(mergeTrussCssData([source]));
     expect(merged.includes("@property --color")).toBe(true);
     expect(merged.includes("/* @truss @property */")).toBe(true);
   });
@@ -334,7 +332,7 @@ describe("mergeTrussCss", () => {
       arbitraryCssBlocks: [{ cssText: ".grid td:nth-child(odd) {\n  background-color: #fcfcfa;\n}" }],
     });
 
-    const merged = mergeTrussCss([source1, source2]);
+    const merged = serializeTrussCss(mergeTrussCssData([source1, source2]));
     const ruleIdx = merged.indexOf(".df {");
     const propertyIdx = merged.indexOf("@property --width");
     const firstArbitraryIdx = merged.indexOf("/* @truss arbitrary:start */");
@@ -364,7 +362,7 @@ describe("mergeTrussCss", () => {
     ].join("\n");
 
     const parsed = parseTrussCss(originalCss);
-    const merged = mergeTrussCss([parsed]);
+    const merged = serializeTrussCss(mergeTrussCssData([parsed]));
     expect(merged).toBe(originalCss);
   });
 });

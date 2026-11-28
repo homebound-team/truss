@@ -1,6 +1,5 @@
 import { expect, test } from "vitest";
-import { type ParsedTrussCss } from "../truss-css";
-import { parseTrussCss, serializeTrussCss } from "./truss-css";
+import { parseTrussCss, serializeTrussCss, type ParsedTrussCss } from "./truss-css";
 
 test("serialization omits only generated annotations when requested", () => {
   // Given structured CSS with a fractional priority and duplicate fallback declarations
