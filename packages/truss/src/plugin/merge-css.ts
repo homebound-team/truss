@@ -1,5 +1,5 @@
 import { readFileSync } from "fs";
-import { atRulePrelude, compareRuleSortKeys, ruleSortKey } from "../css-order";
+import { atRulePrelude, compareRuleSortKeys, ruleSortKey } from "src/shared/css-order";
 import {
   parseTrussCss,
   type ParsedArbitraryCssBlock,

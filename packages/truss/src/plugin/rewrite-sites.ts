@@ -6,7 +6,7 @@ import { collectStyleEntryGroups, styleHashProperties } from "./emit-style-hash"
 import { markerClassName, type StyleEntry } from "./style-entries";
 import { generate, traverse } from "./babel-utils";
 import { isCssMethodCall, staticPropertyName } from "./ast-utils";
-import { TRUSS_CUSTOM_CLASS_PREFIX, TRUSS_INLINE_STYLE_PREFIX, TRUSS_MARKER_KEY } from "../style-metadata";
+import { TRUSS_CUSTOM_CLASS_PREFIX, TRUSS_INLINE_STYLE_PREFIX, TRUSS_MARKER_KEY } from "src/shared/style-metadata";
 
 export interface ExpressionSite {
   path: NodePath<t.MemberExpression>;

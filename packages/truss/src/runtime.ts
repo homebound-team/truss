@@ -5,11 +5,11 @@ import {
   TRUSS_CUSTOM_CLASS_PREFIX,
   TRUSS_INLINE_STYLE_PREFIX,
   TRUSS_MARKER_KEY,
-} from "./style-metadata";
+} from "./shared/style-metadata";
 
-export { invertMediaQuery as __invertTrussMediaQuery } from "./media-query";
-export { maybeCssVar } from "./css-custom-property";
-export { maybeInc } from "./spacing-css-var";
+export { invertMediaQuery as __invertTrussMediaQuery } from "./shared/media-query";
+export { maybeCssVar } from "./shared/css-custom-property";
+export { maybeInc } from "./shared/spacing-css-var";
 export { __injectTrussCSS } from "./runtime-css";
 export type { TestCssPayload, TestCssRule } from "./runtime-css";
 

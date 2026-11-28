@@ -3,10 +3,10 @@ import type { TrussMapping } from "./types";
 import { memberPropertyName, staticPropertyName, unwrapExpression } from "./ast-utils";
 import { type CallChainNode, UnsupportedPatternError } from "./chain-nodes";
 import { pascalCase } from "change-case";
-import { isCustomPropertyName, maybeCssVar } from "../css-custom-property";
+import { isCustomPropertyName, maybeCssVar } from "src/shared/css-custom-property";
 import { UnknownKeyframesError } from "./keyframe-names";
-import { incrementCssValue } from "../spacing-css-var";
-import { camelToKebab } from "../utils";
+import { incrementCssValue } from "src/shared/spacing-css-var";
+import { camelToKebab } from "src/shared/utils";
 
 // ── Literal evaluation ────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@ import { tmpdir } from "os";
 import { transformCssAst } from "./transform-css";
 import { parseModule } from "./babel-utils";
 import type { DiagnosticOptions, TrussMapping } from "./types";
-import { camelToKebab } from "../utils";
+import { camelToKebab } from "src/shared/utils";
 import { loadMapping, trussPlugin } from "./index";
 import { resolve } from "path";
 

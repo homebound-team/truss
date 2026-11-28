@@ -13,7 +13,7 @@ export interface DiagnosticOptions {
 }
 
 // Declared once in `truss-mapping.ts`, since the generator writes the same shape the plugin reads.
-export type { TrussMapping, TrussMappingEntry } from "../truss-mapping";
+export type { TrussMapping, TrussMappingEntry } from "src/shared/truss-mapping";
 
 /** A `when()` relationship selector context that can stack with other condition axes. */
 export interface WhenCondition {

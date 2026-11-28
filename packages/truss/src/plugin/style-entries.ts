@@ -3,8 +3,8 @@ import type { CssSegment, ResolvedConditionContext, TrussMapping, VariableSegmen
 import { breakpointNameForMediaQuery, findCanonicalAbbreviation } from "./mapping-utils";
 import { cssPropertyAbbreviations } from "./css-property-abbreviations";
 import { WHEN_RELATIONSHIPS } from "./when-relationships";
-import { pseudoSelectorPrefix } from "../pseudo-selectors";
-import { tryParseIncrementCalcMultiplier } from "../spacing-css-var";
+import { pseudoSelectorPrefix } from "src/shared/pseudo-selectors";
+import { tryParseIncrementCalcMultiplier } from "src/shared/spacing-css-var";
 
 /**
  * One class/property pair derived from a segment; the shared model both CSS rules (emit-css)

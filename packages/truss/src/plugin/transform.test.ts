@@ -5,7 +5,7 @@ import { applyReferencedKeyframes } from "./at-rule-refs";
 import { generateCssData, type AtomicRule } from "./emit-css";
 import { serializeTrussCss } from "./truss-css";
 import { resolve } from "path";
-import { normalize } from "../testUtils";
+import { normalize } from "./testUtils";
 
 const mapping = loadMapping(resolve(__dirname, "../../../app/src/Css.json"));
 

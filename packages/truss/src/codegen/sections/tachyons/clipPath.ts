@@ -1,0 +1,5 @@
+import { CreateMethodsFn } from "src/codegen/config";
+import { newMethodsForProp } from "src/codegen/methods";
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/clip-path
+export const clipPath: CreateMethodsFn = () => newMethodsForProp("clipPath", {});

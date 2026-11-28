@@ -1178,7 +1178,7 @@ const sections = {
 };
 ```
 
-Where `borderRadius` matches the name of the section in Truss's [sections](https://github.com/homebound-team/truss/tree/main/src/sections) directory (which generally matches Tachyon's organization).
+Where `borderRadius` matches the name of the section in Truss's [sections](https://github.com/homebound-team/truss/tree/main/packages/truss/src/codegen/sections) directory (which generally matches Tachyon's organization).
 
 ### Forking
 
