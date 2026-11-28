@@ -177,7 +177,7 @@ When the expression contains dynamic values, a lightweight `trussProps` runtime 
 return <div css={Css.mt(someValue).black.$}>content</div>;
 // Build-time output
 return (
-  <div {...trussProps({ marginTop: ["mt_var", { "--marginTop": __maybeInc(someValue) }], color: "black" })}>
+  <div {...trussProps({ marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc(someValue)) }], color: "black" })}>
     content
   </div>
 );

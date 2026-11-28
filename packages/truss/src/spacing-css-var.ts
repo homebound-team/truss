@@ -18,6 +18,16 @@ export function incrementCssValue(multiplier: number): string {
 }
 
 /**
+ * The value of an increment method's argument: a number is a count of increments, and a string is used as-is.
+ *
+ * Compiled `Css.mt(x).$` expressions call this at runtime, i.e. `maybeInc(2)` is
+ * `calc(var(--t-spacing) * 2)` and `maybeInc("4px")` is `"4px"`.
+ */
+export function maybeInc(inc: number | string): string {
+  return typeof inc === "string" ? inc : incrementCssValue(inc);
+}
+
+/**
  * If `cssValue` is exactly `calc(var(--t-spacing) * k)` for this package's spacing property,
  * returns the multiplier substring `k` (e.g. `"2"`, `"-1"`, `"2.5"`). Otherwise null.
  */

@@ -9,6 +9,7 @@ import {
 
 export { invertMediaQuery as __invertTrussMediaQuery } from "./media-query";
 export { maybeCssVar } from "./css-custom-property";
+export { maybeInc } from "./spacing-css-var";
 export { __injectTrussCSS } from "./runtime-css";
 export type { TestCssPayload, TestCssRule } from "./test-css";
 

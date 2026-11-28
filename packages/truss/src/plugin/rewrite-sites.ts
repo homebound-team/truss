@@ -14,7 +14,7 @@ export interface ExpressionSite {
 }
 
 /** The `@homebound/truss/runtime` exports the rewritten code may call. */
-export type RuntimeHelperName = "trussProps" | "mergeProps" | "TrussDebugInfo" | "maybeCssVar";
+export type RuntimeHelperName = "trussProps" | "mergeProps" | "TrussDebugInfo" | "maybeCssVar" | "maybeInc";
 
 export interface RuntimeHelpers {
   /**
@@ -34,8 +34,6 @@ export interface RewriteSitesOptions {
   filename: string;
   debug: boolean;
   mapping: TrussMapping;
-  maybeIncHelperName: string | null;
-  maybeCssVarHelperName: string | null;
   runtime: RuntimeHelpers;
   runtimeLookupNames: Map<string, string>;
   hasCssPropsCall: boolean;
@@ -206,7 +204,7 @@ function buildStyleHashMembers(
   function flushCssSegs(): void {
     if (cssSegs.length === 0) return;
     const batchGroups = collectStyleEntryGroups(cssSegs, options.mapping, seed);
-    members.push(...styleHashProperties(batchGroups, options.maybeIncHelperName, options.maybeCssVarHelperName));
+    members.push(...styleHashProperties(batchGroups, options.runtime));
     for (const [cssProp, entries] of batchGroups) {
       groups.set(cssProp, entries);
     }
@@ -215,8 +213,6 @@ function buildStyleHashMembers(
 
   for (const seg of segments) {
     switch (seg.kind) {
-      case "error":
-        continue;
       case "className":
         // I.e. `Css.className(cls).df.$` becomes `className_cls: cls` in the style hash.
         classNameArgs.push(t.cloneNode(seg.arg, true));

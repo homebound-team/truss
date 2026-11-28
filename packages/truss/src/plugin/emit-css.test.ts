@@ -57,7 +57,7 @@ const testMapping: TrussMapping = {
 describe("collectAtomicRules", () => {
   test("static single-property segment", () => {
     const seg: ResolvedSegment = { kind: "static", abbr: "df", defs: { display: "flex" }, condition: condition() };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    const rules = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("df")).toMatchObject({
       className: "df",
       declarations: [{ cssProperty: "display", cssValue: "flex" }],
@@ -71,7 +71,7 @@ describe("collectAtomicRules", () => {
       defs: { borderStyle: "solid", borderWidth: "1px" },
       condition: condition(),
     };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    const rules = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("bs_solid")).toMatchObject({
       className: "bs_solid",
       declarations: [{ cssProperty: "border-style", cssValue: "solid" }],
@@ -89,7 +89,7 @@ describe("collectAtomicRules", () => {
       defs: { color: "#526675" },
       condition: condition({ pseudoClass: ":hover" }),
     };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    const rules = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("h_blue")).toMatchObject({
       className: "h_blue",
       declarations: [{ cssProperty: "color", cssValue: "#526675" }],
@@ -104,7 +104,7 @@ describe("collectAtomicRules", () => {
       defs: { color: "#526675" },
       condition: condition({ mediaQuery: "@media screen and (max-width: 599px)" }),
     };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    const rules = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("sm_blue")).toMatchObject({
       className: "sm_blue",
       declarations: [{ cssProperty: "color", cssValue: "#526675" }],
@@ -122,7 +122,7 @@ describe("collectAtomicRules", () => {
         whenPseudo: { relationship: "ancestor", pseudo: ":hover" },
       }),
     };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    const rules = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("sm_wh_anc_h_blue")).toMatchObject({
       className: "sm_wh_anc_h_blue",
       declarations: [{ cssProperty: "color", cssValue: "#526675" }],
@@ -142,7 +142,7 @@ describe("collectAtomicRules", () => {
       defs: { color: "#526675" },
       condition: condition({ pseudoElement: "::placeholder" }),
     };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    const rules = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("placeholder_blue")).toMatchObject({
       className: "placeholder_blue",
       declarations: [{ cssProperty: "color", cssValue: "#526675" }],
@@ -160,10 +160,8 @@ describe("collectAtomicRules", () => {
       argNode: { type: "Identifier", name: "x" },
       condition: condition(),
     };
-    const result = collectAtomicRules([chain([seg])], testMapping);
-    expect(result.needsMaybeInc).toBe(true);
-    expect(result.needsMaybeCssVar).toBe(true);
-    expect(result.rules.get("mt_var")).toMatchObject({
+    const rules = collectAtomicRules([chain([seg])], testMapping);
+    expect(rules.get("mt_var")).toMatchObject({
       className: "mt_var",
       declarations: [{ cssProperty: "margin-top", cssValue: "var(--marginTop)", cssVarName: "--marginTop" }],
     });
@@ -179,9 +177,8 @@ describe("collectAtomicRules", () => {
       argNode: { type: "Identifier", name: "x" },
       condition: condition(),
     };
-    const result = collectAtomicRules([chain([seg])], testMapping);
-    expect(result.needsMaybeCssVar).toBe(false);
-    expect(result.rules.get("sq_var")).toMatchObject({
+    const rules = collectAtomicRules([chain([seg])], testMapping);
+    expect(rules.get("sq_var")).toMatchObject({
       className: "sq_var",
       declarations: [
         { cssProperty: "height", cssValue: "var(--height)", cssVarName: "--height" },
@@ -200,9 +197,8 @@ describe("collectAtomicRules", () => {
       argNode: { type: "Identifier", name: "y" },
       condition: condition({ pseudoClass: ":hover" }),
     };
-    const result = collectAtomicRules([chain([seg])], testMapping);
-    expect(result.needsMaybeCssVar).toBe(true);
-    expect(result.rules.get("h_bc_var")).toMatchObject({
+    const rules = collectAtomicRules([chain([seg])], testMapping);
+    expect(rules.get("h_bc_var")).toMatchObject({
       className: "h_bc_var",
       declarations: [{ cssProperty: "border-color", cssValue: "var(--h_borderColor)", cssVarName: "--h_borderColor" }],
       pseudoClass: ":hover",
@@ -216,7 +212,7 @@ describe("collectAtomicRules", () => {
       defs: { color: "#353535" },
       condition: condition({ pseudoClass: ":hover:not(:disabled)" }),
     };
-    const { rules } = collectAtomicRules([chain([seg])], testMapping);
+    const rules = collectAtomicRules([chain([seg])], testMapping);
     expect(rules.get("h_n_d_black")).toMatchObject({
       className: "h_n_d_black",
       declarations: [{ cssProperty: "color", cssValue: "#353535" }],

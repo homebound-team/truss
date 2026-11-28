@@ -4,7 +4,6 @@ import { sortRulesByPriority } from "./priority";
 import { markerClassName, styleEntriesForSegment } from "./style-entries";
 import { camelToKebab } from "../utils";
 import { WHEN_RELATIONSHIPS, type WhenRelationship } from "./when-relationships";
-import { variableValueNeedsMaybeCssVar } from "../css-custom-property";
 import type { ParsedTrussCss } from "../truss-css";
 import { serializeTrussCss } from "./truss-css";
 
@@ -49,22 +48,14 @@ export interface WhenSelector {
 
 // ── Collecting atomic rules from resolved chains ──────────────────────
 
-export interface CollectedRules {
-  rules: Map<string, AtomicRule>;
-  needsMaybeInc: boolean;
-  needsMaybeCssVar: boolean;
-}
-
 /**
  * Collect all atomic CSS rules from resolved chains.
  *
  * I.e. walks every segment in every chain part and registers one AtomicRule
  * per CSS declaration, keyed by the prefixed class name.
  */
-export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMapping): CollectedRules {
+export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMapping): Map<string, AtomicRule> {
   const rules = new Map<string, AtomicRule>();
-  let needsMaybeInc = false;
-  let needsMaybeCssVar = false;
 
   function collectSegment(seg: ResolvedSegment): void {
     if (seg.kind === "typography") {
@@ -74,10 +65,6 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
       return;
     }
     if (!isCssSegment(seg)) return;
-    if (seg.kind === "variable") {
-      if (seg.incremented) needsMaybeInc = true;
-      if (seg.argResolved === undefined && variableValueNeedsMaybeCssVar(seg)) needsMaybeCssVar = true;
-    }
     collectSegmentRules(rules, seg, mapping);
   }
 
@@ -85,7 +72,7 @@ export function collectAtomicRules(chains: ResolvedChain[], mapping: TrussMappin
     chainSegments(chain).forEach(collectSegment);
   }
 
-  return { rules, needsMaybeInc, needsMaybeCssVar };
+  return rules;
 }
 
 /** Collect atomic CSS rules for one resolved style segment. */

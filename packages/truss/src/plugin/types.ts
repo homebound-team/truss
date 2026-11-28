@@ -61,7 +61,7 @@ export interface VariableSegment extends CssSegmentBase {
   kind: "variable";
   /** The CSS props the variable sets, i.e. `["height", "width"]` for `sq(x)`. */
   props: string[];
-  /** Whether the runtime value goes through `__maybeInc`. */
+  /** Whether the runtime value goes through `maybeInc`. */
   incremented: boolean;
   /** For Px delegates: whether the runtime value must append `px`. */
   appendPx: boolean;
@@ -102,22 +102,12 @@ export interface TypographyLookupSegment {
   segmentsByName: Record<string, ResolvedSegment[]>;
 }
 
-/**
- * An unsupported pattern that could not be resolved.
- *
- * Valid segments in the same chain are preserved; only this segment is skipped in the output.
- */
-export interface ErrorSegment {
-  kind: "error";
-  message: string;
-}
-
 /** The segments that resolve to atomic CSS declarations. */
 export type CssSegment = StaticSegment | VariableSegment;
 
 /** A resolved chain segment — one abbreviation resolved to its effect on the element. */
 export type ResolvedSegment =
-  CssSegment | ClassNameSegment | InlineStyleSegment | ComposedSegment | TypographyLookupSegment | ErrorSegment;
+  CssSegment | ClassNameSegment | InlineStyleSegment | ComposedSegment | TypographyLookupSegment;
 
 /**
  * A marker segment — not a CSS style, but a directive to attach
