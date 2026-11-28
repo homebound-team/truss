@@ -1,8 +1,7 @@
 import * as t from "@babel/types";
 import { isCssSegment, type ResolvedSegment, type TrussMapping } from "./types";
 import { styleEntriesForSegment, type StyleEntry } from "./style-entries";
-import { variableValueNeedsMaybeCssVar } from "../css-custom-property";
-import { SPACING_CUSTOM_PROPERTY } from "../spacing-css-var";
+import type { RuntimeHelpers } from "./rewrite-sites";
 
 // ── Style hash objects ────────────────────────────────────────────────
 
@@ -10,15 +9,14 @@ import { SPACING_CUSTOM_PROPERTY } from "../spacing-css-var";
  * Build the style hash AST for a list of segments (from one `Css.*.$` expression).
  *
  * I.e. `[blue, h_white]` → `{ color: "blue h_white" }`, and `[mt(x)]` →
- * `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`.
+ * `{ marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc(x)) }] }`.
  */
 export function buildStyleHashProperties(
   segments: ResolvedSegment[],
   mapping: TrussMapping,
-  maybeIncHelperName?: string | null,
-  maybeCssVarHelperName?: string | null,
+  runtime: RuntimeHelpers,
 ): t.ObjectProperty[] {
-  return styleHashProperties(collectStyleEntryGroups(segments, mapping), maybeIncHelperName, maybeCssVarHelperName);
+  return styleHashProperties(collectStyleEntryGroups(segments, mapping), runtime);
 }
 
 /**
@@ -54,12 +52,12 @@ export function collectStyleEntryGroups(
  * Build style hash properties from grouped entries.
  *
  * Static groups become space-separated class bundles, i.e. `{ color: "blue h_white" }`.
- * Groups with a variable entry become tuples, i.e. `{ marginTop: ["mt_var", { "--marginTop": __maybeInc(x) }] }`.
+ * Groups with a variable entry become tuples, i.e.
+ * `{ marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc(x)) }] }`.
  */
 export function styleHashProperties(
   propGroups: ReadonlyMap<string, StyleEntry[]>,
-  maybeIncHelperName?: string | null,
-  maybeCssVarHelperName?: string | null,
+  runtime: RuntimeHelpers,
 ): t.ObjectProperty[] {
   const properties: t.ObjectProperty[] = [];
 
@@ -73,10 +71,7 @@ export function styleHashProperties(
     }
 
     const varsProps = variableEntries.map((dyn) => {
-      return t.objectProperty(
-        t.stringLiteral(dyn.varName!),
-        variableValueExpression(dyn, maybeIncHelperName, maybeCssVarHelperName),
-      );
+      return t.objectProperty(t.stringLiteral(dyn.varName!), variableValueExpression(dyn, runtime));
     });
     const tuple = t.arrayExpression([t.stringLiteral(classNames), t.objectExpression(varsProps)]);
     properties.push(t.objectProperty(toPropertyKey(cssProp), tuple));
@@ -88,22 +83,20 @@ export function styleHashProperties(
 /**
  * The runtime value stored in a variable tuple's vars object.
  *
- * I.e. an evaluated `Tokens.gap` → `"var(--gap)"`; `mt(x)` → `maybeCssVar(__maybeInc(x))`; `mtPx(x)` → `` `${x}px` ``;
+ * I.e. an evaluated `Tokens.gap` → `"var(--gap)"`; `mt(x)` → `maybeCssVar(maybeInc(x))`; `mtPx(x)` → `` `${x}px` ``;
  * `sweep(x)` → `` `sweep ${maybeCssVar(x)}` ``.
+ *
+ * `maybeInc` and `maybeCssVar` are runtime exports, so asking `runtime` for one here is what adds its import.
  */
-function variableValueExpression(
-  dyn: StyleEntry,
-  maybeIncHelperName?: string | null,
-  maybeCssVarHelperName?: string | null,
-): t.Expression {
+function variableValueExpression(dyn: StyleEntry, runtime: RuntimeHelpers): t.Expression {
   if (dyn.argResolved !== undefined) {
     return t.stringLiteral(dyn.argResolved);
   }
 
   let valueExpr = dyn.argNode!;
   if (dyn.incremented) {
-    // I.e. wrap with `__maybeInc(x)` for increment-based values
-    valueExpr = t.callExpression(t.identifier(maybeIncHelperName ?? "__maybeInc"), [valueExpr]);
+    // I.e. wrap with `maybeInc(x)` for increment-based values
+    valueExpr = t.callExpression(t.identifier(runtime.use("maybeInc")), [valueExpr]);
   } else if (dyn.appendPx) {
     // I.e. wrap with `` `${v}px` `` for Px delegate values
     valueExpr = t.templateLiteral(
@@ -111,8 +104,9 @@ function variableValueExpression(
       [valueExpr],
     );
   }
-  if (maybeCssVarHelperName && variableValueNeedsMaybeCssVar(dyn)) {
-    valueExpr = t.callExpression(t.identifier(maybeCssVarHelperName), [valueExpr]);
+  // A Px value is always `` `${n}px` ``, so only the other values may be a `--token` name
+  if (!dyn.appendPx) {
+    valueExpr = t.callExpression(t.identifier(runtime.use("maybeCssVar")), [valueExpr]);
   }
   if (dyn.valuePrefix) {
     // I.e. a keyframe method wraps with `` `sweep ${x}` `` so the value still names its keyframe.
@@ -127,37 +121,6 @@ function variableValueExpression(
   return valueExpr;
 }
 
-// ── Helper AST declarations ───────────────────────────────────────────
-
-/**
- * Build the per-file increment helper declaration.
- *
- * I.e. `const __maybeInc = (inc) => typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`;`
- */
-export function buildMaybeIncDeclaration(helperName: string): t.VariableDeclaration {
-  const incParam = t.identifier("inc");
-  const calcPrefix = `calc(var(${SPACING_CUSTOM_PROPERTY}) * `;
-  const body = t.blockStatement([
-    t.returnStatement(
-      t.conditionalExpression(
-        t.binaryExpression("===", t.unaryExpression("typeof", incParam), t.stringLiteral("string")),
-        incParam,
-        t.templateLiteral(
-          [
-            t.templateElement({ raw: calcPrefix, cooked: calcPrefix }, false),
-            t.templateElement({ raw: ")", cooked: ")" }, true),
-          ],
-          [incParam],
-        ),
-      ),
-    ),
-  ]);
-
-  return t.variableDeclaration("const", [
-    t.variableDeclarator(t.identifier(helperName), t.arrowFunctionExpression([incParam], body)),
-  ]);
-}
-
 /**
  * Build a runtime lookup table declaration for typography.
  *
@@ -167,9 +130,10 @@ export function buildRuntimeLookupDeclaration(
   lookupName: string,
   segmentsByName: Record<string, ResolvedSegment[]>,
   mapping: TrussMapping,
+  runtime: RuntimeHelpers,
 ): t.VariableDeclaration {
   const properties = Object.entries(segmentsByName).map(([name, segs]) => {
-    return t.objectProperty(t.identifier(name), t.objectExpression(buildStyleHashProperties(segs, mapping)));
+    return t.objectProperty(t.identifier(name), t.objectExpression(buildStyleHashProperties(segs, mapping, runtime)));
   });
   return t.variableDeclaration("const", [
     t.variableDeclarator(t.identifier(lookupName), t.objectExpression(properties)),

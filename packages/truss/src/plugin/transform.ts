@@ -25,7 +25,7 @@ import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css
 import { serializeTrussCss } from "./truss-css";
 import { createArbitraryTestCssPayload, createTestCssPayload, TEST_CSS_BOOTSTRAP_ID } from "./test-css";
 import { transformCssAst } from "./transform-css";
-import { buildMaybeIncDeclaration, buildRuntimeLookupDeclaration } from "./emit-style-hash";
+import { buildRuntimeLookupDeclaration } from "./emit-style-hash";
 import { Diagnostic } from "./diagnostic";
 import {
   rewriteExpressionSites,
@@ -59,7 +59,13 @@ export interface TransformTrussOptions extends DiagnosticOptions {
 const RUNTIME_MODULE = "@homebound/truss/runtime";
 
 /** Runtime imports are emitted in this order regardless of which helper the rewrite reached first. */
-const RUNTIME_HELPER_ORDER: RuntimeHelperName[] = ["trussProps", "mergeProps", "TrussDebugInfo", "maybeCssVar"];
+const RUNTIME_HELPER_ORDER: RuntimeHelperName[] = [
+  "trussProps",
+  "mergeProps",
+  "TrussDebugInfo",
+  "maybeCssVar",
+  "maybeInc",
+];
 
 /**
  * Transform a file's Truss expressions and test injections using one AST.
@@ -222,7 +228,7 @@ function compileExpressions(
 
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
-  const { rules, needsMaybeInc, needsMaybeCssVar } = collectAtomicRules(chains, mapping);
+  const rules = collectAtomicRules(chains, mapping);
   // Vite consumes rules and serializes the combined stylesheet once. Standalone callers
   // can still read `css`, but do not make every module pay for unused CSS serialization.
   let cssText: string | undefined;
@@ -236,8 +242,6 @@ function compileExpressions(
 
   // Step 4: Reserve local names for injected helpers
   const runtime = createRuntimeHelpers(ast, usedTopLevelNames);
-  const maybeIncHelperName = needsMaybeInc ? reservePreferredName(usedTopLevelNames, "__maybeInc") : null;
-  const maybeCssVarHelperName = needsMaybeCssVar ? runtime.use("maybeCssVar") : null;
 
   // Collect typography runtime lookups
   const runtimeLookups = collectRuntimeLookups(chains);
@@ -254,13 +258,19 @@ function compileExpressions(
     filename: basename(filename),
     debug: options.debug ?? false,
     mapping,
-    maybeIncHelperName,
-    maybeCssVarHelperName,
     runtime,
     runtimeLookupNames,
     hasCssPropsCall,
     cssAttributes,
   });
+
+  // Build the typography lookup tables now: they may use a runtime helper, and Step 6 lists the imports
+  const runtimeLookupDeclarations: t.Statement[] = [];
+  for (const [lookupKey, segmentsByName] of runtimeLookups) {
+    const lookupName = runtimeLookupNames.get(lookupKey);
+    if (!lookupName) continue;
+    runtimeLookupDeclarations.push(buildRuntimeLookupDeclaration(lookupName, segmentsByName, mapping, runtime));
+  }
 
   // Step 6: Prepare runtime imports before removing the Css import.
   const runtimeImports = runtime.imports();
@@ -288,15 +298,7 @@ function compileExpressions(
 
   // Step 8: Insert helper declarations after imports
   const declarationsToInsert: t.Statement[] = [];
-  if (maybeIncHelperName) {
-    declarationsToInsert.push(buildMaybeIncDeclaration(maybeIncHelperName));
-  }
-  // Insert runtime lookup tables for typography
-  for (const [lookupKey, segmentsByName] of runtimeLookups) {
-    const lookupName = runtimeLookupNames.get(lookupKey);
-    if (!lookupName) continue;
-    declarationsToInsert.push(buildRuntimeLookupDeclaration(lookupName, segmentsByName, mapping));
-  }
+  declarationsToInsert.push(...runtimeLookupDeclarations);
 
   // Inject __injectTrussCSS call if requested
   if (options.injectCss && rules.size > 0) {

@@ -46,7 +46,7 @@ CSS shorthands (`margin`, `padding`, `border`, etc.) always expand to longhands 
 Runtime values use CSS custom properties. A static class points at a CSS variable, and the runtime sets the variable via inline style:
 
 ```ts
-Css.mt(x).$ → { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }] }
+Css.mt(x).$ → { marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc(x)) }] }
 ```
 
 The tuple format is `[classNames: string, vars: Record<string, string>]`. At runtime, `trussProps` splits this into `className: "mt_var"` and `style: { "--marginTop": "16px" }`.

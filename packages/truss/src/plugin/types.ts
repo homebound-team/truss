@@ -61,7 +61,7 @@ export interface VariableSegment extends CssSegmentBase {
   kind: "variable";
   /** The CSS props the variable sets, i.e. `["height", "width"]` for `sq(x)`. */
   props: string[];
-  /** Whether the runtime value goes through `__maybeInc`. */
+  /** Whether the runtime value goes through `maybeInc`. */
   incremented: boolean;
   /** For Px delegates: whether the runtime value must append `px`. */
   appendPx: boolean;

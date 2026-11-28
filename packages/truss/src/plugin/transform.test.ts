@@ -870,10 +870,9 @@ describe("transform", () => {
       const s = Css.mt(x).$;
     `).toHaveTrussOutput(
       `
-      import { maybeCssVar } from "@homebound/truss/runtime";
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
+      import { maybeCssVar, maybeInc } from "@homebound/truss/runtime";
             const x = getSomeValue();
-            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }] };
+            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc(x)) }] };
     `,
       `
       .mt_var {
@@ -915,7 +914,6 @@ describe("transform", () => {
       const s = Css.mt("--some-variable").$;
     `).toHaveTrussOutput(
       `
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
       const s = { marginTop: ["mt_var", { "--marginTop": "var(--some-variable)" }] };
     `,
       `
@@ -937,10 +935,9 @@ describe("transform", () => {
       const s = Css.mt(token).$;
     `).toHaveTrussOutput(
       `
-      import { maybeCssVar } from "@homebound/truss/runtime";
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
+      import { maybeCssVar, maybeInc } from "@homebound/truss/runtime";
       const token = "--some-variable";
-      const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(token)) }] };
+      const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc(token)) }] };
     `,
       `
       .mt_var {
@@ -2597,9 +2594,8 @@ describe("transform", () => {
       const s = Css.w100.if(isActive).w(getWidth()).$;
     `).toHaveTrussOutput(
       `
-      import { maybeCssVar } from "@homebound/truss/runtime";
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
-      const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": maybeCssVar(__maybeInc(getWidth())) }] } : {}) };
+      import { maybeCssVar, maybeInc } from "@homebound/truss/runtime";
+      const s = { width: "w100", ...(isActive ? { width: ["w_var", { "--width": maybeCssVar(maybeInc(getWidth())) }] } : {}) };
     `,
       `
         .w100 {
@@ -2768,11 +2764,10 @@ describe("transform", () => {
     `,
     ).toHaveTrussOutput(
       `
-      import { trussProps, maybeCssVar } from "@homebound/truss/runtime";
-      const __maybeInc = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
+      import { trussProps, maybeCssVar, maybeInc } from "@homebound/truss/runtime";
       const x = getMargin();
       const iconVars = { "--icon-primary": color, "--icon-secondary": secondaryColor };
-      const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc(x)) }], style_iconVars: iconVars })} />;
+      const el = <div {...trussProps({ color: "blue", marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc(x)) }], style_iconVars: iconVars })} />;
     `,
       `
       .blue {
@@ -2855,21 +2850,20 @@ describe("transform", () => {
     );
   });
 
-  test("falls back for __maybeInc helper name collisions", () => {
+  test("falls back for maybeInc helper name collisions", () => {
     expectTrussTransform(
       `
       import { Css } from "./Css";
-      const __maybeInc = keepMe();
+      const maybeInc = keepMe();
       const x = getSomeValue();
       const s = Css.mt(x).$;
     `,
     ).toHaveTrussOutput(
       `
-      import { maybeCssVar } from "@homebound/truss/runtime";
-      const __maybeInc_1 = inc => { return typeof inc === "string" ? inc : \`calc(var(--t-spacing) * \${inc})\`; };
-            const __maybeInc = keepMe();
+      import { maybeCssVar, maybeInc as maybeInc_1 } from "@homebound/truss/runtime";
+            const maybeInc = keepMe();
             const x = getSomeValue();
-            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(__maybeInc_1(x)) }] };
+            const s = { marginTop: ["mt_var", { "--marginTop": maybeCssVar(maybeInc_1(x)) }] };
     `,
       `
       .mt_var {
