@@ -63,8 +63,6 @@ export function trussEsbuildPlugin(opts: TrussEsbuildPluginOptions) {
       });
 
       build.onEnd(() => {
-        if (!session.hasCss()) return;
-
         const css = session.collectCss();
         if (css.length === 0) return;
         const cssPath = resolve(outDir, opts.outputCss ?? "truss.css");

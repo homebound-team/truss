@@ -1,13 +1,13 @@
 import { readFileSync } from "fs";
 import { atRulePrelude, compareRuleSortKeys, ruleSortKey } from "../css-order";
-import { parseTrussCss, serializeTrussCss } from "./truss-css";
+import { parseTrussCss } from "./truss-css";
 import type {
   ParsedArbitraryCssBlock,
   ParsedCssRule,
   ParsedKeyframesBlock,
   ParsedPropertyDeclaration,
   ParsedTrussCss,
-} from "../truss-css";
+} from "../truss-css-types";
 
 /**
  * Read and parse an annotated truss.css file from disk.
@@ -72,9 +72,4 @@ export function mergeTrussCssData(sources: ParsedTrussCss[]): ParsedTrussCss {
     keyframes: allKeyframes,
     arbitraryCssBlocks: allArbitraryCssBlocks,
   };
-}
-
-/** Merge and serialize annotated Truss CSS with the first source winning duplicate names. */
-export function mergeTrussCss(sources: ParsedTrussCss[]): string {
-  return serializeTrussCss(mergeTrussCssData(sources));
 }

@@ -4,8 +4,7 @@ import { sortRulesByPriority } from "./priority";
 import { markerClassName, styleEntriesForSegment } from "./style-entries";
 import { camelToKebab } from "../utils";
 import { WHEN_RELATIONSHIPS, type WhenRelationship } from "./when-relationships";
-import type { ParsedTrussCss } from "../truss-css";
-import { serializeTrussCss } from "./truss-css";
+import type { ParsedTrussCss } from "../truss-css-types";
 
 // ── Atomic CSS rule model ─────────────────────────────────────────────
 
@@ -120,9 +119,9 @@ function whenSelectorFor(whenPseudo: WhenCondition): WhenSelector {
 // ── CSS text generation ───────────────────────────────────────────────
 
 /**
- * Generate the full CSS text from collected rules, sorted by StyleX priority.
+ * Generate atomic CSS data sorted by StyleX priority, retaining every emitted custom property declaration.
  *
- * I.e. produces output like:
+ * I.e. serialized with `serializeTrussCss`, it produces output like:
  * ```
  * /* @truss p:3000 c:black *\/
  * .black { color: #353535; }
@@ -130,11 +129,6 @@ function whenSelectorFor(whenPseudo: WhenCondition): WhenSelector {
  * @media screen and (max-width: 599px) { .sm_blue.sm_blue { color: #526675; } }
  * ```
  */
-export function generateCssText(rules: Map<string, AtomicRule>): string {
-  return serializeTrussCss(generateCssData(rules));
-}
-
-/** Generate sorted atomic CSS data, retaining every emitted custom property declaration. */
 export function generateCssData(rules: Map<string, AtomicRule>): ParsedTrussCss {
   const sorted = sortRulesByPriority(rules.values());
   const css: ParsedTrussCss = {

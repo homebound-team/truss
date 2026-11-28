@@ -1,4 +1,4 @@
-import type { ParsedCssRule, ParsedKeyframesBlock, ParsedPropertyDeclaration } from "./truss-css";
+import type { ParsedCssRule, ParsedKeyframesBlock, ParsedPropertyDeclaration } from "./truss-css-types";
 
 /** An atomic rule ready for CSSOM insertion, with query metadata supplied by the plugin. */
 export interface TestCssRule extends ParsedCssRule {

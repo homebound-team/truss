@@ -4,7 +4,7 @@ import type {
   ParsedKeyframesBlock,
   ParsedPropertyDeclaration,
   ParsedTrussCss,
-} from "../truss-css";
+} from "../truss-css-types";
 
 /** Regex matching `/* @truss p:<priority> c:<className> *\/` annotations. */
 const RULE_ANNOTATION_RE = /^\/\* @truss p:([\d.]+) c:(\S+) \*\/$/;

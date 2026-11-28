@@ -1,5 +1,5 @@
 import { compareClassNames, compareRuleSortKeys, ruleSortKey, type RuleSortKey } from "./css-order";
-import type { TestCssPayload } from "./test-css";
+import type { TestCssPayload } from "./test-css-types";
 
 interface InstalledRule {
   id: string;

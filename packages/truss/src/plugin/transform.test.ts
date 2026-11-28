@@ -1,6 +1,9 @@
 import { describe, test, expect } from "vitest";
 import { transformTruss, type TransformTrussOptions } from "./transform";
 import { loadMapping } from "./index";
+import { applyReferencedKeyframes } from "./at-rule-refs";
+import { generateCssData, type AtomicRule } from "./emit-css";
+import { serializeTrussCss } from "./truss-css";
 import { resolve } from "path";
 import { normalize } from "../testUtils";
 
@@ -5086,8 +5089,15 @@ function expectTrussTransform(code: string, options?: TransformTrussOptions, fil
   return expect({
     code: result?.code ? normalize(result.code) : null,
     // A .css.ts file's selector CSS is its output; other files emit atomic CSS
-    css: normalize(result?.arbitraryCss ?? result?.css ?? ""),
+    css: normalize(result?.arbitraryCss ?? atomicCss(result?.rules ?? new Map())),
   });
+}
+
+/** The atomic CSS of one file's rules, with the keyframes they name, as the session writes it to truss.css. */
+function atomicCss(rules: Map<string, AtomicRule>): string {
+  const cssData = generateCssData(rules);
+  applyReferencedKeyframes(cssData, mapping);
+  return serializeTrussCss(cssData);
 }
 
 /** Dedent code snippets so line numbers stay stable. */

@@ -22,7 +22,6 @@ import {
 } from "./ast-utils";
 import { applyReferencedKeyframes } from "./at-rule-refs";
 import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css";
-import { serializeTrussCss } from "./truss-css";
 import { createArbitraryTestCssPayload, createTestCssPayload, TEST_CSS_BOOTSTRAP_ID } from "./test-css";
 import { transformCssAst } from "./transform-css";
 import { buildRuntimeLookupDeclaration } from "./emit-style-hash";
@@ -37,8 +36,6 @@ import {
 export interface TransformResult {
   code: string;
   map?: unknown;
-  /** The atomic CSS generated from this file's Truss expressions. */
-  css: string;
   /** The atomic CSS rules collected during this transform, keyed by class name. */
   rules: Map<string, AtomicRule>;
   /** Selector-based CSS extracted from a .css.ts file, including an empty stylesheet. */
@@ -103,7 +100,7 @@ export function transformTruss(
     changed = true;
   }
 
-  let expressions: Pick<TransformResult, "css" | "rules"> | null = null;
+  let rules: Map<string, AtomicRule> | null = null;
   let arbitraryCss: string | undefined;
   if (isArbitraryCss) {
     // The `css` export becomes `undefined`, and imports that only its values used go away with it,
@@ -117,8 +114,8 @@ export function transformTruss(
       changed = true;
     }
   } else if (hasExpressions) {
-    expressions = compileExpressions(ast, filename, mapping, options);
-    changed ||= expressions !== null;
+    rules = compileExpressions(ast, filename, mapping, options);
+    changed ||= rules !== null;
   }
 
   if (!changed && arbitraryCss === undefined) return null;
@@ -128,10 +125,7 @@ export function transformTruss(
   return {
     code: changed ? preserveBlankLineAfterImports(code, output.code) : code,
     map: output.map,
-    get css() {
-      return expressions?.css ?? "";
-    },
-    rules: expressions?.rules ?? new Map(),
+    rules: rules ?? new Map(),
     arbitraryCss,
   };
 }
@@ -147,7 +141,7 @@ function compileExpressions(
   filename: string,
   mapping: TrussMapping,
   options: TransformTrussOptions,
-): Pick<TransformResult, "css" | "rules"> | null {
+): Map<string, AtomicRule> | null {
   // Step 1: Find the Css binding name — either from an import or a local `new CssBuilder(...)` declaration.
   // May be null when the file only has JSX css= attributes without importing Css.
   const cssImportBinding = findCssImportBinding(ast);
@@ -229,16 +223,8 @@ function compileExpressions(
   // Step 3: Collect atomic rules for CSS generation
   const chains = sites.map((s) => s.resolvedChain);
   const rules = collectAtomicRules(chains, mapping);
-  // Vite consumes rules and serializes the combined stylesheet once. Standalone callers
-  // can still read `css`, but do not make every module pay for unused CSS serialization.
-  let cssText: string | undefined;
-  /** Build per-module CSS only when a standalone caller or test injection consumes it. */
-  function collectCssData() {
-    const cssData = generateCssData(rules);
-    // Each test module carries the keyframes its own rules name; production merges them once.
-    applyReferencedKeyframes(cssData, mapping);
-    return cssData;
-  }
+  // The session serializes the combined stylesheet once, from every module's rules, so a module
+  // does not serialize its own CSS here.
 
   // Step 4: Reserve local names for injected helpers
   const runtime = createRuntimeHelpers(ast, usedTopLevelNames);
@@ -302,9 +288,12 @@ function compileExpressions(
 
   // Inject __injectTrussCSS call if requested
   if (options.injectCss && rules.size > 0) {
+    const cssData = generateCssData(rules);
+    // Each test module carries the keyframes its own rules name; production merges them once.
+    applyReferencedKeyframes(cssData, mapping);
     declarationsToInsert.push(
       t.expressionStatement(
-        t.callExpression(t.identifier("__injectTrussCSS"), [t.valueToNode(createTestCssPayload(collectCssData()))]),
+        t.callExpression(t.identifier("__injectTrussCSS"), [t.valueToNode(createTestCssPayload(cssData))]),
       ),
     );
   }
@@ -324,12 +313,7 @@ function compileExpressions(
 
   insertAfterLeadingImports(ast, declarationsToInsert);
 
-  return {
-    get css() {
-      return (cssText ??= serializeTrussCss(collectCssData()));
-    },
-    rules,
-  };
+  return rules;
 }
 
 /**

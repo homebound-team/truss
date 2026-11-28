@@ -139,7 +139,7 @@ The Vite plugin (`packages/truss/src/plugin/index.ts`) orchestrates transform an
 1. **Chain extraction** — `transform.ts` parses the file, finds `Css.*.$` chains, and resolves each chain into typed segments via `resolve-chain.ts` and its `resolve-*` helpers.
 2. **CSS rule collection** — `emit-css.ts` (`collectAtomicRules`) processes segments into a global `Map<string, AtomicRule>`. Each atomic rule maps one class name to one CSS selector + declaration pair; `style-entries.ts` derives the class names.
 3. **AST rewriting** — `rewrite-sites.ts` replaces each `Css.*.$` expression with an object expression (`{ display: "df", ... }`) built by `emit-style-hash.ts`, and rewrites JSX `css=` props into `trussProps(...)` or `mergeProps(...)` calls.
-4. **CSS text generation** — `emit-css.ts` (`generateCssText`) serializes collected rules into CSS text, ordered by specificity tiers.
+4. **CSS text generation** — `emit-css.ts` (`generateCssData`) sorts the collected rules, and `truss-css.ts` (`serializeTrussCss`) writes them as CSS text, ordered by specificity tiers.
 
 ### Key source files
 

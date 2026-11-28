@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mergeProps, TrussDebugInfo, trussProps, __injectTrussCSS } from "./runtime";
-import { mergeTrussCss } from "./plugin/merge-css";
-import type { TestCssPayload } from "./test-css";
+import { mergeTrussCssData } from "./plugin/merge-css";
+import { serializeTrussCss } from "./plugin/truss-css";
+import type { TestCssPayload } from "./test-css-types";
 
 describe("trussProps", () => {
   test("merges static style hashes", () => {
@@ -690,13 +691,15 @@ function atomicPayload(priority: number, className: string, cssText: string, atR
 /** Merge canonical production sources and parse their expected CSSOM in a separate document. */
 function productionRules(sources: TestCssPayload[]): string[] {
   return parseCssRules(
-    mergeTrussCss(
-      sources.map((source) => ({
-        rules: source.rules ?? [],
-        properties: source.properties ?? [],
-        keyframes: source.keyframes ?? [],
-        arbitraryCssBlocks: source.arbitraryRules?.length ? [{ cssText: source.arbitraryRules.join("\n") }] : [],
-      })),
+    serializeTrussCss(
+      mergeTrussCssData(
+        sources.map((source) => ({
+          rules: source.rules ?? [],
+          properties: source.properties ?? [],
+          keyframes: source.keyframes ?? [],
+          arbitraryCssBlocks: source.arbitraryRules?.length ? [{ cssText: source.arbitraryRules.join("\n") }] : [],
+        })),
+      ),
     ),
   );
 }

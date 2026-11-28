@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { collectAtomicRules, generateCssData, generateCssText, type AtomicRule } from "./emit-css";
+import { collectAtomicRules, generateCssData, type AtomicRule } from "./emit-css";
 import { computeRulePriority } from "./priority";
+import { serializeTrussCss } from "./truss-css";
 import type { ResolvedConditionContext, ResolvedSegment, TrussMapping } from "./types";
 import type { ResolvedChain } from "./resolve-chain";
 
@@ -31,7 +32,7 @@ test("structured emission retains duplicate property declarations and exact prod
     keyframes: [],
     arbitraryCssBlocks: [],
   });
-  expect(generateCssText(rules)).toEqual(
+  expect(serializeTrussCss(generateCssData(rules))).toEqual(
     [
       "/* @truss p:4000.5 c:w_var */",
       ".w_var { width: var(--width); }",
@@ -221,12 +222,12 @@ describe("collectAtomicRules", () => {
   });
 });
 
-describe("generateCssText", () => {
+describe("generateCssData", () => {
   test("base rule with annotation", () => {
     const rules = new Map<string, AtomicRule>([
       ["df", rule({ className: "df", cssProperty: "display", cssValue: "flex" })],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(css).toBe("/* @truss p:3000 c:df */\n.df { display: flex; }");
   });
 
@@ -234,7 +235,7 @@ describe("generateCssText", () => {
     const rules = new Map<string, AtomicRule>([
       ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "#526675", pseudoClass: ":hover" })],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(css).toBe("/* @truss p:3130 c:h_blue */\n.h_blue:hover { color: #526675; }");
   });
 
@@ -250,7 +251,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(css).toBe(
       "/* @truss p:3200 c:sm_blue */\n@media screen and (max-width: 599px) { .sm_blue.sm_blue { color: #526675; } }",
     );
@@ -269,7 +270,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(css).toBe(
       "/* @truss p:3330 c:sm_h_blue */\n@media screen and (max-width: 599px) { .sm_h_blue.sm_h_blue:hover { color: #526675; } }",
     );
@@ -293,7 +294,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     expect(css).toBe(
       "@media screen and (max-width: 599px) { ._mrk:hover .sm_f_wh_anc_h_blue.sm_f_wh_anc_h_blue:focus { color: #526675; } }",
     );
@@ -311,7 +312,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(css).toBe("/* @truss p:8000 c:placeholder_blue */\n.placeholder_blue::placeholder { color: #526675; }");
   });
 
@@ -327,7 +328,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(stripAnnotations(css)).toBe(".h_n_d_black:hover:not(:disabled) { color: #353535; }");
   });
 
@@ -343,7 +344,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(css).toBe(
       [
         "/* @truss p:4000.5 c:mt_var */",
@@ -370,7 +371,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = generateCssText(rules);
+    const css = serializeTrussCss(generateCssData(rules));
     expect(css).toBe(
       [
         "/* @truss p:4000.5 c:sq_var */",
@@ -397,7 +398,7 @@ describe("generateCssText", () => {
       ["black", rule({ className: "black", cssProperty: "color", cssValue: "black" })],
       ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const baseIdx = css.indexOf(".black {");
     const pseudoIdx = css.indexOf(".h_blue:hover {");
     const mediaIdx = css.indexOf(".sm_blue.sm_blue {");
@@ -418,7 +419,7 @@ describe("generateCssText", () => {
       ],
       ["w100", rule({ className: "w100", cssProperty: "width", cssValue: "100%" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const staticIdx = css.indexOf(".w100 {");
     const variableIdx = css.indexOf(".w_var {");
     expect(staticIdx).toBeLessThan(variableIdx);
@@ -430,7 +431,7 @@ describe("generateCssText", () => {
       ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" })],
       ["f_green", rule({ className: "f_green", cssProperty: "color", cssValue: "green", pseudoClass: ":focus" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const hoverIdx = css.indexOf(".h_blue:hover");
     const focusIdx = css.indexOf(".f_green:focus");
     const activeIdx = css.indexOf(".a_red:active");
@@ -443,7 +444,7 @@ describe("generateCssText", () => {
       ["btc_red", rule({ className: "btc_red", cssProperty: "border-top-color", cssValue: "red" })],
       ["bc_white", rule({ className: "bc_white", cssProperty: "border-color", cssValue: "white" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const bcIdx = css.indexOf(".bc_white {");
     const btcIdx = css.indexOf(".btc_red {");
     expect(bcIdx).toBeLessThan(btcIdx);
@@ -470,7 +471,7 @@ describe("generateCssText", () => {
         }),
       ],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const bcIdx = css.indexOf(".bc_var {");
     const btcIdx = css.indexOf(".btc_var {");
     expect(bcIdx).toBeLessThan(btcIdx);
@@ -481,7 +482,7 @@ describe("generateCssText", () => {
       ["mt0", rule({ className: "mt0", cssProperty: "margin-top", cssValue: "0" })],
       ["m0", rule({ className: "m0", cssProperty: "margin", cssValue: "0" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const mIdx = css.indexOf(".m0 {");
     const mtIdx = css.indexOf(".mt0 {");
     expect(mIdx).toBeLessThan(mtIdx);
@@ -492,7 +493,7 @@ describe("generateCssText", () => {
       ["pl8", rule({ className: "pl8", cssProperty: "padding-left", cssValue: "8px" })],
       ["p0", rule({ className: "p0", cssProperty: "padding", cssValue: "0" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const pIdx = css.indexOf(".p0 {");
     const plIdx = css.indexOf(".pl8 {");
     expect(pIdx).toBeLessThan(plIdx);
@@ -504,7 +505,7 @@ describe("generateCssText", () => {
       ["bc_blue", rule({ className: "bc_blue", cssProperty: "border-color", cssValue: "blue" })],
       ["b_none", rule({ className: "b_none", cssProperty: "border", cssValue: "none" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const borderIdx = css.indexOf(".b_none {");
     const bcIdx = css.indexOf(".bc_blue {");
     const btcIdx = css.indexOf(".btc_red {");
@@ -524,9 +525,9 @@ describe("generateCssText", () => {
       ["absolute", rule({ className: "absolute", cssProperty: "position", cssValue: "absolute" })],
     ]);
     // Both insertion orders must produce the same output
-    expect(generateCssText(rulesForward)).toBe(generateCssText(rulesReverse));
+    expect(serializeTrussCss(generateCssData(rulesForward))).toBe(serializeTrussCss(generateCssData(rulesReverse)));
     // And the alphabetical order should be: absolute, bgBlue700, bgWhite
-    const css = stripAnnotations(generateCssText(rulesForward));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rulesForward)));
     const absIdx = css.indexOf(".absolute {");
     const blueIdx = css.indexOf(".bgBlue700 {");
     const whiteIdx = css.indexOf(".bgWhite {");
@@ -540,7 +541,7 @@ describe("generateCssText", () => {
       ["h_blue", rule({ className: "h_blue", cssProperty: "color", cssValue: "blue", pseudoClass: ":hover" })],
       ["a_red", rule({ className: "a_red", cssProperty: "color", cssValue: "red", pseudoClass: ":active" })],
     ]);
-    const css = stripAnnotations(generateCssText(rules));
+    const css = stripAnnotations(serializeTrussCss(generateCssData(rules)));
     const hoverIdx = css.indexOf(".h_blue:hover");
     const activeIdx = css.indexOf(".a_red:active");
     // :disabled is not in LVFHA but stylex gives it priority 92, which is < :hover (130)

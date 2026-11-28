@@ -3,10 +3,10 @@ import { applyReferencedKeyframes, applyRegisteredProperties } from "./at-rule-r
 import { generateCssData, type AtomicRule } from "./emit-css";
 import { transformTruss, type TransformResult, type TransformTrussOptions } from "./transform";
 import { mergeTrussCssData, readTrussCss } from "./merge-css";
-import type { ParsedTrussCss } from "../truss-css";
+import type { ParsedTrussCss } from "../truss-css-types";
 import { serializeTrussCss } from "./truss-css";
 import { createTestCssPayload } from "./test-css";
-import type { TestCssPayload } from "../test-css";
+import type { TestCssPayload } from "../test-css-types";
 import { loadMapping } from "./mapping-utils";
 import type { TrussMapping } from "./types";
 import { rootSpacingPreludeCss } from "../spacing-css-var";
@@ -157,10 +157,6 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     return css;
   }
 
-  function hasCss(): boolean {
-    return cssRegistry.size > 0 || arbitraryCssRegistry.size > 0 || libraryPaths.length > 0;
-  }
-
   /**
    * Collect only libraries; application modules deliver their own CSS in tests.
    *
@@ -177,7 +173,6 @@ export function createTrussTransformSession(options: TrussTransformSessionOption
     collectCss,
     collectTestCss,
     ensureMapping,
-    hasCss,
     reset,
     transformCode,
   };
@@ -187,7 +182,6 @@ export interface TrussTransformSession {
   collectCss: (annotate?: boolean) => string;
   collectTestCss: () => TestCssPayload;
   ensureMapping: () => TrussMapping;
-  hasCss: () => boolean;
   reset: () => void;
   transformCode: (code: string, fileId: string, options?: TransformTrussOptions) => TransformResult | null;
 }

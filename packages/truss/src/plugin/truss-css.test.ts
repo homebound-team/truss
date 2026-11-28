@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { type ParsedTrussCss } from "../truss-css";
+import { type ParsedTrussCss } from "../truss-css-types";
 import { parseTrussCss, serializeTrussCss } from "./truss-css";
 
 test("serialization omits only generated annotations when requested", () => {
