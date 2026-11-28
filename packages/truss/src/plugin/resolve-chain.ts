@@ -4,7 +4,7 @@ import { breakpointMediaQuery } from "./mapping-utils";
 import { extractDollarChain, unwrapExpression } from "./ast-utils";
 import { type CallChainNode, type ChainNode, UnsupportedPatternError } from "./chain-nodes";
 import { cloneConditionContext, emptyConditionContext, resetConditionContext } from "./condition-context";
-import { errorSegment, requireEntry, resolveEntry } from "./resolve-entry";
+import { requireEntry, resolveEntry } from "./resolve-entry";
 import { resolveCallNode } from "./resolve-calls";
 import { resolveWhenCall } from "./resolve-when";
 import { containerQueryFromCall } from "./container-query";
@@ -43,6 +43,9 @@ export interface ResolvedChain {
   /** Error messages from unsupported patterns found in this chain. */
   errors: string[];
 }
+
+/** The parts and markers of a chain, while its errors are still being collected. */
+type ResolvedChainParts = Pick<ResolvedChain, "parts" | "markers">;
 
 export type ResolvedChainPart =
   | { type: "unconditional"; segments: ResolvedSegment[] }
@@ -124,11 +127,28 @@ export function resolveFullChain(
   chain: ChainNode[],
   initialContext: ResolvedConditionContext = emptyConditionContext(),
 ): ResolvedChain {
+  const errors: string[] = [];
+  const { parts, markers } = resolveChainParts(ctx, chain, initialContext, errors);
+  return { parts, markers, errors: [...new Set(errors)] };
+}
+
+/**
+ * The parts and markers of `resolveFullChain`, with every unsupported pattern added to `errors`.
+ *
+ * `errors` is one list for the whole `Css.*.$` expression, which a nested `when({ ... })` value
+ * adds to as well, so an error has a single route out of the resolver.
+ */
+function resolveChainParts(
+  ctx: ResolveChainCtx,
+  chain: ChainNode[],
+  initialContext: ResolvedConditionContext,
+  errors: string[],
+): ResolvedChainParts {
   const { mapping } = ctx;
   const markerScan = scanMarkerNodes(chain);
   const nodes = markerScan.chain;
   const markers = [...markerScan.markers];
-  const errors = [...markerScan.errors];
+  errors.push(...markerScan.errors);
   const parts: ResolvedChainPart[] = [];
   const context = cloneConditionContext(initialContext);
   // The open unconditional part; closed before each conditional or when({ ... }) part
@@ -162,8 +182,8 @@ export function resolveFullChain(
       const elseContext = cloneConditionContext(context);
       elseContext.mediaQuery = invertMediaQuery(mediaQuery);
       current.push(
-        ...resolveSegments(ctx, nodes.slice(i + 1, elseIndex), thenContext),
-        ...resolveSegments(ctx, nodes.slice(elseIndex + 1, branchEnd), elseContext),
+        ...resolveSegments(ctx, nodes.slice(i + 1, elseIndex), thenContext, errors),
+        ...resolveSegments(ctx, nodes.slice(elseIndex + 1, branchEnd), elseContext, errors),
       );
       if (branchEnd === nodes.length) {
         break;
@@ -175,10 +195,9 @@ export function resolveFullChain(
 
     if (isWhenObjectCall(node)) {
       closeCurrentPart();
-      const resolved = resolveWhenObjectSelectors(ctx, node, context);
+      const resolved = resolveWhenObjectSelectors(ctx, node, context, errors);
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
-      errors.push(...resolved.errors);
       i++;
       continue;
     }
@@ -220,22 +239,19 @@ export function resolveFullChain(
       parts.push({
         type: "conditional",
         conditionNode: node.conditionNode,
-        thenSegments: resolveSegments(ctx, thenNodes, cloneConditionContext(branchContext)),
-        elseSegments: resolveSegments(ctx, elseNodes, cloneConditionContext(branchContext)),
+        thenSegments: resolveSegments(ctx, thenNodes, cloneConditionContext(branchContext), errors),
+        elseSegments: resolveSegments(ctx, elseNodes, cloneConditionContext(branchContext), errors),
       });
       continue;
     }
 
-    current.push(...resolveNode(ctx, node, context));
+    current.push(...resolveNode(ctx, node, context, errors));
     i++;
   }
 
   closeCurrentPart();
 
-  const segmentErrors = parts
-    .flatMap((part) => partSegments(part))
-    .flatMap((seg) => (seg.kind === "error" ? [seg.message] : []));
-  return { parts, markers, errors: [...new Set([...errors, ...segmentErrors])] };
+  return { parts, markers };
 }
 
 /**
@@ -247,21 +263,27 @@ function resolveSegments(
   ctx: ResolveChainCtx,
   nodes: ChainNode[],
   context: ResolvedConditionContext,
+  errors: string[],
 ): ResolvedSegment[] {
-  return nodes.flatMap((node) => resolveNode(ctx, node, context));
+  return nodes.flatMap((node) => resolveNode(ctx, node, context, errors));
 }
 
 /**
  * Resolve one chain node under `context`.
  *
  * Modifiers (`ifSm`, `onHover`, `end`, ...) advance `context` and yield no segments; abbreviations and
- * built-in calls yield their segments; an unsupported pattern yields one error segment in their place.
+ * built-in calls yield their segments; an unsupported pattern yields no segments and adds to `errors`.
  */
-function resolveNode(ctx: ResolveChainCtx, node: ChainNode, context: ResolvedConditionContext): ResolvedSegment[] {
+function resolveNode(
+  ctx: ResolveChainCtx,
+  node: ChainNode,
+  context: ResolvedConditionContext,
+  errors: string[],
+): ResolvedSegment[] {
   const { mapping } = ctx;
   try {
     if (isWhenObjectCall(node)) {
-      return flattenWhenObjectParts(resolveWhenObjectSelectors(ctx, node, context));
+      return flattenWhenObjectParts(resolveWhenObjectSelectors(ctx, node, context, errors));
     }
     if (applyModifierNodeToConditionContext(context, node, mapping)) {
       return [];
@@ -274,10 +296,11 @@ function resolveNode(ctx: ResolveChainCtx, node: ChainNode, context: ResolvedCon
     }
     return [];
   } catch (err) {
-    // Preserve unsupported patterns as error segments so transforms can report them to the build tool.
+    // Record unsupported patterns so transforms can report them to the build tool.
     // Production rejects these diagnostics; dev can keep valid segments while reporting the errors.
     if (!(err instanceof UnsupportedPatternError)) throw err;
-    return [errorSegment(err.message)];
+    errors.push(err.message);
+    return [];
   }
 }
 
@@ -285,7 +308,7 @@ function resolveNode(ctx: ResolveChainCtx, node: ChainNode, context: ResolvedCon
  * Apply context-only chain nodes like breakpoints/pseudos/end.
  *
  * Returns false for nodes that produce styles instead. Throws UnsupportedPatternError for a
- * malformed modifier, which `resolveNode` turns into an error segment.
+ * malformed modifier, which `resolveNode` adds to the chain's errors.
  */
 function applyModifierNodeToConditionContext(
   context: ResolvedConditionContext,
@@ -441,18 +464,15 @@ function resolveWhenObjectSelectors(
   ctx: ResolveChainCtx,
   node: WhenObjectCallChainNode,
   context: ResolvedConditionContext,
-): ResolvedChain {
+  errors: string[],
+): ResolvedChainParts {
   if (!ctx.cssBindingName) {
-    return {
-      parts: [],
-      markers: [],
-      errors: [new UnsupportedPatternError(`when({ ... }) requires a resolvable Css binding`).message],
-    };
+    errors.push(`when({ ... }) requires a resolvable Css binding`);
+    return { parts: [], markers: [] };
   }
 
   const parts: ResolvedChainPart[] = [];
   const markers: MarkerSegment[] = [];
-  const errors: string[] = [];
 
   for (const property of node.args[0].properties) {
     try {
@@ -474,17 +494,16 @@ function resolveWhenObjectSelectors(
 
       const selectorContext = cloneConditionContext(context);
       selectorContext.pseudoClass = property.key.value;
-      const resolved = resolveFullChain(ctx, innerChain, selectorContext);
+      const resolved = resolveChainParts(ctx, innerChain, selectorContext, errors);
       parts.push(...resolved.parts);
       markers.push(...resolved.markers);
-      errors.push(...resolved.errors);
     } catch (err) {
       if (!(err instanceof UnsupportedPatternError)) throw err;
       errors.push(err.message);
     }
   }
 
-  return { parts, markers, errors: [...new Set(errors)] };
+  return { parts, markers };
 }
 
 /**
@@ -502,7 +521,7 @@ function resolveWhenObjectValueChain(ctx: ResolveChainCtx, value: t.Expression):
 }
 
 /** Flatten nested `when({ ... })` parts back into plain segments for a branch body. */
-function flattenWhenObjectParts(resolved: ResolvedChain): ResolvedSegment[] {
+function flattenWhenObjectParts(resolved: ResolvedChainParts): ResolvedSegment[] {
   const segments: ResolvedSegment[] = [];
 
   // I.e. a branch body needs a flat segment list, even though `when({ ... })` is resolved via `resolveFullChain()`.
@@ -512,10 +531,6 @@ function flattenWhenObjectParts(resolved: ResolvedChain): ResolvedSegment[] {
     }
 
     segments.push(...part.segments);
-  }
-
-  for (const err of resolved.errors) {
-    segments.push(errorSegment(err));
   }
 
   return segments;

@@ -226,9 +226,6 @@ function resolveCssExpression(
     if (part.type !== "unconditional") continue;
     for (const seg of part.segments) {
       // Reject segments that need the runtime: variables with runtime args and the non-CSS kinds
-      if (seg.kind === "error") {
-        return { error: seg.message };
-      }
       if (seg.kind === "variable" && seg.argResolved === undefined) {
         return { error: `variable value with variable argument is not supported in .css.ts files` };
       }

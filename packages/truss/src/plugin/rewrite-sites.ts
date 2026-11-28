@@ -213,8 +213,6 @@ function buildStyleHashMembers(
 
   for (const seg of segments) {
     switch (seg.kind) {
-      case "error":
-        continue;
       case "className":
         // I.e. `Css.className(cls).df.$` becomes `className_cls: cls` in the style hash.
         classNameArgs.push(t.cloneNode(seg.arg, true));

@@ -18,11 +18,6 @@ export function requireEntry(mapping: TrussMapping, abbr: string): TrussMappingE
   return entry;
 }
 
-/** Placeholder segment that carries an unsupported-pattern message through to the emitter. */
-export function errorSegment(message: string): ResolvedSegment {
-  return { kind: "error", message };
-}
-
 /** A static segment under a snapshot of the active condition axes. */
 export function staticSegment(
   abbr: string,
